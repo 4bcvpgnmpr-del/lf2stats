@@ -76,7 +76,20 @@ def fetch_tables(url: str) -> list[pd.DataFrame]:
     return tables
 
 
-def fetch_ranking_with_photos(url: str) -> pd.DataFrame:
+def get_formula_separator(sh: gspread.Spreadsheet) -> str:
+    """Google Sheets usa ',' como separador de argumentos en formulas si el
+    idioma de la hoja es ingles, pero ';' si es español (y la mayoria de
+    idiomas europeos). Sin esto, =IMAGE(url, 4, 40, 40) da #ERROR! en una
+    hoja configurada en español."""
+    try:
+        meta = sh.fetch_sheet_metadata()
+        locale = meta.get("properties", {}).get("locale", "")
+    except Exception:  # noqa: BLE001
+        locale = ""
+    return ";" if not locale.startswith("en") else ","
+
+
+def fetch_ranking_with_photos(url: str, formula_sep: str = ";") -> pd.DataFrame:
     """Descarga la tabla de rankings de jugadoras conservando la foto de cada una.
 
     A diferencia de las demas tablas (leidas con pandas.read_html), esta se
@@ -105,15 +118,17 @@ def fetch_ranking_with_photos(url: str) -> pd.DataFrame:
     headers = [c.get_text(strip=True) for c in header_cells]
     if headers and headers[0] == "":
         headers[0] = "Foto"
+    headers.append("FotoURL")  # columna extra en texto plano (uso de apps externas)
 
     data = []
     for tr in rows[1:]:
         cells = tr.find_all("td")
         # Filas como la de paginacion al final de la tabla ("1 2 3 4 5...")
         # tienen menos celdas que columnas (usan colspan) -> se descartan.
-        if len(cells) < len(headers):
+        if len(cells) < len(headers) - 1:
             continue
         row_values = []
+        foto_url = ""
         for cell in cells:
             img = cell.find("img")
             if img and img.get("src"):
@@ -122,9 +137,11 @@ def fetch_ranking_with_photos(url: str) -> pd.DataFrame:
                     src = "https:" + src
                 elif src.startswith("/"):
                     src = "https://imagenes.feb.es" + src
-                row_values.append(f'=IMAGE("{src}", 4, 40, 40)')
+                foto_url = src
+                row_values.append(f'=IMAGE("{src}"{formula_sep} 4{formula_sep} 40{formula_sep} 40)')
             else:
                 row_values.append(cell.get_text(strip=True))
+        row_values.append(foto_url)  # FotoURL en texto plano al final de la fila
         data.append(row_values)
 
     if not data:
@@ -306,6 +323,7 @@ def write_log(sh: gspread.Spreadsheet, message: str):
 def main():
     client = get_gspread_client()
     sh = client.open_by_key(SHEET_ID)
+    formula_sep = get_formula_separator(sh)
 
     resumen = []
 
@@ -323,7 +341,7 @@ def main():
         )
 
     # 2) Rankings por jugadora (con foto de cada jugadora)
-    ranking_df = fetch_ranking_with_photos(RANKINGS_URL)
+    ranking_df = fetch_ranking_with_photos(RANKINGS_URL, formula_sep=formula_sep)
     if not ranking_df.empty:
         write_dataframe(sh, "Jugadoras", ranking_df, has_photos=True)
         resumen.append(f"Jugadoras: {len(ranking_df)} filas (con foto)")
