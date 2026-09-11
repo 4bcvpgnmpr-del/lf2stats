@@ -33,6 +33,7 @@ from datetime import datetime, timezone
 import requests
 import pandas as pd
 import gspread
+from bs4 import BeautifulSoup
 from google.oauth2.service_account import Credentials
 
 # ----------------------------- CONFIG ------------------------------------
@@ -73,6 +74,63 @@ def fetch_tables(url: str) -> list[pd.DataFrame]:
         # No se encontro ninguna tabla en la pagina (p.ej. temporada sin datos)
         tables = []
     return tables
+
+
+def fetch_ranking_with_photos(url: str) -> pd.DataFrame:
+    """Descarga la tabla de rankings de jugadoras conservando la foto de cada una.
+
+    A diferencia de las demas tablas (leidas con pandas.read_html), esta se
+    parsea a mano con BeautifulSoup porque necesitamos conservar la URL de
+    la foto de cada jugadora, dato que pandas.read_html descarta al quedarse
+    solo con el texto de las celdas.
+
+    Las fotos se guardan como formulas =IMAGE(...) para que Google Sheets
+    las muestre como miniaturas dentro de la propia celda.
+    """
+    resp = requests.get(url, headers=HEADERS, timeout=30)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    target_table = None
+    for table in soup.find_all("table"):
+        if "Jugador" in table.get_text(" ", strip=True) and len(table.find_all("tr")) > 1:
+            target_table = table
+            break
+
+    if target_table is None:
+        return pd.DataFrame()
+
+    rows = target_table.find_all("tr")
+    header_cells = rows[0].find_all(["th", "td"])
+    headers = [c.get_text(strip=True) for c in header_cells]
+    if headers and headers[0] == "":
+        headers[0] = "Foto"
+
+    data = []
+    for tr in rows[1:]:
+        cells = tr.find_all("td")
+        if not cells:
+            continue
+        row_values = []
+        for cell in cells:
+            img = cell.find("img")
+            if img and img.get("src"):
+                src = img["src"]
+                if src.startswith("//"):
+                    src = "https:" + src
+                elif src.startswith("/"):
+                    src = "https://imagenes.feb.es" + src
+                row_values.append(f'=IMAGE("{src}", 4, 40, 40)')
+            else:
+                row_values.append(cell.get_text(strip=True))
+        data.append(row_values)
+
+    if not data:
+        return pd.DataFrame()
+
+    ncols = len(data[0])
+    headers = (headers + [f"col_{i}" for i in range(len(headers), ncols)])[:ncols]
+    return pd.DataFrame(data, columns=headers)
 
 
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -118,8 +176,95 @@ def get_gspread_client() -> gspread.Client:
     return gspread.authorize(creds)
 
 
-def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame):
-    """Escribe (sobrescribiendo) un DataFrame en una pestaña del Sheet."""
+HEADER_BG = {"red": 0.10, "green": 0.16, "blue": 0.33}   # azul oscuro
+HEADER_FG = {"red": 1.0, "green": 1.0, "blue": 1.0}       # texto blanco
+BAND_COLOR = {"red": 0.93, "green": 0.95, "blue": 0.98}   # gris azulado muy claro
+
+
+def _existing_banding_id(sh: gspread.Spreadsheet, sheet_id: int):
+    """Busca si la pestaña ya tiene una banda de colores alternos aplicada."""
+    meta = sh.fetch_sheet_metadata()
+    for s in meta.get("sheets", []):
+        if s["properties"]["sheetId"] == sheet_id:
+            bandings = s.get("bandedRanges", [])
+            if bandings:
+                return bandings[0]["bandedRangeId"]
+    return None
+
+
+def style_worksheet(sh: gspread.Spreadsheet, ws: gspread.Worksheet, n_rows: int, has_photos: bool = False):
+    """Aplica un estilo profesional: cabecera coloreada, fila superior fija
+    y filas alternas en gris claro. Si has_photos=True, tambien agranda la
+    primera columna y las filas para que las miniaturas de las fotos quepan
+    bien."""
+    sheet_id = ws.id
+
+    requests_list = [
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": sheet_id, "gridProperties": {"frozenRowCount": 1}},
+                "fields": "gridProperties.frozenRowCount",
+            }
+        },
+        {
+            "repeatCell": {
+                "range": {"sheetId": sheet_id, "startRowIndex": 0, "endRowIndex": 1},
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": HEADER_BG,
+                        "textFormat": {"bold": True, "foregroundColor": HEADER_FG},
+                        "horizontalAlignment": "CENTER",
+                        "verticalAlignment": "MIDDLE",
+                    }
+                },
+                "fields": "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment)",
+            }
+        },
+    ]
+
+    banding_range = {"sheetId": sheet_id, "startRowIndex": 1, "endRowIndex": max(n_rows + 1, 2)}
+    banding_props = {
+        "range": banding_range,
+        "rowProperties": {
+            "headerColor": HEADER_BG,
+            "firstBandColor": {"red": 1.0, "green": 1.0, "blue": 1.0},
+            "secondBandColor": BAND_COLOR,
+        },
+    }
+    existing_id = _existing_banding_id(sh, sheet_id)
+    if existing_id:
+        requests_list.append(
+            {"updateBanding": {"bandedRange": {"bandedRangeId": existing_id, **banding_props}, "fields": "range,rowProperties"}}
+        )
+    else:
+        requests_list.append({"addBanding": {"bandedRange": banding_props}})
+
+    if has_photos:
+        requests_list.append(
+            {
+                "updateDimensionProperties": {
+                    "range": {"sheetId": sheet_id, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1},
+                    "properties": {"pixelSize": 50},
+                    "fields": "pixelSize",
+                }
+            }
+        )
+        requests_list.append(
+            {
+                "updateDimensionProperties": {
+                    "range": {"sheetId": sheet_id, "dimension": "ROWS", "startIndex": 1, "endIndex": max(n_rows + 1, 2)},
+                    "properties": {"pixelSize": 45},
+                    "fields": "pixelSize",
+                }
+            }
+        )
+
+    sh.batch_update({"requests": requests_list})
+
+
+def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, has_photos: bool = False):
+    """Escribe (sobrescribiendo) un DataFrame en una pestaña del Sheet, y le
+    aplica un formato profesional (cabecera, colores alternos, fotos)."""
     try:
         ws = sh.worksheet(tab_name)
         ws.clear()
@@ -130,6 +275,13 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame):
 
     values = [list(df.columns.astype(str))] + df.astype(str).values.tolist()
     ws.update(values, value_input_option="USER_ENTERED")
+
+    try:
+        style_worksheet(sh, ws, n_rows=len(df), has_photos=has_photos)
+    except Exception as exc:  # noqa: BLE001
+        # El formato es "nice to have": si falla no debe tumbar la
+        # actualizacion de datos, que es lo importante.
+        print(f"Aviso: no se pudo aplicar formato a '{tab_name}': {exc}", file=sys.stderr)
 
 
 def write_log(sh: gspread.Spreadsheet, message: str):
@@ -163,14 +315,11 @@ def main():
             "Equipos: sin tablas (probablemente la temporada aun no tiene partidos)"
         )
 
-    # 2) Rankings por jugadora
-    ranking_tables = fetch_tables(RANKINGS_URL)
-    if ranking_tables:
-        for i, df in enumerate(ranking_tables):
-            df = clean_dataframe(df)
-            tab = "Jugadoras" if i == 0 else f"Jugadoras_{i}"
-            write_dataframe(sh, tab, df)
-            resumen.append(f"{tab}: {len(df)} filas")
+    # 2) Rankings por jugadora (con foto de cada jugadora)
+    ranking_df = fetch_ranking_with_photos(RANKINGS_URL)
+    if not ranking_df.empty:
+        write_dataframe(sh, "Jugadoras", ranking_df, has_photos=True)
+        resumen.append(f"Jugadoras: {len(ranking_df)} filas (con foto)")
     else:
         resumen.append("Jugadoras: sin tablas todavia")
 
