@@ -109,7 +109,9 @@ def fetch_ranking_with_photos(url: str) -> pd.DataFrame:
     data = []
     for tr in rows[1:]:
         cells = tr.find_all("td")
-        if not cells:
+        # Filas como la de paginacion al final de la tabla ("1 2 3 4 5...")
+        # tienen menos celdas que columnas (usan colspan) -> se descartan.
+        if len(cells) < len(headers):
             continue
         row_values = []
         for cell in cells:
@@ -130,7 +132,12 @@ def fetch_ranking_with_photos(url: str) -> pd.DataFrame:
 
     ncols = len(data[0])
     headers = (headers + [f"col_{i}" for i in range(len(headers), ncols)])[:ncols]
-    return pd.DataFrame(data, columns=headers)
+    df = pd.DataFrame(data, columns=headers)
+    # Por si quedara algun NaN suelto (celdas vacias, filas irregulares):
+    # rellenar con texto vacio para que sea JSON-serializable al escribir
+    # en Google Sheets.
+    df = df.fillna("")
+    return df
 
 
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -273,7 +280,7 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, ha
             title=tab_name, rows=max(len(df) + 10, 20), cols=max(len(df.columns) + 2, 10)
         )
 
-    values = [list(df.columns.astype(str))] + df.astype(str).values.tolist()
+    values = [list(df.columns.astype(str))] + df.fillna("").astype(str).values.tolist()
     ws.update(values, value_input_option="USER_ENTERED")
 
     try:
