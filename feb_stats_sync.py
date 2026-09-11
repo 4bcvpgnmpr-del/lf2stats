@@ -76,8 +76,23 @@ def fetch_tables(url: str) -> list[pd.DataFrame]:
 
 
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Limpieza basica: quita columnas 'Unnamed' vacias y NaN sueltos."""
-    df = df.loc[:, ~df.columns.astype(str).str.startswith("Unnamed")]
+    """Limpieza basica: quita columnas 'Unnamed' vacias y NaN sueltos.
+
+    Algunas tablas de la FEB tienen encabezados de dos niveles (p.ej. un
+    grupo "Totales" con subcolumnas debajo), que pandas representa como un
+    MultiIndex. Hay que aplanarlos a texto simple antes de poder filtrar
+    las columnas "Unnamed".
+    """
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [
+            "_".join(str(level) for level in col if str(level) != "" and not str(level).startswith("Unnamed"))
+            or f"col_{i}"
+            for i, col in enumerate(df.columns.values)
+        ]
+    else:
+        df.columns = df.columns.astype(str)
+
+    df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
     df = df.fillna("")
     return df
 
