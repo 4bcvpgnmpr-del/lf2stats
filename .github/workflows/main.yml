@@ -1,1 +1,29 @@
 
+name: Actualizar estadisticas LF2
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Lunes, miercoles y viernes a las 07:00 UTC
+    - cron: '0 7 * * 1,3,5'
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar script de sincronizacion
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: python feb_stats_sync.py
