@@ -27,6 +27,7 @@ Como conseguir esos ids/credenciales -> ver README.md
 import os
 import sys
 import json
+import io
 from datetime import datetime, timezone
 
 import requests
@@ -63,7 +64,11 @@ def fetch_tables(url: str) -> list[pd.DataFrame]:
     resp = requests.get(url, headers=HEADERS, timeout=30)
     resp.raise_for_status()
     try:
-        tables = pd.read_html(resp.text)
+        # OJO: hay que envolver el HTML en io.StringIO(); las versiones
+        # recientes de pandas ya no aceptan un string HTML "a pelo" y lo
+        # intentan interpretar como una ruta de archivo, lo que provoca
+        # un FileNotFoundError con todo el HTML en el mensaje de error.
+        tables = pd.read_html(io.StringIO(resp.text))
     except ValueError:
         # No se encontro ninguna tabla en la pagina (p.ej. temporada sin datos)
         tables = []
