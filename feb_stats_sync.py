@@ -172,16 +172,23 @@ STAT_TOTAL_MEDIA_COLS = {
 def fix_total_media_cell(text: str, part: int) -> str:
     """Recalcula 'Total Media' de una celda a partir del Total (fiable) y
     los partidos jugados, ignorando el texto de Media que trae la pagina
-    (que a veces sale corrompido, ej. '25 12,2005' en vez de '25 12,5')."""
+    (que a veces sale corrompido, ej. '25 12,2005' en vez de '25 12,5').
+
+    Usamos re.search (no re.match) por si hay algun caracter invisible o
+    icono delante del numero que impida el match anclado al principio.
+    """
     if not part:
         return text
-    m = re.match(r"^\s*(-?\d+)\b", text)
+    m = re.search(r"(-?\d+)", text)
     if not m:
         return text
     total = int(m.group(1))
     media = total / part
     media_str = str(int(media)) if media == int(media) else f"{media:.1f}".replace(".", ",")
-    return f"{total} {media_str}"
+    fixed = f"{total} {media_str}"
+    if fixed != text.strip():
+        print(f"  [fix_equipo_medias] '{text!r}' -> '{fixed}' (repr original para depurar: {text.encode('unicode_escape')})", file=sys.stderr)
+    return fixed
 
 
 def fix_equipo_medias(df: pd.DataFrame) -> pd.DataFrame:
