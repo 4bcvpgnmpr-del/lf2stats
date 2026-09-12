@@ -157,6 +157,52 @@ def fetch_ranking_with_photos(url: str, formula_sep: str = ";") -> pd.DataFrame:
     return df
 
 
+import re
+
+# Columnas de "Total y Media" de la tabla de Equipos: la FEB muestra ambos
+# numeros en la misma celda (con un botón para alternar cual se ve), pero
+# nuestro scraper a veces arrastra basura del valor oculto. Como el Total
+# siempre se lee bien, recalculamos la Media nosotros mismos.
+STAT_TOTAL_MEDIA_COLS = {
+    "MIN", "PT", "Rebotes_RO", "Rebotes_RD", "Rebotes_RT", "AS", "BR", "BP",
+    "Tapones_TF", "Tapones_TC", "MT", "Faltas_FC", "Faltas_FR", "VA",
+}
+
+
+def fix_total_media_cell(text: str, part: int) -> str:
+    """Recalcula 'Total Media' de una celda a partir del Total (fiable) y
+    los partidos jugados, ignorando el texto de Media que trae la pagina
+    (que a veces sale corrompido, ej. '25 12,2005' en vez de '25 12,5')."""
+    if not part:
+        return text
+    m = re.match(r"^\s*(-?\d+)\b", text)
+    if not m:
+        return text
+    total = int(m.group(1))
+    media = total / part
+    media_str = str(int(media)) if media == int(media) else f"{media:.1f}".replace(".", ",")
+    return f"{total} {media_str}"
+
+
+def fix_equipo_medias(df: pd.DataFrame) -> pd.DataFrame:
+    """Aplica fix_total_media_cell a todas las columnas de Total/Media de
+    la tabla de Equipos, usando la columna 'Part' (partidos jugados) de
+    cada fila."""
+    if "Part" not in df.columns:
+        return df
+    cols_to_fix = [c for c in df.columns if c in STAT_TOTAL_MEDIA_COLS]
+    if not cols_to_fix:
+        return df
+    for idx, row in df.iterrows():
+        try:
+            part = int(re.match(r"^\s*(-?\d+)", str(row["Part"])).group(1))
+        except (AttributeError, ValueError):
+            continue
+        for c in cols_to_fix:
+            df.at[idx, c] = fix_total_media_cell(str(row[c]), part)
+    return df
+
+
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Limpieza basica: quita columnas 'Unnamed' vacias y NaN sueltos.
 
@@ -332,6 +378,8 @@ def main():
     if equipo_tables:
         for i, df in enumerate(equipo_tables):
             df = clean_dataframe(df)
+            if i == 0:
+                df = fix_equipo_medias(df)
             tab = "Equipos" if i == 0 else f"Equipos_{i}"
             write_dataframe(sh, tab, df)
             resumen.append(f"{tab}: {len(df)} filas")
