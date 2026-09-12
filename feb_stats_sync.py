@@ -168,6 +168,9 @@ STAT_TOTAL_MEDIA_COLS = {
     "Tapones_TF", "Tapones_TC", "MT", "Faltas_FC", "Faltas_FR", "VA",
 }
 
+# Columnas de tiro: "aciertos/intentos porcentaje%" (ej. "42/89 47,2%")
+SHOT_STAT_COLS = {"T2", "T3", "TC", "TL"}
+
 
 def fix_total_media_cell(text: str, part: int) -> str:
     """Recalcula 'Total Media' de una celda a partir del Total (fiable) y
@@ -208,6 +211,48 @@ def fix_equipo_medias(df: pd.DataFrame) -> pd.DataFrame:
         for c in cols_to_fix:
             df.at[idx, c] = fix_total_media_cell(str(row[c]), part)
     return df
+
+
+def split_stat_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Separa las columnas combinadas de la FEB en columnas independientes
+    con un unico numero cada una:
+      - Columnas de 'Total Media' (ej. '25 12,5') -> dos columnas:
+        '<Stat>_Total' y '<Stat>_Media'.
+      - Columnas de tiro 'aciertos/intentos pct%' (ej. '42/89 47,2%') ->
+        tres columnas: '<Stat>_Anotados', '<Stat>_Intentados', '<Stat>_Pct'.
+    """
+    new_cols = {}
+    for col in df.columns:
+        if col in STAT_TOTAL_MEDIA_COLS:
+            totals, medias = [], []
+            for val in df[col].astype(str):
+                m = re.match(r"^\s*(-?\d+)\s+(-?[\d,]+)\s*$", val)
+                if m:
+                    totals.append(m.group(1))
+                    medias.append(m.group(2))
+                else:
+                    totals.append(val)
+                    medias.append("")
+            new_cols[f"{col}_Total"] = totals
+            new_cols[f"{col}_Media"] = medias
+        elif col in SHOT_STAT_COLS:
+            anotados, intentados, pct = [], [], []
+            for val in df[col].astype(str):
+                m = re.match(r"^\s*(\d+)\s*/\s*(\d+)\s+([\d,]+)\s*%\s*$", val)
+                if m:
+                    anotados.append(m.group(1))
+                    intentados.append(m.group(2))
+                    pct.append(m.group(3))
+                else:
+                    anotados.append("")
+                    intentados.append("")
+                    pct.append(val)
+            new_cols[f"{col}_Anotados"] = anotados
+            new_cols[f"{col}_Intentados"] = intentados
+            new_cols[f"{col}_Pct"] = pct
+        else:
+            new_cols[col] = df[col].astype(str).tolist()
+    return pd.DataFrame(new_cols)
 
 
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -400,6 +445,7 @@ def main():
             df = clean_dataframe(df)
             if i == 0:
                 df = fix_equipo_medias(df)
+                df = split_stat_columns(df)
             tab = "Equipos" if i == 0 else f"Equipos_{i}"
             write_dataframe(sh, tab, df)
             resumen.append(f"{tab}: {len(df)} filas")
