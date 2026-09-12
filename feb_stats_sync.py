@@ -341,7 +341,12 @@ def style_worksheet(sh: gspread.Spreadsheet, ws: gspread.Worksheet, n_rows: int,
 
 def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, has_photos: bool = False):
     """Escribe (sobrescribiendo) un DataFrame en una pestaña del Sheet, y le
-    aplica un formato profesional (cabecera, colores alternos, fotos)."""
+    aplica un formato profesional (cabecera, colores alternos, fotos).
+
+    Usamos RAW salvo que la pestaña tenga formulas =IMAGE(...) (has_photos),
+    porque con USER_ENTERED Sheets intenta reinterpretar el texto como si
+    lo hubiera tecleado una persona, y puede arrastrar un formato numerico
+    residual de una celda que antes tuvo otro tipo de dato."""
     try:
         ws = sh.worksheet(tab_name)
         ws.clear()
@@ -351,7 +356,27 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, ha
         )
 
     values = [list(df.columns.astype(str))] + df.fillna("").astype(str).values.tolist()
-    ws.update(values, value_input_option="USER_ENTERED")
+    value_input_option = "USER_ENTERED" if has_photos else "RAW"
+    ws.update(values, value_input_option=value_input_option)
+
+    if not has_photos:
+        try:
+            # Forzar formato de texto plano en toda la pestaña, para que
+            # ningun formato numerico heredado de ejecuciones anteriores
+            # reinterprete los valores (p.ej. celdas que antes fueron
+            # numero y quedaron con formato "0.0000" o similar). No se
+            # aplica a pestañas con formulas =IMAGE(...) por precaucion.
+            sh.batch_update({
+                "requests": [{
+                    "repeatCell": {
+                        "range": {"sheetId": ws.id},
+                        "cell": {"userEnteredFormat": {"numberFormat": {"type": "TEXT"}}},
+                        "fields": "userEnteredFormat.numberFormat",
+                    }
+                }]
+            })
+        except Exception as exc:  # noqa: BLE001
+            print(f"Aviso: no se pudo forzar formato de texto en '{tab_name}': {exc}", file=sys.stderr)
 
     try:
         style_worksheet(sh, ws, n_rows=len(df), has_photos=has_photos)
