@@ -90,19 +90,25 @@ def get_formula_separator(sh: gspread.Spreadsheet) -> str:
 
 
 def fetch_ranking_with_photos(url: str, formula_sep: str = ";") -> pd.DataFrame:
-    """Descarga la tabla de rankings de jugadoras conservando la foto de cada una.
+    """Descarga la tabla de rankings de jugadoras (categoria "Puntos", la que
+    sale por defecto) conservando la foto de cada una.
 
     A diferencia de las demas tablas (leidas con pandas.read_html), esta se
     parsea a mano con BeautifulSoup porque necesitamos conservar la URL de
     la foto de cada jugadora, dato que pandas.read_html descarta al quedarse
     solo con el texto de las celdas.
-
-    Las fotos se guardan como formulas =IMAGE(...) para que Google Sheets
-    las muestre como miniaturas dentro de la propia celda.
     """
     resp = requests.get(url, headers=HEADERS, timeout=30)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+    return parse_ranking_html(resp.text, formula_sep)
+
+
+def parse_ranking_html(html_text: str, formula_sep: str = ";") -> pd.DataFrame:
+    """Parsea el HTML de una pagina de rankings de la FEB (la tabla de
+    jugadoras con foto), sea cual sea la categoria mostrada (Puntos,
+    Rebotes, Asistencias...). Las fotos se guardan como formulas =IMAGE(...)
+    para que Google Sheets las muestre como miniaturas."""
+    soup = BeautifulSoup(html_text, "html.parser")
 
     target_table = None
     for table in soup.find_all("table"):
@@ -155,6 +161,97 @@ def fetch_ranking_with_photos(url: str, formula_sep: str = ";") -> pd.DataFrame:
     # en Google Sheets.
     df = df.fillna("")
     return df
+
+
+# ----------------------------- OTRAS CATEGORIAS DE RANKING -----------------
+#
+# La web de la FEB usa un desplegable "Puntos / Rebotes Totales / Rebotes
+# Ofensivos / ... / Valoracion" para elegir la categoria del ranking, pero
+# NO es un simple parametro en la URL: es un control ASP.NET clasico que
+# envia un "postback" (una peticion POST con unos tokens de sesion largos:
+# __VIEWSTATE, __EVENTVALIDATION...). Para descargar varias categorias hay
+# que simular ese postback con requests.Session().
+#
+# Indices reales del desplegable, confirmados capturando la peticion real
+# del navegador (Chrome DevTools -> Network -> Payload) el 13/09/2026:
+RANKING_CATEGORIES = {
+    "Rebotes_Totales": 1,
+    "Asistencias": 4,
+    "Robos": 5,       # "Balones recuperados" en la FEB
+    "Tapones_Favor": 7,
+    "Valoracion": 12,
+}
+
+RANKINGS_DROPDOWN_FIELD = "_ctl0:MainContentPlaceHolderMaster:rankingsDropDownList"
+
+
+def _extract_form_state(soup: BeautifulSoup) -> dict:
+    """Extrae todos los campos de un formulario ASP.NET (inputs ocultos +
+    selects con su opcion seleccionada), necesarios para poder enviar un
+    postback valido sin perder el resto del estado de la pagina."""
+    state = {}
+    for inp in soup.find_all("input"):
+        name = inp.get("name")
+        if not name:
+            continue
+        itype = (inp.get("type") or "text").lower()
+        if itype in ("hidden", "text", "submit"):
+            state[name] = inp.get("value", "")
+    for sel in soup.find_all("select"):
+        name = sel.get("name")
+        if not name:
+            continue
+        chosen = sel.find("option", selected=True) or sel.find("option")
+        state[name] = chosen.get("value", "") if chosen else ""
+    return state
+
+
+def fetch_all_ranking_categories(url: str, formula_sep: str = ";") -> dict:
+    """Descarga el resto de categorias de ranking (Rebotes, Asistencias,
+    Robos, Tapones, Valoracion) simulando el postback del desplegable de
+    la FEB. Devuelve un dict {nombre_categoria: DataFrame}.
+
+    Es intencionadamente tolerante a fallos: si la web cambia y el postback
+    deja de funcionar, se registra un aviso y se omite esa categoria en vez
+    de tumbar el resto de la sincronizacion (Equipos, Puntos, Resultados
+    siguen funcionando igual)."""
+    results = {}
+    try:
+        session = requests.Session()
+        resp = session.get(url, headers=HEADERS, timeout=30)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        state = _extract_form_state(soup)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: no se pudo iniciar la sesion para otras categorias de ranking: {exc}", file=sys.stderr)
+        return results
+
+    for cat_name, cat_value in RANKING_CATEGORIES.items():
+        try:
+            form_data = dict(state)
+            form_data["__EVENTTARGET"] = "_ctl0$MainContentPlaceHolderMaster$rankingsDropDownList"
+            form_data["__EVENTARGUMENT"] = ""
+            form_data[RANKINGS_DROPDOWN_FIELD] = str(cat_value)
+
+            post_resp = session.post(url, data=form_data, headers=HEADERS, timeout=30)
+            post_resp.raise_for_status()
+
+            df = parse_ranking_html(post_resp.text, formula_sep)
+            if not df.empty:
+                results[cat_name] = df
+            else:
+                print(f"Aviso: la categoria '{cat_name}' devolvio una tabla vacia (temporada sin datos?)", file=sys.stderr)
+
+            # El __VIEWSTATE cambia en cada postback: hay que refrescar el
+            # estado con la respuesta actual antes de pedir la siguiente
+            # categoria, o el siguiente postback sera invalido.
+            soup = BeautifulSoup(post_resp.text, "html.parser")
+            state = _extract_form_state(soup)
+        except Exception as exc:  # noqa: BLE001
+            print(f"Aviso: no se pudo obtener el ranking de '{cat_name}': {exc}", file=sys.stderr)
+            continue
+
+    return results
 
 
 import re
@@ -461,6 +558,17 @@ def main():
         resumen.append(f"Jugadoras: {len(ranking_df)} filas (con foto)")
     else:
         resumen.append("Jugadoras: sin tablas todavia")
+
+    # 2b) Resto de categorias de ranking (rebotes, asistencias, robos,
+    # tapones, valoracion), cada una en su propia pestana "Jugadoras_<Cat>"
+    otras_categorias = fetch_all_ranking_categories(RANKINGS_URL, formula_sep=formula_sep)
+    for cat_name, df in otras_categorias.items():
+        tab = f"Jugadoras_{cat_name}"
+        write_dataframe(sh, tab, df, has_photos=True)
+        resumen.append(f"{tab}: {len(df)} filas (con foto)")
+    categorias_faltantes = set(RANKING_CATEGORIES) - set(otras_categorias)
+    if categorias_faltantes:
+        resumen.append(f"Categorias no disponibles esta vez: {', '.join(sorted(categorias_faltantes))}")
 
     # 3) Resultados (util para saber que jornada es la ultima procesada)
     resultado_tables = fetch_tables(RESULTADOS_URL)
