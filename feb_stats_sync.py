@@ -352,6 +352,77 @@ def split_stat_columns(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(new_cols)
 
 
+def fetch_resultados_y_clasificacion(url: str) -> tuple:
+    """Descarga la pagina de Resultados de la FEB, que en realidad contiene
+    VARIAS tablas: una por cada jornada (con los partidos y su marcador) y,
+    si la temporada ya tiene partidos jugados, una tabla de Clasificacion
+    real (PJ, PG, PP, puntos a favor/en contra, % y racha actual).
+
+    Devuelve (resultados_df, clasificacion_df). Cualquiera de las dos puede
+    venir vacia si esa parte no esta disponible todavia.
+    """
+    resp = requests.get(url, headers=HEADERS, timeout=30)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    resultado_rows = []
+    clasificacion_df = pd.DataFrame()
+
+    for table in soup.find_all("table"):
+        header_text = table.get_text(" ", strip=True)
+        rows = table.find_all("tr")
+        if not rows:
+            continue
+        header_cells = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
+
+        # Tabla de partidos: cabecera "Equipos, Resultado, Fecha, Hora"
+        if "Equipos" in header_cells and "Resultado" in header_cells:
+            # La jornada suele estar en un titulo justo antes de la tabla
+            heading = table.find_previous(["h1", "h2", "h3", "h4", "span", "div"])
+            jornada_label = heading.get_text(strip=True) if heading else ""
+            for tr in rows[1:]:
+                cells = [c.get_text(strip=True) for c in tr.find_all("td")]
+                if len(cells) < 3:
+                    continue
+                equipos_txt, resultado_txt = cells[0], cells[1]
+                fecha_txt = cells[2] if len(cells) > 2 else ""
+                hora_txt = cells[3] if len(cells) > 3 else ""
+                if " - " in equipos_txt:
+                    local, visitante = [t.strip() for t in equipos_txt.split(" - ", 1)]
+                else:
+                    local, visitante = equipos_txt, ""
+                jugado = "*" not in resultado_txt and "-" in resultado_txt
+                pts_local, pts_visitante = "", ""
+                if jugado:
+                    partes = resultado_txt.split("-")
+                    if len(partes) == 2:
+                        pts_local, pts_visitante = partes[0].strip(), partes[1].strip()
+                resultado_rows.append({
+                    "Jornada": jornada_label,
+                    "Local": local,
+                    "Visitante": visitante,
+                    "Resultado": resultado_txt,
+                    "Pts_Local": pts_local,
+                    "Pts_Visitante": pts_visitante,
+                    "Jugado": "Si" if jugado else "No",
+                    "Fecha": fecha_txt,
+                    "Hora": hora_txt,
+                })
+
+        # Tabla de clasificacion real: cabecera "Po, Equipo, PJ, PG, PP..."
+        elif "Equipo" in header_cells and "PJ" in header_cells and "PG" in header_cells:
+            data = []
+            for tr in rows[1:]:
+                cells = [c.get_text(strip=True) for c in tr.find_all("td")]
+                if len(cells) == len(header_cells):
+                    data.append(cells)
+            if data:
+                clasificacion_df = pd.DataFrame(data, columns=header_cells)
+
+    resultados_df = pd.DataFrame(resultado_rows)
+    return resultados_df, clasificacion_df
+
+
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Limpieza basica: quita columnas 'Unnamed' vacias y NaN sueltos.
 
@@ -570,12 +641,19 @@ def main():
     if categorias_faltantes:
         resumen.append(f"Categorias no disponibles esta vez: {', '.join(sorted(categorias_faltantes))}")
 
-    # 3) Resultados (util para saber que jornada es la ultima procesada)
-    resultado_tables = fetch_tables(RESULTADOS_URL)
-    if resultado_tables:
-        df = clean_dataframe(resultado_tables[0])
-        write_dataframe(sh, "Resultados", df)
-        resumen.append(f"Resultados: {len(df)} filas")
+    # 3) Resultados por jornada + Clasificacion real (viven en la misma pagina)
+    resultados_df, clasificacion_df = fetch_resultados_y_clasificacion(RESULTADOS_URL)
+    if not resultados_df.empty:
+        write_dataframe(sh, "Resultados", resultados_df)
+        resumen.append(f"Resultados: {len(resultados_df)} filas")
+    else:
+        resumen.append("Resultados: sin partidos todavia")
+
+    if not clasificacion_df.empty:
+        write_dataframe(sh, "Clasificacion", clasificacion_df)
+        resumen.append(f"Clasificacion: {len(clasificacion_df)} filas")
+    else:
+        resumen.append("Clasificacion: no disponible todavia (necesita al menos una jornada jugada)")
 
     write_log(sh, " | ".join(resumen))
     print("Actualizacion completada:")
