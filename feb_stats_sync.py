@@ -596,6 +596,56 @@ def write_log(sh: gspread.Spreadsheet, message: str):
     ws.append_row([datetime.now(timezone.utc).isoformat(timespec="seconds"), message])
 
 
+# ----------------------------- ESCUDOS DE EQUIPO ---------------------------
+
+def fetch_team_ids(url: str) -> dict:
+    """Devuelve un dict {nombre_equipo: id_equipo} leyendo los enlaces
+    "Equipo.aspx?i=ID" que aparecen en la pagina de estadisticas. Ese ID es
+    el que permite construir la URL del escudo del equipo:
+    https://imagenes.feb.es/Imagen.aspx?i=ID&ti=1
+    """
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=30)
+        resp.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: no se pudieron obtener los IDs de equipo para los escudos: {exc}", file=sys.stderr)
+        return {}
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    mapping = {}
+    for a in soup.find_all("a", href=True):
+        m = re.search(r"Equipo\.aspx\?i=(\d+)", a["href"])
+        if m:
+            name = a.get_text(strip=True)
+            if name:
+                mapping[name] = m.group(1)
+    return mapping
+
+
+def add_escudos(df: pd.DataFrame, team_ids: dict, formula_sep: str = ";") -> pd.DataFrame:
+    """Anade al DataFrame de Equipos una columna 'Escudo' (miniatura via
+    IMAGE()) y 'EscudoURL' (texto plano, para apps externas), usando el
+    mapeo nombre de equipo -> id. Si no se encuentra el id de un equipo,
+    esas celdas quedan vacias (nunca se inventa una URL)."""
+    if "Equipo" not in df.columns or not team_ids:
+        return df
+
+    escudo_formula, escudo_url = [], []
+    for name in df["Equipo"]:
+        team_id = team_ids.get(str(name).strip())
+        if team_id:
+            url = f"https://imagenes.feb.es/Imagen.aspx?i={team_id}&ti=1"
+            escudo_formula.append(f'=IMAGE("{url}"{formula_sep} 4{formula_sep} 40{formula_sep} 40)')
+            escudo_url.append(url)
+        else:
+            escudo_formula.append("")
+            escudo_url.append("")
+
+    df.insert(1, "Escudo", escudo_formula)
+    df["EscudoURL"] = escudo_url
+    return df
+
+
 # ----------------------------- MAIN ----------------------------------------
 
 
@@ -606,16 +656,18 @@ def main():
 
     resumen = []
 
-    # 1) Estadisticas por equipo
+    # 1) Estadisticas por equipo (+ escudo de cada equipo)
     equipo_tables = fetch_tables(ESTADISTICAS_URL)
+    team_ids = fetch_team_ids(ESTADISTICAS_URL)
     if equipo_tables:
         for i, df in enumerate(equipo_tables):
             df = clean_dataframe(df)
             if i == 0:
                 df = fix_equipo_medias(df)
                 df = split_stat_columns(df)
+                df = add_escudos(df, team_ids, formula_sep=formula_sep)
             tab = "Equipos" if i == 0 else f"Equipos_{i}"
-            write_dataframe(sh, tab, df)
+            write_dataframe(sh, tab, df, has_photos=(i == 0))
             resumen.append(f"{tab}: {len(df)} filas")
     else:
         resumen.append(
