@@ -179,7 +179,15 @@ RANKING_CATEGORIES = {
     "Asistencias": 4,
     "Robos": 5,       # "Balones recuperados" en la FEB
     "Tapones_Favor": 7,
+    "Tapones_Contra": 8,
+    "Mates": 9,
+    "Faltas_Recibidas": 10,
+    "Faltas_Cometidas": 11,
     "Valoracion": 12,
+    "Minutos_Jugados": 13,
+    "Pct_Tiros_2": 14,
+    "Pct_Tiros_3": 15,
+    "Pct_Tiros_Libres": 16,
 }
 
 RANKINGS_DROPDOWN_FIELD = "_ctl0:MainContentPlaceHolderMaster:rankingsDropDownList"
