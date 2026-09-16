@@ -169,3 +169,636 @@ def parse_ranking_html(html_text: str, formula_sep: str = ";") -> pd.DataFrame:
 
     ncols = max(len(r) for r in data)
     data = [r + [""] * (ncols - len(r)) for r in data]
+    headers = (headers + [f"col_{i}" for i in range(len(headers), ncols)])[:ncols]
+    df = pd.DataFrame(data, columns=headers).fillna("")
+
+    cols_basura = [
+        c for c in df.columns
+        if re.match(r"^col_\d+$", str(c)) and (df[c].astype(str).str.strip() == "").all()
+    ]
+    if cols_basura:
+        df = df.drop(columns=cols_basura)
+    return df
+
+
+# ----------------------------- PAGINACION ---------------------------------
+
+PAGER_RE = re.compile(r"__doPostBack\(\s*'([^']+)'\s*,\s*'([^']*)'\s*\)")
+LABELS_SIGUIENTE = {"...", "…", ">", ">>", "»", "siguiente"}
+
+
+def _numero_pagina(label: str, argumento: str):
+    if label.isdigit():
+        return int(label)
+    m = re.search(r"(\d+)", argumento or "")
+    return int(m.group(1)) if m else None
+
+
+def _enlaces_paginacion(soup: BeautifulSoup) -> list:
+    """Busca los enlaces de paginacion dentro de la tabla de ranking."""
+    tabla = _tabla_ranking(soup)
+    if tabla is None:
+        return []
+    zonas = [tabla]
+    if tabla.parent is not None:
+        zonas.append(tabla.parent)
+
+    enlaces, claves = [], set()
+    for zona in zonas:
+        for a in zona.find_all("a", href=True):
+            label = a.get_text(strip=True)
+            if not (label.isdigit() or label.lower() in LABELS_SIGUIENTE):
+                continue
+            href = a["href"]
+            m = PAGER_RE.search(href)
+            if m:
+                target, arg = m.group(1), m.group(2)
+                if "rankingsDropDownList" in target:
+                    continue
+                clave = f"{target}|{arg}"
+                if clave in claves:
+                    continue
+                claves.add(clave)
+                enlaces.append({"label": label, "tipo": "postback", "target": target,
+                                "arg": arg, "clave": clave,
+                                "pagina": _numero_pagina(label, arg)})
+            elif label.isdigit() and re.search(r"(pag|page|p=)", href, re.I):
+                if href in claves:
+                    continue
+                claves.add(href)
+                enlaces.append({"label": label, "tipo": "get", "href": href,
+                                "clave": href, "pagina": int(label)})
+        if enlaces:
+            break
+    return enlaces
+
+
+def _pagina_actual(soup: BeautifulSoup):
+    """La pagina actual suele mostrarse como <span>N</span> sin enlace."""
+    tabla = _tabla_ranking(soup)
+    if tabla is None:
+        return None
+    for span in tabla.find_all("span"):
+        t = span.get_text(strip=True)
+        if t.isdigit() and span.find_parent("a") is None:
+            if any(td.get("colspan") for td in span.find_parents("td")) or span.find_parent("table") is not tabla:
+                return int(t)
+    return None
+
+
+def _clave_jugadora(df: pd.DataFrame) -> pd.Series:
+    cols = [c for c in ("Jugador", "Equipo") if c in df.columns] or list(df.columns)
+    return df[cols].astype(str).agg("|".join, axis=1)
+
+
+def _descargar_todas_las_paginas(session, url: str, html_inicial: str,
+                                 formula_sep: str, etiqueta: str) -> pd.DataFrame:
+    """Lee la pagina actual y recorre todas las siguientes del ranking."""
+    frames = []
+    vistos = set()
+    visitadas = {1}
+    claves_usadas = set()
+    html = html_inicial
+    paginas_leidas = 0
+
+    for n in range(MAX_PAGINAS):
+        df = parse_ranking_html(html, formula_sep)
+        nuevas = 0
+        if not df.empty:
+            for k in _clave_jugadora(df):
+                if k not in vistos:
+                    vistos.add(k)
+                    nuevas += 1
+            frames.append(df)
+        paginas_leidas += 1
+
+        if n > 0 and nuevas == 0:
+            print(f"  [paginacion] {etiqueta}: pagina sin jugadoras nuevas, fin.", file=sys.stderr)
+            break
+
+        soup = BeautifulSoup(html, "html.parser")
+        actual = _pagina_actual(soup)
+        if actual:
+            visitadas.add(actual)
+
+        enlaces = _enlaces_paginacion(soup)
+        if n == 0:
+            print(f"  [paginacion] {etiqueta}: {len(enlaces)} enlaces de pagina detectados "
+                  f"({', '.join(e['label'] for e in enlaces) or 'ninguno'})", file=sys.stderr)
+
+        con_numero = [e for e in enlaces if e["pagina"] is not None
+                      and e["pagina"] not in visitadas and e["clave"] not in claves_usadas]
+        sin_numero = [e for e in enlaces if e["pagina"] is None and e["clave"] not in claves_usadas]
+
+        if con_numero:
+            siguiente = min(con_numero, key=lambda e: e["pagina"])
+        elif sin_numero:
+            siguiente = sin_numero[-1]   # el "..." hacia delante suele ser el ultimo
+        else:
+            break
+
+        try:
+            if siguiente["tipo"] == "postback":
+                datos = _extract_form_state(soup)
+                datos["__EVENTTARGET"] = siguiente["target"]
+                datos["__EVENTARGUMENT"] = siguiente["arg"]
+                resp = _request_con_reintentos(session, "POST", url, data=datos)
+            else:
+                resp = _request_con_reintentos(session, "GET", urljoin(url, siguiente["href"]))
+        except Exception as exc:  # noqa: BLE001
+            print(f"  [paginacion] {etiqueta}: fallo al pedir la pagina "
+                  f"'{siguiente['label']}': {exc}. Me quedo con lo descargado.", file=sys.stderr)
+            break
+
+        claves_usadas.add(siguiente["clave"])
+        if siguiente["pagina"] is not None:
+            visitadas.add(siguiente["pagina"])
+        html = resp.text
+
+    if not frames:
+        return pd.DataFrame()
+    df_total = pd.concat(frames, ignore_index=True).fillna("")
+    df_total = df_total.loc[~_clave_jugadora(df_total).duplicated()].reset_index(drop=True)
+    print(f"  [paginacion] {etiqueta}: {paginas_leidas} pagina(s), {len(df_total)} jugadoras.", file=sys.stderr)
+    return df_total
+
+
+def fetch_ranking_with_photos(url: str, formula_sep: str = ";") -> pd.DataFrame:
+    """Ranking de Puntos (categoria por defecto), todas las paginas."""
+    session = requests.Session()
+    resp = _request_con_reintentos(session, "GET", url)
+    return _descargar_todas_las_paginas(session, url, resp.text, formula_sep, "Puntos")
+
+
+# ----------------------------- OTRAS CATEGORIAS DE RANKING -----------------
+# El desplegable de categoria es un postback ASP.NET (no un parametro de URL).
+# Indices confirmados capturando la peticion real del navegador:
+RANKING_CATEGORIES = {
+    "Rebotes_Totales": 1,
+    "Asistencias": 4,
+    "Robos": 5,
+    "Tapones_Favor": 7,
+    "Tapones_Contra": 8,
+    "Mates": 9,
+    "Faltas_Recibidas": 10,
+    "Faltas_Cometidas": 11,
+    "Valoracion": 12,
+    "Minutos_Jugados": 13,
+    "Pct_Tiros_2": 14,
+    "Pct_Tiros_3": 15,
+    "Pct_Tiros_Libres": 16,
+}
+
+RANKINGS_DROPDOWN_FIELD = "_ctl0:MainContentPlaceHolderMaster:rankingsDropDownList"
+RANKINGS_DROPDOWN_TARGET = "_ctl0$MainContentPlaceHolderMaster$rankingsDropDownList"
+
+
+def _extract_form_state(soup: BeautifulSoup) -> dict:
+    """Campos de un formulario ASP.NET (inputs ocultos + selects)."""
+    state = {}
+    for inp in soup.find_all("input"):
+        name = inp.get("name")
+        if not name:
+            continue
+        itype = (inp.get("type") or "text").lower()
+        if itype in ("hidden", "text", "submit"):
+            state[name] = inp.get("value", "")
+    for sel in soup.find_all("select"):
+        name = sel.get("name")
+        if not name:
+            continue
+        chosen = sel.find("option", selected=True) or sel.find("option")
+        state[name] = chosen.get("value", "") if chosen else ""
+    return state
+
+
+def fetch_all_ranking_categories(url: str, formula_sep: str = ";") -> dict:
+    """Descarga el resto de categorias (todas sus paginas). Cada categoria
+    usa una sesion nueva para que la paginacion no interfiera entre ellas.
+    Si una categoria falla, se omite sin tumbar el resto."""
+    results = {}
+    for cat_name, cat_value in RANKING_CATEGORIES.items():
+        try:
+            session = requests.Session()
+            resp = _request_con_reintentos(session, "GET", url)
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            form_data = _extract_form_state(soup)
+            form_data["__EVENTTARGET"] = RANKINGS_DROPDOWN_TARGET
+            form_data["__EVENTARGUMENT"] = ""
+            form_data[RANKINGS_DROPDOWN_FIELD] = str(cat_value)
+            post_resp = _request_con_reintentos(session, "POST", url, data=form_data)
+
+            df = _descargar_todas_las_paginas(session, url, post_resp.text, formula_sep, cat_name)
+            if not df.empty:
+                results[cat_name] = df
+            else:
+                print(f"Aviso: la categoria '{cat_name}' devolvio una tabla vacia", file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001
+            print(f"Aviso: no se pudo obtener el ranking de '{cat_name}': {exc}", file=sys.stderr)
+            continue
+    return results
+
+
+# ----------------------------- EQUIPOS -------------------------------------
+
+STAT_TOTAL_MEDIA_COLS = {
+    "MIN", "PT", "Rebotes_RO", "Rebotes_RD", "Rebotes_RT", "AS", "BR", "BP",
+    "Tapones_TF", "Tapones_TC", "MT", "Faltas_FC", "Faltas_FR", "VA",
+}
+
+SHOT_STAT_COLS = {"T2", "T3", "TC", "TL"}
+
+
+def fix_total_media_cell(text: str, part: int) -> str:
+    """Recalcula 'Total Media' a partir del Total y los partidos jugados."""
+    if not part:
+        return text
+    m = re.search(r"(-?\d+)", text)
+    if not m:
+        return text
+    total = int(m.group(1))
+    media = total / part
+    media_str = str(int(media)) if media == int(media) else f"{media:.1f}".replace(".", ",")
+    return f"{total} {media_str}"
+
+
+def fix_equipo_medias(df: pd.DataFrame) -> pd.DataFrame:
+    if "Part" not in df.columns:
+        return df
+    cols_to_fix = [c for c in df.columns if c in STAT_TOTAL_MEDIA_COLS]
+    if not cols_to_fix:
+        return df
+    for idx, row in df.iterrows():
+        try:
+            part = int(re.match(r"^\s*(-?\d+)", str(row["Part"])).group(1))
+        except (AttributeError, ValueError):
+            continue
+        for c in cols_to_fix:
+            df.at[idx, c] = fix_total_media_cell(str(row[c]), part)
+    return df
+
+
+def split_stat_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Separa 'Total Media' y 'anotados/intentados pct%' en columnas sueltas."""
+    new_cols = {}
+    for col in df.columns:
+        if col in STAT_TOTAL_MEDIA_COLS:
+            totals, medias = [], []
+            for val in df[col].astype(str):
+                m = re.match(r"^\s*(-?\d+)\s+(-?[\d,]+)\s*$", val)
+                if m:
+                    totals.append(m.group(1))
+                    medias.append(m.group(2))
+                else:
+                    totals.append(val)
+                    medias.append("")
+            new_cols[f"{col}_Total"] = totals
+            new_cols[f"{col}_Media"] = medias
+        elif col in SHOT_STAT_COLS:
+            anotados, intentados, pct = [], [], []
+            for val in df[col].astype(str):
+                m = re.match(r"^\s*(\d+)\s*/\s*(\d+)\s+([\d,]+)\s*%\s*$", val)
+                if m:
+                    anotados.append(m.group(1))
+                    intentados.append(m.group(2))
+                    pct.append(m.group(3))
+                else:
+                    anotados.append("")
+                    intentados.append("")
+                    pct.append(val)
+            new_cols[f"{col}_Anotados"] = anotados
+            new_cols[f"{col}_Intentados"] = intentados
+            new_cols[f"{col}_Pct"] = pct
+        else:
+            new_cols[col] = df[col].astype(str).tolist()
+    return pd.DataFrame(new_cols)
+
+
+def fetch_resultados_y_clasificacion(url: str) -> tuple:
+    """Resultados por jornada + Clasificacion (viven en la misma pagina)."""
+    resp = _request_con_reintentos(requests.Session(), "GET", url)
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    resultado_rows = []
+    clasificacion_df = pd.DataFrame()
+
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        if not rows:
+            continue
+        header_cells = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
+
+        if "Equipos" in header_cells and "Resultado" in header_cells:
+            heading = table.find_previous(["h1", "h2", "h3", "h4", "span", "div"])
+            jornada_label = heading.get_text(strip=True) if heading else ""
+            for tr in rows[1:]:
+                cells = [c.get_text(strip=True) for c in tr.find_all("td")]
+                if len(cells) < 3:
+                    continue
+                equipos_txt, resultado_txt = cells[0], cells[1]
+                fecha_txt = cells[2] if len(cells) > 2 else ""
+                hora_txt = cells[3] if len(cells) > 3 else ""
+                if " - " in equipos_txt:
+                    local, visitante = [t.strip() for t in equipos_txt.split(" - ", 1)]
+                else:
+                    local, visitante = equipos_txt, ""
+                jugado = "*" not in resultado_txt and "-" in resultado_txt
+                pts_local, pts_visitante = "", ""
+                if jugado:
+                    partes = resultado_txt.split("-")
+                    if len(partes) == 2:
+                        pts_local, pts_visitante = partes[0].strip(), partes[1].strip()
+                resultado_rows.append({
+                    "Jornada": jornada_label,
+                    "Local": local,
+                    "Visitante": visitante,
+                    "Resultado": resultado_txt,
+                    "Pts_Local": pts_local,
+                    "Pts_Visitante": pts_visitante,
+                    "Jugado": "Si" if jugado else "No",
+                    "Fecha": fecha_txt,
+                    "Hora": hora_txt,
+                })
+
+        elif "Equipo" in header_cells and "PJ" in header_cells and "PG" in header_cells:
+            data = []
+            for tr in rows[1:]:
+                cells = [c.get_text(strip=True) for c in tr.find_all("td")]
+                if len(cells) == len(header_cells):
+                    data.append(cells)
+            if data:
+                clasificacion_df = pd.DataFrame(data, columns=header_cells)
+
+    return pd.DataFrame(resultado_rows), clasificacion_df
+
+
+def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Aplana cabeceras dobles y quita columnas vacias/sin nombre."""
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [
+            "_".join(str(level) for level in col if str(level) != "" and not str(level).startswith("Unnamed"))
+            or f"col_{i}"
+            for i, col in enumerate(df.columns.values)
+        ]
+    else:
+        df.columns = df.columns.astype(str)
+
+    df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
+    df = df.fillna("")
+
+    cols_basura = [
+        c for c in df.columns
+        if re.match(r"^col_\d+$", str(c)) and (df[c].astype(str).str.strip() == "").all()
+    ]
+    if cols_basura:
+        df = df.drop(columns=cols_basura)
+    return df
+
+
+# ----------------------------- GOOGLE SHEETS -------------------------------
+
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+
+def get_gspread_client() -> gspread.Client:
+    creds_raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+    if not creds_raw:
+        creds_path = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE", "service_account.json")
+        creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
+    else:
+        creds_dict = json.loads(creds_raw)
+        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    return gspread.authorize(creds)
+
+
+HEADER_BG = {"red": 0.10, "green": 0.16, "blue": 0.33}
+HEADER_FG = {"red": 1.0, "green": 1.0, "blue": 1.0}
+BAND_COLOR = {"red": 0.93, "green": 0.95, "blue": 0.98}
+
+
+def _existing_banding_id(sh: gspread.Spreadsheet, sheet_id: int):
+    meta = sh.fetch_sheet_metadata()
+    for s in meta.get("sheets", []):
+        if s["properties"]["sheetId"] == sheet_id:
+            bandings = s.get("bandedRanges", [])
+            if bandings:
+                return bandings[0]["bandedRangeId"]
+    return None
+
+
+def style_worksheet(sh: gspread.Spreadsheet, ws: gspread.Worksheet, n_rows: int, has_photos: bool = False):
+    """Cabecera coloreada, fila superior fija, filas alternas y tamaño para fotos."""
+    sheet_id = ws.id
+
+    requests_list = [
+        {
+            "repeatCell": {
+                "range": {"sheetId": sheet_id},
+                "cell": {"userEnteredFormat": {"numberFormat": {"type": "AUTOMATIC"}}},
+                "fields": "userEnteredFormat.numberFormat",
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": sheet_id, "gridProperties": {"frozenRowCount": 1}},
+                "fields": "gridProperties.frozenRowCount",
+            }
+        },
+        {
+            "repeatCell": {
+                "range": {"sheetId": sheet_id, "startRowIndex": 0, "endRowIndex": 1},
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": HEADER_BG,
+                        "textFormat": {"bold": True, "foregroundColor": HEADER_FG},
+                        "horizontalAlignment": "CENTER",
+                        "verticalAlignment": "MIDDLE",
+                    }
+                },
+                "fields": "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment)",
+            }
+        },
+    ]
+
+    banding_range = {"sheetId": sheet_id, "startRowIndex": 1, "endRowIndex": max(n_rows + 1, 2)}
+    banding_props = {
+        "range": banding_range,
+        "rowProperties": {
+            "headerColor": HEADER_BG,
+            "firstBandColor": {"red": 1.0, "green": 1.0, "blue": 1.0},
+            "secondBandColor": BAND_COLOR,
+        },
+    }
+    existing_id = _existing_banding_id(sh, sheet_id)
+    if existing_id:
+        requests_list.append(
+            {"updateBanding": {"bandedRange": {"bandedRangeId": existing_id, **banding_props}, "fields": "range,rowProperties"}}
+        )
+    else:
+        requests_list.append({"addBanding": {"bandedRange": banding_props}})
+
+    if has_photos:
+        requests_list.append({
+            "updateDimensionProperties": {
+                "range": {"sheetId": sheet_id, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1},
+                "properties": {"pixelSize": 50},
+                "fields": "pixelSize",
+            }
+        })
+        requests_list.append({
+            "updateDimensionProperties": {
+                "range": {"sheetId": sheet_id, "dimension": "ROWS", "startIndex": 1, "endIndex": max(n_rows + 1, 2)},
+                "properties": {"pixelSize": 45},
+                "fields": "pixelSize",
+            }
+        })
+
+    sh.batch_update({"requests": requests_list})
+
+
+def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, has_photos: bool = False):
+    """Escribe (sobrescribiendo) un DataFrame en una pestaña y le da formato.
+    RAW salvo en pestañas con formulas =IMAGE(...)."""
+    n_filas = len(df) + 1
+    n_cols = max(len(df.columns), 1)
+    try:
+        ws = sh.worksheet(tab_name)
+        ws.clear()
+        # Ahora hay muchas mas jugadoras: ampliar la pestaña si se queda corta
+        if ws.row_count < n_filas + 5 or ws.col_count < n_cols:
+            ws.resize(rows=max(ws.row_count, n_filas + 5), cols=max(ws.col_count, n_cols))
+    except gspread.WorksheetNotFound:
+        ws = sh.add_worksheet(title=tab_name, rows=max(n_filas + 10, 20), cols=max(n_cols + 2, 10))
+
+    values = [list(df.columns.astype(str))] + df.fillna("").astype(str).values.tolist()
+    value_input_option = "USER_ENTERED" if has_photos else "RAW"
+    ws.update(values, value_input_option=value_input_option)
+
+    try:
+        style_worksheet(sh, ws, n_rows=len(df), has_photos=has_photos)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: no se pudo aplicar formato a '{tab_name}': {exc}", file=sys.stderr)
+
+
+def write_log(sh: gspread.Spreadsheet, message: str):
+    try:
+        ws = sh.worksheet("Log")
+    except gspread.WorksheetNotFound:
+        ws = sh.add_worksheet(title="Log", rows=1000, cols=2)
+        ws.update([["Fecha (UTC)", "Evento"]])
+    ws.append_row([datetime.now(timezone.utc).isoformat(timespec="seconds"), message])
+
+
+# ----------------------------- ESCUDOS DE EQUIPO ---------------------------
+
+def fetch_team_ids(url: str) -> dict:
+    """{nombre_equipo: id_equipo} a partir de los enlaces 'Equipo.aspx?i=ID'."""
+    try:
+        resp = _request_con_reintentos(requests.Session(), "GET", url)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: no se pudieron obtener los IDs de equipo: {exc}", file=sys.stderr)
+        return {}
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    mapping = {}
+    for a in soup.find_all("a", href=True):
+        m = re.search(r"Equipo\.aspx\?i=(\d+)", a["href"])
+        if m:
+            name = a.get_text(strip=True)
+            if name:
+                mapping[name] = m.group(1)
+    return mapping
+
+
+def add_escudos(df: pd.DataFrame, team_ids: dict, formula_sep: str = ";") -> pd.DataFrame:
+    """Columnas 'Escudo' (IMAGE) y 'EscudoURL'. Sin ID -> celda vacia."""
+    if "Equipo" not in df.columns or not team_ids:
+        return df
+
+    escudo_formula, escudo_url = [], []
+    for name in df["Equipo"]:
+        team_id = team_ids.get(str(name).strip())
+        if team_id:
+            url = f"https://imagenes.feb.es/Imagen.aspx?i={team_id}&ti=1"
+            escudo_formula.append(f'=IMAGE("{url}"{formula_sep} 4{formula_sep} 40{formula_sep} 40)')
+            escudo_url.append(url)
+        else:
+            escudo_formula.append("")
+            escudo_url.append("")
+
+    df.insert(1, "Escudo", escudo_formula)
+    df["EscudoURL"] = escudo_url
+    return df
+
+
+# ----------------------------- MAIN ----------------------------------------
+
+
+def main():
+    client = get_gspread_client()
+    sh = client.open_by_key(SHEET_ID)
+    formula_sep = get_formula_separator(sh)
+
+    resumen = []
+
+    # 1) Estadisticas por equipo (+ escudos)
+    equipo_tables = fetch_tables(ESTADISTICAS_URL)
+    team_ids = fetch_team_ids(ESTADISTICAS_URL)
+    if equipo_tables:
+        for i, df in enumerate(equipo_tables):
+            df = clean_dataframe(df)
+            if i == 0:
+                df = fix_equipo_medias(df)
+                df = split_stat_columns(df)
+                df = add_escudos(df, team_ids, formula_sep=formula_sep)
+            tab = "Equipos" if i == 0 else f"Equipos_{i}"
+            write_dataframe(sh, tab, df, has_photos=(i == 0))
+            resumen.append(f"{tab}: {len(df)} filas")
+    else:
+        resumen.append("Equipos: sin tablas (probablemente la temporada aun no tiene partidos)")
+
+    # 2) Ranking de Puntos, TODAS las paginas (con foto)
+    ranking_df = fetch_ranking_with_photos(RANKINGS_URL, formula_sep=formula_sep)
+    if not ranking_df.empty:
+        write_dataframe(sh, "Jugadoras", ranking_df, has_photos=True)
+        resumen.append(f"Jugadoras: {len(ranking_df)} filas (con foto)")
+    else:
+        resumen.append("Jugadoras: sin tablas todavia")
+
+    # 2b) Resto de categorias, TODAS las paginas
+    otras_categorias = fetch_all_ranking_categories(RANKINGS_URL, formula_sep=formula_sep)
+    for cat_name, df in otras_categorias.items():
+        tab = f"Jugadoras_{cat_name}"
+        write_dataframe(sh, tab, df, has_photos=True)
+        resumen.append(f"{tab}: {len(df)} filas (con foto)")
+    categorias_faltantes = set(RANKING_CATEGORIES) - set(otras_categorias)
+    if categorias_faltantes:
+        resumen.append(f"Categorias no disponibles esta vez: {', '.join(sorted(categorias_faltantes))}")
+
+    # 3) Resultados + Clasificacion
+    resultados_df, clasificacion_df = fetch_resultados_y_clasificacion(RESULTADOS_URL)
+    if not resultados_df.empty:
+        write_dataframe(sh, "Resultados", resultados_df)
+        resumen.append(f"Resultados: {len(resultados_df)} filas")
+    else:
+        resumen.append("Resultados: sin partidos todavia")
+
+    if not clasificacion_df.empty:
+        write_dataframe(sh, "Clasificacion", clasificacion_df)
+        resumen.append(f"Clasificacion: {len(clasificacion_df)} filas")
+    else:
+        resumen.append("Clasificacion: no disponible todavia (necesita al menos una jornada jugada)")
+
+    write_log(sh, " | ".join(resumen))
+    print("Actualizacion completada:")
+    for r in resumen:
+        print(" -", r)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:  # noqa: BLE001
+        print(f"ERROR: {exc}", file=sys.stderr)
+        raise
