@@ -160,6 +160,16 @@ def parse_ranking_html(html_text: str, formula_sep: str = ";") -> pd.DataFrame:
     # rellenar con texto vacio para que sea JSON-serializable al escribir
     # en Google Sheets.
     df = df.fillna("")
+
+    # Las columnas auto-nombradas "col_N" son celdas sobrantes de la tabla
+    # de la FEB (separadores, celdas de maquetacion). Si estan totalmente
+    # vacias no aportan nada y solo ensucian el Sheet y la web: se quitan.
+    cols_basura = [
+        c for c in df.columns
+        if re.match(r"^col_\d+$", str(c)) and (df[c].astype(str).str.strip() == "").all()
+    ]
+    if cols_basura:
+        df = df.drop(columns=cols_basura)
     return df
 
 
@@ -450,6 +460,15 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
     df = df.fillna("")
+
+    # Quitar columnas auto-nombradas "col_N" que hayan quedado vacias
+    # (celdas de maquetacion de la tabla original, sin datos reales).
+    cols_basura = [
+        c for c in df.columns
+        if re.match(r"^col_\d+$", str(c)) and (df[c].astype(str).str.strip() == "").all()
+    ]
+    if cols_basura:
+        df = df.drop(columns=cols_basura)
     return df
 
 
