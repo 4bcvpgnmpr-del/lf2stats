@@ -1052,10 +1052,25 @@ _RENOMBRAR_BOX = {"I": "Titular", "D": "Dorsal", "TF": "TAP_F", "FC": "FAL_C", "
                   "RO": "REB_O", "RD": "REB_D", "RT": "REB_T", "+/-": "MAS_MENOS"}
 
 
+COLUMNAS_TIRO = ("T2", "T3", "TC", "TL")
+
+
+def _texto_celda(celda) -> str:
+    """Texto de una celda separando los trozos con espacio.
+    Sin esto, la FEB pega los tiros y el porcentaje: '4/757,1%' en vez de '4/7 57,1%'."""
+    return re.sub(r"\s+", " ", celda.get_text(" ", strip=True)).strip()
+
+
+def _normaliza_tiro(texto: str) -> str:
+    """'4/7 57,1%' -> '4/7'. El porcentaje lo calcula la app a partir de esos dos numeros."""
+    m = re.search(r"(\d+)\s*/\s*(\d+)", texto or "")
+    return f"{m.group(1)}/{m.group(2)}" if m else (texto or "")
+
+
 def _cabecera_box(tabla) -> list:
     """Cabecera de la tabla de un equipo (la fila que contiene 'Jugador')."""
     for tr in tabla.find_all("tr"):
-        textos = [c.get_text(strip=True) for c in tr.find_all(["th", "td"])]
+        textos = [_texto_celda(c) for c in tr.find_all(["th", "td"])]
         if "Jugador" in textos and "PT" in textos:
             nombres, vistos_tc = [], 0
             for t in textos:
@@ -1108,7 +1123,7 @@ def parse_partido_html(html: str, partido_id: str) -> pd.DataFrame:
         lado = "Local" if orden == 1 else ("Visitante" if orden == 2 else "")
         empezar = False
         for tr in tabla.find_all("tr"):
-            celdas = [c.get_text(strip=True) for c in tr.find_all(["td", "th"])]
+            celdas = [_texto_celda(c) for c in tr.find_all(["td", "th"])]
             if "Jugador" in celdas and "PT" in celdas:
                 empezar = True
                 continue
@@ -1120,6 +1135,9 @@ def parse_partido_html(html: str, partido_id: str) -> pd.DataFrame:
                     continue
                 fila["Jugador"] = "TOTAL"
             fila["Titular"] = "Si" if "*" in fila.get("Titular", "") else ""
+            for col in COLUMNAS_TIRO:
+                if col in fila:
+                    fila[col] = _normaliza_tiro(fila[col])
             filas.append({"PartidoID": partido_id, "Lado": lado, "Equipo": equipo, **fila,
                           "Arbitros": arbitros, "Pista": pista})
     return pd.DataFrame(filas)
@@ -1139,6 +1157,11 @@ def _ids_ya_guardados(sh) -> tuple:
         return set(), pd.DataFrame()
     df = pd.DataFrame(valores[1:], columns=valores[0])
     if "PartidoID" not in df.columns:
+        return set(), pd.DataFrame()
+    # Si lo guardado usa el formato antiguo (tiros con el % pegado), se rehace todo
+    if "T2" in df.columns and df["T2"].astype(str).str.contains("%").any():
+        print("  [partidos] datos antiguos con porcentajes mal leidos: se vuelven a descargar",
+              file=sys.stderr)
         return set(), pd.DataFrame()
     return set(df["PartidoID"]), df
 
