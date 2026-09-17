@@ -101,7 +101,9 @@ def _request_con_reintentos(session, method, url, **kwargs):
     ultimo_error = None
     for intento in range(1, MAX_RETRIES + 1):
         try:
-            resp = session.request(method, url, headers=HEADERS, timeout=30, **kwargs)
+            cabeceras = dict(HEADERS)
+            cabeceras.update(kwargs.pop("headers_extra", {}) or {})
+            resp = session.request(method, url, headers=cabeceras, timeout=30, **kwargs)
             resp.raise_for_status()
             time.sleep(PAUSA_ENTRE_PETICIONES / max(1, HILOS))
             return resp
@@ -1212,7 +1214,7 @@ def fetch_estadisticas_partidos(sh, resultados_df: pd.DataFrame) -> tuple:
 # HTML y los .js de la pagina y apunta en el registro las direcciones y claves
 # que encuentra, para poder programar despues la descarga de verdad.
 
-INVESTIGAR_PBP = os.environ.get("FEB_DETECTIVE", "1") != "0"
+INVESTIGAR_PBP = os.environ.get("FEB_DETECTIVE", "0") != "0"   # ya no hace falta: se activa con FEB_DETECTIVE=1
 PALABRAS_PBP = ("intrafeb", "livestats", "jugada", "playbyplay", "play_by_play",
                 "pbp", "token", "api/", ".json", "directo")
 
@@ -1382,6 +1384,232 @@ def investigar_livestats(partido_id: str) -> list:
     return informe
 
 
+# ----------------------------- QUINTETOS (jugada a jugada) -----------------
+# La API LiveStats de la FEB devuelve en "KeyFacts" el jugada a jugada
+# (PLAYBYPLAY.LINES) con las sustituciones. Con eso se reconstruye que cinco
+# jugadoras estaban en pista en cada momento y cuantos puntos se hicieron.
+
+KEYFACTS_URL = LIVESTATS_BASE + "/KeyFacts/{id}"
+TAB_QUINTETOS_PARTIDO = "Quintetos_Partido"
+TAB_QUINTETOS = "Quintetos"
+MINUTOS_MAX_QUINTETOS = int(os.environ.get("FEB_MINUTOS_QUINTETOS", "40"))
+SEGUNDOS_CUARTO = 600        # 10 minutos
+SEGUNDOS_PRORROGA = 300      # 5 minutos
+
+RE_ENTRA = re.compile(r"entra\s+a\s+pista", re.I)
+RE_SALE = re.compile(r"sale\s+de\s+pista", re.I)
+RE_ANOTA = re.compile(r"tiro\s+de\s*(\d)\s*anotad|canasta\s+de\s*(\d)", re.I)
+RE_EQUIPO_JUGADORA = re.compile(r"^\((?P<equipo>[^)]+)\)\s*(?P<jugadora>[^:]+):", re.S)
+
+
+def _segundos_restantes(txt: str) -> int:
+    m = re.match(r"\s*(\d+):(\d+)", str(txt or ""))
+    return int(m.group(1)) * 60 + int(m.group(2)) if m else 0
+
+
+def _segundos_absolutos(cuarto: int, restantes: int) -> int:
+    largo = SEGUNDOS_CUARTO if cuarto <= 4 else SEGUNDOS_PRORROGA
+    previos = min(cuarto - 1, 4) * SEGUNDOS_CUARTO + max(0, cuarto - 5) * SEGUNDOS_PRORROGA
+    return previos + max(0, largo - restantes)
+
+
+def eventos_de_keyfacts(datos: dict) -> tuple:
+    """(nombres de los dos equipos, lista de eventos ordenados)."""
+    cabecera = datos.get("HEADER") or {}
+    equipos = [str(t.get("name", "")).strip() for t in (cabecera.get("TEAM") or [])]
+    lineas = ((datos.get("PLAYBYPLAY") or {}).get("LINES")) or []
+
+    eventos = []
+    for linea in lineas:
+        if linea.get("deleted"):
+            continue
+        texto = str(linea.get("text") or "")
+        try:
+            cuarto = int(str(linea.get("quarter") or "1"))
+            num = int(str(linea.get("num") or "0"))
+        except ValueError:
+            continue
+        m = RE_EQUIPO_JUGADORA.match(texto)
+        equipo = m.group("equipo").strip() if m else ""
+        jugadora = re.sub(r"\s+", " ", m.group("jugadora")).strip() if m else ""
+        if equipo and equipos:
+            # normaliza al nombre tal cual lo da la cabecera
+            for e in equipos:
+                if e and (e.upper() == equipo.upper() or e.upper().startswith(equipo.upper()[:12])):
+                    equipo = e
+                    break
+        anota = RE_ANOTA.search(texto)
+        puntos = int(anota.group(1) or anota.group(2)) if anota else 0
+        if RE_ENTRA.search(texto):
+            tipo = "entra"
+        elif RE_SALE.search(texto):
+            tipo = "sale"
+        elif puntos:
+            tipo = "anota"
+        elif jugadora:
+            tipo = "accion"
+        else:
+            tipo = "otro"
+        eventos.append({"num": num, "cuarto": cuarto, "tipo": tipo, "equipo": equipo,
+                        "jugadora": jugadora, "puntos": puntos,
+                        "seg": _segundos_absolutos(cuarto, _segundos_restantes(linea.get("time")))})
+    eventos.sort(key=lambda e: (e["cuarto"], e["num"]))
+    return equipos, eventos
+
+
+def _quintetos_iniciales(eventos: list, equipo: str) -> set:
+    """Quien estaba en pista al empezar el cuarto: quien actua o sale sin haber entrado."""
+    inicial, actual = set(), set()
+    for ev in eventos:
+        if ev["equipo"] != equipo or not ev["jugadora"]:
+            continue
+        j = ev["jugadora"]
+        if ev["tipo"] == "entra":
+            actual.add(j)
+            continue
+        if j not in actual:
+            inicial.add(j)
+            actual.add(j)
+        if ev["tipo"] == "sale":
+            actual.discard(j)
+    return inicial
+
+
+def quintetos_de_partido(datos: dict, partido_id: str) -> list:
+    """Minutos y puntos de cada quinteto en un partido."""
+    equipos, eventos = eventos_de_keyfacts(datos)
+    if len(equipos) != 2 or not eventos:
+        return []
+
+    acumulado = {}   # (equipo, quinteto) -> [segundos, pf, pc]
+    cuartos = sorted({ev["cuarto"] for ev in eventos})
+    for cuarto in cuartos:
+        evs = [e for e in eventos if e["cuarto"] == cuarto]
+        if not evs:
+            continue
+        largo = SEGUNDOS_CUARTO if cuarto <= 4 else SEGUNDOS_PRORROGA
+        inicio = _segundos_absolutos(cuarto, largo)
+        fin = inicio + largo
+
+        pista = {e: _quintetos_iniciales(evs, e) for e in equipos}
+        if any(len(pista[e]) != 5 for e in equipos):
+            continue   # cuarto incompleto o mal registrado: se descarta
+
+        t_ini = inicio
+        puntos = {e: 0 for e in equipos}
+
+        def cerrar(t_fin):
+            dur = max(0, min(t_fin, fin) - t_ini)
+            if dur <= 0:
+                return
+            for e in equipos:
+                if len(pista[e]) != 5:
+                    continue
+                rival = equipos[1] if e == equipos[0] else equipos[0]
+                clave = (e, " · ".join(sorted(pista[e])))
+                fila = acumulado.setdefault(clave, [0, 0, 0])
+                fila[0] += dur
+                fila[1] += puntos[e]
+                fila[2] += puntos[rival]
+
+        for ev in evs:
+            if ev["tipo"] in ("entra", "sale"):
+                cerrar(ev["seg"])
+                t_ini = min(ev["seg"], fin)
+                puntos = {e: 0 for e in equipos}
+                if ev["equipo"] in pista and ev["jugadora"]:
+                    if ev["tipo"] == "entra":
+                        pista[ev["equipo"]].add(ev["jugadora"])
+                    else:
+                        pista[ev["equipo"]].discard(ev["jugadora"])
+            elif ev["puntos"] and ev["equipo"] in puntos:
+                puntos[ev["equipo"]] += ev["puntos"]
+        cerrar(fin)
+
+    return [{"PartidoID": partido_id, "Equipo": equipo, "Quinteto": quinteto,
+             "Segundos": seg, "PF": pf, "PC": pc}
+            for (equipo, quinteto), (seg, pf, pc) in acumulado.items() if seg > 0]
+
+
+def obtener_token_livestats(session, partido_id: str) -> str:
+    html = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=str(partido_id).lstrip("p"))).text
+    return token_livestats(html)
+
+
+def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
+    """Devuelve (detalle por partido, resumen por equipo, nuevos)."""
+    if resultados_df.empty or "PartidoID" not in resultados_df.columns:
+        return pd.DataFrame(), pd.DataFrame(), 0
+
+    try:
+        ws = sh.worksheet(TAB_QUINTETOS_PARTIDO)
+        valores = ws.get_all_values()
+        df_viejo = pd.DataFrame(valores[1:], columns=valores[0]) if len(valores) > 1 else pd.DataFrame()
+    except Exception:  # noqa: BLE001
+        df_viejo = pd.DataFrame()
+    ya = set(df_viejo["PartidoID"]) if "PartidoID" in df_viejo.columns else set()
+
+    jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
+    pendientes = [p for p in dict.fromkeys(jugados["PartidoID"]) if p not in ya]
+    print(f"  [quintetos] {len(ya)} partidos ya procesados, {len(pendientes)} pendientes", file=sys.stderr)
+
+    nuevos = []
+    if pendientes:
+        session = requests.Session()
+        try:
+            token = obtener_token_livestats(session, pendientes[0])
+        except Exception as exc:  # noqa: BLE001
+            print(f"  Aviso: no se pudo obtener el token de LiveStats: {exc}", file=sys.stderr)
+            token = ""
+        if token:
+            cabeceras = dict(HEADERS)
+            cabeceras["Authorization"] = "Bearer " + token
+            cabeceras["Accept"] = "application/json"
+            limite = INICIO_EJECUCION + (MINUTOS_MAX_PARTIDOS + MINUTOS_MAX_QUINTETOS) * 60
+            hechos = {"n": 0, "sin_tiempo": 0, "vacios": 0}
+
+            def _uno(pid):
+                if time.time() > limite:
+                    hechos["sin_tiempo"] += 1
+                    return None
+                resp = _request_con_reintentos(session, "GET", KEYFACTS_URL.format(id=pid.lstrip("p")),
+                                               headers_extra=cabeceras)
+                filas = quintetos_de_partido(resp.json(), pid)
+                hechos["n"] += 1
+                if hechos["n"] % 50 == 0:
+                    print(f"  [quintetos] {hechos['n']}/{len(pendientes)}", file=sys.stderr)
+                if not filas:
+                    hechos["vacios"] += 1
+                return filas
+
+            for filas in _en_paralelo(pendientes, _uno):
+                if filas:
+                    nuevos.extend(filas)
+            if hechos["vacios"]:
+                print(f"  Aviso: {hechos['vacios']} partidos sin jugada a jugada utilizable", file=sys.stderr)
+            if hechos["sin_tiempo"]:
+                print(f"  [quintetos] limite de tiempo: quedan {hechos['sin_tiempo']} para la proxima vez",
+                      file=sys.stderr)
+
+    detalle = pd.concat([df_viejo, pd.DataFrame(nuevos)], ignore_index=True).fillna("") \
+        if nuevos else df_viejo
+    if detalle.empty:
+        return detalle, pd.DataFrame(), 0
+
+    for col in ("Segundos", "PF", "PC"):
+        detalle[col] = pd.to_numeric(detalle[col], errors="coerce").fillna(0)
+    resumen = (detalle.groupby(["Equipo", "Quinteto"], as_index=False)
+               .agg(Segundos=("Segundos", "sum"), PF=("PF", "sum"), PC=("PC", "sum"),
+                    Partidos=("PartidoID", "nunique")))
+    resumen["Minutos"] = (resumen["Segundos"] / 60).round(1)
+    resumen["Dif"] = resumen["PF"] - resumen["PC"]
+    resumen["Dif40"] = (resumen["Dif"] / (resumen["Segundos"] / 2400)).round(1)
+    resumen = resumen[resumen["Segundos"] > 0].sort_values(
+        ["Equipo", "Segundos"], ascending=[True, False]).reset_index(drop=True)
+    resumen = resumen[["Equipo", "Quinteto", "Partidos", "Minutos", "PF", "PC", "Dif", "Dif40", "Segundos"]]
+    return detalle, resumen, len(set(f["PartidoID"] for f in nuevos)) if nuevos else 0
+
+
 # ----------------------------- MAIN ----------------------------------------
 
 
@@ -1454,7 +1682,19 @@ def main():
     except Exception as exc:  # noqa: BLE001
         resumen.append(f"{TAB_PARTIDOS}: error ({exc})")
 
-    # 5) Detective del jugada a jugada (solo mira, no descarga estadisticas)
+    # 5) Quintetos reales (jugada a jugada de la API LiveStats)
+    try:
+        detalle_q, resumen_q, nuevos_q = fetch_quintetos(sh, resultados_df)
+        if nuevos_q:
+            write_dataframe(sh, TAB_QUINTETOS_PARTIDO, detalle_q)
+        if not resumen_q.empty:
+            write_dataframe(sh, TAB_QUINTETOS, resumen_q)
+        n_part_q = detalle_q["PartidoID"].nunique() if not detalle_q.empty else 0
+        resumen.append(f"{TAB_QUINTETOS}: {len(resumen_q)} quintetos de {n_part_q} partidos ({nuevos_q} nuevos)")
+    except Exception as exc:  # noqa: BLE001
+        resumen.append(f"{TAB_QUINTETOS}: error ({exc})")
+
+    # 6) Detective del jugada a jugada (solo mira, no descarga estadisticas)
     if INVESTIGAR_PBP and not resultados_df.empty and "PartidoID" in resultados_df.columns:
         jugados_ids = [p for p in resultados_df.loc[resultados_df["Jugado"] == "Si", "PartidoID"] if p]
         if jugados_ids:
