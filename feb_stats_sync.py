@@ -25,6 +25,7 @@ import json
 import io
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 
@@ -58,6 +59,39 @@ HEADERS = {
 MAX_RETRIES = 3
 PAUSA_ENTRE_PETICIONES = 0.7   # segundos
 MAX_PAGINAS = 40               # tope de seguridad por categoria
+# Descargas en paralelo: la FEB tiene cientos de paginas y de una en una tarda horas.
+HILOS = int(os.environ.get("FEB_HILOS", "4"))
+# Tiempo maximo (minutos) que se dedica a bajar estadisticas de partidos.
+# Lo que no entre se bajara en la siguiente ejecucion.
+MINUTOS_MAX_PARTIDOS = int(os.environ.get("FEB_MINUTOS_PARTIDOS", "45"))
+INICIO_EJECUCION = time.time()
+
+
+def _en_paralelo(items: list, funcion, hilos: int = None) -> list:
+    """Aplica 'funcion' a cada elemento con varios hilos, conservando el orden.
+    Si un elemento falla, devuelve None en su posicion."""
+    if not items:
+        return []
+    hilos = max(1, hilos or HILOS)
+    if hilos == 1:
+        resultados = []
+        for it in items:
+            try:
+                resultados.append(funcion(it))
+            except Exception as exc:  # noqa: BLE001
+                print(f"  Aviso: fallo procesando {it}: {exc}", file=sys.stderr)
+                resultados.append(None)
+        return resultados
+
+    def _seguro(it):
+        try:
+            return funcion(it)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  Aviso: fallo procesando {it}: {exc}", file=sys.stderr)
+            return None
+
+    with ThreadPoolExecutor(max_workers=hilos) as pool:
+        return list(pool.map(_seguro, items))
 
 # ----------------------------- RED ----------------------------------------
 
@@ -69,7 +103,7 @@ def _request_con_reintentos(session, method, url, **kwargs):
         try:
             resp = session.request(method, url, headers=HEADERS, timeout=30, **kwargs)
             resp.raise_for_status()
-            time.sleep(PAUSA_ENTRE_PETICIONES)
+            time.sleep(PAUSA_ENTRE_PETICIONES / max(1, HILOS))
             return resp
         except requests.RequestException as exc:
             ultimo_error = exc
@@ -547,17 +581,17 @@ def _extract_form_state(soup: BeautifulSoup) -> dict:
 def fetch_all_ranking_categories(url: str, formula_sep: str = ";") -> dict:
     """Descarga el resto de categorias (todas sus paginas y todos los grupos).
     Si una categoria falla, se omite sin tumbar el resto."""
+    nombres = list(RANKING_CATEGORIES.keys())
+    dfs = _en_paralelo(nombres, lambda nombre: _ranking_por_grupos(
+        url, formula_sep, nombre, RANKING_CATEGORIES[nombre]))
     results = {}
-    for cat_name, cat_value in RANKING_CATEGORIES.items():
-        try:
-            df = _ranking_por_grupos(url, formula_sep, cat_name, cat_value)
-            if not df.empty:
-                results[cat_name] = df
-            else:
-                print(f"Aviso: la categoria '{cat_name}' devolvio una tabla vacia", file=sys.stderr)
-        except Exception as exc:  # noqa: BLE001
-            print(f"Aviso: no se pudo obtener el ranking de '{cat_name}': {exc}", file=sys.stderr)
-            continue
+    for nombre, df in zip(nombres, dfs):
+        if df is None:
+            print(f"Aviso: no se pudo obtener el ranking de '{nombre}'", file=sys.stderr)
+        elif df.empty:
+            print(f"Aviso: la categoria '{nombre}' devolvio una tabla vacia", file=sys.stderr)
+        else:
+            results[nombre] = df
     return results
 
 
@@ -744,14 +778,16 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
                 continue
             actual = _valor_seleccionado(sel_j)
             campo, target = sel_j.get("name"), _target_postback(sel_j)
-            for valor, texto in _opciones(sel_j):
-                try:
-                    h = html if valor == actual else _cambiar_desplegable(
-                        session, post_url, soup, campo, target, valor)
-                    f, _, _ = _parse_resultados_html(h, fase, grupo, texto)
-                    todas.extend(f)
-                except Exception as exc:  # noqa: BLE001
-                    print(f"  Aviso: {fase} / {texto}: {exc}", file=sys.stderr)
+
+            def _una_jornada(opcion):
+                valor, texto = opcion
+                h = html if valor == actual else _cambiar_desplegable(
+                    session, post_url, soup, campo, target, valor)
+                return _parse_resultados_html(h, fase, grupo, texto)[0]
+
+            for filas_jornada in _en_paralelo(_opciones(sel_j), _una_jornada):
+                if filas_jornada:
+                    todas.extend(filas_jornada)
             print(f"  [resultados] {fase or 'fase por defecto'}: {len(_opciones(sel_j))} jornadas leidas", file=sys.stderr)
         except Exception as exc:  # noqa: BLE001
             print(f"  Aviso: no se pudieron leer los resultados de '{fase}': {exc}", file=sys.stderr)
@@ -1009,7 +1045,7 @@ def add_escudos(df: pd.DataFrame, team_ids: dict, formula_sep: str = ";") -> pd.
 
 PARTIDO_URL = f"{BASE_URL}/Partido.aspx?p={{id}}"
 TAB_PARTIDOS = "Partidos_Estadisticas"
-MAX_PARTIDOS_POR_EJECUCION = 450   # tope de seguridad (la 1a vez los baja todos)
+MAX_PARTIDOS_POR_EJECUCION = int(os.environ.get("FEB_MAX_PARTIDOS", "500"))
 
 # Nombres claros para las columnas (la FEB repite "TC": tiros de campo y tapones en contra)
 _RENOMBRAR_BOX = {"I": "Titular", "D": "Dorsal", "TF": "TAP_F", "FC": "FAL_C", "FR": "FAL_R",
@@ -1118,22 +1154,28 @@ def fetch_estadisticas_partidos(sh, resultados_df: pd.DataFrame) -> tuple:
     print(f"  [partidos] {len(ya)} ya guardados, {len(pendientes)} por descargar", file=sys.stderr)
 
     session = requests.Session()
-    nuevos, vacios = [], 0
-    for i, pid in enumerate(pendientes, start=1):
-        try:
-            resp = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=pid.lstrip("p")))
-            df = parse_partido_html(resp.text, pid)
-        except Exception as exc:  # noqa: BLE001
-            print(f"  Aviso: partido {pid}: {exc}", file=sys.stderr)
-            continue
-        if df.empty:
-            vacios += 1
-        else:
-            nuevos.append(df)
-        if i % 50 == 0:
-            print(f"  [partidos] {i}/{len(pendientes)}", file=sys.stderr)
+    limite = INICIO_EJECUCION + MINUTOS_MAX_PARTIDOS * 60
+    hechos = {"n": 0, "sin_tiempo": 0}
+
+    def _un_partido(pid):
+        if time.time() > limite:
+            hechos["sin_tiempo"] += 1
+            return None
+        resp = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=pid.lstrip("p")))
+        df = parse_partido_html(resp.text, pid)
+        hechos["n"] += 1
+        if hechos["n"] % 50 == 0:
+            print(f"  [partidos] {hechos['n']}/{len(pendientes)}", file=sys.stderr)
+        return df
+
+    resultados_partidos = _en_paralelo(pendientes, _un_partido)
+    nuevos = [df for df in resultados_partidos if df is not None and not df.empty]
+    vacios = sum(1 for df in resultados_partidos if df is not None and df.empty)
     if vacios:
         print(f"  Aviso: {vacios} partidos sin tabla de estadisticas en la FEB", file=sys.stderr)
+    if hechos["sin_tiempo"]:
+        print(f"  [partidos] se alcanzo el limite de {MINUTOS_MAX_PARTIDOS} min: "
+              f"quedan {hechos['sin_tiempo']} partidos para la proxima ejecucion", file=sys.stderr)
 
     if not nuevos:
         return df_viejo, 0
@@ -1213,6 +1255,7 @@ def main():
     except Exception as exc:  # noqa: BLE001
         resumen.append(f"{TAB_PARTIDOS}: error ({exc})")
 
+    resumen.append(f"Duracion: {int((time.time() - INICIO_EJECUCION) / 60)} min")
     write_log(sh, " | ".join(resumen))
     print("Actualizacion completada:")
     for r in resumen:
