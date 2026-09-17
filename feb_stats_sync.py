@@ -1206,6 +1206,83 @@ def fetch_estadisticas_partidos(sh, resultados_df: pd.DataFrame) -> tuple:
     return total, len(nuevos)
 
 
+# ----------------------------- MODO DETECTIVE (play by play) ---------------
+# La pagina del partido carga el "Directo" (jugada a jugada) desde otra
+# direccion, con JavaScript. Esta parte NO descarga datos nuevos: solo mira el
+# HTML y los .js de la pagina y apunta en el registro las direcciones y claves
+# que encuentra, para poder programar despues la descarga de verdad.
+
+INVESTIGAR_PBP = os.environ.get("FEB_DETECTIVE", "1") != "0"
+PALABRAS_PBP = ("intrafeb", "livestats", "jugada", "playbyplay", "play_by_play",
+                "pbp", "token", "api/", ".json", "directo")
+
+
+def _fragmentos(texto: str, palabra: str, ancho: int = 120, maximo: int = 3) -> list:
+    salidas = []
+    for m in re.finditer(re.escape(palabra), texto, re.I):
+        ini = max(0, m.start() - ancho // 2)
+        salidas.append(re.sub(r"\s+", " ", texto[ini:ini + ancho]))
+        if len(salidas) >= maximo:
+            break
+    return salidas
+
+
+def investigar_play_by_play(partido_id: str) -> list:
+    """Busca de donde saca la web el jugada a jugada. Devuelve lineas de informe."""
+    informe = [f"=== DETECTIVE play-by-play (partido {partido_id}) ==="]
+    session = requests.Session()
+    try:
+        resp = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=str(partido_id).lstrip("p")))
+    except Exception as exc:  # noqa: BLE001
+        return informe + [f"No se pudo abrir la pagina del partido: {exc}"]
+
+    html = resp.text
+    soup = BeautifulSoup(html, "html.parser")
+
+    urls = set(re.findall(r"https?://[^\s\"'<>()]+", html))
+    interesantes = sorted(u for u in urls if any(p in u.lower() for p in ("intrafeb", "livestats", "api", ".json")))
+    informe.append(f"Direcciones interesantes en el HTML: {len(interesantes)}")
+    informe += [f"  URL: {u[:200]}" for u in interesantes[:15]]
+
+    for palabra in PALABRAS_PBP:
+        for frag in _fragmentos(html, palabra):
+            informe.append(f"  HTML[{palabra}]: {frag[:200]}")
+
+    scripts = []
+    for sc in soup.find_all("script", src=True):
+        scripts.append(urljoin(resp.url, sc["src"]))
+    informe.append(f"Ficheros .js de la pagina: {len(scripts)}")
+
+    revisados = 0
+    for src in scripts:
+        if revisados >= 10:
+            break
+        if not any(d in src for d in ("feb.es", "/js/", "/Scripts/", "/scripts/")):
+            continue
+        try:
+            js = _request_con_reintentos(session, "GET", src).text
+        except Exception as exc:  # noqa: BLE001
+            informe.append(f"  JS no accesible {src[:120]}: {exc}")
+            continue
+        revisados += 1
+        encontrado = False
+        for palabra in PALABRAS_PBP:
+            for frag in _fragmentos(js, palabra, maximo=2):
+                informe.append(f"  JS {src.rsplit('/', 1)[-1][:40]} [{palabra}]: {frag[:200]}")
+                encontrado = True
+        for u in sorted(set(re.findall(r"https?://[^\s\"'<>()]+", js)))[:10]:
+            if any(p in u.lower() for p in ("intrafeb", "livestats", "api", ".json")):
+                informe.append(f"  JS URL: {u[:200]}")
+                encontrado = True
+        if not encontrado:
+            informe.append(f"  JS {src.rsplit('/', 1)[-1][:40]}: sin pistas")
+
+    informe.append("=== fin DETECTIVE ===")
+    for linea in informe:
+        print(linea, file=sys.stderr)
+    return informe
+
+
 # ----------------------------- MAIN ----------------------------------------
 
 
@@ -1277,6 +1354,17 @@ def main():
         resumen.append(f"{TAB_PARTIDOS}: {n_part} partidos ({n_nuevos} nuevos)")
     except Exception as exc:  # noqa: BLE001
         resumen.append(f"{TAB_PARTIDOS}: error ({exc})")
+
+    # 5) Detective del jugada a jugada (solo mira, no descarga estadisticas)
+    if INVESTIGAR_PBP and not resultados_df.empty and "PartidoID" in resultados_df.columns:
+        jugados_ids = [p for p in resultados_df.loc[resultados_df["Jugado"] == "Si", "PartidoID"] if p]
+        if jugados_ids:
+            try:
+                lineas = investigar_play_by_play(jugados_ids[-1])
+                pistas = [l for l in lineas if "intrafeb" in l.lower() or "livestats" in l.lower()]
+                resumen.append(f"Detective PBP: {len(pistas)} pistas (ver registro de la ejecucion)")
+            except Exception as exc:  # noqa: BLE001
+                resumen.append(f"Detective PBP: error ({exc})")
 
     resumen.append(f"Duracion: {int((time.time() - INICIO_EJECUCION) / 60)} min")
     write_log(sh, " | ".join(resumen))
