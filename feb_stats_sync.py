@@ -660,6 +660,9 @@ def _parse_resultados_html(html: str, fase: str = "", grupo: str = "",
                 cells = [c.get_text(strip=True) for c in tr.find_all("td")]
                 if len(cells) < 3:
                     continue
+                enlace = tr.find("a", href=re.compile(r"Partido\.aspx\?p=\d+", re.I))
+                m_id = re.search(r"p=(\d+)", enlace["href"]) if enlace else None
+                partido_id = f"p{m_id.group(1)}" if m_id else ""
                 equipos_txt, resultado_txt = cells[0], cells[1]
                 fecha_txt = cells[2] if len(cells) > 2 else ""
                 hora_txt = cells[3] if len(cells) > 3 else ""
@@ -685,6 +688,7 @@ def _parse_resultados_html(html: str, fase: str = "", grupo: str = "",
                     "Jugado": "Si" if jugado else "No",
                     "Fecha": fecha_txt,
                     "Hora": hora_txt,
+                    "PartidoID": partido_id,
                 })
 
         elif "Equipo" in header_cells and "PJ" in header_cells and "PG" in header_cells:
@@ -756,6 +760,8 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
     if not resultados_df.empty:
         resultados_df = resultados_df.drop_duplicates(
             subset=["Fase", "Jornada", "Local", "Visitante"]).reset_index(drop=True)
+        # PartidoID: primera columna, para que la app pueda buscar por ella
+        resultados_df = resultados_df[["PartidoID"] + [c for c in resultados_df.columns if c != "PartidoID"]]
         orden = sorted(range(len(resultados_df)),
                        key=lambda i: _clave_fecha(resultados_df.iloc[i].to_dict()))
         resultados_df = resultados_df.iloc[orden].reset_index(drop=True)
@@ -996,6 +1002,145 @@ def add_escudos(df: pd.DataFrame, team_ids: dict, formula_sep: str = ";") -> pd.
     return df
 
 
+# ----------------------------- ESTADISTICAS DE CADA PARTIDO ----------------
+# Cada partido jugado tiene su pagina "Partido.aspx?p=ID" con una tabla por
+# equipo (una fila por jugadora + fila de totales). Para no tardar horas,
+# solo se descargan los partidos que todavia NO estan en la pestaña.
+
+PARTIDO_URL = f"{BASE_URL}/Partido.aspx?p={{id}}"
+TAB_PARTIDOS = "Partidos_Estadisticas"
+MAX_PARTIDOS_POR_EJECUCION = 450   # tope de seguridad (la 1a vez los baja todos)
+
+# Nombres claros para las columnas (la FEB repite "TC": tiros de campo y tapones en contra)
+_RENOMBRAR_BOX = {"I": "Titular", "D": "Dorsal", "TF": "TAP_F", "FC": "FAL_C", "FR": "FAL_R",
+                  "RO": "REB_O", "RD": "REB_D", "RT": "REB_T", "+/-": "MAS_MENOS"}
+
+
+def _cabecera_box(tabla) -> list:
+    """Cabecera de la tabla de un equipo (la fila que contiene 'Jugador')."""
+    for tr in tabla.find_all("tr"):
+        textos = [c.get_text(strip=True) for c in tr.find_all(["th", "td"])]
+        if "Jugador" in textos and "PT" in textos:
+            nombres, vistos_tc = [], 0
+            for t in textos:
+                if t == "TC":
+                    vistos_tc += 1
+                    nombres.append("TC" if vistos_tc == 1 else "TAP_C")
+                else:
+                    nombres.append(_RENOMBRAR_BOX.get(t, t))
+            return nombres
+    return []
+
+
+def _nombre_equipo_de_tabla(tabla) -> str:
+    h = tabla.find_previous(["h1", "h2", "h3", "h4"])
+    return h.get_text(strip=True) if h else ""
+
+
+_ETIQUETAS_PARTIDO = ("Fecha", "Árbitros", "Arbitros", "Pista")
+
+
+def _dato_partido(soup: BeautifulSoup, etiqueta: str) -> str:
+    """Texto que sigue a 'Fecha', 'Árbitros' o 'Pista' en la ficha del partido
+    (hasta la siguiente etiqueta). Si no se encuentra, cadena vacia."""
+    lineas = [l.strip() for l in soup.get_text("\n").split("\n") if l.strip()]
+    for i, linea in enumerate(lineas[:200]):
+        if linea == etiqueta or linea.startswith(etiqueta + " "):
+            partes = [linea[len(etiqueta):].strip()] if linea != etiqueta else []
+            for sig in lineas[i + 1:i + 4]:
+                if any(sig.startswith(e) for e in _ETIQUETAS_PARTIDO) or sig in ("%",) or len(sig) > 80:
+                    break
+                partes.append(sig)
+                if etiqueta == "Pista" and len(partes) >= 2:
+                    break
+            return " ".join(p for p in partes if p)[:120]
+    return ""
+
+
+def parse_partido_html(html: str, partido_id: str) -> pd.DataFrame:
+    soup = BeautifulSoup(html, "html.parser")
+    filas = []
+    arbitros = _dato_partido(soup, "Árbitros")
+    pista = _dato_partido(soup, "Pista")
+    orden = 0
+    for tabla in soup.find_all("table"):
+        cab = _cabecera_box(tabla)
+        if not cab:
+            continue
+        orden += 1
+        equipo = _nombre_equipo_de_tabla(tabla)
+        lado = "Local" if orden == 1 else ("Visitante" if orden == 2 else "")
+        empezar = False
+        for tr in tabla.find_all("tr"):
+            celdas = [c.get_text(strip=True) for c in tr.find_all(["td", "th"])]
+            if "Jugador" in celdas and "PT" in celdas:
+                empezar = True
+                continue
+            if not empezar or len(celdas) != len(cab):
+                continue
+            fila = dict(zip(cab, celdas))
+            if not fila.get("Jugador"):
+                if not fila.get("PT"):
+                    continue
+                fila["Jugador"] = "TOTAL"
+            fila["Titular"] = "Si" if "*" in fila.get("Titular", "") else ""
+            filas.append({"PartidoID": partido_id, "Lado": lado, "Equipo": equipo, **fila,
+                          "Arbitros": arbitros, "Pista": pista})
+    return pd.DataFrame(filas)
+
+
+def _ids_ya_guardados(sh) -> tuple:
+    """(ids ya descargados, DataFrame con lo que ya habia en la pestaña)."""
+    try:
+        ws = sh.worksheet(TAB_PARTIDOS)
+        valores = ws.get_all_values()
+    except gspread.WorksheetNotFound:
+        return set(), pd.DataFrame()
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: no se pudo leer {TAB_PARTIDOS}: {exc}", file=sys.stderr)
+        return set(), pd.DataFrame()
+    if len(valores) < 2:
+        return set(), pd.DataFrame()
+    df = pd.DataFrame(valores[1:], columns=valores[0])
+    if "PartidoID" not in df.columns:
+        return set(), pd.DataFrame()
+    return set(df["PartidoID"]), df
+
+
+def fetch_estadisticas_partidos(sh, resultados_df: pd.DataFrame) -> tuple:
+    """Devuelve (DataFrame completo, n_partidos_nuevos)."""
+    ya, df_viejo = _ids_ya_guardados(sh)
+    if resultados_df.empty or "PartidoID" not in resultados_df.columns:
+        return df_viejo, 0
+    jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
+    pendientes = [pid for pid in dict.fromkeys(jugados["PartidoID"]) if pid not in ya]
+    pendientes = pendientes[:MAX_PARTIDOS_POR_EJECUCION]
+    print(f"  [partidos] {len(ya)} ya guardados, {len(pendientes)} por descargar", file=sys.stderr)
+
+    session = requests.Session()
+    nuevos, vacios = [], 0
+    for i, pid in enumerate(pendientes, start=1):
+        try:
+            resp = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=pid.lstrip("p")))
+            df = parse_partido_html(resp.text, pid)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  Aviso: partido {pid}: {exc}", file=sys.stderr)
+            continue
+        if df.empty:
+            vacios += 1
+        else:
+            nuevos.append(df)
+        if i % 50 == 0:
+            print(f"  [partidos] {i}/{len(pendientes)}", file=sys.stderr)
+    if vacios:
+        print(f"  Aviso: {vacios} partidos sin tabla de estadisticas en la FEB", file=sys.stderr)
+
+    if not nuevos:
+        return df_viejo, 0
+    total = pd.concat([df_viejo] + nuevos, ignore_index=True).fillna("")
+    return total, len(nuevos)
+
+
 # ----------------------------- MAIN ----------------------------------------
 
 
@@ -1057,6 +1202,16 @@ def main():
     if not clasif_final_df.empty:
         write_dataframe(sh, "Clasificacion_Final", clasif_final_df)
         resumen.append(f"Clasificacion_Final: {len(clasif_final_df)} filas")
+
+    # 4) Estadisticas de cada partido (solo los nuevos)
+    try:
+        partidos_df, n_nuevos = fetch_estadisticas_partidos(sh, resultados_df)
+        if n_nuevos:
+            write_dataframe(sh, TAB_PARTIDOS, partidos_df)
+        n_part = partidos_df["PartidoID"].nunique() if not partidos_df.empty else 0
+        resumen.append(f"{TAB_PARTIDOS}: {n_part} partidos ({n_nuevos} nuevos)")
+    except Exception as exc:  # noqa: BLE001
+        resumen.append(f"{TAB_PARTIDOS}: error ({exc})")
 
     write_log(sh, " | ".join(resumen))
     print("Actualizacion completada:")
