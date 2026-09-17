@@ -10,6 +10,9 @@ a mano con: python feb_stats_sync.py
 
 CONFIGURACION (variables de entorno):
     FEB_GROUP_ID     -> id numerico de la competicion (LF2 = 9)
+                        (el script recorre solo los grupos "Liga Regular A/B"
+                        para equipos y rankings, y TODAS las fases y jornadas
+                        para los resultados)
     FEB_SEASON_START -> año de inicio de temporada, p.ej. 2025 para 2025/2026
     FEB_SLUG         -> "nm" que usa la URL (LF2 = "lf2")
     GOOGLE_SHEET_ID  -> ID de tu Google Sheet
@@ -324,10 +327,179 @@ def _descargar_todas_las_paginas(session, url: str, html_inicial: str,
 
 
 def fetch_ranking_with_photos(url: str, formula_sep: str = ";") -> pd.DataFrame:
-    """Ranking de Puntos (categoria por defecto), todas las paginas."""
+    """Ranking de Puntos (categoria por defecto), todas las paginas,
+    de TODOS los grupos de la liga regular."""
+    return _ranking_por_grupos(url, formula_sep, "Puntos")
+
+
+# ----------------------------- FASES Y GRUPOS ------------------------------
+# La LF2 se juega en dos grupos (Liga Regular "A" y "B") y despues hay
+# eliminatorias. La web de la FEB muestra por defecto la ULTIMA fase (las
+# finales), asi que solo salian los equipos que jugaron las finales.
+# Estas funciones buscan el desplegable de fases y recorren cada grupo.
+
+def _opciones(sel) -> list:
+    return [(opt.get("value", ""), opt.get_text(strip=True)) for opt in sel.find_all("option")]
+
+
+def _valor_seleccionado(sel) -> str:
+    opt = sel.find("option", selected=True) or sel.find("option")
+    return opt.get("value", "") if opt else ""
+
+
+def _target_postback(sel) -> str:
+    """Nombre del control que la web usa para el postback de un desplegable."""
+    m = re.search(r"__doPostBack\(\s*'([^']+)'", sel.get("onchange") or "")
+    if m:
+        return m.group(1)
+    return (sel.get("name") or "").replace(":", "$")
+
+
+def _url_formulario(soup: BeautifulSoup, url_base: str) -> str:
+    """URL a la que hay que enviar el formulario (la de 'action')."""
+    form = soup.find("form")
+    action = form.get("action") if form else None
+    return urljoin(url_base, action) if action else url_base
+
+
+def _es_liga_regular(texto: str) -> bool:
+    return bool(re.search(r"liga\s+regular", texto, re.I))
+
+
+def _nombre_grupo(texto: str) -> str:
+    """'Liga Regular "A"' -> 'A'. Si no es un grupo de liga regular -> ''."""
+    m = re.search(r"liga\s+regular\W*([A-Za-z0-9]+)", texto, re.I)
+    return m.group(1).upper() if m else ""
+
+
+def _desplegable_fases(soup: BeautifulSoup):
+    """El <select> de fases/grupos (o None si la pagina no tiene)."""
+    candidatos = []
+    for sel in soup.find_all("select"):
+        nombre = (sel.get("name") or "").lower()
+        if not nombre or any(p in nombre for p in ("temporada", "jornada", "ranking")):
+            continue
+        candidatos.append(sel)
+    for sel in candidatos:
+        if any(_es_liga_regular(t) for _, t in _opciones(sel)):
+            return sel
+    for sel in candidatos:
+        if re.search(r"fase|grupo", sel.get("name") or "", re.I):
+            return sel
+    return None
+
+
+def _desplegable_jornadas(soup: BeautifulSoup):
+    for sel in soup.find_all("select"):
+        nombre = (sel.get("name") or "").lower()
+        textos = [t for _, t in _opciones(sel)]
+        if "jornada" in nombre or (textos and all(t.lower().startswith("jornada") for t in textos)):
+            return sel
+    return None
+
+
+def _cambiar_desplegable(session, post_url: str, soup: BeautifulSoup,
+                         campo: str, target: str, valor: str) -> str:
+    """Simula elegir 'valor' en un desplegable ASP.NET. Devuelve el HTML nuevo."""
+    datos = _extract_form_state(soup)
+    datos["__EVENTTARGET"] = target
+    datos["__EVENTARGUMENT"] = ""
+    datos[campo] = valor
+    return _request_con_reintentos(session, "POST", post_url, data=datos).text
+
+
+def _paginas_por_fase(url: str, solo_liga_regular: bool = True):
+    """Recorre las fases de una pagina. Por cada una devuelve:
+    (texto_fase, grupo, session, html, post_url).
+    Si la pagina no tiene desplegable de fases, devuelve solo la pagina
+    tal cual (fase y grupo vacios), igual que antes."""
     session = requests.Session()
     resp = _request_con_reintentos(session, "GET", url)
-    return _descargar_todas_las_paginas(session, url, resp.text, formula_sep, "Puntos")
+    soup = BeautifulSoup(resp.text, "html.parser")
+    sel = _desplegable_fases(soup)
+    if sel is None:
+        print(f"  [fases] {url}: sin desplegable de fases, uso la pagina por defecto.", file=sys.stderr)
+        yield "", "", session, resp.text, _url_formulario(soup, resp.url)
+        return
+
+    opciones = _opciones(sel)
+    print(f"  [fases] {url}: fases detectadas -> {', '.join(t for _, t in opciones)}", file=sys.stderr)
+    if solo_liga_regular:
+        elegidas = [o for o in opciones if _es_liga_regular(o[1])]
+        if not elegidas:
+            print("  [fases] no hay 'Liga Regular' en el desplegable; uso la fase por defecto.", file=sys.stderr)
+            yield "", "", session, resp.text, _url_formulario(soup, resp.url)
+            return
+    else:
+        elegidas = list(reversed(opciones))   # de la primera fase a la ultima
+
+    campo, target = sel.get("name"), _target_postback(sel)
+    for valor, texto in elegidas:
+        try:
+            # Sesion nueva por fase: asi una fase no interfiere con otra
+            s2 = requests.Session()
+            r2 = _request_con_reintentos(s2, "GET", url)
+            soup2 = BeautifulSoup(r2.text, "html.parser")
+            post_url = _url_formulario(soup2, r2.url)
+            sel2 = _desplegable_fases(soup2)
+            if sel2 is not None and _valor_seleccionado(sel2) == valor:
+                html = r2.text
+            else:
+                html = _cambiar_desplegable(s2, post_url, soup2, campo, target, valor)
+            yield texto, _nombre_grupo(texto), s2, html, post_url
+        except Exception as exc:  # noqa: BLE001
+            print(f"  Aviso: no se pudo abrir la fase '{texto}': {exc}", file=sys.stderr)
+            continue
+
+
+def _reordenar_ranking(df: pd.DataFrame) -> pd.DataFrame:
+    """Tras juntar los dos grupos: ordena por la media y renumera la posicion."""
+    col_media = next((c for c in ("Media", "Med", "Medias") if c in df.columns), None)
+    if not col_media:
+        return df
+
+    def _num(v):
+        try:
+            return float(str(v).replace(".", "").replace(",", "."))
+        except ValueError:
+            return float("-inf")
+
+    df = df.assign(_orden=df[col_media].map(_num))
+    df = df.sort_values("_orden", ascending=False, kind="stable").drop(columns="_orden")
+    df = df.reset_index(drop=True)
+    primera = df.columns[0]
+    valores = df[primera].astype(str).str.strip()
+    if primera not in ("Foto", "Jugador") and (valores != "").all() and valores.str.isdigit().all():
+        df[primera] = [str(i) for i in range(1, len(df) + 1)]
+    return df
+
+
+def _ranking_por_grupos(url: str, formula_sep: str, etiqueta: str, cat_value=None) -> pd.DataFrame:
+    """Ranking de una categoria juntando Grupo A + Grupo B (todas las paginas)."""
+    frames = []
+    for fase, grupo, session, html, post_url in _paginas_por_fase(url):
+        nombre = f"{etiqueta} Grupo {grupo}" if grupo else etiqueta
+        try:
+            if cat_value is not None:
+                soup = BeautifulSoup(html, "html.parser")
+                html = _cambiar_desplegable(session, post_url, soup, RANKINGS_DROPDOWN_FIELD,
+                                            RANKINGS_DROPDOWN_TARGET, str(cat_value))
+            df = _descargar_todas_las_paginas(session, post_url, html, formula_sep, nombre)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  Aviso: {nombre}: {exc}", file=sys.stderr)
+            continue
+        if df.empty:
+            continue
+        if grupo:
+            df["Grupo"] = grupo
+        frames.append(df)
+    if not frames:
+        return pd.DataFrame()
+    df_total = pd.concat(frames, ignore_index=True).fillna("")
+    df_total = df_total.loc[~_clave_jugadora(df_total).duplicated()].reset_index(drop=True)
+    if len(frames) > 1:
+        df_total = _reordenar_ranking(df_total)
+    return df_total
 
 
 # ----------------------------- OTRAS CATEGORIAS DE RANKING -----------------
@@ -373,23 +545,12 @@ def _extract_form_state(soup: BeautifulSoup) -> dict:
 
 
 def fetch_all_ranking_categories(url: str, formula_sep: str = ";") -> dict:
-    """Descarga el resto de categorias (todas sus paginas). Cada categoria
-    usa una sesion nueva para que la paginacion no interfiera entre ellas.
+    """Descarga el resto de categorias (todas sus paginas y todos los grupos).
     Si una categoria falla, se omite sin tumbar el resto."""
     results = {}
     for cat_name, cat_value in RANKING_CATEGORIES.items():
         try:
-            session = requests.Session()
-            resp = _request_con_reintentos(session, "GET", url)
-            soup = BeautifulSoup(resp.text, "html.parser")
-
-            form_data = _extract_form_state(soup)
-            form_data["__EVENTTARGET"] = RANKINGS_DROPDOWN_TARGET
-            form_data["__EVENTARGUMENT"] = ""
-            form_data[RANKINGS_DROPDOWN_FIELD] = str(cat_value)
-            post_resp = _request_con_reintentos(session, "POST", url, data=form_data)
-
-            df = _descargar_todas_las_paginas(session, url, post_resp.text, formula_sep, cat_name)
+            df = _ranking_por_grupos(url, formula_sep, cat_name, cat_value)
             if not df.empty:
                 results[cat_name] = df
             else:
@@ -475,13 +636,13 @@ def split_stat_columns(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(new_cols)
 
 
-def fetch_resultados_y_clasificacion(url: str) -> tuple:
-    """Resultados por jornada + Clasificacion (viven en la misma pagina)."""
-    resp = _request_con_reintentos(requests.Session(), "GET", url)
-    soup = BeautifulSoup(resp.text, "html.parser")
-
+def _parse_resultados_html(html: str, fase: str = "", grupo: str = "",
+                           jornada: str = "") -> tuple:
+    """Lee UNA pagina de resultados: (filas_de_partidos, clasificacion, clasificacion_final)."""
+    soup = BeautifulSoup(html, "html.parser")
     resultado_rows = []
     clasificacion_df = pd.DataFrame()
+    final_df = pd.DataFrame()
 
     for table in soup.find_all("table"):
         rows = table.find_all("tr")
@@ -490,8 +651,11 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
         header_cells = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
 
         if "Equipos" in header_cells and "Resultado" in header_cells:
-            heading = table.find_previous(["h1", "h2", "h3", "h4", "span", "div"])
-            jornada_label = heading.get_text(strip=True) if heading else ""
+            if jornada:
+                jornada_label = jornada
+            else:
+                heading = table.find_previous(["h1", "h2", "h3", "h4", "span", "div"])
+                jornada_label = heading.get_text(strip=True) if heading else ""
             for tr in rows[1:]:
                 cells = [c.get_text(strip=True) for c in tr.find_all("td")]
                 if len(cells) < 3:
@@ -510,6 +674,8 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
                     if len(partes) == 2:
                         pts_local, pts_visitante = partes[0].strip(), partes[1].strip()
                 resultado_rows.append({
+                    "Fase": fase,
+                    "Grupo": grupo,
                     "Jornada": jornada_label,
                     "Local": local,
                     "Visitante": visitante,
@@ -530,7 +696,77 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
             if data:
                 clasificacion_df = pd.DataFrame(data, columns=header_cells)
 
-    return pd.DataFrame(resultado_rows), clasificacion_df
+        elif "Equipo" in header_cells and "Po" in header_cells and "PJ" not in header_cells:
+            data = []
+            for tr in rows[1:]:
+                cells = [c.get_text(strip=True) for c in tr.find_all("td")]
+                if len(cells) == len(header_cells):
+                    data.append(cells)
+            if data:
+                final_df = pd.DataFrame(data, columns=header_cells)
+
+    return resultado_rows, clasificacion_df, final_df
+
+
+def _clave_fecha(fila: dict):
+    try:
+        f = datetime.strptime(f"{fila.get('Fecha', '')} {fila.get('Hora', '') or '00:00'}".strip(), "%d/%m/%Y %H:%M")
+        return (0, f)
+    except ValueError:
+        return (1, datetime.max)
+
+
+def fetch_resultados_y_clasificacion(url: str) -> tuple:
+    """Resultados de TODAS las fases y jornadas + Clasificacion de cada grupo
+    + Clasificacion final (si la FEB la publica)."""
+    todas = []
+    clasificaciones = []
+    clasif_final = pd.DataFrame()
+
+    for fase, grupo, session, html, post_url in _paginas_por_fase(url, solo_liga_regular=False):
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            filas, clasif, final = _parse_resultados_html(html, fase, grupo)
+            if not clasif.empty and (grupo or not fase):
+                if grupo:
+                    clasif.insert(0, "Grupo", grupo)
+                clasificaciones.append(clasif)
+            if len(final) > len(clasif_final):
+                clasif_final = final
+
+            sel_j = _desplegable_jornadas(soup)
+            if sel_j is None:
+                todas.extend(filas)
+                continue
+            actual = _valor_seleccionado(sel_j)
+            campo, target = sel_j.get("name"), _target_postback(sel_j)
+            for valor, texto in _opciones(sel_j):
+                try:
+                    h = html if valor == actual else _cambiar_desplegable(
+                        session, post_url, soup, campo, target, valor)
+                    f, _, _ = _parse_resultados_html(h, fase, grupo, texto)
+                    todas.extend(f)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  Aviso: {fase} / {texto}: {exc}", file=sys.stderr)
+            print(f"  [resultados] {fase or 'fase por defecto'}: {len(_opciones(sel_j))} jornadas leidas", file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  Aviso: no se pudieron leer los resultados de '{fase}': {exc}", file=sys.stderr)
+
+    resultados_df = pd.DataFrame(todas)
+    if not resultados_df.empty:
+        resultados_df = resultados_df.drop_duplicates(
+            subset=["Fase", "Jornada", "Local", "Visitante"]).reset_index(drop=True)
+        orden = sorted(range(len(resultados_df)),
+                       key=lambda i: _clave_fecha(resultados_df.iloc[i].to_dict()))
+        resultados_df = resultados_df.iloc[orden].reset_index(drop=True)
+        for col in ("Fase", "Grupo"):
+            if (resultados_df[col].astype(str).str.strip() == "").all():
+                resultados_df = resultados_df.drop(columns=col)
+
+    clasificaciones.sort(key=lambda d: str(d["Grupo"].iloc[0]) if "Grupo" in d.columns else "")
+    clasificacion_df = (pd.concat(clasificaciones, ignore_index=True).fillna("")
+                        if clasificaciones else pd.DataFrame())
+    return resultados_df, clasificacion_df, clasif_final
 
 
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -692,15 +928,9 @@ def write_log(sh: gspread.Spreadsheet, message: str):
 
 # ----------------------------- ESCUDOS DE EQUIPO ---------------------------
 
-def fetch_team_ids(url: str) -> dict:
+def _team_ids_de_html(html: str) -> dict:
     """{nombre_equipo: id_equipo} a partir de los enlaces 'Equipo.aspx?i=ID'."""
-    try:
-        resp = _request_con_reintentos(requests.Session(), "GET", url)
-    except Exception as exc:  # noqa: BLE001
-        print(f"Aviso: no se pudieron obtener los IDs de equipo: {exc}", file=sys.stderr)
-        return {}
-
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     mapping = {}
     for a in soup.find_all("a", href=True):
         m = re.search(r"Equipo\.aspx\?i=(\d+)", a["href"])
@@ -709,6 +939,40 @@ def fetch_team_ids(url: str) -> dict:
             if name:
                 mapping[name] = m.group(1)
     return mapping
+
+
+def fetch_team_ids(url: str) -> dict:
+    try:
+        resp = _request_con_reintentos(requests.Session(), "GET", url)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: no se pudieron obtener los IDs de equipo: {exc}", file=sys.stderr)
+        return {}
+    return _team_ids_de_html(resp.text)
+
+
+def fetch_equipos_por_grupo(url: str) -> tuple:
+    """Estadisticas de equipo de TODOS los grupos de la liga regular.
+    Devuelve (df_equipos, ids_equipo, tablas_extra)."""
+    frames, team_ids, extras = [], {}, []
+    for fase, grupo, session, html, post_url in _paginas_por_fase(url):
+        team_ids.update(_team_ids_de_html(html))
+        try:
+            tablas = pd.read_html(io.StringIO(html))
+        except ValueError:
+            tablas = []
+        if not tablas:
+            continue
+        df = clean_dataframe(tablas[0])
+        df = fix_equipo_medias(df)
+        df = split_stat_columns(df)
+        if grupo:
+            df["Grupo"] = grupo
+        frames.append(df)
+        if not grupo:  # sin grupos: se conservan las tablas extra como antes
+            extras = [clean_dataframe(t) for t in tablas[1:]]
+    if not frames:
+        return pd.DataFrame(), team_ids, extras
+    return pd.concat(frames, ignore_index=True).fillna(""), team_ids, extras
 
 
 def add_escudos(df: pd.DataFrame, team_ids: dict, formula_sep: str = ";") -> pd.DataFrame:
@@ -742,19 +1006,19 @@ def main():
 
     resumen = []
 
-    # 1) Estadisticas por equipo (+ escudos)
-    equipo_tables = fetch_tables(ESTADISTICAS_URL)
-    team_ids = fetch_team_ids(ESTADISTICAS_URL)
-    if equipo_tables:
-        for i, df in enumerate(equipo_tables):
-            df = clean_dataframe(df)
-            if i == 0:
-                df = fix_equipo_medias(df)
-                df = split_stat_columns(df)
-                df = add_escudos(df, team_ids, formula_sep=formula_sep)
-            tab = "Equipos" if i == 0 else f"Equipos_{i}"
-            write_dataframe(sh, tab, df, has_photos=(i == 0))
-            resumen.append(f"{tab}: {len(df)} filas")
+    # 1) Estadisticas por equipo (+ escudos), todos los grupos
+    equipos_df, team_ids, extras = fetch_equipos_por_grupo(ESTADISTICAS_URL)
+    if not equipos_df.empty:
+        equipos_df = add_escudos(equipos_df, team_ids, formula_sep=formula_sep)
+        write_dataframe(sh, "Equipos", equipos_df, has_photos=True)
+        grupos = ""
+        if "Grupo" in equipos_df.columns:
+            grupos = " (" + ", ".join(f"Grupo {g}: {n}" for g, n in
+                                      equipos_df["Grupo"].value_counts().sort_index().items()) + ")"
+        resumen.append(f"Equipos: {len(equipos_df)} filas{grupos}")
+        for i, df in enumerate(extras, start=1):
+            write_dataframe(sh, f"Equipos_{i}", df)
+            resumen.append(f"Equipos_{i}: {len(df)} filas")
     else:
         resumen.append("Equipos: sin tablas (probablemente la temporada aun no tiene partidos)")
 
@@ -777,7 +1041,7 @@ def main():
         resumen.append(f"Categorias no disponibles esta vez: {', '.join(sorted(categorias_faltantes))}")
 
     # 3) Resultados + Clasificacion
-    resultados_df, clasificacion_df = fetch_resultados_y_clasificacion(RESULTADOS_URL)
+    resultados_df, clasificacion_df, clasif_final_df = fetch_resultados_y_clasificacion(RESULTADOS_URL)
     if not resultados_df.empty:
         write_dataframe(sh, "Resultados", resultados_df)
         resumen.append(f"Resultados: {len(resultados_df)} filas")
@@ -789,6 +1053,10 @@ def main():
         resumen.append(f"Clasificacion: {len(clasificacion_df)} filas")
     else:
         resumen.append("Clasificacion: no disponible todavia (necesita al menos una jornada jugada)")
+
+    if not clasif_final_df.empty:
+        write_dataframe(sh, "Clasificacion_Final", clasif_final_df)
+        resumen.append(f"Clasificacion_Final: {len(clasif_final_df)} filas")
 
     write_log(sh, " | ".join(resumen))
     print("Actualizacion completada:")
