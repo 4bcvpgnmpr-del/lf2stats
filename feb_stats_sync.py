@@ -1283,6 +1283,105 @@ def investigar_play_by_play(partido_id: str) -> list:
     return informe
 
 
+# ----------------------------- API LIVESTATS DE LA FEB ---------------------
+# Descubierto con el modo detective: la web pide los datos en vivo a
+#   https://intrafeb.feb.es/LiveStats.API/api/v1/<SERVICIO>/<idPartido>
+# con una clave que viene en la propia pagina del partido
+#   <input id="_ctl0_token" value="...">  ->  cabecera Authorization: Bearer ...
+
+LIVESTATS_BASE = os.environ.get("FEB_LIVESTATS_BASE", "https://intrafeb.feb.es/LiveStats.API/api/v1")
+# Servicios vistos en el JavaScript de la FEB + otros nombres probables para el
+# jugada a jugada. Los que no existan devolveran 404 y se descartan solos.
+LIVESTATS_SERVICIOS = ["BoxScore", "KeyFacts", "TeamStats", "Ranking", "ShotChart",
+                       "PlayByPlay", "PlayByPlays", "Jugadas", "Events", "Actions"]
+
+
+def token_livestats(html: str) -> str:
+    """Clave 'Bearer' que la web guarda en un campo oculto de la pagina del partido."""
+    soup = BeautifulSoup(html, "html.parser")
+    campo = (soup.find("input", id="_ctl0_token")
+             or soup.find("input", attrs={"name": "_ctl0:token"})
+             or soup.select_one("#contentToken > input"))
+    return campo.get("value", "") if campo else ""
+
+
+def _mapa_json(obj, prefijo="", profundidad=0, lineas=None, max_lineas=120) -> list:
+    """Describe la forma de un JSON: claves, tipos y tamaños (sin volcarlo entero)."""
+    if lineas is None:
+        lineas = []
+    if len(lineas) >= max_lineas or profundidad > 3:
+        return lineas
+    if isinstance(obj, dict):
+        for k, v in list(obj.items())[:40]:
+            ruta = f"{prefijo}.{k}" if prefijo else k
+            if isinstance(v, (dict, list)):
+                tam = f"[{len(v)}]" if isinstance(v, list) else "{...}"
+                lineas.append(f"    {ruta} {tam}")
+                _mapa_json(v, ruta, profundidad + 1, lineas, max_lineas)
+            else:
+                lineas.append(f"    {ruta} = {str(v)[:60]}")
+            if len(lineas) >= max_lineas:
+                break
+    elif isinstance(obj, list) and obj:
+        _mapa_json(obj[0], f"{prefijo}[0]", profundidad + 1, lineas, max_lineas)
+    return lineas
+
+
+def investigar_livestats(partido_id: str) -> list:
+    """Pregunta a la API de la FEB por un partido y describe lo que devuelve."""
+    pid = str(partido_id).lstrip("p")
+    informe = [f"=== DETECTIVE 2: API LiveStats (partido {pid}) ==="]
+    session = requests.Session()
+    try:
+        html = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=pid)).text
+    except Exception as exc:  # noqa: BLE001
+        informe.append(f"No se pudo abrir la pagina del partido: {exc}")
+        for l in informe:
+            print(l, file=sys.stderr)
+        return informe
+
+    token = token_livestats(html)
+    informe.append(f"Token encontrado: {'si' if token else 'NO'} (longitud {len(token)})")
+    if not token:
+        informe.append("Sin token no se puede preguntar a la API.")
+        for l in informe:
+            print(l, file=sys.stderr)
+        return informe
+
+    cabeceras = dict(HEADERS)
+    cabeceras["Authorization"] = "Bearer " + token
+    cabeceras["Accept"] = "application/json"
+
+    for servicio in LIVESTATS_SERVICIOS:
+        url = f"{LIVESTATS_BASE}/{servicio}/{pid}"
+        try:
+            resp = session.get(url, headers=cabeceras, timeout=30)
+        except Exception as exc:  # noqa: BLE001
+            informe.append(f"  {servicio}: error de conexion ({exc})")
+            continue
+        time.sleep(PAUSA_ENTRE_PETICIONES)
+        informe.append(f"  {servicio}: HTTP {resp.status_code} ({len(resp.content)} bytes)")
+        if resp.status_code != 200 or not resp.content:
+            continue
+        try:
+            datos = resp.json()
+        except ValueError:
+            informe.append(f"    (no es JSON) {resp.text[:200]}")
+            continue
+        informe += _mapa_json(datos)
+        # ¿hay sustituciones? es lo que hace falta para los quintetos
+        texto = resp.text
+        for palabra in ("ustitu", "ubstitu", "Entra a pista", "Sale de pista"):
+            frags = _fragmentos(texto, palabra, ancho=260, maximo=2)
+            for f in frags:
+                informe.append(f"    [{palabra}] {f[:260]}")
+
+    informe.append("=== fin DETECTIVE 2 ===")
+    for l in informe:
+        print(l, file=sys.stderr)
+    return informe
+
+
 # ----------------------------- MAIN ----------------------------------------
 
 
@@ -1360,9 +1459,9 @@ def main():
         jugados_ids = [p for p in resultados_df.loc[resultados_df["Jugado"] == "Si", "PartidoID"] if p]
         if jugados_ids:
             try:
-                lineas = investigar_play_by_play(jugados_ids[-1])
-                pistas = [l for l in lineas if "intrafeb" in l.lower() or "livestats" in l.lower()]
-                resumen.append(f"Detective PBP: {len(pistas)} pistas (ver registro de la ejecucion)")
+                lineas = investigar_livestats(jugados_ids[-1])
+                ok = [l for l in lineas if "HTTP 200" in l]
+                resumen.append(f"Detective LiveStats: {len(ok)} servicios responden (ver registro)")
             except Exception as exc:  # noqa: BLE001
                 resumen.append(f"Detective PBP: error ({exc})")
 
