@@ -1489,6 +1489,53 @@ def investigar_livestats(partido_id: str) -> list:
     return informe
 
 
+# ----------------------------- RESUMEN DE TIROS POR JUGADORA ---------------
+# La FEB solo publica sus rankings de porcentaje a quien llega a un minimo de
+# intentos. Aqui se suman los tiros de TODAS las jugadoras a partir del cuadro
+# de cada partido, en una pestaña pequeña que la app puede leer rapido.
+
+TAB_TIROS = "Jugadoras_Tiros"
+
+
+def _partes_tiro(txt: str) -> tuple:
+    m = re.search(r"(\d+)\s*/\s*(\d+)", str(txt or ""))
+    return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+
+
+def resumen_tiros_jugadoras(partidos_df: pd.DataFrame) -> pd.DataFrame:
+    if partidos_df.empty or "Jugador" not in partidos_df.columns:
+        return pd.DataFrame()
+    filas = {}
+    for _, f in partidos_df.iterrows():
+        jugadora = str(f.get("Jugador", "")).strip()
+        equipo = str(f.get("Equipo", "")).strip()
+        if not jugadora or jugadora == "TOTAL":
+            continue
+        clave = (equipo, jugadora)
+        d = filas.setdefault(clave, {"Equipo": equipo, "Jugador": jugadora, "Partidos": 0,
+                                     "T2A": 0, "T2I": 0, "T3A": 0, "T3I": 0, "TLA": 0, "TLI": 0,
+                                     "Dorsales": {}})
+        d["Partidos"] += 1
+        for col, pref in (("T2", "T2"), ("T3", "T3"), ("TL", "TL")):
+            a, i = _partes_tiro(f.get(col, ""))
+            d[pref + "A"] += a
+            d[pref + "I"] += i
+        dorsal = str(f.get("Dorsal", "")).strip()
+        if dorsal:
+            d["Dorsales"][dorsal] = d["Dorsales"].get(dorsal, 0) + 1
+
+    salida = []
+    for d in filas.values():
+        dorsal = max(d["Dorsales"].items(), key=lambda x: x[1])[0] if d["Dorsales"] else ""
+        pct = lambda a, i: f"{round(a / i * 100, 1):.1f}".replace(".", ",") if i else ""
+        salida.append({"Equipo": d["Equipo"], "Jugador": d["Jugador"], "Dorsal": dorsal,
+                       "Partidos": d["Partidos"],
+                       "T2A": d["T2A"], "T2I": d["T2I"], "T2Pct": pct(d["T2A"], d["T2I"]),
+                       "T3A": d["T3A"], "T3I": d["T3I"], "T3Pct": pct(d["T3A"], d["T3I"]),
+                       "TLA": d["TLA"], "TLI": d["TLI"], "TLPct": pct(d["TLA"], d["TLI"])})
+    return pd.DataFrame(salida).sort_values(["Equipo", "Jugador"]).reset_index(drop=True)
+
+
 # ----------------------------- QUINTETOS (jugada a jugada) -----------------
 # La API LiveStats de la FEB devuelve en "KeyFacts" el jugada a jugada
 # (PLAYBYPLAY.LINES) con las sustituciones. Con eso se reconstruye que cinco
@@ -1873,6 +1920,12 @@ def main():
             write_dataframe(sh, TAB_PARTIDOS, partidos_df)
         n_part = partidos_df["PartidoID"].nunique() if not partidos_df.empty else 0
         resumen.append(f"{TAB_PARTIDOS}: {n_part} partidos ({n_nuevos} nuevos)")
+
+        tiros_df = resumen_tiros_jugadoras(partidos_df)
+        tiros_df, _ = aplicar_canonicos(tiros_df, canonicos)
+        if not tiros_df.empty:
+            write_dataframe(sh, TAB_TIROS, tiros_df)
+            resumen.append(f"{TAB_TIROS}: {len(tiros_df)} jugadoras")
     except Exception as exc:  # noqa: BLE001
         resumen.append(f"{TAB_PARTIDOS}: error ({exc})")
 
