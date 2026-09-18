@@ -1493,6 +1493,11 @@ RE_ENTRA = re.compile(r"entra\s+a\s+pista", re.I)
 RE_SALE = re.compile(r"sale\s+de\s+pista", re.I)
 RE_ANOTA = re.compile(r"tiro\s+de\s*(\d)\s*anotad|canasta\s+de\s*(\d)", re.I)
 RE_EQUIPO_JUGADORA = re.compile(r"^\((?P<equipo>[^)]+)\)\s*(?P<jugadora>[^:]+):", re.S)
+# Para contar posesiones (formula habitual): tiros de campo intentados
+# - rebotes ofensivos + perdidas + 0,44 x tiros libres intentados
+RE_TIRO = re.compile(r"tiro\s+de\s*(\d)\s*(anotad|fallad|encestad|errad)", re.I)
+RE_REB_OF = re.compile(r"rebote\s+ofensivo", re.I)
+RE_PERDIDA = re.compile(r"p[eé]rdida|balon\s+perdido|perdida", re.I)
 
 
 def _segundos_restantes(txt: str) -> int:
@@ -1533,6 +1538,11 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
                     break
         anota = RE_ANOTA.search(texto)
         puntos = int(anota.group(1) or anota.group(2)) if anota else 0
+        tiro = RE_TIRO.search(texto)
+        tiro_campo = 1 if (tiro and tiro.group(1) in ("2", "3")) else 0
+        tiro_libre = 1 if (tiro and tiro.group(1) == "1") else 0
+        reb_of = 1 if RE_REB_OF.search(texto) else 0
+        perdida = 1 if RE_PERDIDA.search(texto) else 0
         if RE_ENTRA.search(texto):
             tipo = "entra"
         elif RE_SALE.search(texto):
@@ -1545,6 +1555,7 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
             tipo = "otro"
         eventos.append({"num": num, "cuarto": cuarto, "tipo": tipo, "equipo": equipo,
                         "jugadora": jugadora, "puntos": puntos,
+                        "tc": tiro_campo, "tl": tiro_libre, "ro": reb_of, "bp": perdida,
                         "seg": _segundos_absolutos(cuarto, _segundos_restantes(linea.get("time")))})
     eventos.sort(key=lambda e: (e["cuarto"], e["num"]))
     return equipos, eventos
@@ -1574,7 +1585,7 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
     if len(equipos) != 2 or not eventos:
         return []
 
-    acumulado = {}   # (equipo, quinteto) -> [segundos, pf, pc]
+    acumulado = {}   # (equipo, quinteto) -> {segundos, pf, pc, posesiones...}
     cuartos = sorted({ev["cuarto"] for ev in eventos})
     for cuarto in cuartos:
         evs = [e for e in eventos if e["cuarto"] == cuarto]
@@ -1589,9 +1600,14 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
             continue   # cuarto incompleto o mal registrado: se descarta
 
         t_ini = inicio
-        puntos = {e: 0 for e in equipos}
+        vacio = lambda: {e: {"pts": 0, "tc": 0, "tl": 0, "ro": 0, "bp": 0} for e in equipos}
+        tramo = vacio()
+
+        def posesiones(d):
+            return d["tc"] - d["ro"] + d["bp"] + 0.44 * d["tl"]
 
         def cerrar(t_fin):
+            nonlocal tramo
             dur = max(0, min(t_fin, fin) - t_ini)
             if dur <= 0:
                 return
@@ -1600,28 +1616,41 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
                     continue
                 rival = equipos[1] if e == equipos[0] else equipos[0]
                 clave = (e, " · ".join(sorted(pista[e])))
-                fila = acumulado.setdefault(clave, [0, 0, 0])
-                fila[0] += dur
-                fila[1] += puntos[e]
-                fila[2] += puntos[rival]
+                fila = acumulado.setdefault(clave, {"Segundos": 0, "PF": 0, "PC": 0,
+                                                    "POS": 0.0, "POS_Rival": 0.0})
+                fila["Segundos"] += dur
+                fila["PF"] += tramo[e]["pts"]
+                fila["PC"] += tramo[rival]["pts"]
+                fila["POS"] += posesiones(tramo[e])
+                fila["POS_Rival"] += posesiones(tramo[rival])
 
         for ev in evs:
             if ev["tipo"] in ("entra", "sale"):
                 cerrar(ev["seg"])
                 t_ini = min(ev["seg"], fin)
-                puntos = {e: 0 for e in equipos}
+                tramo = vacio()
                 if ev["equipo"] in pista and ev["jugadora"]:
                     if ev["tipo"] == "entra":
                         pista[ev["equipo"]].add(ev["jugadora"])
                     else:
                         pista[ev["equipo"]].discard(ev["jugadora"])
-            elif ev["puntos"] and ev["equipo"] in puntos:
-                puntos[ev["equipo"]] += ev["puntos"]
+            elif ev["equipo"] in tramo:
+                d = tramo[ev["equipo"]]
+                d["pts"] += ev["puntos"]
+                d["tc"] += ev.get("tc", 0)
+                d["tl"] += ev.get("tl", 0)
+                d["ro"] += ev.get("ro", 0)
+                d["bp"] += ev.get("bp", 0)
         cerrar(fin)
 
-    return [{"PartidoID": partido_id, "Equipo": equipo, "Quinteto": quinteto,
-             "Segundos": seg, "PF": pf, "PC": pc}
-            for (equipo, quinteto), (seg, pf, pc) in acumulado.items() if seg > 0]
+    filas = []
+    for (equipo, quinteto), d in acumulado.items():
+        if d["Segundos"] <= 0:
+            continue
+        filas.append({"PartidoID": partido_id, "Equipo": equipo, "Quinteto": quinteto,
+                      "Segundos": d["Segundos"], "PF": d["PF"], "PC": d["PC"],
+                      "POS": round(d["POS"], 2), "POS_Rival": round(d["POS_Rival"], 2)})
+    return filas
 
 
 def obtener_token_livestats(session, partido_id: str) -> str:
@@ -1645,6 +1674,30 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
     pendientes = [p for p in dict.fromkeys(jugados["PartidoID"]) if p not in ya]
     print(f"  [quintetos] {len(ya)} partidos ya procesados, {len(pendientes)} pendientes", file=sys.stderr)
+
+    # Datos del partido para poder filtrar luego (jornada, fecha, rival, victoria)
+    meta = {}
+    for _, fila in jugados.iterrows():
+        pid = fila["PartidoID"]
+        try:
+            pl, pv = int(fila.get("Pts_Local") or 0), int(fila.get("Pts_Visitante") or 0)
+        except ValueError:
+            pl = pv = 0
+        meta[pid] = {"Fase": fila.get("Fase", ""), "Jornada": fila.get("Jornada", ""),
+                     "Fecha": fila.get("Fecha", ""), "Local": fila.get("Local", ""),
+                     "Visitante": fila.get("Visitante", ""), "PtsL": pl, "PtsV": pv}
+
+    def _con_meta(fila):
+        m = meta.get(fila["PartidoID"])
+        if not m:
+            return fila
+        es_local = normalizar_equipo(fila["Equipo"]) == normalizar_equipo(m["Local"])
+        rival = m["Visitante"] if es_local else m["Local"]
+        propios, contra = (m["PtsL"], m["PtsV"]) if es_local else (m["PtsV"], m["PtsL"])
+        fila.update({"Fase": m["Fase"], "Jornada": m["Jornada"], "Fecha": m["Fecha"],
+                     "Rival": rival, "Casa": "Si" if es_local else "No",
+                     "Gano": "Si" if propios > contra else ("No" if propios < contra else "")})
+        return fila
 
     nuevos = []
     if pendientes:
@@ -1677,7 +1730,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
 
             for filas in _en_paralelo(pendientes, _uno):
                 if filas:
-                    nuevos.extend(filas)
+                    nuevos.extend(_con_meta(f) for f in filas)
             if hechos["vacios"]:
                 print(f"  Aviso: {hechos['vacios']} partidos sin jugada a jugada utilizable", file=sys.stderr)
             if hechos["sin_tiempo"]:
@@ -1689,17 +1742,25 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     if detalle.empty:
         return detalle, pd.DataFrame(), 0
 
-    for col in ("Segundos", "PF", "PC"):
-        detalle[col] = pd.to_numeric(detalle[col], errors="coerce").fillna(0)
+    for col in ("Segundos", "PF", "PC", "POS", "POS_Rival"):
+        if col in detalle.columns:
+            detalle[col] = pd.to_numeric(detalle[col], errors="coerce").fillna(0)
+        else:
+            detalle[col] = 0
     resumen = (detalle.groupby(["Equipo", "Quinteto"], as_index=False)
                .agg(Segundos=("Segundos", "sum"), PF=("PF", "sum"), PC=("PC", "sum"),
+                    POS=("POS", "sum"), POS_Rival=("POS_Rival", "sum"),
                     Partidos=("PartidoID", "nunique")))
     resumen["Minutos"] = (resumen["Segundos"] / 60).round(1)
     resumen["Dif"] = resumen["PF"] - resumen["PC"]
     resumen["Dif40"] = (resumen["Dif"] / (resumen["Segundos"] / 2400)).round(1)
+    resumen["ORtg"] = (100 * resumen["PF"] / resumen["POS"].replace(0, pd.NA)).round(1)
+    resumen["DRtg"] = (100 * resumen["PC"] / resumen["POS_Rival"].replace(0, pd.NA)).round(1)
+    resumen["NET"] = (resumen["ORtg"] - resumen["DRtg"]).round(1)
     resumen = resumen[resumen["Segundos"] > 0].sort_values(
         ["Equipo", "Segundos"], ascending=[True, False]).reset_index(drop=True)
-    resumen = resumen[["Equipo", "Quinteto", "Partidos", "Minutos", "PF", "PC", "Dif", "Dif40", "Segundos"]]
+    resumen = resumen[["Equipo", "Quinteto", "Partidos", "Minutos", "PF", "PC", "Dif", "Dif40",
+                       "ORtg", "DRtg", "NET", "POS", "POS_Rival", "Segundos"]].fillna("")
     return detalle, resumen, len(set(f["PartidoID"] for f in nuevos)) if nuevos else 0
 
 
