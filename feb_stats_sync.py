@@ -779,7 +779,8 @@ def _parse_resultados_html(html: str, fase: str = "", grupo: str = "",
                 heading = table.find_previous(["h1", "h2", "h3", "h4", "span", "div"])
                 jornada_label = heading.get_text(strip=True) if heading else ""
             for tr in rows[1:]:
-                cells = [c.get_text(strip=True) for c in tr.find_all("td")]
+                celdas_tag = tr.find_all("td")
+                cells = [_texto_celda(c) for c in celdas_tag]
                 if len(cells) < 3:
                     continue
                 enlace = tr.find("a", href=re.compile(r"Partido\.aspx\?p=\d+", re.I))
@@ -788,10 +789,16 @@ def _parse_resultados_html(html: str, fase: str = "", grupo: str = "",
                 equipos_txt, resultado_txt = cells[0], cells[1]
                 fecha_txt = cells[2] if len(cells) > 2 else ""
                 hora_txt = cells[3] if len(cells) > 3 else ""
-                if " - " in equipos_txt:
+                # Lo mas fiable: los dos enlaces a los equipos de esa fila
+                equipos_enlaces = [a.get_text(" ", strip=True) for a in
+                                   celdas_tag[0].find_all("a", href=re.compile(r"Equipo\.aspx", re.I))] \
+                    if celdas_tag else []
+                if len(equipos_enlaces) >= 2:
+                    local, visitante = equipos_enlaces[0].strip(), equipos_enlaces[1].strip()
+                elif " - " in equipos_txt:
                     local, visitante = [t.strip() for t in equipos_txt.split(" - ", 1)]
                 else:
-                    local, visitante = equipos_txt, ""
+                    local, visitante = equipos_txt.strip(), ""
                 jugado = "*" not in resultado_txt and "-" in resultado_txt
                 pts_local, pts_visitante = "", ""
                 if jugado:
