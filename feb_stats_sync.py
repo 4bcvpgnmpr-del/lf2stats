@@ -25,6 +25,7 @@ import json
 import io
 import re
 import time
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from urllib.parse import urljoin
@@ -368,6 +369,84 @@ def fetch_ranking_with_photos(url: str, formula_sep: str = ";") -> pd.DataFrame:
     return _ranking_por_grupos(url, formula_sep, "Puntos")
 
 
+# ----------------------------- NOMBRES DE EQUIPO UNIFICADOS ----------------
+# La FEB no escribe siempre igual el nombre del equipo: en una pagina pone
+# "MIRALVALLE" y en otra "MIRALVALLE PLASENCIA". Eso hacia que el mismo equipo
+# saliera duplicado y que sus jugadoras se quedaran sin grupo. Aqui se toma
+# como nombre bueno el de la pestaña Equipos y se traduce todo lo demas.
+
+PALABRAS_IGNORADAS = {"CB", "C.B.", "CB.", "BC", "CD", "CLUB", "BALONCESTO", "BASKET",
+                      "FEMENINO", "FEM", "SAD", "S.A.D.", "DE", "DEL", "LA", "EL", "LAS", "LOS"}
+
+
+def _sin_tildes(texto: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", str(texto))
+                   if unicodedata.category(c) != "Mn")
+
+
+def normalizar_equipo(nombre: str) -> str:
+    """Nombre simplificado para poder comparar: sin tildes, sin puntuacion y
+    sin palabras de relleno (CB, CLUB, BALONCESTO...)."""
+    txt = _sin_tildes(nombre or "").upper()
+    txt = re.sub(r"[^A-Z0-9 ]+", " ", txt)
+    palabras = [p for p in txt.split() if p and p not in PALABRAS_IGNORADAS]
+    return " ".join(palabras)
+
+
+def construir_canonicos(equipos_df: pd.DataFrame) -> dict:
+    """{nombre normalizado: nombre bueno} a partir de la pestaña Equipos."""
+    if equipos_df.empty or "Equipo" not in equipos_df.columns:
+        return {}
+    canonicos = {}
+    for nombre in equipos_df["Equipo"].astype(str):
+        n = normalizar_equipo(nombre)
+        if n:
+            canonicos.setdefault(n, nombre.strip())
+    return canonicos
+
+
+def canonizar_equipo(nombre: str, canonicos: dict) -> str:
+    """Traduce un nombre de equipo al nombre bueno. Si no esta claro, lo deja igual."""
+    original = str(nombre or "").strip()
+    n = normalizar_equipo(original)
+    if not n or not canonicos:
+        return original
+    if n in canonicos:
+        return canonicos[n]
+    # uno contiene al otro ("MIRALVALLE" dentro de "MIRALVALLE PLASENCIA")
+    candidatos = {c for nc, c in canonicos.items() if nc.startswith(n) or n.startswith(nc)}
+    if len(candidatos) == 1:
+        return candidatos.pop()
+    candidatos = {c for nc, c in canonicos.items() if n in nc or nc in n}
+    if len(candidatos) == 1:
+        return candidatos.pop()
+    # palabras en comun: solo si hay un unico ganador claro
+    toks = set(n.split())
+    puntuaciones = sorted(((len(toks & set(nc.split())), c) for nc, c in canonicos.items()), reverse=True)
+    if puntuaciones and puntuaciones[0][0] > 0:
+        if len(puntuaciones) == 1 or puntuaciones[0][0] > puntuaciones[1][0]:
+            return puntuaciones[0][1]
+    return original
+
+
+def aplicar_canonicos(df: pd.DataFrame, canonicos: dict, columnas=("Equipo",)) -> tuple:
+    """Cambia los nombres de equipo por los buenos. Devuelve (df, nombres no reconocidos)."""
+    if df is None or df.empty or not canonicos:
+        return df, set()
+    sin_reconocer = set()
+    for col in columnas:
+        if col not in df.columns:
+            continue
+        nuevos = []
+        for valor in df[col].astype(str):
+            bueno = canonizar_equipo(valor, canonicos)
+            if normalizar_equipo(bueno) not in canonicos and valor.strip():
+                sin_reconocer.add(valor.strip())
+            nuevos.append(bueno)
+        df[col] = nuevos
+    return df, sin_reconocer
+
+
 # ----------------------------- FASES Y GRUPOS ------------------------------
 # La LF2 se juega en dos grupos (Liga Regular "A" y "B") y despues hay
 # eliminatorias. La web de la FEB muestra por defecto la ULTIMA fase (las
@@ -486,6 +565,13 @@ def _paginas_por_fase(url: str, solo_liga_regular: bool = True):
         except Exception as exc:  # noqa: BLE001
             print(f"  Aviso: no se pudo abrir la fase '{texto}': {exc}", file=sys.stderr)
             continue
+
+
+def quitar_jugadoras_repetidas(df: pd.DataFrame) -> pd.DataFrame:
+    """Una fila por jugadora y equipo (tras unificar los nombres puede haber repetidas)."""
+    if df is None or df.empty or "Jugador" not in df.columns:
+        return df
+    return df.loc[~_clave_jugadora(df).duplicated()].reset_index(drop=True)
 
 
 def _reordenar_ranking(df: pd.DataFrame) -> pd.DataFrame:
@@ -1636,8 +1722,16 @@ def main():
     else:
         resumen.append("Equipos: sin tablas (probablemente la temporada aun no tiene partidos)")
 
+    # Nombres buenos de equipo (los de la pestaña Equipos)
+    canonicos = construir_canonicos(equipos_df)
+    nombres_raros = set()
+    print(f"  [nombres] {len(canonicos)} equipos de referencia", file=sys.stderr)
+
     # 2) Ranking de Puntos, TODAS las paginas (con foto)
     ranking_df = fetch_ranking_with_photos(RANKINGS_URL, formula_sep=formula_sep)
+    ranking_df, raros = aplicar_canonicos(ranking_df, canonicos)
+    nombres_raros |= raros
+    ranking_df = quitar_jugadoras_repetidas(ranking_df)
     if not ranking_df.empty:
         write_dataframe(sh, "Jugadoras", ranking_df, has_photos=True)
         resumen.append(f"Jugadoras: {len(ranking_df)} filas (con foto)")
@@ -1647,6 +1741,9 @@ def main():
     # 2b) Resto de categorias, TODAS las paginas
     otras_categorias = fetch_all_ranking_categories(RANKINGS_URL, formula_sep=formula_sep)
     for cat_name, df in otras_categorias.items():
+        df, raros = aplicar_canonicos(df, canonicos)
+        nombres_raros |= raros
+        df = quitar_jugadoras_repetidas(df)
         tab = f"Jugadoras_{cat_name}"
         write_dataframe(sh, tab, df, has_photos=True)
         resumen.append(f"{tab}: {len(df)} filas (con foto)")
@@ -1656,6 +1753,12 @@ def main():
 
     # 3) Resultados + Clasificacion
     resultados_df, clasificacion_df, clasif_final_df = fetch_resultados_y_clasificacion(RESULTADOS_URL)
+    resultados_df, raros = aplicar_canonicos(resultados_df, canonicos, ("Local", "Visitante"))
+    nombres_raros |= raros
+    clasificacion_df, raros = aplicar_canonicos(clasificacion_df, canonicos)
+    nombres_raros |= raros
+    clasif_final_df, raros = aplicar_canonicos(clasif_final_df, canonicos)
+    nombres_raros |= raros
     if not resultados_df.empty:
         write_dataframe(sh, "Resultados", resultados_df)
         resumen.append(f"Resultados: {len(resultados_df)} filas")
@@ -1675,6 +1778,8 @@ def main():
     # 4) Estadisticas de cada partido (solo los nuevos)
     try:
         partidos_df, n_nuevos = fetch_estadisticas_partidos(sh, resultados_df)
+        partidos_df, raros = aplicar_canonicos(partidos_df, canonicos)
+        nombres_raros |= raros
         if n_nuevos:
             write_dataframe(sh, TAB_PARTIDOS, partidos_df)
         n_part = partidos_df["PartidoID"].nunique() if not partidos_df.empty else 0
@@ -1685,6 +1790,9 @@ def main():
     # 5) Quintetos reales (jugada a jugada de la API LiveStats)
     try:
         detalle_q, resumen_q, nuevos_q = fetch_quintetos(sh, resultados_df)
+        detalle_q, _ = aplicar_canonicos(detalle_q, canonicos)
+        resumen_q, raros = aplicar_canonicos(resumen_q, canonicos)
+        nombres_raros |= raros
         if nuevos_q:
             write_dataframe(sh, TAB_QUINTETOS_PARTIDO, detalle_q)
         if not resumen_q.empty:
@@ -1704,6 +1812,11 @@ def main():
                 resumen.append(f"Detective LiveStats: {len(ok)} servicios responden (ver registro)")
             except Exception as exc:  # noqa: BLE001
                 resumen.append(f"Detective PBP: error ({exc})")
+
+    if nombres_raros:
+        print(f"  [nombres] equipos NO reconocidos ({len(nombres_raros)}): "
+              f"{', '.join(sorted(nombres_raros)[:20])}", file=sys.stderr)
+        resumen.append(f"Nombres de equipo sin reconocer: {len(nombres_raros)} (ver registro)")
 
     resumen.append(f"Duracion: {int((time.time() - INICIO_EJECUCION) / 60)} min")
     write_log(sh, " | ".join(resumen))
