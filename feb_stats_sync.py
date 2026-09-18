@@ -1669,6 +1669,9 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
         df_viejo = pd.DataFrame(valores[1:], columns=valores[0]) if len(valores) > 1 else pd.DataFrame()
     except Exception:  # noqa: BLE001
         df_viejo = pd.DataFrame()
+    if not df_viejo.empty and "POS" not in df_viejo.columns:
+        print("  [quintetos] datos antiguos sin posesiones: se vuelven a descargar", file=sys.stderr)
+        df_viejo = pd.DataFrame()
     ya = set(df_viejo["PartidoID"]) if "PartidoID" in df_viejo.columns else set()
 
     jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
@@ -1741,6 +1744,12 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
         if nuevos else df_viejo
     if detalle.empty:
         return detalle, pd.DataFrame(), 0
+
+    # Rellena jornada, fecha, rival y victoria en todas las filas (nuevas y viejas)
+    extra = [_con_meta({"PartidoID": pid, "Equipo": eq}) for pid, eq in
+             zip(detalle["PartidoID"], detalle["Equipo"])]
+    for col in ("Fase", "Jornada", "Fecha", "Rival", "Casa", "Gano"):
+        detalle[col] = [e.get(col, "") for e in extra]
 
     for col in ("Segundos", "PF", "PC", "POS", "POS_Rival"):
         if col in detalle.columns:
