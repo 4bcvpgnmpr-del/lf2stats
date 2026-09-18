@@ -1030,6 +1030,14 @@ def style_worksheet(sh: gspread.Spreadsheet, ws: gspread.Worksheet, n_rows: int,
     sh.batch_update({"requests": requests_list})
 
 
+RE_TIEMPO = re.compile(r"^\d{1,4}:[0-5]\d(:[0-5]\d)?$")
+
+
+def _protege_minutos(celda):
+    """Evita que Google interprete los minutos ('32:35') como una hora."""
+    return "'" + celda if isinstance(celda, str) and RE_TIEMPO.match(celda.strip()) else celda
+
+
 def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, has_photos: bool = False):
     """Escribe (sobrescribiendo) un DataFrame en una pestaña y le da formato.
     RAW salvo en pestañas con formulas =IMAGE(...)."""
@@ -1046,6 +1054,10 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, ha
 
     values = [list(df.columns.astype(str))] + df.fillna("").astype(str).values.tolist()
     value_input_option = "USER_ENTERED" if has_photos else "RAW"
+    if value_input_option == "USER_ENTERED":
+        # Google convierte "32:35" (minutos) en una hora y devuelve datos falsos
+        # ("2:35" o "31:52:00"). Con un apostrofo delante se queda como texto.
+        values = [values[0]] + [[_protege_minutos(c) for c in fila] for fila in values[1:]]
     ws.update(values, value_input_option=value_input_option)
 
     try:
