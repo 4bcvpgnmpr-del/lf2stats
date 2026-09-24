@@ -1760,15 +1760,26 @@ def tiros_de_partido(datos: dict, partido_id: str) -> tuple:
     if not tiros:
         return [], []
 
-    # Quien es cada jugadora: la lista PLAYER de su equipo
+    # Quien es cada jugadora: la lista PLAYER de su equipo.
+    # El tiro apunta a ella con su dorsal o con su id, y a veces con ceros
+    # delante ("08"), asi que se guardan todas las formas posibles.
+    def _variantes(valor):
+        txt = str(valor).strip()
+        formas = {txt, txt.lstrip("0") or txt}
+        if txt.isdigit():
+            formas.add(str(int(txt)))
+        return formas
+
     jugadoras = {}
     for i, eq in enumerate(equipos):
         nombre_eq = str(eq.get("name") or (equipos_cab[i] if i < len(equipos_cab) else "")).strip()
         for j, jug in enumerate(eq.get("PLAYER") or []):
-            for clave in ("no", "dorsal", "number", "id", "idPlayer"):
+            for clave in ("no", "dorsal", "number", "id", "idPlayer", "idLicense", "licencia"):
                 if jug.get(clave) not in (None, ""):
-                    jugadoras[(i, str(jug.get(clave)))] = (nombre_eq, jug)
-            jugadoras[(i, str(j))] = (nombre_eq, jug)
+                    for forma in _variantes(jug.get(clave)):
+                        jugadoras.setdefault((i, forma), (nombre_eq, jug))
+            for forma in _variantes(j):
+                jugadoras.setdefault((i, forma), (nombre_eq, jug))
 
     def nombre_de(jug):
         for clave in ("name", "nombre", "playerName", "shortName"):
@@ -1777,15 +1788,25 @@ def tiros_de_partido(datos: dict, partido_id: str) -> tuple:
         return ""
 
     filas = []
+    sin_nombre = 0
     for t in tiros:
-        idx_eq = int(str(t.get("team", "0") or 0))
-        clave = (idx_eq, str(t.get("player", "")))
-        nombre_eq, jug = jugadoras.get(clave, (equipos_cab[idx_eq] if idx_eq < len(equipos_cab) else "", {}))
+        try:
+            idx_eq = int(str(t.get("team", "0") or 0))
+        except ValueError:
+            idx_eq = 0
+        ref = str(t.get("player", "")).strip()
+        nombre_eq, jug = (equipos_cab[idx_eq] if idx_eq < len(equipos_cab) else "", {})
+        for forma in _variantes(ref):
+            if (idx_eq, forma) in jugadoras:
+                nombre_eq, jug = jugadoras[(idx_eq, forma)]
+                break
+        if not jug:
+            sin_nombre += 1
         filas.append({
             "PartidoID": partido_id,
             "Equipo": nombre_eq,
             "Jugadora": nombre_de(jug),
-            "Dorsal": str(jug.get("no") or jug.get("dorsal") or ""),
+            "Dorsal": str(jug.get("no") or jug.get("dorsal") or ref),
             "Cuarto": str(t.get("quarter", "")),
             "Tiempo": str(t.get("t", "")),
             "Anotado": "Si" if str(t.get("m", "")) in ("1", "True", "true") else "No",
@@ -1796,7 +1817,14 @@ def tiros_de_partido(datos: dict, partido_id: str) -> tuple:
     # Informe para el registro: rangos y un par de ejemplos, para saber como numeran la pista
     xs = [float(f["X"]) for f in filas if str(f["X"]).replace(".", "", 1).replace("-", "", 1).isdigit()]
     ys = [float(f["Y"]) for f in filas if str(f["Y"]).replace(".", "", 1).replace("-", "", 1).isdigit()]
-    informe = [f"  [tiros] {len(filas)} tiros en {partido_id}"]
+    informe = [f"  [tiros] {len(filas)} tiros en {partido_id} ({sin_nombre} sin jugadora identificada)"]
+    if sin_nombre:
+        informe.append(f"  [tiros] referencias que no cuadran: "
+                       f"{sorted({str(t.get('player')) for t in tiros})[:8]}")
+        if equipos and (equipos[0].get('PLAYER') or []):
+            ejemplo = (equipos[0]['PLAYER'])[0]
+            informe.append(f"  [tiros] ejemplo de jugadora: no={ejemplo.get('no')} id={ejemplo.get('id')} "
+                           f"name={ejemplo.get('name')}")
     if xs and ys:
         informe.append(f"  [tiros] X de {min(xs):.1f} a {max(xs):.1f} · Y de {min(ys):.1f} a {max(ys):.1f}")
     if equipos:
