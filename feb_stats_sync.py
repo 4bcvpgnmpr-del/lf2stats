@@ -966,13 +966,6 @@ def style_worksheet(sh: gspread.Spreadsheet, ws: gspread.Worksheet, n_rows: int,
 
     requests_list = [
         {
-            "repeatCell": {
-                "range": {"sheetId": sheet_id},
-                "cell": {"userEnteredFormat": {"numberFormat": {"type": "AUTOMATIC"}}},
-                "fields": "userEnteredFormat.numberFormat",
-            }
-        },
-        {
             "updateSheetProperties": {
                 "properties": {"sheetId": sheet_id, "gridProperties": {"frozenRowCount": 1}},
                 "fields": "gridProperties.frozenRowCount",
@@ -1668,6 +1661,8 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
 
     acumulado = {}   # (equipo, quinteto) -> {segundos, pf, pc, posesiones...}
     cuartos = sorted({ev["cuarto"] for ev in eventos})
+    ultimo_quinteto = {}        # con que cinco acabo cada equipo el cuarto anterior
+    saltados = 0
     for cuarto in cuartos:
         evs = [e for e in eventos if e["cuarto"] == cuarto]
         if not evs:
@@ -1676,9 +1671,17 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
         inicio = _segundos_absolutos(cuarto, largo)
         fin = inicio + largo
 
-        pista = {e: _quintetos_iniciales(evs, e) for e in equipos}
+        pista = {}
+        for e in equipos:
+            deducido = _quintetos_iniciales(evs, e)
+            if len(deducido) != 5 and len(ultimo_quinteto.get(e, set())) == 5:
+                # La FEB no siempre registra quien sale a cada cuarto:
+                # si no cuadra, se sigue con el cinco que acabo el cuarto anterior
+                deducido = set(ultimo_quinteto[e])
+            pista[e] = deducido
         if any(len(pista[e]) != 5 for e in equipos):
-            continue   # cuarto incompleto o mal registrado: se descarta
+            saltados += 1
+            continue   # cuarto mal registrado: se descarta antes que inventar minutos
 
         t_ini = inicio
         vacio = lambda: {e: {"pts": 0, "tc": 0, "tl": 0, "ro": 0, "bp": 0} for e in equipos}
@@ -1723,6 +1726,13 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
                 d["ro"] += ev.get("ro", 0)
                 d["bp"] += ev.get("bp", 0)
         cerrar(fin)
+        for e in equipos:
+            if len(pista[e]) == 5:
+                ultimo_quinteto[e] = set(pista[e])
+
+    if saltados:
+        print(f"  [quintetos] {partido_id}: {saltados} cuarto(s) descartados por sustituciones incompletas",
+              file=sys.stderr)
 
     filas = []
     for (equipo, quinteto), d in acumulado.items():
@@ -1996,9 +2006,11 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     resumen["Minutos"] = (resumen["Segundos"] / 60).round(1)
     resumen["Dif"] = resumen["PF"] - resumen["PC"]
     resumen["Dif40"] = (resumen["Dif"] / (resumen["Segundos"] / 2400)).round(1)
-    resumen["ORtg"] = (100 * resumen["PF"] / resumen["POS"].replace(0, pd.NA)).round(1)
-    resumen["DRtg"] = (100 * resumen["PC"] / resumen["POS_Rival"].replace(0, pd.NA)).round(1)
-    resumen["NET"] = (resumen["ORtg"] - resumen["DRtg"]).round(1)
+    pos = pd.to_numeric(resumen["POS"], errors="coerce").astype(float)
+    posr = pd.to_numeric(resumen["POS_Rival"], errors="coerce").astype(float)
+    resumen["ORtg"] = (100 * resumen["PF"] / pos.where(pos > 0)).astype(float).round(1)
+    resumen["DRtg"] = (100 * resumen["PC"] / posr.where(posr > 0)).astype(float).round(1)
+    resumen["NET"] = (resumen["ORtg"] - resumen["DRtg"]).astype(float).round(1)
     resumen = resumen[resumen["Segundos"] > 0].sort_values(
         ["Equipo", "Segundos"], ascending=[True, False]).reset_index(drop=True)
     resumen = resumen[["Equipo", "Quinteto", "Partidos", "Minutos", "PF", "PC", "Dif", "Dif40",
