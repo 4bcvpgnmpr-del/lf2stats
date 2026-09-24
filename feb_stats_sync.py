@@ -1620,6 +1620,7 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
         tiro = RE_TIRO.search(texto)
         tiro_campo = 1 if (tiro and tiro.group(1) in ("2", "3")) else 0
         tiro_libre = 1 if (tiro and tiro.group(1) == "1") else 0
+        de_tres = 1 if (tiro and tiro.group(1) == "3") else 0
         reb_of = 1 if RE_REB_OF.search(texto) else 0
         perdida = 1 if RE_PERDIDA.search(texto) else 0
         if RE_ENTRA.search(texto):
@@ -1634,7 +1635,8 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
             tipo = "otro"
         eventos.append({"num": num, "cuarto": cuarto, "tipo": tipo, "equipo": equipo,
                         "jugadora": jugadora, "puntos": puntos,
-                        "tc": tiro_campo, "tl": tiro_libre, "ro": reb_of, "bp": perdida,
+                        "tc": tiro_campo, "tl": tiro_libre, "de3": de_tres,
+                        "ro": reb_of, "bp": perdida,
                         "seg": _segundos_absolutos(cuarto, _segundos_restantes(linea.get("time")))})
     eventos.sort(key=lambda e: (e["cuarto"], e["num"]))
     return equipos, eventos
@@ -1732,6 +1734,117 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
     return filas
 
 
+TAB_CUARTOS = "Partidos_Cuartos"
+TAB_TIROS_MAPA = "Tiros"
+SHOTCHART_URL = LIVESTATS_BASE + "/ShotChart/{id}"
+
+
+def tiros_de_partido(datos: dict, partido_id: str) -> tuple:
+    """Cada tiro del partido: quien, cuando, donde y si entro.
+    Devuelve (filas, informe) — el informe solo sirve para el registro."""
+    cabecera = datos.get("HEADER") or {}
+    equipos_cab = [str(t.get("name", "")).strip() for t in (cabecera.get("TEAM") or [])]
+    chart = datos.get("SHOTCHART") or {}
+    equipos = chart.get("TEAM") or []
+    tiros = chart.get("SHOTS") or []
+    if not tiros:
+        return [], []
+
+    # Quien es cada jugadora: la lista PLAYER de su equipo
+    jugadoras = {}
+    for i, eq in enumerate(equipos):
+        nombre_eq = str(eq.get("name") or (equipos_cab[i] if i < len(equipos_cab) else "")).strip()
+        for j, jug in enumerate(eq.get("PLAYER") or []):
+            for clave in ("no", "dorsal", "number", "id", "idPlayer"):
+                if jug.get(clave) not in (None, ""):
+                    jugadoras[(i, str(jug.get(clave)))] = (nombre_eq, jug)
+            jugadoras[(i, str(j))] = (nombre_eq, jug)
+
+    def nombre_de(jug):
+        for clave in ("name", "nombre", "playerName", "shortName"):
+            if jug.get(clave):
+                return str(jug[clave]).strip()
+        return ""
+
+    filas = []
+    for t in tiros:
+        idx_eq = int(str(t.get("team", "0") or 0))
+        clave = (idx_eq, str(t.get("player", "")))
+        nombre_eq, jug = jugadoras.get(clave, (equipos_cab[idx_eq] if idx_eq < len(equipos_cab) else "", {}))
+        filas.append({
+            "PartidoID": partido_id,
+            "Equipo": nombre_eq,
+            "Jugadora": nombre_de(jug),
+            "Dorsal": str(jug.get("no") or jug.get("dorsal") or ""),
+            "Cuarto": str(t.get("quarter", "")),
+            "Tiempo": str(t.get("t", "")),
+            "Anotado": "Si" if str(t.get("m", "")) in ("1", "True", "true") else "No",
+            "X": t.get("x", ""),
+            "Y": t.get("y", ""),
+        })
+
+    # Informe para el registro: rangos y un par de ejemplos, para saber como numeran la pista
+    xs = [float(f["X"]) for f in filas if str(f["X"]).replace(".", "", 1).replace("-", "", 1).isdigit()]
+    ys = [float(f["Y"]) for f in filas if str(f["Y"]).replace(".", "", 1).replace("-", "", 1).isdigit()]
+    informe = [f"  [tiros] {len(filas)} tiros en {partido_id}"]
+    if xs and ys:
+        informe.append(f"  [tiros] X de {min(xs):.1f} a {max(xs):.1f} · Y de {min(ys):.1f} a {max(ys):.1f}")
+    if equipos:
+        informe.append(f"  [tiros] claves de una jugadora: {list((equipos[0].get('PLAYER') or [{}])[0].keys())}")
+    informe.append(f"  [tiros] ejemplos: {filas[:3]}")
+    return filas, informe
+
+
+def cuartos_de_partido(datos: dict, partido_id: str) -> list:
+    """Puntos, tiros y posesiones de cada equipo en cada cuarto."""
+    equipos, eventos = eventos_de_keyfacts(datos)
+    if len(equipos) != 2 or not eventos:
+        return []
+
+    acumulado = {}
+    for ev in eventos:
+        if ev["equipo"] not in equipos:
+            continue
+        clave = (ev["equipo"], ev["cuarto"])
+        d = acumulado.setdefault(clave, {"pts": 0, "t2a": 0, "t2i": 0, "t3a": 0, "t3i": 0,
+                                         "tla": 0, "tli": 0, "ro": 0, "bp": 0})
+        d["pts"] += ev["puntos"]
+        d["ro"] += ev.get("ro", 0)
+        d["bp"] += ev.get("bp", 0)
+        if ev.get("tl"):
+            d["tli"] += 1
+            if ev["puntos"] == 1:
+                d["tla"] += 1
+        elif ev.get("tc"):
+            if ev["puntos"] == 3:
+                d["t3i"] += 1
+                d["t3a"] += 1
+            elif ev["puntos"] == 2:
+                d["t2i"] += 1
+                d["t2a"] += 1
+            else:
+                # tiro fallado: se mira si era de 3 por el texto del evento
+                if ev.get("de3"):
+                    d["t3i"] += 1
+                else:
+                    d["t2i"] += 1
+
+    filas = []
+    for (equipo, cuarto), d in sorted(acumulado.items(), key=lambda x: (x[0][0], x[0][1])):
+        rival = equipos[1] if equipo == equipos[0] else equipos[0]
+        pos = d["t2i"] + d["t3i"] - d["ro"] + d["bp"] + 0.44 * d["tli"]
+        tc_a, tc_i = d["t2a"] + d["t3a"], d["t2i"] + d["t3i"]
+        filas.append({
+            "PartidoID": partido_id, "Equipo": equipo, "Rival": rival, "Cuarto": cuarto,
+            "PT": d["pts"], "T2A": d["t2a"], "T2I": d["t2i"], "T3A": d["t3a"], "T3I": d["t3i"],
+            "TLA": d["tla"], "TLI": d["tli"], "REB_O": d["ro"], "BP": d["bp"],
+            "POS": round(pos, 2),
+            "OER": round(100 * d["pts"] / pos, 1) if pos > 0 else "",
+            "eFG": round(100 * (tc_a + 0.5 * d["t3a"]) / tc_i, 1) if tc_i else "",
+        })
+    return filas
+
+
 def obtener_token_livestats(session, partido_id: str) -> str:
     html = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=str(partido_id).lstrip("p"))).text
     return token_livestats(html)
@@ -1782,6 +1895,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
         return fila
 
     nuevos = []
+    nuevos_cuartos = []
+    nuevos_tiros = []
     if pendientes:
         session = requests.Session()
         try:
@@ -1802,17 +1917,37 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                     return None
                 resp = _request_con_reintentos(session, "GET", KEYFACTS_URL.format(id=pid.lstrip("p")),
                                                headers_extra=cabeceras)
-                filas = quintetos_de_partido(resp.json(), pid)
+                datos = resp.json()
+                filas = quintetos_de_partido(datos, pid)
+                try:
+                    resp_t = _request_con_reintentos(session, "GET", SHOTCHART_URL.format(id=pid.lstrip("p")),
+                                                     headers_extra=cabeceras)
+                    tiros, informe_t = tiros_de_partido(resp_t.json(), pid)
+                    if informe_t and not hechos.get("informe_tiros"):
+                        hechos["informe_tiros"] = True
+                        for l in informe_t:
+                            print(l, file=sys.stderr)
+                except Exception as exc:  # noqa: BLE001
+                    tiros = []
+                    if not hechos.get("aviso_tiros"):
+                        hechos["aviso_tiros"] = True
+                        print(f"  Aviso: no se pudo leer el ShotChart: {exc}", file=sys.stderr)
                 hechos["n"] += 1
                 if hechos["n"] % 50 == 0:
                     print(f"  [quintetos] {hechos['n']}/{len(pendientes)}", file=sys.stderr)
                 if not filas:
                     hechos["vacios"] += 1
-                return filas
+                return {"quintetos": filas, "cuartos": cuartos_de_partido(datos, pid), "tiros": tiros}
 
-            for filas in _en_paralelo(pendientes, _uno):
-                if filas:
-                    nuevos.extend(_con_meta(f) for f in filas)
+            for resultado in _en_paralelo(pendientes, _uno):
+                if not resultado:
+                    continue
+                if resultado.get("quintetos"):
+                    nuevos.extend(_con_meta(f) for f in resultado["quintetos"])
+                if resultado.get("cuartos"):
+                    nuevos_cuartos.extend(resultado["cuartos"])
+                if resultado.get("tiros"):
+                    nuevos_tiros.extend(resultado["tiros"])
             if hechos["vacios"]:
                 print(f"  Aviso: {hechos['vacios']} partidos sin jugada a jugada utilizable", file=sys.stderr)
             if hechos["sin_tiempo"]:
@@ -1849,7 +1984,32 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
         ["Equipo", "Segundos"], ascending=[True, False]).reset_index(drop=True)
     resumen = resumen[["Equipo", "Quinteto", "Partidos", "Minutos", "PF", "PC", "Dif", "Dif40",
                        "ORtg", "DRtg", "NET", "POS", "POS_Rival", "Segundos"]].fillna("")
-    return detalle, resumen, len(set(f["PartidoID"] for f in nuevos)) if nuevos else 0
+
+    # Cuartos: se junta lo nuevo con lo que ya hubiera guardado
+    try:
+        ws_c = sh.worksheet(TAB_CUARTOS)
+        valores_c = ws_c.get_all_values()
+        cuartos_viejos = pd.DataFrame(valores_c[1:], columns=valores_c[0]) if len(valores_c) > 1 else pd.DataFrame()
+    except Exception:  # noqa: BLE001
+        cuartos_viejos = pd.DataFrame()
+    if not cuartos_viejos.empty and nuevos_cuartos:
+        ids_nuevos = {f["PartidoID"] for f in nuevos_cuartos}
+        cuartos_viejos = cuartos_viejos[~cuartos_viejos["PartidoID"].isin(ids_nuevos)]
+    cuartos = pd.concat([cuartos_viejos, pd.DataFrame(nuevos_cuartos)], ignore_index=True).fillna("") \
+        if nuevos_cuartos else cuartos_viejos
+    try:
+        ws_t = sh.worksheet(TAB_TIROS_MAPA)
+        valores_t = ws_t.get_all_values()
+        tiros_viejos = pd.DataFrame(valores_t[1:], columns=valores_t[0]) if len(valores_t) > 1 else pd.DataFrame()
+    except Exception:  # noqa: BLE001
+        tiros_viejos = pd.DataFrame()
+    if not tiros_viejos.empty and nuevos_tiros:
+        ids_t = {f["PartidoID"] for f in nuevos_tiros}
+        tiros_viejos = tiros_viejos[~tiros_viejos["PartidoID"].isin(ids_t)]
+    tiros_mapa = pd.concat([tiros_viejos, pd.DataFrame(nuevos_tiros)], ignore_index=True).fillna("") \
+        if nuevos_tiros else tiros_viejos
+
+    return detalle, resumen, cuartos, tiros_mapa, len(set(f["PartidoID"] for f in nuevos)) if nuevos else 0
 
 
 # ----------------------------- MAIN ----------------------------------------
@@ -1951,7 +2111,7 @@ def main():
 
     # 5) Quintetos reales (jugada a jugada de la API LiveStats)
     try:
-        detalle_q, resumen_q, nuevos_q = fetch_quintetos(sh, resultados_df)
+        detalle_q, resumen_q, cuartos_q, tiros_mapa, nuevos_q = fetch_quintetos(sh, resultados_df)
         detalle_q, _ = aplicar_canonicos(detalle_q, canonicos)
         resumen_q, raros = aplicar_canonicos(resumen_q, canonicos)
         nombres_raros |= raros
@@ -1959,6 +2119,14 @@ def main():
             write_dataframe(sh, TAB_QUINTETOS_PARTIDO, detalle_q)
         if not resumen_q.empty:
             write_dataframe(sh, TAB_QUINTETOS, resumen_q)
+        if not cuartos_q.empty:
+            cuartos_q, _ = aplicar_canonicos(cuartos_q, canonicos, ("Equipo", "Rival"))
+            write_dataframe(sh, TAB_CUARTOS, cuartos_q)
+            resumen.append(f"{TAB_CUARTOS}: {cuartos_q['PartidoID'].nunique()} partidos")
+        if not tiros_mapa.empty:
+            tiros_mapa, _ = aplicar_canonicos(tiros_mapa, canonicos)
+            write_dataframe(sh, TAB_TIROS_MAPA, tiros_mapa)
+            resumen.append(f"{TAB_TIROS_MAPA}: {len(tiros_mapa)} tiros de {tiros_mapa['PartidoID'].nunique()} partidos")
         n_part_q = detalle_q["PartidoID"].nunique() if not detalle_q.empty else 0
         resumen.append(f"{TAB_QUINTETOS}: {len(resumen_q)} quintetos de {n_part_q} partidos ({nuevos_q} nuevos)")
     except Exception as exc:  # noqa: BLE001
