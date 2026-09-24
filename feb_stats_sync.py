@@ -1866,9 +1866,25 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
         df_viejo = pd.DataFrame()
     ya = set(df_viejo["PartidoID"]) if "PartidoID" in df_viejo.columns else set()
 
+    def _ids_de_pestana(nombre_tab):
+        try:
+            ws = sh.worksheet(nombre_tab)
+            valores = ws.get_all_values()
+            if len(valores) < 2:
+                return set(), pd.DataFrame()
+            df = pd.DataFrame(valores[1:], columns=valores[0])
+            return (set(df["PartidoID"]) if "PartidoID" in df.columns else set()), df
+        except Exception:  # noqa: BLE001
+            return set(), pd.DataFrame()
+
+    ya_cuartos, cuartos_viejos = _ids_de_pestana(TAB_CUARTOS)
+    ya_tiros, tiros_viejos = _ids_de_pestana(TAB_TIROS_MAPA)
+
     jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
-    pendientes = [p for p in dict.fromkeys(jugados["PartidoID"]) if p not in ya]
-    print(f"  [quintetos] {len(ya)} partidos ya procesados, {len(pendientes)} pendientes", file=sys.stderr)
+    completos = ya & ya_cuartos & ya_tiros
+    pendientes = [p for p in dict.fromkeys(jugados["PartidoID"]) if p not in completos]
+    print(f"  [quintetos] quintetos {len(ya)} · cuartos {len(ya_cuartos)} · tiros {len(ya_tiros)} "
+          f"-> {len(pendientes)} partidos pendientes", file=sys.stderr)
 
     # Datos del partido para poder filtrar luego (jornada, fecha, rival, victoria)
     meta = {}
@@ -1954,6 +1970,9 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                 print(f"  [quintetos] limite de tiempo: quedan {hechos['sin_tiempo']} para la proxima vez",
                       file=sys.stderr)
 
+    if not df_viejo.empty and nuevos:
+        ids_rehechos = {f["PartidoID"] for f in nuevos}
+        df_viejo = df_viejo[~df_viejo["PartidoID"].isin(ids_rehechos)]
     detalle = pd.concat([df_viejo, pd.DataFrame(nuevos)], ignore_index=True).fillna("") \
         if nuevos else df_viejo
     if detalle.empty:
@@ -1986,23 +2005,11 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                        "ORtg", "DRtg", "NET", "POS", "POS_Rival", "Segundos"]].fillna("")
 
     # Cuartos: se junta lo nuevo con lo que ya hubiera guardado
-    try:
-        ws_c = sh.worksheet(TAB_CUARTOS)
-        valores_c = ws_c.get_all_values()
-        cuartos_viejos = pd.DataFrame(valores_c[1:], columns=valores_c[0]) if len(valores_c) > 1 else pd.DataFrame()
-    except Exception:  # noqa: BLE001
-        cuartos_viejos = pd.DataFrame()
     if not cuartos_viejos.empty and nuevos_cuartos:
         ids_nuevos = {f["PartidoID"] for f in nuevos_cuartos}
         cuartos_viejos = cuartos_viejos[~cuartos_viejos["PartidoID"].isin(ids_nuevos)]
     cuartos = pd.concat([cuartos_viejos, pd.DataFrame(nuevos_cuartos)], ignore_index=True).fillna("") \
         if nuevos_cuartos else cuartos_viejos
-    try:
-        ws_t = sh.worksheet(TAB_TIROS_MAPA)
-        valores_t = ws_t.get_all_values()
-        tiros_viejos = pd.DataFrame(valores_t[1:], columns=valores_t[0]) if len(valores_t) > 1 else pd.DataFrame()
-    except Exception:  # noqa: BLE001
-        tiros_viejos = pd.DataFrame()
     if not tiros_viejos.empty and nuevos_tiros:
         ids_t = {f["PartidoID"] for f in nuevos_tiros}
         tiros_viejos = tiros_viejos[~tiros_viejos["PartidoID"].isin(ids_t)]
