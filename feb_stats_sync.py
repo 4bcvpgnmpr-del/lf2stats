@@ -1570,6 +1570,7 @@ RE_EQUIPO_JUGADORA = re.compile(r"^\((?P<equipo>[^)]+)\)\s*(?P<jugadora>[^:]+):"
 RE_TIRO = re.compile(r"tiro\s+de\s*(\d)\s*(anotad|fallad|encestad|errad)", re.I)
 RE_REB_OF = re.compile(r"rebote\s+ofensivo", re.I)
 RE_PERDIDA = re.compile(r"p[eé]rdida|balon\s+perdido|perdida", re.I)
+RE_ASISTENCIA = re.compile(r"asistencia", re.I)
 
 
 def _segundos_restantes(txt: str) -> int:
@@ -1615,6 +1616,7 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
         tiro_libre = 1 if (tiro and tiro.group(1) == "1") else 0
         de_tres = 1 if (tiro and tiro.group(1) == "3") else 0
         reb_of = 1 if RE_REB_OF.search(texto) else 0
+        asistencia = 1 if RE_ASISTENCIA.search(texto) else 0
         perdida = 1 if RE_PERDIDA.search(texto) else 0
         if RE_ENTRA.search(texto):
             tipo = "entra"
@@ -1629,7 +1631,7 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
         eventos.append({"num": num, "cuarto": cuarto, "tipo": tipo, "equipo": equipo,
                         "jugadora": jugadora, "puntos": puntos,
                         "tc": tiro_campo, "tl": tiro_libre, "de3": de_tres,
-                        "ro": reb_of, "bp": perdida,
+                        "ro": reb_of, "bp": perdida, "as": asistencia,
                         "seg": _segundos_absolutos(cuarto, _segundos_restantes(linea.get("time")))})
     eventos.sort(key=lambda e: (e["cuarto"], e["num"]))
     return equipos, eventos
@@ -1883,6 +1885,111 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
     return filas
 
 
+TAB_CLUTCH = "Jugadoras_Clutch"
+SEGUNDOS_CLUTCH = 300      # ultimos 5 minutos
+MARGEN_CLUTCH = 5          # con 5 puntos o menos de diferencia
+
+
+def analisis_pbp_jugadoras(datos: dict, partido_id: str) -> list:
+    """Dos cosas por jugadora, sacadas del jugada a jugada:
+    1) sus numeros en los momentos decisivos (clutch)
+    2) cuantas de sus canastas llegaron de una asistencia."""
+    equipos, eventos = eventos_de_keyfacts(datos)
+    if len(equipos) != 2 or not eventos:
+        return []
+
+    marcador = {e: 0 for e in equipos}
+    filas = {}
+
+    def ficha(equipo, jugadora):
+        clave = (equipo, jugadora)
+        return filas.setdefault(clave, {
+            "PartidoID": partido_id, "Equipo": equipo, "Jugadora": jugadora,
+            "ClutchPT": 0, "ClutchT2A": 0, "ClutchT2I": 0, "ClutchT3A": 0, "ClutchT3I": 0,
+            "ClutchTLA": 0, "ClutchTLI": 0, "ClutchTiros": 0,
+            "C2_Asistidas": 0, "C2_Creadas": 0, "C3_Asistidas": 0, "C3_Creadas": 0,
+            "Asistencias_dadas": 0,
+        })
+
+    # ¿la canasta llego de una asistencia? se mira si hay una justo al lado
+    for i, ev in enumerate(eventos):
+        if not ev["jugadora"] or ev["equipo"] not in equipos:
+            continue
+        f = ficha(ev["equipo"], ev["jugadora"])
+
+        if ev.get("as"):
+            f["Asistencias_dadas"] += 1
+
+        # Canasta anotada de 2 o de 3: se busca una asistencia de su equipo pegada
+        if ev["puntos"] in (2, 3) and ev.get("tc"):
+            asistida = False
+            for j in range(max(0, i - 2), min(len(eventos), i + 3)):
+                otro = eventos[j]
+                if j == i or otro["equipo"] != ev["equipo"]:
+                    continue
+                if otro.get("as") and otro["cuarto"] == ev["cuarto"] and abs(otro["seg"] - ev["seg"]) <= 3:
+                    asistida = True
+                    break
+            clave = "C3" if ev["puntos"] == 3 else "C2"
+            f[clave + ("_Asistidas" if asistida else "_Creadas")] += 1
+
+        # Momentos decisivos
+        largo = SEGUNDOS_CUARTO if ev["cuarto"] <= 4 else SEGUNDOS_PRORROGA
+        previos = min(ev["cuarto"] - 1, 4) * SEGUNDOS_CUARTO + max(0, ev["cuarto"] - 5) * SEGUNDOS_PRORROGA
+        restantes = previos + largo - ev["seg"]
+        rival = equipos[1] if ev["equipo"] == equipos[0] else equipos[0]
+        diferencia = abs(marcador[ev["equipo"]] - marcador[rival])
+        es_clutch = ev["cuarto"] >= 4 and restantes <= SEGUNDOS_CLUTCH and diferencia <= MARGEN_CLUTCH
+
+        if es_clutch:
+            f["ClutchPT"] += ev["puntos"]
+            if ev.get("tl"):
+                f["ClutchTLI"] += 1
+                if ev["puntos"] == 1:
+                    f["ClutchTLA"] += 1
+            elif ev.get("tc"):
+                f["ClutchTiros"] += 1
+                if ev.get("de3"):
+                    f["ClutchT3I"] += 1
+                    if ev["puntos"] == 3:
+                        f["ClutchT3A"] += 1
+                else:
+                    f["ClutchT2I"] += 1
+                    if ev["puntos"] == 2:
+                        f["ClutchT2A"] += 1
+
+        marcador[ev["equipo"]] += ev["puntos"]
+
+    # Solo se guardan las jugadoras con algo que contar
+    return [f for f in filas.values()
+            if any(f[c] for c in ("ClutchPT", "ClutchTiros", "ClutchTLI",
+                                  "C2_Asistidas", "C2_Creadas", "C3_Asistidas", "C3_Creadas",
+                                  "Asistencias_dadas"))]
+
+
+def resumir_clutch(filas: list, ya_guardado: pd.DataFrame) -> pd.DataFrame:
+    """Una fila por jugadora, sumando todos sus partidos."""
+    base = pd.DataFrame(filas) if filas else pd.DataFrame()
+    if not ya_guardado.empty and not base.empty:
+        ids = set(base["PartidoID"])
+        ya_guardado = ya_guardado[~ya_guardado["PartidoID"].isin(ids)]
+    junto = pd.concat([ya_guardado, base], ignore_index=True) if not base.empty else ya_guardado
+    if junto.empty:
+        return pd.DataFrame(), pd.DataFrame()
+
+    columnas = [c for c in junto.columns if c not in ("PartidoID", "Equipo", "Jugadora")]
+    for c in columnas:
+        junto[c] = pd.to_numeric(junto[c], errors="coerce").fillna(0)
+
+    resumen = junto.groupby(["Equipo", "Jugadora"], as_index=False).agg(
+        {**{c: "sum" for c in columnas}, "PartidoID": "nunique"})
+    resumen = resumen.rename(columns={"PartidoID": "Partidos"})
+    clutch_partidos = (junto[junto["ClutchTiros"] + junto["ClutchTLI"] + junto["ClutchPT"] > 0]
+                       .groupby(["Equipo", "Jugadora"])["PartidoID"].nunique().rename("PartidosClutch"))
+    resumen = resumen.merge(clutch_partidos, on=["Equipo", "Jugadora"], how="left").fillna({"PartidosClutch": 0})
+    return junto, resumen
+
+
 def obtener_token_livestats(session, partido_id: str) -> str:
     html = _request_con_reintentos(session, "GET", PARTIDO_URL.format(id=str(partido_id).lstrip("p"))).text
     return token_livestats(html)
@@ -1917,6 +2024,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
 
     ya_cuartos, cuartos_viejos = _ids_de_pestana(TAB_CUARTOS)
     ya_tiros, tiros_viejos = _ids_de_pestana(TAB_TIROS_MAPA)
+    _, clutch_viejo = _ids_de_pestana(TAB_CLUTCH + "_Partido")
 
     jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
     completos = ya & ya_cuartos & ya_tiros
@@ -1951,6 +2059,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     nuevos = []
     nuevos_cuartos = []
     nuevos_tiros = []
+    nuevos_clutch = []
     if pendientes:
         session = requests.Session()
         try:
@@ -1991,7 +2100,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                     print(f"  [quintetos] {hechos['n']}/{len(pendientes)}", file=sys.stderr)
                 if not filas:
                     hechos["vacios"] += 1
-                return {"quintetos": filas, "cuartos": cuartos_de_partido(datos, pid), "tiros": tiros}
+                return {"quintetos": filas, "cuartos": cuartos_de_partido(datos, pid), "tiros": tiros,
+                        "clutch": analisis_pbp_jugadoras(datos, pid)}
 
             for resultado in _en_paralelo(pendientes, _uno):
                 if not resultado:
@@ -2002,6 +2112,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                     nuevos_cuartos.extend(resultado["cuartos"])
                 if resultado.get("tiros"):
                     nuevos_tiros.extend(resultado["tiros"])
+                if resultado.get("clutch"):
+                    nuevos_clutch.extend(resultado["clutch"])
             if hechos["vacios"]:
                 print(f"  Aviso: {hechos['vacios']} partidos sin jugada a jugada utilizable", file=sys.stderr)
             if hechos["sin_tiempo"]:
@@ -2056,7 +2168,10 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     tiros_mapa = pd.concat([tiros_viejos, pd.DataFrame(nuevos_tiros)], ignore_index=True).fillna("") \
         if nuevos_tiros else tiros_viejos
 
-    return detalle, resumen, cuartos, tiros_mapa, len(set(f["PartidoID"] for f in nuevos)) if nuevos else 0
+    clutch_detalle, clutch_resumen = resumir_clutch(nuevos_clutch, clutch_viejo)
+
+    return (detalle, resumen, cuartos, tiros_mapa, clutch_detalle, clutch_resumen,
+            len(set(f["PartidoID"] for f in nuevos)) if nuevos else 0)
 
 
 # ----------------------------- MAIN ----------------------------------------
@@ -2158,7 +2273,8 @@ def main():
 
     # 5) Quintetos reales (jugada a jugada de la API LiveStats)
     try:
-        detalle_q, resumen_q, cuartos_q, tiros_mapa, nuevos_q = fetch_quintetos(sh, resultados_df)
+        (detalle_q, resumen_q, cuartos_q, tiros_mapa,
+         clutch_detalle, clutch_resumen, nuevos_q) = fetch_quintetos(sh, resultados_df)
         detalle_q, _ = aplicar_canonicos(detalle_q, canonicos)
         resumen_q, raros = aplicar_canonicos(resumen_q, canonicos)
         nombres_raros |= raros
@@ -2174,6 +2290,13 @@ def main():
             tiros_mapa, _ = aplicar_canonicos(tiros_mapa, canonicos)
             write_dataframe(sh, TAB_TIROS_MAPA, tiros_mapa)
             resumen.append(f"{TAB_TIROS_MAPA}: {len(tiros_mapa)} tiros de {tiros_mapa['PartidoID'].nunique()} partidos")
+        if not clutch_detalle.empty:
+            clutch_detalle, _ = aplicar_canonicos(clutch_detalle, canonicos)
+            write_dataframe(sh, TAB_CLUTCH + "_Partido", clutch_detalle)
+        if not clutch_resumen.empty:
+            clutch_resumen, _ = aplicar_canonicos(clutch_resumen, canonicos)
+            write_dataframe(sh, TAB_CLUTCH, clutch_resumen)
+            resumen.append(f"{TAB_CLUTCH}: {len(clutch_resumen)} jugadoras")
         n_part_q = detalle_q["PartidoID"].nunique() if not detalle_q.empty else 0
         resumen.append(f"{TAB_QUINTETOS}: {len(resumen_q)} quintetos de {n_part_q} partidos ({nuevos_q} nuevos)")
     except Exception as exc:  # noqa: BLE001
