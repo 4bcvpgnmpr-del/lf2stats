@@ -1502,6 +1502,16 @@ def _partes_tiro(txt: str) -> tuple:
     return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
 
 
+SUMAS_JUGADORA = [("PT", "Puntos"), ("AS", "Asistencias"), ("BP", "Perdidas"), ("BR", "Robos"),
+                  ("TAP_F", "Tapones"), ("REB_O", "RebOf"), ("REB_D", "RebDef"), ("REB_T", "RebTot"),
+                  ("FAL_C", "FaltasCom"), ("FAL_R", "FaltasRec"), ("VA", "Valoracion")]
+
+
+def _minutos_a_segundos(txt: str) -> int:
+    m = re.match(r"\s*(\d+):([0-5]\d)", str(txt or ""))
+    return int(m.group(1)) * 60 + int(m.group(2)) if m else 0
+
+
 def resumen_tiros_jugadoras(partidos_df: pd.DataFrame) -> pd.DataFrame:
     if partidos_df.empty or "Jugador" not in partidos_df.columns:
         return pd.DataFrame()
@@ -1514,8 +1524,15 @@ def resumen_tiros_jugadoras(partidos_df: pd.DataFrame) -> pd.DataFrame:
         clave = (equipo, jugadora)
         d = filas.setdefault(clave, {"Equipo": equipo, "Jugador": jugadora, "Partidos": 0,
                                      "T2A": 0, "T2I": 0, "T3A": 0, "T3I": 0, "TLA": 0, "TLI": 0,
-                                     "Dorsales": {}})
+                                     "Segundos": 0, "Dorsales": {},
+                                     **{etiqueta: 0 for _, etiqueta in SUMAS_JUGADORA}})
         d["Partidos"] += 1
+        d["Segundos"] += _minutos_a_segundos(f.get("MIN", ""))
+        for col, etiqueta in SUMAS_JUGADORA:
+            try:
+                d[etiqueta] += int(float(str(f.get(col, "") or 0).replace(",", ".")))
+            except ValueError:
+                pass
         for col, pref in (("T2", "T2"), ("T3", "T3"), ("TL", "TL")):
             a, i = _partes_tiro(f.get(col, ""))
             d[pref + "A"] += a
@@ -1528,11 +1545,14 @@ def resumen_tiros_jugadoras(partidos_df: pd.DataFrame) -> pd.DataFrame:
     for d in filas.values():
         dorsal = max(d["Dorsales"].items(), key=lambda x: x[1])[0] if d["Dorsales"] else ""
         pct = lambda a, i: f"{round(a / i * 100, 1):.1f}".replace(".", ",") if i else ""
-        salida.append({"Equipo": d["Equipo"], "Jugador": d["Jugador"], "Dorsal": dorsal,
-                       "Partidos": d["Partidos"],
-                       "T2A": d["T2A"], "T2I": d["T2I"], "T2Pct": pct(d["T2A"], d["T2I"]),
-                       "T3A": d["T3A"], "T3I": d["T3I"], "T3Pct": pct(d["T3A"], d["T3I"]),
-                       "TLA": d["TLA"], "TLI": d["TLI"], "TLPct": pct(d["TLA"], d["TLI"])})
+        fila = {"Equipo": d["Equipo"], "Jugador": d["Jugador"], "Dorsal": dorsal,
+                "Partidos": d["Partidos"], "Minutos": round(d["Segundos"] / 60, 1),
+                "T2A": d["T2A"], "T2I": d["T2I"], "T2Pct": pct(d["T2A"], d["T2I"]),
+                "T3A": d["T3A"], "T3I": d["T3I"], "T3Pct": pct(d["T3A"], d["T3I"]),
+                "TLA": d["TLA"], "TLI": d["TLI"], "TLPct": pct(d["TLA"], d["TLI"])}
+        for _, etiqueta in SUMAS_JUGADORA:
+            fila[etiqueta] = d[etiqueta]
+        salida.append(fila)
     return pd.DataFrame(salida).sort_values(["Equipo", "Jugador"]).reset_index(drop=True)
 
 
