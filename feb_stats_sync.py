@@ -1724,7 +1724,8 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
             continue   # cuarto mal registrado: se descarta antes que inventar minutos
 
         t_ini = inicio
-        vacio = lambda: {e: {"pts": 0, "tc": 0, "tl": 0, "ro": 0, "bp": 0} for e in equipos}
+        vacio = lambda: {e: {"pts": 0, "tc": 0, "tca": 0, "t3a": 0, "tl": 0,
+                             "ro": 0, "rd": 0, "as": 0, "bp": 0} for e in equipos}
         tramo = vacio()
 
         def posesiones(d):
@@ -1741,12 +1742,24 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
                 rival = equipos[1] if e == equipos[0] else equipos[0]
                 clave = (e, " · ".join(sorted(pista[e])))
                 fila = acumulado.setdefault(clave, {"Segundos": 0, "PF": 0, "PC": 0,
-                                                    "POS": 0.0, "POS_Rival": 0.0})
+                                                    "POS": 0.0, "POS_Rival": 0.0,
+                                                    "TCA": 0, "TCI": 0, "T3A": 0,
+                                                    "REB_O": 0, "REB_D": 0, "AS": 0, "BP": 0,
+                                                    "REB_O_Rival": 0, "REB_D_Rival": 0})
                 fila["Segundos"] += dur
                 fila["PF"] += tramo[e]["pts"]
                 fila["PC"] += tramo[rival]["pts"]
                 fila["POS"] += posesiones(tramo[e])
                 fila["POS_Rival"] += posesiones(tramo[rival])
+                fila["TCA"] += tramo[e]["tca"]
+                fila["TCI"] += tramo[e]["tc"]
+                fila["T3A"] += tramo[e]["t3a"]
+                fila["REB_O"] += tramo[e]["ro"]
+                fila["REB_D"] += tramo[e]["rd"]
+                fila["AS"] += tramo[e]["as"]
+                fila["BP"] += tramo[e]["bp"]
+                fila["REB_O_Rival"] += tramo[rival]["ro"]
+                fila["REB_D_Rival"] += tramo[rival]["rd"]
 
         for ev in evs:
             if ev["tipo"] in ("entra", "sale"):
@@ -1762,8 +1775,14 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
                 d = tramo[ev["equipo"]]
                 d["pts"] += ev["puntos"]
                 d["tc"] += ev.get("tc", 0)
+                if ev.get("tc") and ev["puntos"]:
+                    d["tca"] += 1
+                    if ev["puntos"] == 3:
+                        d["t3a"] += 1
                 d["tl"] += ev.get("tl", 0)
                 d["ro"] += ev.get("ro", 0)
+                d["rd"] += ev.get("rd", 0)
+                d["as"] += ev.get("as", 0)
                 d["bp"] += ev.get("bp", 0)
         cerrar(fin)
         for e in equipos:
@@ -1780,7 +1799,10 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
             continue
         filas.append({"PartidoID": partido_id, "Equipo": equipo, "Quinteto": quinteto,
                       "Segundos": d["Segundos"], "PF": d["PF"], "PC": d["PC"],
-                      "POS": round(d["POS"], 2), "POS_Rival": round(d["POS_Rival"], 2)})
+                      "POS": round(d["POS"], 2), "POS_Rival": round(d["POS_Rival"], 2),
+                      "TCA": d["TCA"], "TCI": d["TCI"], "T3A": d["T3A"],
+                      "REB_O": d["REB_O"], "REB_D": d["REB_D"], "AS": d["AS"], "BP": d["BP"],
+                      "REB_O_Rival": d["REB_O_Rival"], "REB_D_Rival": d["REB_D_Rival"]})
     return filas
 
 
@@ -2252,7 +2274,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     for col in ("Fase", "Jornada", "Fecha", "Rival", "Casa", "Gano"):
         detalle[col] = [e.get(col, "") for e in extra]
 
-    for col in ("Segundos", "PF", "PC", "POS", "POS_Rival"):
+    for col in ("Segundos", "PF", "PC", "POS", "POS_Rival", "TCA", "TCI", "T3A",
+                "REB_O", "REB_D", "AS", "BP", "REB_O_Rival", "REB_D_Rival"):
         if col in detalle.columns:
             detalle[col] = pd.to_numeric(detalle[col], errors="coerce").fillna(0)
         else:
@@ -2260,6 +2283,9 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     resumen = (detalle.groupby(["Equipo", "Quinteto"], as_index=False)
                .agg(Segundos=("Segundos", "sum"), PF=("PF", "sum"), PC=("PC", "sum"),
                     POS=("POS", "sum"), POS_Rival=("POS_Rival", "sum"),
+                    TCA=("TCA", "sum"), TCI=("TCI", "sum"), T3A=("T3A", "sum"),
+                    REB_O=("REB_O", "sum"), REB_D=("REB_D", "sum"), AS=("AS", "sum"), BP=("BP", "sum"),
+                    REB_O_Rival=("REB_O_Rival", "sum"), REB_D_Rival=("REB_D_Rival", "sum"),
                     Partidos=("PartidoID", "nunique")))
     resumen["Minutos"] = (resumen["Segundos"] / 60).round(1)
     resumen["Dif"] = resumen["PF"] - resumen["PC"]
@@ -2272,7 +2298,9 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     resumen = resumen[resumen["Segundos"] > 0].sort_values(
         ["Equipo", "Segundos"], ascending=[True, False]).reset_index(drop=True)
     resumen = resumen[["Equipo", "Quinteto", "Partidos", "Minutos", "PF", "PC", "Dif", "Dif40",
-                       "ORtg", "DRtg", "NET", "POS", "POS_Rival", "Segundos"]].fillna("")
+                       "ORtg", "DRtg", "NET", "POS", "POS_Rival", "Segundos",
+                       "TCA", "TCI", "T3A", "REB_O", "REB_D", "AS", "BP",
+                       "REB_O_Rival", "REB_D_Rival"]].fillna("")
 
     # Cuartos: se junta lo nuevo con lo que ya hubiera guardado
     if not cuartos_viejos.empty and nuevos_cuartos:
