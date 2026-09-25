@@ -1568,10 +1568,11 @@ RE_EQUIPO_JUGADORA = re.compile(r"^\((?P<equipo>[^)]+)\)\s*(?P<jugadora>[^:]+):"
 # Para contar posesiones (formula habitual): tiros de campo intentados
 # - rebotes ofensivos + perdidas + 0,44 x tiros libres intentados
 RE_TIRO = re.compile(r"tiro\s+de\s*(\d)\s*(anotad|fallad|encestad|errad)", re.I)
-RE_REB_OF = re.compile(r"rebote\s+ofensivo", re.I)
+RE_REB_OF = re.compile(r"rebote[^.]{0,12}(ofensiv|ataque)", re.I)
 RE_PERDIDA = re.compile(r"p[eé]rdida|balon\s+perdido|perdida", re.I)
 RE_ASISTENCIA = re.compile(r"asistencia", re.I)
-RE_REB_DEF = re.compile(r"rebote\s+defensivo", re.I)
+RE_REB_DEF = re.compile(r"rebote[^.]{0,12}(defensiv|defensa)", re.I)
+RE_REB_CUALQUIERA = re.compile(r"rebote", re.I)
 RE_TAPON = re.compile(r"tap[oó]n", re.I)
 
 
@@ -1620,6 +1621,8 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
         reb_of = 1 if RE_REB_OF.search(texto) else 0
         asistencia = 1 if RE_ASISTENCIA.search(texto) else 0
         reb_def = 1 if RE_REB_DEF.search(texto) else 0
+        # Si solo pone "Rebote", se decide luego por quien lo coge
+        reb_suelto = 1 if (RE_REB_CUALQUIERA.search(texto) and not reb_of and not reb_def) else 0
         tapon = 1 if RE_TAPON.search(texto) else 0
         perdida = 1 if RE_PERDIDA.search(texto) else 0
         if RE_ENTRA.search(texto):
@@ -1635,7 +1638,8 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
         eventos.append({"num": num, "cuarto": cuarto, "tipo": tipo, "equipo": equipo,
                         "jugadora": jugadora, "puntos": puntos,
                         "tc": tiro_campo, "tl": tiro_libre, "de3": de_tres,
-                        "ro": reb_of, "rd": reb_def, "bp": perdida, "as": asistencia, "tap": tapon,
+                        "ro": reb_of, "rd": reb_def, "reb": reb_suelto,
+                        "bp": perdida, "as": asistencia, "tap": tapon,
                         "seg": _segundos_absolutos(cuarto, _segundos_restantes(linea.get("time")))})
     eventos.sort(key=lambda e: (e["cuarto"], e["num"]))
     return equipos, eventos
@@ -1892,12 +1896,26 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
 TAB_REBOTES = "Rebotes"
 
 
+MUESTRA_REBOTES = {"hecho": False}
+
+
 def rebotes_por_tipo(datos: dict, partido_id: str) -> list:
     """De cada tiro fallado, quien cogio el rebote. Asi se sabe que se rebotea
     mejor: los triples fallados, los tiros de 2 o los tiros libres."""
     equipos, eventos = eventos_de_keyfacts(datos)
     if len(equipos) != 2 or not eventos:
         return []
+
+    if not MUESTRA_REBOTES["hecho"]:
+        MUESTRA_REBOTES["hecho"] = True
+        lineas = ((datos.get("PLAYBYPLAY") or {}).get("LINES")) or []
+        textos = [str(l.get("text") or "") for l in lineas]
+        con_rebote = [t for t in textos if re.search(r"rebot", t, re.I)][:5]
+        print(f"  [rebotes] ejemplos de rebote en {partido_id}: {con_rebote}", file=sys.stderr)
+        if not con_rebote:
+            acciones = sorted({str(l.get("action") or "") for l in lineas})[:20]
+            print(f"  [rebotes] no hay textos con 'rebote'. Acciones del partido: {acciones}", file=sys.stderr)
+            print(f"  [rebotes] textos de ejemplo: {textos[:6]}", file=sys.stderr)
 
     datos_eq = {}
 
@@ -1924,7 +1942,7 @@ def rebotes_por_tipo(datos: dict, partido_id: str) -> list:
         if not ultimo:
             continue
 
-        if ev.get("ro") or ev.get("rd"):
+        if ev.get("ro") or ev.get("rd") or ev.get("reb"):
             equipo_tirador, tipo, idx = ultimo
             # Solo cuenta si el rebote llega justo despues del fallo
             if i - idx <= 4:
