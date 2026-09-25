@@ -1571,6 +1571,8 @@ RE_TIRO = re.compile(r"tiro\s+de\s*(\d)\s*(anotad|fallad|encestad|errad)", re.I)
 RE_REB_OF = re.compile(r"rebote\s+ofensivo", re.I)
 RE_PERDIDA = re.compile(r"p[eé]rdida|balon\s+perdido|perdida", re.I)
 RE_ASISTENCIA = re.compile(r"asistencia", re.I)
+RE_REB_DEF = re.compile(r"rebote\s+defensivo", re.I)
+RE_TAPON = re.compile(r"tap[oó]n", re.I)
 
 
 def _segundos_restantes(txt: str) -> int:
@@ -1617,6 +1619,8 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
         de_tres = 1 if (tiro and tiro.group(1) == "3") else 0
         reb_of = 1 if RE_REB_OF.search(texto) else 0
         asistencia = 1 if RE_ASISTENCIA.search(texto) else 0
+        reb_def = 1 if RE_REB_DEF.search(texto) else 0
+        tapon = 1 if RE_TAPON.search(texto) else 0
         perdida = 1 if RE_PERDIDA.search(texto) else 0
         if RE_ENTRA.search(texto):
             tipo = "entra"
@@ -1631,7 +1635,7 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
         eventos.append({"num": num, "cuarto": cuarto, "tipo": tipo, "equipo": equipo,
                         "jugadora": jugadora, "puntos": puntos,
                         "tc": tiro_campo, "tl": tiro_libre, "de3": de_tres,
-                        "ro": reb_of, "bp": perdida, "as": asistencia,
+                        "ro": reb_of, "rd": reb_def, "bp": perdida, "as": asistencia, "tap": tapon,
                         "seg": _segundos_absolutos(cuarto, _segundos_restantes(linea.get("time")))})
     eventos.sort(key=lambda e: (e["cuarto"], e["num"]))
     return equipos, eventos
@@ -1885,6 +1889,64 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
     return filas
 
 
+TAB_REBOTES = "Rebotes"
+
+
+def rebotes_por_tipo(datos: dict, partido_id: str) -> list:
+    """De cada tiro fallado, quien cogio el rebote. Asi se sabe que se rebotea
+    mejor: los triples fallados, los tiros de 2 o los tiros libres."""
+    equipos, eventos = eventos_de_keyfacts(datos)
+    if len(equipos) != 2 or not eventos:
+        return []
+
+    datos_eq = {}
+
+    def ficha(equipo, tipo):
+        return datos_eq.setdefault((equipo, tipo), {
+            "PartidoID": partido_id, "Equipo": equipo, "Tipo": tipo,
+            "Fallados": 0, "RebOf": 0, "RebDef": 0, "SinRebote": 0,
+        })
+
+    ultimo = None   # (equipo, tipo, indice del evento)
+    for i, ev in enumerate(eventos):
+        if ev["equipo"] not in equipos:
+            continue
+
+        # Un tiro fallado deja rebote en el aire
+        if (ev.get("tc") or ev.get("tl")) and ev["puntos"] == 0:
+            if ultimo:
+                ficha(ultimo[0], ultimo[1])["SinRebote"] += 1
+            tipo = "Tiro libre" if ev.get("tl") else ("Triple" if ev.get("de3") else "Tiro de 2")
+            ficha(ev["equipo"], tipo)["Fallados"] += 1
+            ultimo = (ev["equipo"], tipo, i)
+            continue
+
+        if not ultimo:
+            continue
+
+        if ev.get("ro") or ev.get("rd"):
+            equipo_tirador, tipo, idx = ultimo
+            # Solo cuenta si el rebote llega justo despues del fallo
+            if i - idx <= 4:
+                f = ficha(equipo_tirador, tipo)
+                if ev["equipo"] == equipo_tirador:
+                    f["RebOf"] += 1
+                else:
+                    f["RebDef"] += 1
+            else:
+                ficha(equipo_tirador, tipo)["SinRebote"] += 1
+            ultimo = None
+        elif ev["puntos"] or ev.get("bp"):
+            # La jugada siguio sin rebote registrado
+            ficha(ultimo[0], ultimo[1])["SinRebote"] += 1
+            ultimo = None
+
+    if ultimo:
+        ficha(ultimo[0], ultimo[1])["SinRebote"] += 1
+
+    return [f for f in datos_eq.values() if f["Fallados"]]
+
+
 TAB_CLUTCH = "Jugadoras_Clutch"
 SEGUNDOS_CLUTCH = 300      # ultimos 5 minutos
 MARGEN_CLUTCH = 5          # con 5 puntos o menos de diferencia
@@ -2025,6 +2087,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     ya_cuartos, cuartos_viejos = _ids_de_pestana(TAB_CUARTOS)
     ya_tiros, tiros_viejos = _ids_de_pestana(TAB_TIROS_MAPA)
     _, clutch_viejo = _ids_de_pestana(TAB_CLUTCH + "_Partido")
+    _, rebotes_viejos = _ids_de_pestana(TAB_REBOTES)
 
     jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
     completos = ya & ya_cuartos & ya_tiros
@@ -2060,6 +2123,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     nuevos_cuartos = []
     nuevos_tiros = []
     nuevos_clutch = []
+    nuevos_rebotes = []
     if pendientes:
         session = requests.Session()
         try:
@@ -2101,7 +2165,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                 if not filas:
                     hechos["vacios"] += 1
                 return {"quintetos": filas, "cuartos": cuartos_de_partido(datos, pid), "tiros": tiros,
-                        "clutch": analisis_pbp_jugadoras(datos, pid)}
+                        "clutch": analisis_pbp_jugadoras(datos, pid),
+                        "rebotes": rebotes_por_tipo(datos, pid)}
 
             for resultado in _en_paralelo(pendientes, _uno):
                 if not resultado:
@@ -2114,6 +2179,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                     nuevos_tiros.extend(resultado["tiros"])
                 if resultado.get("clutch"):
                     nuevos_clutch.extend(resultado["clutch"])
+                if resultado.get("rebotes"):
+                    nuevos_rebotes.extend(resultado["rebotes"])
             if hechos["vacios"]:
                 print(f"  Aviso: {hechos['vacios']} partidos sin jugada a jugada utilizable", file=sys.stderr)
             if hechos["sin_tiempo"]:
@@ -2170,7 +2237,13 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
 
     clutch_detalle, clutch_resumen = resumir_clutch(nuevos_clutch, clutch_viejo)
 
-    return (detalle, resumen, cuartos, tiros_mapa, clutch_detalle, clutch_resumen,
+    if not rebotes_viejos.empty and nuevos_rebotes:
+        ids_r = {f["PartidoID"] for f in nuevos_rebotes}
+        rebotes_viejos = rebotes_viejos[~rebotes_viejos["PartidoID"].isin(ids_r)]
+    rebotes = pd.concat([rebotes_viejos, pd.DataFrame(nuevos_rebotes)], ignore_index=True).fillna("") \
+        if nuevos_rebotes else rebotes_viejos
+
+    return (detalle, resumen, cuartos, tiros_mapa, clutch_detalle, clutch_resumen, rebotes,
             len(set(f["PartidoID"] for f in nuevos)) if nuevos else 0)
 
 
@@ -2274,7 +2347,7 @@ def main():
     # 5) Quintetos reales (jugada a jugada de la API LiveStats)
     try:
         (detalle_q, resumen_q, cuartos_q, tiros_mapa,
-         clutch_detalle, clutch_resumen, nuevos_q) = fetch_quintetos(sh, resultados_df)
+         clutch_detalle, clutch_resumen, rebotes_q, nuevos_q) = fetch_quintetos(sh, resultados_df)
         detalle_q, _ = aplicar_canonicos(detalle_q, canonicos)
         resumen_q, raros = aplicar_canonicos(resumen_q, canonicos)
         nombres_raros |= raros
@@ -2297,6 +2370,10 @@ def main():
             clutch_resumen, _ = aplicar_canonicos(clutch_resumen, canonicos)
             write_dataframe(sh, TAB_CLUTCH, clutch_resumen)
             resumen.append(f"{TAB_CLUTCH}: {len(clutch_resumen)} jugadoras")
+        if not rebotes_q.empty:
+            rebotes_q, _ = aplicar_canonicos(rebotes_q, canonicos)
+            write_dataframe(sh, TAB_REBOTES, rebotes_q)
+            resumen.append(f"{TAB_REBOTES}: {rebotes_q['PartidoID'].nunique()} partidos")
         n_part_q = detalle_q["PartidoID"].nunique() if not detalle_q.empty else 0
         resumen.append(f"{TAB_QUINTETOS}: {len(resumen_q)} quintetos de {n_part_q} partidos ({nuevos_q} nuevos)")
     except Exception as exc:  # noqa: BLE001
