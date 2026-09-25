@@ -2021,6 +2021,7 @@ def rebotes_por_tipo(datos: dict, partido_id: str) -> list:
 
 
 TAB_CLUTCH = "Jugadoras_Clutch"
+MARCADOR_DUDOSO = {}
 SEGUNDOS_CLUTCH = 300      # ultimos 5 minutos
 MARGEN_CLUTCH = 5          # con 5 puntos o menos de diferencia
 
@@ -2032,6 +2033,19 @@ def analisis_pbp_jugadoras(datos: dict, partido_id: str) -> list:
     equipos, eventos = eventos_de_keyfacts(datos)
     if len(equipos) != 2 or not eventos:
         return []
+
+    # El clutch se decide con el marcador reconstruido jugada a jugada.
+    # Si ese marcador no cuadra (partido con el registro incompleto), la
+    # diferencia saldria siempre pequeña y todo pareceria decisivo: en ese
+    # caso se descarta el clutch de ese partido y solo se guardan las asistencias.
+    total_puntos = {e: 0 for e in equipos}
+    for ev in eventos:
+        if ev["equipo"] in total_puntos:
+            total_puntos[ev["equipo"]] += ev["puntos"]
+    marcador_fiable = all(v >= 40 for v in total_puntos.values())
+    if not marcador_fiable and not MARCADOR_DUDOSO.get(partido_id):
+        MARCADOR_DUDOSO[partido_id] = True
+        MARCADOR_DUDOSO["n"] = MARCADOR_DUDOSO.get("n", 0) + 1
 
     marcador = {e: 0 for e in equipos}
     filas = {}
@@ -2074,7 +2088,8 @@ def analisis_pbp_jugadoras(datos: dict, partido_id: str) -> list:
         restantes = previos + largo - ev["seg"]
         rival = equipos[1] if ev["equipo"] == equipos[0] else equipos[0]
         diferencia = abs(marcador[ev["equipo"]] - marcador[rival])
-        es_clutch = ev["cuarto"] >= 4 and restantes <= SEGUNDOS_CLUTCH and diferencia <= MARGEN_CLUTCH
+        es_clutch = (marcador_fiable and ev["cuarto"] >= 4
+                     and restantes <= SEGUNDOS_CLUTCH and diferencia <= MARGEN_CLUTCH)
 
         if es_clutch:
             f["ClutchPT"] += ev["puntos"]
@@ -2445,6 +2460,9 @@ def main():
         if not clutch_detalle.empty:
             clutch_detalle, _ = aplicar_canonicos(clutch_detalle, canonicos)
             write_dataframe(sh, TAB_CLUTCH + "_Partido", clutch_detalle)
+        if MARCADOR_DUDOSO.get("n"):
+            print(f"  [clutch] {MARCADOR_DUDOSO['n']} partidos sin clutch: el marcador del "
+                  f"jugada a jugada no cuadraba", file=sys.stderr)
         if not clutch_resumen.empty:
             clutch_resumen, _ = aplicar_canonicos(clutch_resumen, canonicos)
             write_dataframe(sh, TAB_CLUTCH, clutch_resumen)
