@@ -1855,9 +1855,11 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
             continue
         clave = (ev["equipo"], ev["cuarto"])
         d = acumulado.setdefault(clave, {"pts": 0, "t2a": 0, "t2i": 0, "t3a": 0, "t3i": 0,
-                                         "tla": 0, "tli": 0, "ro": 0, "bp": 0})
+                                         "tla": 0, "tli": 0, "ro": 0, "rd": 0, "as": 0, "bp": 0})
         d["pts"] += ev["puntos"]
         d["ro"] += ev.get("ro", 0)
+        d["rd"] += ev.get("rd", 0)
+        d["as"] += ev.get("as", 0)
         d["bp"] += ev.get("bp", 0)
         if ev.get("tl"):
             d["tli"] += 1
@@ -1885,7 +1887,8 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
         filas.append({
             "PartidoID": partido_id, "Equipo": equipo, "Rival": rival, "Cuarto": cuarto,
             "PT": d["pts"], "T2A": d["t2a"], "T2I": d["t2i"], "T3A": d["t3a"], "T3I": d["t3i"],
-            "TLA": d["tla"], "TLI": d["tli"], "REB_O": d["ro"], "BP": d["bp"],
+            "TLA": d["tla"], "TLI": d["tli"], "REB_O": d["ro"], "REB_D": d["rd"],
+            "AS": d["as"], "BP": d["bp"],
             "POS": round(pos, 2),
             "OER": round(100 * d["pts"] / pos, 1) if pos > 0 else "",
             "eFG": round(100 * (tc_a + 0.5 * d["t3a"]) / tc_i, 1) if tc_i else "",
