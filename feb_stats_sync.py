@@ -1573,6 +1573,7 @@ RE_PERDIDA = re.compile(r"p[eé]rdida|balon\s+perdido|perdida", re.I)
 RE_ASISTENCIA = re.compile(r"asistencia", re.I)
 RE_REB_DEF = re.compile(r"rebote[^.]{0,12}(defensiv|defensa)", re.I)
 RE_REB_CUALQUIERA = re.compile(r"rebote", re.I)
+MUESTRA_REBOTES = {"hecho": False}
 RE_TAPON = re.compile(r"tap[oó]n", re.I)
 
 
@@ -1642,6 +1643,35 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
                         "bp": perdida, "as": asistencia, "tap": tapon,
                         "seg": _segundos_absolutos(cuarto, _segundos_restantes(linea.get("time")))})
     eventos.sort(key=lambda e: (e["cuarto"], e["num"]))
+
+    # Muchos rebotes llegan como "Rebote", sin decir si es ofensivo o defensivo.
+    # Se deduce mirando quien fallo el tiro anterior: mismo equipo = ofensivo.
+    ultimo_fallo = None
+    sueltos = resueltos = 0
+    for ev in eventos:
+        if (ev.get("tc") or ev.get("tl")) and ev["puntos"] == 0:
+            ultimo_fallo = ev["equipo"]
+            continue
+        if ev.get("ro") or ev.get("rd"):
+            ultimo_fallo = None
+            continue
+        if ev.get("reb"):
+            sueltos += 1
+            if ultimo_fallo:
+                if ev["equipo"] == ultimo_fallo:
+                    ev["ro"] = 1
+                else:
+                    ev["rd"] = 1
+                resueltos += 1
+                ultimo_fallo = None
+        elif ev["puntos"] or ev.get("bp"):
+            ultimo_fallo = None
+
+    if sueltos and not MUESTRA_REBOTES.get("aviso"):
+        MUESTRA_REBOTES["aviso"] = True
+        print(f"  [rebotes] {resueltos} de {sueltos} rebotes sin apellido resueltos por el equipo que fallo",
+              file=sys.stderr)
+
     return equipos, eventos
 
 
@@ -1899,7 +1929,7 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
 TAB_REBOTES = "Rebotes"
 
 
-MUESTRA_REBOTES = {"hecho": False}
+
 
 
 def rebotes_por_tipo(datos: dict, partido_id: str) -> list:
