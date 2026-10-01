@@ -642,6 +642,15 @@
   .evoj td:nth-child(2), .evoj th:nth-child(2){white-space:normal;}
   @media (max-width:700px){ .evoj-grafico{height:200px;} }
 
+  /* --- Tiros en el scouting --- */
+  .datos-jug.tiros-jug{margin-top:7px;}
+  .dato-jug.tiro{background:var(--tiro-fondo);}
+  .dato-jug.tiro .l{text-transform:none;letter-spacing:0;}
+  table.plantilla td.col-tiro, table.plantilla th.col-tiro{background:var(--tiro-fondo);white-space:nowrap;}
+  table.plantilla td.col-tiro .pct-tiro{display:block;font-size:10.5px;color:var(--ink-soft);font-weight:400;}
+  [data-tema="oscuro"] table.plantilla td.col-tiro, [data-tema="oscuro"] table.plantilla th.col-tiro{
+    background:var(--tiro-fondo);color:var(--ink);}
+
   /* --- Plan de intervencion --- */
   .plan-tarjeta{display:flex;gap:0;border:1.5px solid var(--wood-line);border-radius:12px;
     overflow:hidden;margin-bottom:14px;background:var(--white);}
@@ -4816,6 +4825,39 @@ function notaJugadora(inf, nombre) {
   return Object.assign({ texto: "", posicion: "" }, v || {});
 }
 
+// Anotados/intentados y porcentaje de cada tipo de tiro, sumando sus partidos
+const TIPOS_TIRO = [
+  ["T2", "Tiros de 2: anotados/intentados"],
+  ["T3", "Triples: anotados/intentados"],
+  ["TC", "Tiros de campo (2+3): anotados/intentados"],
+  ["TL", "Tiros libres: anotados/intentados"],
+];
+
+function tirosTotalesJugadora(nombre, equipo) {
+  const t = tirosDeJugadora(nombre, equipo);
+  if (!t) return null;
+  const par = (a, i) => ({ a, i, pct: i > 0 ? Math.round(100 * a / i * 10) / 10 : null });
+  return {
+    T2: par(t.t2a || 0, t.t2i || 0),
+    T3: par(t.t3a || 0, t.t3i || 0),
+    TC: par((t.t2a || 0) + (t.t3a || 0), (t.t2i || 0) + (t.t3i || 0)),
+    TL: par(t.tla || 0, t.tli || 0),
+    partidos: t.partidos || 0,
+  };
+}
+
+function cajasTiroJugadora(nombre, equipo) {
+  const tt = tirosTotalesJugadora(nombre, equipo);
+  if (!tt) return "";
+  const hay = TIPOS_TIRO.some(([k]) => tt[k].i > 0);
+  if (!hay) return "";
+  return `<div class="datos-jug tiros-jug">${TIPOS_TIRO.map(([k, titulo]) => `
+    <div class="dato-jug tiro" title="${escapeAttr(titulo)}">
+      <span class="v">${tt[k].a}/${tt[k].i}</span>
+      <span class="l">${k}${tt[k].pct !== null ? ` · ${fmtNum(tt[k].pct)}%` : ""}</span>
+    </div>`).join("")}</div>`;
+}
+
 function fichaJugadoraInformeHtml(nombre, equipo, inf) {
   const st = estadisticasJugadora(nombre, equipo);
   const nota = notaJugadora(inf, nombre);
@@ -4836,6 +4878,7 @@ function fichaJugadoraInformeHtml(nombre, equipo, inf) {
       </div>
     </div>
     <div class="datos-jug">${cajas || `<span class="hint">Sin estadisticas en los rankings de la FEB.</span>`}</div>
+    ${cajasTiroJugadora(nombre, equipo)}
     <textarea class="campo-jugadora" data-jugadora="${escapeAttr(nombre)}" rows="2"
       placeholder="Mano dominante, tiro, como atacarla, como defenderla...">${escapeHtml(nota.texto)}</textarea>
     <div class="texto-print">${escapeHtml(nota.texto).replace(/\n/g, "<br>") || "<span class='hint'>—</span>"}</div>
@@ -4867,6 +4910,7 @@ function plantillaHtml(nombre) {
   return `<div class="table-scroll"><table class="limpia plantilla"><thead><tr>
       <th class="equipo">Jugadora</th><th title="Partidos jugados">PJ</th>
       ${cols.map(c => `<th title="${escapeAttr(c.larga)}">${escapeHtml(c.corta)}</th>`).join("")}
+      ${TIPOS_TIRO.map(([k, t]) => `<th class="col-tiro" title="${escapeAttr(t)}">${escapeHtml(k)}</th>`).join("")}
     </tr></thead><tbody>
     ${filas.map(f => `<tr>
       <td class="equipo"><b class="rank-name" data-player="${escapeAttr(f.jugadora)}">
@@ -4881,11 +4925,20 @@ function plantillaHtml(nombre) {
         const calc = f.calculado && f.calculado[c.corta];
         return `<td>${escapeHtml(v)}${calc ? `<span class="calc" title="Calculado sumando sus partidos: ${escapeAttr(calc)}">*</span>` : ""}</td>`;
       }).join("")}
+      ${(() => {
+        const tt = tirosTotalesJugadora(f.jugadora, nombre);
+        return TIPOS_TIRO.map(([k]) => {
+          if (!tt || tt[k].i === 0) return `<td class="col-tiro"><span class="nd">-</span></td>`;
+          return `<td class="col-tiro"><b>${tt[k].a}/${tt[k].i}</b>${
+            tt[k].pct !== null ? `<span class="pct-tiro">${fmtNum(tt[k].pct)}%</span>` : ""}</td>`;
+        }).join("");
+      })()}
     </tr>`).join("")}
     </tbody></table></div>
     <p class="hint" style="margin-top:8px;">Medias por partido. Los porcentajes con <b>*</b> los calcula la app sumando los tiros de cada partido,
     porque la FEB solo publica sus rankings de porcentaje a partir de un minimo de intentos. Pasa el raton por el asterisco para ver anotados/intentados.
-    Un guion significa que no hay ningun dato.</p>`;
+    Un guion significa que no hay ningun dato. Las cuatro ultimas columnas (T2, T3, TC, TL) son
+    <b>totales de la temporada</b>: anotados/intentados y su porcentaje, sumando todos sus partidos.</p>`;
 }
 
 // Tres mejores y tres peores del equipo en cada estadistica
@@ -5118,15 +5171,24 @@ function asegurarPartidosParaInforme(alTerminar) {
     }
   };
 
+  const probarConPartidos = () => {
+    console.warn("No hay pestaña Jugadoras_Tiros usable; se prueba con Partidos_Estadisticas (puede tardar).");
+    fetchSheetTab("Partidos_Estadisticas", null, 60000).then(
+      datos => { partidosCache = datos; tirosResumen = false; listo("Partidos_Estadisticas (" + datos.rows.length + " filas)"); },
+      err => { tirosResumen = false; partidosCache = false; cargandoPartidosInforme = false;
+               console.error("No se pudieron leer los tiros:", err); }
+    );
+  };
+
   fetchSheetTab("Jugadoras_Tiros", null, 30000).then(
-    datos => { tirosResumen = datos; listo("Jugadoras_Tiros (" + datos.rows.length + " jugadoras)"); },
+    datos => {
+      // La pestaña puede existir pero estar vacia: entonces no sirve
+      if (!datos || !datos.rows || !datos.rows.length) { probarConPartidos(); return; }
+      tirosResumen = datos;
+      listo("Jugadoras_Tiros (" + datos.rows.length + " jugadoras)");
+    },
     () => {
-      console.warn("No hay pestaña Jugadoras_Tiros; se prueba con Partidos_Estadisticas (puede tardar).");
-      fetchSheetTab("Partidos_Estadisticas", null, 60000).then(
-        datos => { partidosCache = datos; tirosResumen = false; listo("Partidos_Estadisticas (" + datos.rows.length + " filas)"); },
-        err => { tirosResumen = false; partidosCache = false; cargandoPartidosInforme = false;
-                 console.error("No se pudieron leer los tiros:", err); }
-      );
+      probarConPartidos();
     }
   );
 }
@@ -6122,6 +6184,9 @@ function showScouting(nombre) {
   ajustarBotonVolver("scouting");
   renderScouting();
   showView("scouting");
+  // Los tiros anotados/intentados salen de los cuadros de partido: si aun no
+  // estan cargados se piden y la pantalla se vuelve a pintar cuando lleguen
+  asegurarPartidosParaInforme(() => { if (vistaActual === "scouting") renderScouting(); });
 }
 
 function renderScouting() {
@@ -9636,7 +9701,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-14";
+const VERSION_APP = "2026-10-15";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
