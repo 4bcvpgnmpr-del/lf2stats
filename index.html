@@ -615,6 +615,31 @@
     .evo-grafico{height:200px;}
   }
 
+  /* --- Plan de intervencion --- */
+  .plan-tarjeta{display:flex;gap:0;border:1.5px solid var(--wood-line);border-radius:12px;
+    overflow:hidden;margin-bottom:14px;background:var(--white);}
+  .plan-tarjeta .p-num{flex:0 0 52px;background:#16202c;color:#fff;display:flex;align-items:center;
+    justify-content:center;font-family:'Archivo Black',sans-serif;font-size:26px;}
+  .plan-tarjeta .p-cuerpo{flex:1;min-width:0;padding:14px 16px;}
+  .plan-tarjeta .p-tit{font-size:16px;font-weight:800;}
+  .plan-tarjeta .p-dato{color:var(--orange-dark);font-weight:700;font-size:13px;margin:5px 0 8px;line-height:1.5;}
+  .plan-tarjeta .p-ctx{font-size:13px;line-height:1.6;color:var(--ink-soft);}
+  .plan-tarjeta .p-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;}
+  .plan-tarjeta .p-cols > *{min-width:0;}
+  .plan-tarjeta .p-sub{font-size:12.5px;font-weight:800;margin-bottom:6px;}
+  .plan-tarjeta ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.6;}
+  .plan-tarjeta li{margin-bottom:5px;}
+  .plan-tarjeta .p-obj{background:var(--verde-suave);border-left:4px solid var(--verde);
+    border-radius:0 8px 8px 0;padding:10px 12px;font-size:12.5px;font-weight:700;line-height:1.55;}
+  .plan-tarjeta .p-rev{font-size:11.5px;color:var(--ink-soft);margin-top:7px;}
+  .plan-campo{border:1.5px solid var(--wood-line);border-radius:10px;padding:12px 14px;margin-bottom:12px;}
+  .plan-campo label{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--ink-soft);margin:9px 0 4px;}
+  .plan-campo label:first-child{margin-top:0;}
+  .plan-campo input, .plan-campo textarea{width:100%;padding:8px 10px;border:1.5px solid var(--wood-line);
+    border-radius:7px;font-family:'Archivo',sans-serif;font-size:13px;background:var(--white);color:var(--ink);}
+  @media (max-width:800px){ .plan-tarjeta .p-cols{grid-template-columns:1fr;} }
+
   /* --- Glosario --- */
   .glos-lista{margin:10px 0 0;padding:0;}
   .glos-item{padding:9px 0;border-top:1px solid var(--wood-line);}
@@ -2759,6 +2784,10 @@ function showEquipoDetail(teamName) {
       <h3 class="section-title">Diagnostico de temporada</h3>
       <div class="panel" id="diagnosticoEquipo"><p class="hint">Calculando...</p></div>
     </div>
+    <div class="section-block">
+      <h3 class="section-title">Plan de intervencion</h3>
+      <div class="panel" id="planEquipo"><p class="hint">Calculando...</p></div>
+    </div>
     <div class="stat-big-grid">
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "PT", baseType))}</div><div class="l">PPG</div>${puestoDe("PT")}</div>
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "Rebotes_RT", baseType))}</div><div class="l">RPG</div>${puestoDe("Rebotes_RT")}</div>
@@ -4055,6 +4084,7 @@ async function rellenarAvanzadasEquipo(teamName) {
   }
   const cajaDiag = document.getElementById("diagnosticoEquipo");
   if (cajaDiag) cajaDiag.innerHTML = bloqueDiagnostico(teamName);
+  pintarPlan(teamName, false);
   const cajaEvo = document.getElementById("evolucionEquipo");
   if (cajaEvo) { cajaEvo.innerHTML = bloqueEvolucion(teamName); dibujarEvolucion(teamName); }
   const cajaEstilo = document.getElementById("estiloEquipo");
@@ -8228,6 +8258,231 @@ function bloqueGlosario() {
 }
 
 /* ============================================================
+   PLAN DE INTERVENCION
+   Se propone solo con los puntos debiles del diagnostico, pero
+   el entrenador puede reescribirlo entero. Se guarda por equipo.
+   ============================================================ */
+const PLANTILLA_PLAN = {
+  ortg: {
+    titulo: "Subir la produccion ofensiva",
+    contexto: "El equipo no saca suficiente rendimiento a cada posesion, lo que obliga a defender perfecto para competir.",
+    intervenciones: [
+      "Definir las tres primeras opciones de cada sistema y entrenarlas hasta que salgan sin pensar.",
+      "Trabajar la segunda y tercera pasada: la ventaja se crea al mover el balon, no al botar.",
+      "Fijar un guion de las primeras 5 posesiones de cada parte.",
+      "Revisar en video las posesiones que acaban en tiro forzado a menos de 5 segundos.",
+    ],
+  },
+  drtg: {
+    titulo: "Mejorar el rendimiento defensivo",
+    contexto: "El rival esta anotando con demasiada facilidad por posesion, lo que convierte cada error propio en puntos.",
+    intervenciones: [
+      "Definir las reglas del bloqueo directo y no negociarlas durante el partido.",
+      "Medir en video los cierres de linea de fondo y las ayudas que llegan tarde.",
+      "Terminar siempre la defensa con rebote: no hay parada sin captura.",
+      "Asignar responsabilidades por posicion y no solo por emparejamiento.",
+    ],
+  },
+  ts: {
+    titulo: "Reequilibrar el perfil de tiro",
+    contexto: "La eficiencia anotadora esta por debajo del grupo: el problema no es tirar poco, es desde donde se tira.",
+    intervenciones: [
+      "Priorizar penetraciones con espacio y continuaciones al aro antes que el triple temprano.",
+      "Separar los triples generados tras ventaja de los triples sin colapso defensivo.",
+      "Diseñar dos acciones de fondo para liberar finalizaciones en aro o falta.",
+      "Fijar objetivos de volumen por zona, no solo de porcentaje.",
+    ],
+  },
+  tovPct: {
+    titulo: "Jugar posesiones mas seguras",
+    contexto: "Las perdidas estan regalando posesiones y transiciones faciles al rival.",
+    intervenciones: [
+      "Reducir el pase de entrada arriesgado: primero reversion, despues interior.",
+      "Entrenar la salida de presion con dos receptores siempre disponibles.",
+      "Registrar las perdidas por tipo (pase, bote, pasos) y atacar la mas repetida.",
+      "Usar un tiempo muerto cuando se encadenen dos perdidas seguidas.",
+    ],
+  },
+  pctRd: {
+    titulo: "Cerrar el rebote defensivo",
+    contexto: "El rival esta consiguiendo segundas oportunidades que alargan sus posesiones y acortan las nuestras.",
+    intervenciones: [
+      "Asignar responsabilidades de cierre por posicion y no solo por emparejamiento.",
+      "Medir en video los contactos de bloqueo de rebote, no unicamente el rebote capturado.",
+      "Incluir al exterior del lado debil en el cierre y definir quien libera la transicion.",
+      "Evaluar que quintetos reboteen mejor antes de aumentar su carga de minutos.",
+    ],
+  },
+  ftr: {
+    titulo: "Generar mas tiros libres",
+    contexto: "El equipo resuelve demasiado desde fuera y no esta cobrando el peaje de atacar el aro.",
+    intervenciones: [
+      "Atacar el aro buscando contacto en las dos primeras posesiones de cada cuarto.",
+      "Trabajar finalizaciones con la mano de fuera para provocar falta.",
+      "Castigar el cambio defensivo con poste bajo en vez de tiro exterior.",
+      "Entrenar los tiros libres con fatiga, no al principio de la sesion.",
+    ],
+  },
+};
+
+function claveplan(nombre) { return normalizarEquipo(equipoOficial(nombre)); }
+
+function leerPlanes() {
+  try { return JSON.parse(localStorage.getItem("lf2_plan") || "{}"); }
+  catch (e) { return {}; }
+}
+
+function planGuardado(nombre) {
+  const todos = leerPlanes();
+  const p = todos[claveplan(nombre)];
+  return Array.isArray(p) ? p : null;
+}
+
+function guardarPlan(nombre, prioridades) {
+  const todos = leerPlanes();
+  if (prioridades && prioridades.length) todos[claveplan(nombre)] = prioridades;
+  else delete todos[claveplan(nombre)];
+  try { localStorage.setItem("lf2_plan", JSON.stringify(todos)); } catch (e) { /* sin guardar */ }
+}
+
+// Propuesta automatica a partir de las metricas peor situadas
+function planPropuesto(nombre) {
+  const d = diagnosticoEquipo(nombre);
+  if (!d) return [];
+  const flojas = d.metricas
+    .filter(x => x.valor !== null)
+    .sort((a, b) => a.percentil - b.percentil)
+    .slice(0, 3);
+  return flojas.map(x => {
+    const t = PLANTILLA_PLAN[x.def.id];
+    if (!t) return null;
+    // Puede estar por encima de la media y aun asi ser de lo peor del equipo:
+    // en ese caso el objetivo es mantenerlo, no "subirlo hasta la media".
+    const porDebajo = x.def.menosEsMejor ? x.valor > x.media : x.valor < x.media;
+    const dir = x.def.menosEsMejor ? "Bajar" : "Subir";
+    const lado = x.def.menosEsMejor ? "por debajo" : "por encima";
+    const objetivo = porDebajo
+      ? `${dir} el ${x.def.etiqueta} desde ${fmtNum(x.valor)}${x.def.sufijo} hasta la media del grupo (${fmtNum(x.media)}${x.def.sufijo}).`
+      : `Mantener el ${x.def.etiqueta} ${lado} de la media del grupo (${fmtNum(x.media)}${x.def.sufijo}) en todos los cortes de rotacion; ahora esta en ${fmtNum(x.valor)}${x.def.sufijo}.`;
+    return {
+      titulo: t.titulo,
+      dato: `${x.def.etiqueta} ${fmtNum(x.valor)}${x.def.sufijo} frente a ${fmtNum(x.media)}${x.def.sufijo} de media; puesto ${x.puesto} de ${x.total} del grupo.`,
+      contexto: porDebajo ? t.contexto
+        : `Esta metrica no esta penalizando al equipo, pero es de las mas justas de su perfil: consolidarla protege el rendimiento actual.`,
+      intervenciones: t.intervenciones.slice(),
+      objetivo,
+      revision: "Revisar despues de 4-6 partidos y contrastar con video.",
+    };
+  }).filter(Boolean);
+}
+
+function planDeEquipo(nombre) {
+  return planGuardado(nombre) || planPropuesto(nombre);
+}
+
+function bloquePlan(nombre, editando) {
+  const plan = planDeEquipo(nombre);
+  const esPropio = !!planGuardado(nombre);
+
+  if (!plan.length) {
+    return `<p class="hint">Plan de intervencion: hacen falta las estadisticas de cada partido
+      para proponer prioridades. Entra una vez en el menu Estadisticas y vuelve aqui.</p>`;
+  }
+
+  if (editando) {
+    return `<div class="plan-edit">
+      <p class="hint" style="margin-top:0;">Cambia lo que quieras. Las intervenciones van una por linea.</p>
+      ${plan.map((pr, i) => `<div class="plan-campo">
+        <label>Prioridad ${i + 1} · titulo</label>
+        <input type="text" data-plan="titulo" data-i="${i}" value="${escapeAttr(pr.titulo)}">
+        <label>Dato clave</label>
+        <input type="text" data-plan="dato" data-i="${i}" value="${escapeAttr(pr.dato)}">
+        <label>Por que importa</label>
+        <textarea data-plan="contexto" data-i="${i}" rows="2">${escapeHtml(pr.contexto)}</textarea>
+        <label>Intervenciones (una por linea)</label>
+        <textarea data-plan="intervenciones" data-i="${i}" rows="4">${escapeHtml(pr.intervenciones.join("\n"))}</textarea>
+        <label>Objetivo de control</label>
+        <textarea data-plan="objetivo" data-i="${i}" rows="2">${escapeHtml(pr.objetivo)}</textarea>
+      </div>`).join("")}
+      <div class="inf-botones">
+        <button class="inf-btn principal" type="button" id="planGuardar">Guardar plan</button>
+        <button class="inf-btn" type="button" id="planCancelar">Cancelar</button>
+        <button class="inf-btn" type="button" id="planReiniciar">Volver a la propuesta automatica</button>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="plan">
+    <p class="hint no-imprimir" style="margin-top:0;">
+      ${esPropio ? "Plan propio, guardado en este navegador."
+                 : "Propuesta automatica con las tres metricas donde el equipo esta peor situado. Puedes reescribirla."}
+      <button class="inf-btn no-imprimir" type="button" id="planEditar" style="margin-left:8px;padding:5px 11px;">Editar plan</button>
+    </p>
+    ${plan.map((pr, i) => `<div class="plan-tarjeta">
+      <div class="p-num">${i + 1}</div>
+      <div class="p-cuerpo">
+        <div class="p-tit">${escapeHtml(pr.titulo)}</div>
+        <div class="p-dato">${escapeHtml(pr.dato)}</div>
+        <div class="p-ctx">${escapeHtml(pr.contexto)}</div>
+        <div class="p-cols">
+          <div>
+            <div class="p-sub">Intervenciones sugeridas</div>
+            <ul>${pr.intervenciones.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>
+          </div>
+          <div>
+            <div class="p-sub">Objetivo de control</div>
+            <div class="p-obj">${escapeHtml(pr.objetivo)}</div>
+            <div class="p-rev">${escapeHtml(pr.revision || "Revisar despues de 4-6 partidos y contrastar con video.")}</div>
+          </div>
+        </div>
+      </div>
+    </div>`).join("")}
+    <p class="diag-aviso">Elige como mucho dos prioridades a la vez, fija un objetivo medible y una conducta
+      observable, y revisa video y datos tras 4-6 partidos. Que mejore el numero sin mejorar el comportamiento
+      puede ser solo casualidad.</p>
+  </div>`;
+}
+
+function pintarPlan(nombre, editando) {
+  const caja = document.getElementById("planEquipo");
+  if (!caja) return;
+  caja.innerHTML = bloquePlan(nombre, editando);
+
+  const btnEditar = document.getElementById("planEditar");
+  if (btnEditar) btnEditar.addEventListener("click", () => pintarPlan(nombre, true));
+
+  const btnCancelar = document.getElementById("planCancelar");
+  if (btnCancelar) btnCancelar.addEventListener("click", () => pintarPlan(nombre, false));
+
+  const btnReiniciar = document.getElementById("planReiniciar");
+  if (btnReiniciar) btnReiniciar.addEventListener("click", () => {
+    guardarPlan(nombre, null);
+    pintarPlan(nombre, false);
+  });
+
+  const btnGuardar = document.getElementById("planGuardar");
+  if (btnGuardar) btnGuardar.addEventListener("click", () => {
+    const base = planDeEquipo(nombre);
+    const nuevo = base.map((pr, i) => {
+      const val = (campo) => {
+        const el = caja.querySelector(`[data-plan="${campo}"][data-i="${i}"]`);
+        return el ? el.value : "";
+      };
+      return {
+        titulo: val("titulo").trim() || pr.titulo,
+        dato: val("dato").trim(),
+        contexto: val("contexto").trim(),
+        intervenciones: val("intervenciones").split("\n").map(x => x.trim()).filter(Boolean),
+        objetivo: val("objetivo").trim(),
+        revision: pr.revision,
+      };
+    });
+    guardarPlan(nombre, nuevo);
+    pintarPlan(nombre, false);
+  });
+}
+
+/* ============================================================
    CONSTRUCTOR DE INFORMES
    Reutiliza las pantallas que ya existen: prepara la que haga
    falta, copia su contenido y lo pega en el informe. Los graficos
@@ -8244,6 +8499,8 @@ const BLOQUES_INFORME = [
 
   { id: "diagnostico", nombre: "Diagnostico de temporada (percentiles y resumen)", grupo: "Equipo", param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#diagnosticoEquipo", espera: 1600 },
+  { id: "plan", nombre: "Plan de intervencion (prioridades y objetivos)", grupo: "Equipo", param: "equipo",
+    prep: (v) => showEquipoDetail(v), sel: "#planEquipo", espera: 1700 },
   { id: "evolucion", nombre: "Evolucion durante la temporada", grupo: "Equipo", param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#evolucionEquipo", espera: 1800 },
   { id: "estilo", nombre: "Estilo de juego (ritmo y reparto de tiro)", grupo: "Equipo", param: "equipo",
@@ -9126,7 +9383,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-11";
+const VERSION_APP = "2026-10-12";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
