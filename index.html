@@ -533,12 +533,52 @@
   .pizarra-mini:hover{border-color:var(--orange);}
   .pizarra{max-width:320px;border-radius:8px;border:1.5px solid var(--wood-line);margin-top:8px;}
 
+  /* ============================================================
+     CONSTRUCTOR DE INFORMES
+     ============================================================ */
+  .inf-cab{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+  .inf-campo{display:flex;flex-direction:column;gap:4px;min-width:170px;flex:1;}
+  .inf-campo label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);}
+  .inf-campo select, .inf-campo input, .inf-campo textarea{
+    padding:9px 10px;border:1.5px solid var(--wood-line);border-radius:7px;
+    font-family:'Archivo',sans-serif;font-size:14px;background:var(--white);color:var(--ink);}
+  .inf-botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .inf-btn{border:1.5px solid var(--wood-line);background:var(--white);color:var(--ink);
+    border-radius:9px;padding:9px 14px;font-family:'Archivo',sans-serif;font-size:13.5px;
+    font-weight:700;cursor:pointer;}
+  .inf-btn:hover{border-color:var(--orange);color:var(--orange-dark);}
+  .inf-btn.principal{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .inf-btn.principal:hover{background:var(--orange-dark);border-color:var(--orange-dark);color:#fff;}
+  .inf-lista{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:7px;}
+  .inf-item{display:flex;align-items:center;gap:10px;border:1.5px solid var(--wood-line);
+    border-radius:9px;padding:9px 11px;background:var(--white);}
+  .inf-item .orden{font-family:'Archivo Black',sans-serif;color:var(--orange);min-width:22px;}
+  .inf-item .txt{flex:1;min-width:0;font-size:13.5px;}
+  .inf-item .txt small{display:block;color:var(--ink-soft);font-size:11.5px;}
+  .inf-item .acciones{display:flex;gap:4px;}
+  .inf-item .acciones button{border:1px solid var(--wood-line);background:var(--suave);
+    border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:13px;color:var(--ink);}
+  .inf-item .acciones button:hover{border-color:var(--orange);color:var(--orange-dark);}
+  .inf-vacio{margin-top:14px;padding:18px;border:2px dashed var(--wood-line);border-radius:10px;
+    text-align:center;color:var(--ink-soft);font-size:13.5px;}
+  .inf-portada{border-bottom:4px solid var(--ink);padding:0 0 18px;margin:0 0 26px;}
+  .inf-portada .tit{font-family:'Archivo Black',sans-serif;font-size:30px;line-height:1.15;}
+  .inf-portada .sub{font-size:15px;color:var(--ink-soft);margin-top:6px;}
+  .inf-portada .meta{font-size:12.5px;color:var(--ink-soft);margin-top:12px;}
+  .inf-bloque{margin:0 0 22px;}
+  .inf-bloque > .inf-etiqueta{font-size:11px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--orange);border-bottom:1.5px solid var(--wood-line);
+    padding-bottom:5px;margin-bottom:10px;}
+  .inf-nota{white-space:pre-wrap;font-size:13.5px;line-height:1.6;}
+  .inf-salto{border-top:2px dashed var(--wood-line);margin:18px 0;height:0;}
+  .solo-lectura{pointer-events:none;}
+
   @media print{
     @page{ size:A4 portrait; margin:14mm 12mm 16mm; }
 
     body{background:#fff;color:#111;font-size:10.5pt;}
-    header, nav, #grupoBar, .back-btn, .informe-barra,
-    .view:not(#view-equipo-detail):not(#view-mi-equipo):not(#view-scouting){display:none !important;}
+    header, nav, #grupoBar, .back-btn, .informe-barra{display:none !important;}
+    body.imprimiendo-informe .view:not(#view-equipo-detail):not(#view-mi-equipo):not(#view-scouting){display:none !important;}
     /* Solo se imprime el informe: se oculta todo lo que no esta en su camino */
     body.imprimiendo-informe > *:not(.ruta-print){display:none !important;}
     body.imprimiendo-informe .ruta-print > *:not(.ruta-print):not(.informe){display:none !important;}
@@ -637,7 +677,38 @@
     }
 
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  }
+  
+    /* ---- Impresion general: cualquier pantalla y el informe montado ---- */
+    #barraLateral, #barraMovil, #fondoMenu, #avisoFallo, .no-imprimir,
+    .pie-lateral, .subnav, .chips-qp{display:none !important;}
+    .app{display:block !important;}
+    .contenido{overflow:visible !important;max-width:none !important;padding:0 !important;}
+    /* Las tablas anchas se encogen para caber en el folio en vez de cortarse */
+    .table-scroll{overflow:visible !important;}
+    .table-scroll > table{width:100% !important;max-width:100% !important;}
+    table{font-size:8.5pt;}
+    table td, table th{white-space:normal !important;word-break:break-word;padding:4px 5px !important;}
+    table.cuartos-pro td, table.cuartos-pro th{white-space:nowrap !important;}
+    table.cuartos{font-size:7.5pt;}
+    table.cuartos .c-det, table.cuartos .c-pts{white-space:normal !important;}
+    .panel{box-shadow:none !important;border-color:#d8d2c6 !important;}
+    /* Solo se mantienen juntas las piezas pequeñas; un panel largo puede partirse */
+    .ficha-dosier, .tarjeta-q, .qp-destacado, .cuarto-marcador, .dato-informe,
+    .inf-portada, .kpi, .tarjeta-perfil{break-inside:avoid;page-break-inside:avoid;}
+    .inf-bloque > .inf-etiqueta, h2, h3, h4{break-after:avoid;page-break-after:avoid;}
+    .inf-bloque{break-inside:auto;}
+    .inf-salto{break-after:page;page-break-after:always;border:0;}
+    thead{display:table-header-group;}
+    tr{break-inside:avoid;page-break-inside:avoid;}
+    img, canvas{max-width:100% !important;}
+    /* En papel siempre fondo claro, aunque la app este en modo oscuro */
+    html[data-tema="oscuro"]{
+      --wood:#ffffff; --wood-line:#d8d2c6; --ink:#111111; --ink-soft:#555f6d;
+      --white:#ffffff; --suave:#f7f4ef; --hover:#f7f4ef; --madera:#f3e6d2;
+      --barra:#e9e3da; --verde:#1f7a5a; --verde-suave:#eef7f2; --verde-linea:#cfe6da;
+      --rojo:#b4470f; --rojo-suave:#fdf0ec; --sombra:rgba(0,0,0,0.1); --tiro-fondo:#f7f9fb;
+    }
+}
   .pie-print{display:none;}
   .scout-pro{border:1.5px solid var(--wood-line);border-radius:10px;background:var(--white);overflow:hidden;}
   .scout-resumen{display:flex;gap:18px;flex-wrap:wrap;padding:10px 16px;background:var(--ink);color:var(--white);font-size:13px;}
@@ -1129,9 +1200,11 @@
   <button data-view="comparador">Comparador</button>
   <button data-view="resultados">Resultados</button>
   <button data-view="records">Records</button>
+  <button data-view="informes">Informes</button>
   </nav>
   <div class="pie-lateral">
     <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
+    <button id="btnPdfPagina" title="Guardar esta pantalla como PDF">📄 Exportar PDF</button>
     <div class="hint" id="lastUpdated"></div>
   </div>
 </aside>
@@ -1280,6 +1353,64 @@
   <section id="view-partido-detail" class="view" style="display:none;">
     <button class="back-btn" data-back="resultados">&larr; Volver a Resultados</button>
     <div id="partidoDetailContent"></div>
+  </section>
+
+  <section id="view-informes" class="view" style="display:none;">
+    <div class="panel no-imprimir">
+      <h2 class="section-title" style="margin-top:0;">Constructor de informes</h2>
+      <p class="hint" style="margin-top:-6px;">Elige los apartados que quieras, ponlos en el orden que
+        prefieras y exportalo como PDF. Puedes mezclar liga, equipos, jugadoras y partidos en un mismo documento.</p>
+
+      <div class="inf-cab" style="margin-top:14px;">
+        <div class="inf-campo" style="flex:2;">
+          <label for="infTitulo">Titulo del informe</label>
+          <input id="infTitulo" type="text" placeholder="Informe de scouting - Jornada 5">
+        </div>
+        <div class="inf-campo" style="flex:2;">
+          <label for="infSubtitulo">Subtitulo</label>
+          <input id="infSubtitulo" type="text" placeholder="Analisis previo del rival">
+        </div>
+        <div class="inf-campo">
+          <label for="infAutor">Autor</label>
+          <input id="infAutor" type="text" placeholder="Tu nombre">
+        </div>
+      </div>
+
+      <h4 style="margin:20px 0 8px;">Añadir un apartado</h4>
+      <div class="inf-cab">
+        <div class="inf-campo" style="flex:2;">
+          <label for="infTipo">Apartado</label>
+          <select id="infTipo"></select>
+        </div>
+        <div class="inf-campo" style="flex:2;" id="infCampoValor">
+          <label for="infValor">Elige</label>
+          <select id="infValor"></select>
+        </div>
+        <div class="inf-campo" style="flex:0 0 auto;min-width:0;">
+          <label>&nbsp;</label>
+          <button class="inf-btn principal" id="infAnadir" type="button">+ Añadir</button>
+        </div>
+      </div>
+      <div class="inf-campo" id="infCampoTexto" style="margin-top:10px;display:none;">
+        <label for="infTexto">Tu texto</label>
+        <textarea id="infTexto" rows="4" placeholder="Escribe aqui tus conclusiones, el plan de partido, lo que quieras."></textarea>
+      </div>
+
+      <h4 style="margin:22px 0 0;">Apartados del informe</h4>
+      <ul class="inf-lista" id="infLista"></ul>
+      <div class="inf-vacio" id="infVacio">Todavia no has añadido nada. Elige un apartado arriba y pulsa Añadir.</div>
+
+      <div class="inf-botones">
+        <button class="inf-btn principal" id="infGenerar" type="button">Generar vista previa</button>
+        <button class="inf-btn" id="infPdf" type="button">Exportar PDF</button>
+        <button class="inf-btn" id="infGuardar" type="button">Guardar plantilla</button>
+        <button class="inf-btn" id="infCargar" type="button">Cargar plantilla</button>
+        <button class="inf-btn" id="infVaciar" type="button">Vaciar</button>
+      </div>
+      <p class="hint" id="infEstado" style="margin-top:10px;"></p>
+    </div>
+
+    <div id="infMontado"></div>
   </section>
 
   <section id="view-records" class="view" style="display:none;">
@@ -1805,7 +1936,7 @@ document.getElementById("filterResultados").addEventListener("input", () => {
 /* ============================================================
    ROUTER
    ============================================================ */
-const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records"];
+const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes"];
 
 // Historial de pantallas: al pulsar "Volver" se regresa a la anterior,
 // en el mismo sitio de la pagina donde estabas.
@@ -1830,6 +1961,7 @@ function showView(id, esVuelta) {
   if (id === "quintetos") { cargarAvanzadas().then(() => cargarQuintetos()); }
   if (id === "mi-equipo") renderMiEquipo();
   if (id === "fichajes") renderFichajes();
+  if (id === "informes") rellenarSelectorInforme();
 }
 
 function volverAtras(porDefecto) {
@@ -3278,7 +3410,7 @@ async function showPartidoDetail(partidoId) {
   if (arb) meta.push("Arbitros: " + arb);
 
   box.innerHTML = hero + `<div class="match-meta">${escapeHtml(meta.join(" · "))}</div>`
-    + bloqueFourFactors(nombreL, rowsL, nombreV, rowsV)
+    + `<div id="ffPartido">` + bloqueFourFactors(nombreL, rowsL, nombreV, rowsV) + `</div>`
     + `<div id="desglosePartido"></div><div id="rebotesPartido"></div><div id="cuartosPartido"></div><div id="quintetosPartido"></div>`
     + duelHtml(totL, totV)
     + `<div class="panel" style="margin-top:16px;">${boxTableHtml(nombreL, rowsL)}</div>`
@@ -7520,6 +7652,383 @@ function tablasCuartoEquipo(nombre, propias, rivales, cuartos, num) {
 }
 
 /* ============================================================
+   CONSTRUCTOR DE INFORMES
+   Reutiliza las pantallas que ya existen: prepara la que haga
+   falta, copia su contenido y lo pega en el informe. Los graficos
+   se convierten en imagen para que salgan bien al imprimir.
+   ============================================================ */
+const BLOQUES_INFORME = [
+  { id: "clasificacion", nombre: "Clasificacion",                  grupo: "Liga",      vista: "clasificacion", sel: "#clasificacionContent" },
+  { id: "medias",        nombre: "Medias de equipo por partido",   grupo: "Liga",      vista: "estadisticas",  sel: "#statsEquipoContent" },
+  { id: "avanzadas",     nombre: "Metricas avanzadas por equipo",  grupo: "Liga",      vista: "estadisticas",  sel: "#avanzadasContent",  espera: 1400 },
+  { id: "rankings",      nombre: "Rankings de jugadoras",          grupo: "Liga",      vista: "rankings",      sel: "#view-rankings" },
+  { id: "quintetosLiga", nombre: "Quintetos y combinaciones",      grupo: "Liga",      vista: "quintetos",     sel: "#quintetosContent",  espera: 1800 },
+  { id: "fichajes",      nombre: "Fichajes a futuro",              grupo: "Liga",      vista: "fichajes",      sel: "#fichajesContent" },
+  { id: "miEquipo",      nombre: "Panel de mi equipo",             grupo: "Mi equipo", vista: "mi-equipo",     sel: "#miEquipoContent",   espera: 1200 },
+
+  { id: "equipo",   nombre: "Perfil completo del equipo", grupo: "Equipo",   param: "equipo",
+    prep: (v) => showEquipoDetail(v), sel: "#equipoDetailContent", espera: 1400 },
+  { id: "jugadora", nombre: "Perfil completo de la jugadora", grupo: "Jugadora", param: "jugadora",
+    prep: (v) => showJugadoraDetail(v), sel: "#jugadoraDetailContent", espera: 1600 },
+
+  { id: "partido",      nombre: "Ficha completa del partido", grupo: "Partido", param: "partido",
+    prep: (v) => showPartidoDetail(v), sel: "#partidoDetailContent", espera: 2600 },
+  { id: "partidoFF",    nombre: "Solo Four Factors",         grupo: "Partido", param: "partido",
+    prep: (v) => showPartidoDetail(v), sel: "#ffPartido", espera: 2200 },
+  { id: "partidoDesg",  nombre: "Solo desglose del partido", grupo: "Partido", param: "partido",
+    prep: (v) => showPartidoDetail(v), sel: "#desglosePartido", espera: 2600 },
+  { id: "partidoCuart", nombre: "Solo cuarto a cuarto",      grupo: "Partido", param: "partido",
+    prep: (v) => showPartidoDetail(v), sel: "#cuartosPartido", espera: 2600 },
+  { id: "partidoQuint", nombre: "Solo quintetos del partido", grupo: "Partido", param: "partido",
+    prep: (v) => showPartidoDetail(v), sel: "#quintetosPartido", espera: 2800 },
+  { id: "partidoReb",   nombre: "Solo rebotes del partido",  grupo: "Partido", param: "partido",
+    prep: (v) => showPartidoDetail(v), sel: "#rebotesPartido", espera: 2600 },
+
+  { id: "texto", nombre: "Texto libre (notas, conclusiones)", grupo: "Extras", param: "texto" },
+  { id: "salto", nombre: "Salto de pagina",                   grupo: "Extras" },
+];
+
+let informeBloques = [];
+try { informeBloques = JSON.parse(localStorage.getItem("lf2_informe") || "[]"); }
+catch (e) { informeBloques = []; }
+
+const esperarMs = (ms) => new Promise(r => setTimeout(r, ms));
+const bloqueInforme = (id) => BLOQUES_INFORME.find(b => b.id === id);
+
+function equiposParaInforme() {
+  const base = datosLiga ? datosLiga.equipos : equipos;
+  if (!base || !base.rows) return [];
+  return base.rows.map(r => cellText(r, "Equipo")).filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function jugadorasParaInforme() {
+  const base = datosLiga ? datosLiga.jugadoras : jugadoras;
+  if (!base || !base.rows) return [];
+  const vistas = new Map();
+  base.rows.forEach(r => {
+    const n = cellText(r, "Jugador"), e = cellText(r, "Equipo");
+    if (n && !vistas.has(n)) vistas.set(n, { nombre: n, equipo: e });
+  });
+  return [...vistas.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
+function partidosParaInforme() {
+  if (!resultados || !resultados.rows) return [];
+  return resultados.rows
+    .filter(r => cellText(r, "Jugado") === "Si" && cellText(r, "PartidoID"))
+    .map(r => ({
+      id: cellText(r, "PartidoID"),
+      texto: cellText(r, "Local") + " " + cellText(r, "Resultado") + " " + cellText(r, "Visitante")
+             + "  (" + cellText(r, "Fecha") + ")",
+    }))
+    .reverse();
+}
+
+function rellenarSelectorInforme() {
+  const selTipo = document.getElementById("infTipo");
+  if (!selTipo) return;
+  if (!selTipo.options.length) {
+    const grupos = [...new Set(BLOQUES_INFORME.map(b => b.grupo))];
+    selTipo.innerHTML = grupos.map(g =>
+      `<optgroup label="${escapeAttr(g)}">` +
+      BLOQUES_INFORME.filter(b => b.grupo === g)
+        .map(b => `<option value="${escapeAttr(b.id)}">${escapeHtml(b.nombre)}</option>`).join("") +
+      `</optgroup>`).join("");
+  }
+  const b = bloqueInforme(selTipo.value) || BLOQUES_INFORME[0];
+  const campoValor = document.getElementById("infCampoValor");
+  const campoTexto = document.getElementById("infCampoTexto");
+  const selValor = document.getElementById("infValor");
+  const etiqueta = campoValor.querySelector("label");
+
+  campoTexto.style.display = b.param === "texto" ? "flex" : "none";
+  campoValor.style.display = (b.param && b.param !== "texto") ? "flex" : "none";
+  if (!b.param || b.param === "texto") return;
+
+  if (b.param === "equipo") {
+    etiqueta.textContent = "Equipo";
+    const lista = equiposParaInforme();
+    selValor.innerHTML = lista.map(e =>
+      `<option value="${escapeAttr(e)}"${normalizarEquipo(e) === normalizarEquipo(miEquipo) ? " selected" : ""}>${escapeHtml(e)}</option>`).join("");
+  } else if (b.param === "jugadora") {
+    etiqueta.textContent = "Jugadora";
+    selValor.innerHTML = jugadorasParaInforme().map(j =>
+      `<option value="${escapeAttr(j.nombre)}">${escapeHtml(j.nombre)} — ${escapeHtml(j.equipo)}</option>`).join("");
+  } else if (b.param === "partido") {
+    etiqueta.textContent = "Partido";
+    selValor.innerHTML = partidosParaInforme().map(pp =>
+      `<option value="${escapeAttr(pp.id)}">${escapeHtml(pp.texto)}</option>`).join("");
+  }
+}
+
+function etiquetaBloque(item) {
+  const b = bloqueInforme(item.tipo);
+  if (!b) return item.tipo;
+  if (b.param === "texto") return "Texto libre";
+  if (b.param === "partido") {
+    const pp = partidosParaInforme().find(x => x.id === item.valor);
+    return b.nombre + (pp ? " · " + pp.texto : "");
+  }
+  return b.nombre + (item.valor ? " · " + item.valor : "");
+}
+
+function pintarListaInforme() {
+  const ul = document.getElementById("infLista");
+  const vacio = document.getElementById("infVacio");
+  if (!ul) return;
+  vacio.style.display = informeBloques.length ? "none" : "block";
+  ul.innerHTML = informeBloques.map((item, i) => {
+    const b = bloqueInforme(item.tipo);
+    const extra = item.tipo === "texto" ? String(item.valor || "").slice(0, 90) : "";
+    return `<li class="inf-item">
+      <span class="orden">${i + 1}</span>
+      <span class="txt">${escapeHtml(etiquetaBloque(item))}${extra ? `<small>${escapeHtml(extra)}</small>` : ""}</span>
+      <span class="acciones">
+        <button type="button" data-inf-sube="${i}" title="Subir">↑</button>
+        <button type="button" data-inf-baja="${i}" title="Bajar">↓</button>
+        <button type="button" data-inf-quita="${i}" title="Quitar">✕</button>
+      </span></li>`;
+  }).join("");
+
+  ul.querySelectorAll("[data-inf-sube]").forEach(bt => bt.addEventListener("click", () => {
+    const i = Number(bt.getAttribute("data-inf-sube"));
+    if (i > 0) { [informeBloques[i - 1], informeBloques[i]] = [informeBloques[i], informeBloques[i - 1]]; guardarInforme(); }
+  }));
+  ul.querySelectorAll("[data-inf-baja]").forEach(bt => bt.addEventListener("click", () => {
+    const i = Number(bt.getAttribute("data-inf-baja"));
+    if (i < informeBloques.length - 1) { [informeBloques[i + 1], informeBloques[i]] = [informeBloques[i], informeBloques[i + 1]]; guardarInforme(); }
+  }));
+  ul.querySelectorAll("[data-inf-quita]").forEach(bt => bt.addEventListener("click", () => {
+    informeBloques.splice(Number(bt.getAttribute("data-inf-quita")), 1); guardarInforme();
+  }));
+}
+
+function guardarInforme() {
+  try { localStorage.setItem("lf2_informe", JSON.stringify(informeBloques)); } catch (e) {}
+  pintarListaInforme();
+}
+
+// Copia un trozo de pantalla dejandolo listo para papel
+function clonarParaInforme(origen) {
+  const copia = origen.cloneNode(true);
+  const lienzosOrigen = origen.querySelectorAll("canvas");
+  const lienzosCopia = copia.querySelectorAll("canvas");
+  lienzosCopia.forEach((cv, i) => {
+    const fuente = lienzosOrigen[i];
+    try {
+      // Solo se copian los graficos realmente dibujados: si no, dejaria un hueco en blanco
+      const dibujado = fuente && typeof Chart !== "undefined" && Chart.getChart
+        ? Chart.getChart(fuente) : null;
+      if (!fuente || !fuente.width || !dibujado) { cv.remove(); return; }
+      const img = document.createElement("img");
+      img.src = fuente.toDataURL("image/png");
+      img.style.width = "100%";
+      img.style.maxWidth = (fuente.clientWidth || 520) + "px";
+      cv.replaceWith(img);
+    } catch (e) { cv.remove(); }
+  });
+  // Los controles no pintan nada en papel: los activos se dejan como texto
+  copia.querySelectorAll("button").forEach(bt => {
+    if (bt.classList.contains("activa") || bt.classList.contains("active")) {
+      const sp = document.createElement("span");
+      sp.className = bt.className + " solo-lectura";
+      sp.innerHTML = bt.innerHTML;
+      bt.replaceWith(sp);
+    } else { bt.remove(); }
+  });
+  copia.querySelectorAll("select, input, textarea, .back-btn, .no-imprimir").forEach(n => n.remove());
+  // Al quitar un grafico su caja se queda vacia y dejaria un hueco en blanco
+  for (let vuelta = 0; vuelta < 3; vuelta++) {
+    copia.querySelectorAll("div").forEach(d => {
+      if (!d.children.length && !d.textContent.trim()) d.remove();
+    });
+  }
+  copia.querySelectorAll("details").forEach(d => { d.open = true; });
+  copia.querySelectorAll("[id]").forEach(n => n.removeAttribute("id"));
+  copia.removeAttribute("id");
+  copia.removeAttribute("class");
+  copia.removeAttribute("style");
+  return copia;
+}
+
+async function prepararBloque(item) {
+  const b = bloqueInforme(item.tipo);
+  if (!b) return null;
+
+  if (b.id === "salto") {
+    const d = document.createElement("div");
+    d.className = "inf-salto";
+    return d;
+  }
+  if (b.id === "texto") {
+    const d = document.createElement("div");
+    d.className = "inf-bloque";
+    d.innerHTML = `<div class="panel"><div class="inf-nota">${escapeHtml(String(item.valor || ""))}</div></div>`;
+    return d;
+  }
+
+  if (b.prep) await b.prep(item.valor);
+  else showView(b.vista, true);
+  await esperarMs(b.espera || 900);
+
+  const origen = document.querySelector(b.sel);
+  if (!origen || !origen.innerHTML.trim()) return null;
+
+  const caja = document.createElement("div");
+  caja.className = "inf-bloque";
+  caja.innerHTML = `<div class="inf-etiqueta">${escapeHtml(etiquetaBloque(item))}</div>`;
+  caja.appendChild(clonarParaInforme(origen));
+  return caja;
+}
+
+function portadaInforme() {
+  const tit = (document.getElementById("infTitulo").value || "").trim();
+  const sub = (document.getElementById("infSubtitulo").value || "").trim();
+  const aut = (document.getElementById("infAutor").value || "").trim();
+  if (!tit && !sub && !aut) return "";
+  const partes = [aut ? "Por " + aut : "", new Date().toLocaleDateString("es-ES",
+    { day: "numeric", month: "long", year: "numeric" })].filter(Boolean);
+  return `<div class="inf-portada">
+    ${tit ? `<div class="tit">${escapeHtml(tit)}</div>` : ""}
+    ${sub ? `<div class="sub">${escapeHtml(sub)}</div>` : ""}
+    <div class="meta">${escapeHtml(partes.join(" · "))} · LF2 Stats</div>
+  </div>`;
+}
+
+let montandoInforme = false;
+async function montarInforme() {
+  if (montandoInforme) return false;
+  const destino = document.getElementById("infMontado");
+  const estado = document.getElementById("infEstado");
+  if (!destino) return false;
+  if (!informeBloques.length) {
+    estado.textContent = "Añade al menos un apartado antes de generar el informe.";
+    return false;
+  }
+  montandoInforme = true;
+  destino.innerHTML = "";
+  const fallos = [];
+
+  for (let i = 0; i < informeBloques.length; i++) {
+    const item = informeBloques[i];
+    estado.textContent = `Montando ${i + 1} de ${informeBloques.length}: ${etiquetaBloque(item)}...`;
+    let nodo = null;
+    try { nodo = await prepararBloque(item); }
+    catch (e) { nodo = null; }
+    if (nodo) destino.appendChild(nodo);
+    else fallos.push(etiquetaBloque(item));
+  }
+
+  showView("informes", true);
+  const portada = portadaInforme();
+  if (portada) destino.insertAdjacentHTML("afterbegin", portada);
+  montandoInforme = false;
+
+  estado.textContent = fallos.length
+    ? `Informe listo. Sin datos disponibles: ${fallos.join(" · ")}.`
+    : "Informe listo. Pulsa Exportar PDF para guardarlo.";
+  destino.scrollIntoView({ behavior: "smooth", block: "start" });
+  return true;
+}
+
+function exportarPdfPagina() {
+  // En papel siempre fondo claro, aunque la app este en modo oscuro
+  const temaPrevio = document.documentElement.getAttribute("data-tema") || "claro";
+  if (temaPrevio === "oscuro") document.documentElement.setAttribute("data-tema", "claro");
+  // Los desplegables se abren para que no salgan cerrados en el PDF
+  document.querySelectorAll(".view:not([style*='display: none']) details")
+    .forEach(d => { d.dataset.abiertoAntes = d.open ? "1" : "0"; d.open = true; });
+
+  let restaurado = false;
+  const restaurar = () => {
+    if (restaurado) return;
+    restaurado = true;
+    if (temaPrevio === "oscuro") document.documentElement.setAttribute("data-tema", "oscuro");
+    document.querySelectorAll("details[data-abierto-antes]").forEach(d => {
+      d.open = d.dataset.abiertoAntes === "1";
+      delete d.dataset.abiertoAntes;
+    });
+    window.removeEventListener("afterprint", restaurar);
+  };
+  window.addEventListener("afterprint", restaurar);
+  setTimeout(() => { window.print(); }, 60);
+  setTimeout(restaurar, 2500);
+}
+
+function prepararConstructorInformes() {
+  const selTipo = document.getElementById("infTipo");
+  if (!selTipo) return;
+  rellenarSelectorInforme();
+  pintarListaInforme();
+
+  selTipo.addEventListener("change", rellenarSelectorInforme);
+
+  document.getElementById("infAnadir").addEventListener("click", () => {
+    const b = bloqueInforme(selTipo.value);
+    if (!b) return;
+    let valor = "";
+    if (b.param === "texto") {
+      valor = document.getElementById("infTexto").value.trim();
+      if (!valor) { document.getElementById("infEstado").textContent = "Escribe algo antes de añadir el texto."; return; }
+      document.getElementById("infTexto").value = "";
+    } else if (b.param) {
+      valor = document.getElementById("infValor").value;
+    }
+    informeBloques.push({ tipo: b.id, valor });
+    guardarInforme();
+    document.getElementById("infEstado").textContent = "Añadido: " + etiquetaBloque({ tipo: b.id, valor });
+  });
+
+  document.getElementById("infGenerar").addEventListener("click", montarInforme);
+
+  document.getElementById("infPdf").addEventListener("click", async () => {
+    const hay = document.getElementById("infMontado").innerHTML.trim();
+    if (!hay) { const ok = await montarInforme(); if (!ok) return; await esperarMs(400); }
+    exportarPdfPagina();
+  });
+
+  document.getElementById("infVaciar").addEventListener("click", () => {
+    informeBloques = [];
+    document.getElementById("infMontado").innerHTML = "";
+    guardarInforme();
+    document.getElementById("infEstado").textContent = "Informe vaciado.";
+  });
+
+  document.getElementById("infGuardar").addEventListener("click", () => {
+    const nombre = prompt("Nombre de la plantilla:", document.getElementById("infTitulo").value || "Mi informe");
+    if (!nombre) return;
+    let plantillas = {};
+    try { plantillas = JSON.parse(localStorage.getItem("lf2_informe_plantillas") || "{}"); } catch (e) {}
+    plantillas[nombre] = {
+      titulo: document.getElementById("infTitulo").value,
+      subtitulo: document.getElementById("infSubtitulo").value,
+      autor: document.getElementById("infAutor").value,
+      bloques: informeBloques,
+    };
+    try { localStorage.setItem("lf2_informe_plantillas", JSON.stringify(plantillas)); } catch (e) {}
+    document.getElementById("infEstado").textContent = `Plantilla "${nombre}" guardada.`;
+  });
+
+  document.getElementById("infCargar").addEventListener("click", () => {
+    let plantillas = {};
+    try { plantillas = JSON.parse(localStorage.getItem("lf2_informe_plantillas") || "{}"); } catch (e) {}
+    const nombres = Object.keys(plantillas);
+    if (!nombres.length) { document.getElementById("infEstado").textContent = "Todavia no has guardado ninguna plantilla."; return; }
+    const elegida = prompt("Plantillas guardadas:\n\n" + nombres.map((n, i) => (i + 1) + ") " + n).join("\n") +
+                           "\n\nEscribe el nombre:", nombres[0]);
+    if (!elegida || !plantillas[elegida]) return;
+    const pl = plantillas[elegida];
+    document.getElementById("infTitulo").value = pl.titulo || "";
+    document.getElementById("infSubtitulo").value = pl.subtitulo || "";
+    document.getElementById("infAutor").value = pl.autor || "";
+    informeBloques = Array.isArray(pl.bloques) ? pl.bloques : [];
+    guardarInforme();
+    document.getElementById("infEstado").textContent = `Plantilla "${elegida}" cargada.`;
+  });
+}
+
+/* ============================================================
    QUINTETOS DE ESTE PARTIDO (post-partido)
    Usa la pestaña Quintetos_Partido: cada fila es un cinco que
    estuvo junto en ese partido, con sus segundos y sus puntos.
@@ -8027,7 +8536,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-07";
+const VERSION_APP = "2026-10-08";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
@@ -8089,6 +8598,10 @@ function aplicarTema(tema) {
 
 // El menu lateral, en movil, se abre con el boton
 document.addEventListener("DOMContentLoaded", () => {
+  const btnPdf = document.getElementById("btnPdfPagina");
+  if (btnPdf) btnPdf.addEventListener("click", exportarPdfPagina);
+  prepararConstructorInformes();
+
   const barra = document.getElementById("barraLateral");
   const fondo = document.getElementById("fondoMenu");
   const abrir = () => { barra.classList.add("abierta"); fondo.classList.add("visible"); };
