@@ -51,6 +51,9 @@ SHEET_ID = os.environ.get("GOOGLE_SHEET_ID", "PON_AQUI_EL_ID_DE_TU_GOOGLE_SHEET"
 # no perder lo ya descargado; las siguientes llevan el año detrás (Resultados_2026).
 SUFIJO_TEMPORADA = "" if SEASON_START == "2025" else f"_{SEASON_START}"
 
+# Con FEB_FORZAR_ESCRITURA=1 se escribe aunque la descarga venga corta
+FORZAR_ESCRITURA = os.environ.get("FEB_FORZAR_ESCRITURA") == "1"
+
 
 def tab(nombre: str) -> str:
     """Nombre real de la pestaña para la temporada que se esta procesando."""
@@ -58,9 +61,20 @@ def tab(nombre: str) -> str:
 
 
 BASE_URL = "https://www.feb.es/competiciones"
-ESTADISTICAS_URL = f"{BASE_URL}/estadisticas.aspx?g={GROUP_ID}&t={SEASON_START}&nm={SLUG}"
-RANKINGS_URL = f"{BASE_URL}/rankings.aspx?g={GROUP_ID}&t={SEASON_START}&nm={SLUG}"
-RESULTADOS_URL = f"{BASE_URL}/resultados.aspx?g={GROUP_ID}&t={SEASON_START}&nm={SLUG}"
+
+# La FEB movio las paginas de estadisticas, rankings y resultados a
+# baloncestoenvivo.feb.es. El dominio viejo ya responde "informacion no
+# disponible" incluso para temporadas terminadas. En el sitio nuevo cada
+# grupo es una "competicion": la 9 es el A y la 10 el B.
+SITIO_DATOS = os.environ.get("FEB_SITIO", "https://baloncestoenvivo.feb.es")
+COMPETICION = os.environ.get("FEB_COMPETICION", "9")
+
+ESTADISTICAS_URL = f"{SITIO_DATOS}/estadisticas/{COMPETICION}/{SEASON_START}"
+RANKINGS_URL = f"{SITIO_DATOS}/rankings/{COMPETICION}/{SEASON_START}"
+RESULTADOS_URL = f"{SITIO_DATOS}/resultados/{COMPETICION}/{SEASON_START}"
+
+# Las fichas de partido siguen en el dominio de siempre
+PARTIDO_BASE = BASE_URL
 
 HEADERS = {
     "User-Agent": (
@@ -1044,6 +1058,20 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, ha
     RAW salvo en pestañas con formulas =IMAGE(...).
     El nombre lleva el sufijo de la temporada que se este procesando."""
     tab_name = tab(tab_name)
+
+    # Red de seguridad: si la FEB cambia algo y la descarga sale vacia o se
+    # queda a menos de la mitad de lo que ya habia, no se pisa lo bueno.
+    if not FORZAR_ESCRITURA:
+        try:
+            ws_previa = sh.worksheet(tab_name)
+            filas_antes = max(0, len(ws_previa.get_all_values()) - 1)
+        except Exception:  # noqa: BLE001
+            filas_antes = 0
+        if filas_antes >= 10 and len(df) < filas_antes * 0.5:
+            print(f"  [proteccion] {tab_name}: la descarga trae {len(df)} filas y habia "
+                  f"{filas_antes}. No se sobrescribe. Para forzarlo: FEB_FORZAR_ESCRITURA=1",
+                  file=sys.stderr)
+            return
     n_filas = len(df) + 1
     n_cols = max(len(df.columns), 1)
     try:
