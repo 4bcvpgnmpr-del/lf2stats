@@ -534,6 +534,53 @@
   .pizarra{max-width:320px;border-radius:8px;border:1.5px solid var(--wood-line);margin-top:8px;}
 
   /* ============================================================
+     DIAGNOSTICO DE TEMPORADA
+     ============================================================ */
+  .diag-resumen{background:var(--rojo-suave);border-left:5px solid var(--orange);
+    border-radius:0 10px 10px 0;padding:14px 16px;font-size:14px;line-height:1.65;}
+  .diag-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-top:16px;}
+  .diag-kpi{background:var(--white);border:1.5px solid var(--wood-line);border-top:4px solid var(--wood-line);
+    border-radius:9px;padding:11px 13px;}
+  .diag-kpi.bien{border-top-color:var(--verde);}
+  .diag-kpi.medio{border-top-color:var(--orange);}
+  .diag-kpi.mal{border-top-color:var(--rojo);}
+  .diag-kpi .k-tit{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
+  .diag-kpi .k-val{font-family:'Archivo Black',sans-serif;font-size:27px;line-height:1.2;margin:3px 0 2px;}
+  .diag-kpi .k-ctx{font-size:11px;color:var(--ink-soft);line-height:1.4;}
+  .diag-sub{margin:24px 0 6px;font-size:15px;}
+  .diag-barras{display:flex;flex-direction:column;gap:13px;margin-top:12px;}
+  .diag-barra{display:grid;grid-template-columns:62px 1fr 48px;gap:10px;align-items:center;}
+  .diag-barra .b-tit{font-size:12.5px;font-weight:800;}
+  .diag-barra .b-pista{position:relative;height:11px;border-radius:6px;overflow:visible;display:flex;}
+  .diag-barra .b-pista .t{flex:1;height:100%;}
+  .diag-barra .b-pista .t.mal{background:#f6d2c6;border-radius:6px 0 0 6px;}
+  .diag-barra .b-pista .t.medio{background:#fbe6c8;}
+  .diag-barra .b-pista .t.bien{background:#d2ead9;border-radius:0 6px 6px 0;}
+  .diag-barra .b-pista .punto{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;
+    background:var(--ink);border:2px solid var(--white);transform:translate(-50%,-50%);}
+  .diag-barra .b-pct{font-size:12.5px;font-weight:800;text-align:right;}
+  .diag-barra .b-pct.bien{color:var(--verde);} .diag-barra .b-pct.medio{color:var(--orange-dark);}
+  .diag-barra .b-pct.mal{color:var(--rojo);}
+  .diag-barra .b-det{grid-column:2 / 4;font-size:11px;color:var(--ink-soft);margin-top:-6px;}
+  .diag-barra .b-nd{grid-column:2 / 4;font-size:11.5px;color:var(--ink-soft);font-style:italic;}
+  .diag-lectura{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;}
+  .diag-lectura .l-caja{background:#16202c;color:#e9edf5;border-radius:11px;padding:14px 16px;
+    font-size:13px;line-height:1.6;}
+  .diag-lectura .l-tit{color:#f2803f;font-weight:800;font-size:13.5px;margin-bottom:6px;}
+  .diag-aviso{margin-top:16px;background:var(--rojo-suave);border-radius:9px;padding:11px 13px;
+    font-size:12px;line-height:1.6;color:var(--ink-soft);}
+  /* En modo oscuro las cajas de lectura necesitan borde para separarse del fondo */
+  [data-tema="oscuro"] .diag-lectura .l-caja{background:#0c1118;border:1.5px solid var(--wood-line);}
+  [data-tema="oscuro"] .diag-barra .b-pista .t.mal{background:#5a3328;}
+  [data-tema="oscuro"] .diag-barra .b-pista .t.medio{background:#5c4722;}
+  [data-tema="oscuro"] .diag-barra .b-pista .t.bien{background:#24503d;}
+  [data-tema="oscuro"] .diag-barra .b-pista .punto{background:#e9edf5;border-color:#12161d;}
+  @media (max-width:700px){
+    .diag-lectura{grid-template-columns:1fr;}
+    .diag-barra{grid-template-columns:54px 1fr 42px;}
+  }
+
+  /* ============================================================
      CONSTRUCTOR DE INFORMES
      ============================================================ */
   .inf-cab{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
@@ -2664,6 +2711,10 @@ function showEquipoDetail(teamName) {
         <div class="sub">Partidos jugados: ${row["Part"] ? row["Part"].display : "N/D"}${clasifRow && clasifRow["Po"] ? ` &middot; Posicion #${clasifRow["Po"].display} en la liga` : ""}</div>
       </div>
     </div>
+    <div class="section-block">
+      <h3 class="section-title">Diagnostico de temporada</h3>
+      <div class="panel" id="diagnosticoEquipo"><p class="hint">Calculando...</p></div>
+    </div>
     <div class="stat-big-grid">
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "PT", baseType))}</div><div class="l">PPG</div>${puestoDe("PT")}</div>
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "Rebotes_RT", baseType))}</div><div class="l">RPG</div>${puestoDe("Rebotes_RT")}</div>
@@ -3954,6 +4005,8 @@ async function rellenarAvanzadasEquipo(teamName) {
     };
     recargar();
   }
+  const cajaDiag = document.getElementById("diagnosticoEquipo");
+  if (cajaDiag) cajaDiag.innerHTML = bloqueDiagnostico(teamName);
   const cajaPerfiles = document.getElementById("perfilPlantilla");
   if (cajaPerfiles) {
     cajaPerfiles.innerHTML = perfilPlantillaHtml(teamName);
@@ -7652,6 +7705,179 @@ function tablasCuartoEquipo(nombre, propias, rivales, cuartos, num) {
 }
 
 /* ============================================================
+   DIAGNOSTICO DE TEMPORADA
+   Cada metrica se compara con el resto del grupo: puesto,
+   media y percentil. Con eso se escribe un resumen en lenguaje
+   de entrenador y se señalan la fortaleza y el riesgo.
+   ============================================================ */
+const METRICAS_DIAG = [
+  { id: "ortg", etiqueta: "ORtg", nombre: "la produccion ofensiva",
+    menosEsMejor: false, sufijo: "", decimales: 1,
+    accion: "mejorar la seleccion de tiro y la calidad de las ultimas pasadas" },
+  { id: "drtg", etiqueta: "DRtg", nombre: "la defensa",
+    menosEsMejor: true, sufijo: "", decimales: 1,
+    accion: "cerrar la defensa con rebote y reducir los tiros comodos concedidos" },
+  { id: "ts", etiqueta: "TS%", nombre: "la eficiencia de tiro",
+    menosEsMejor: false, sufijo: "%", decimales: 1,
+    accion: "buscar tiros de mas valor: aro, linea de tiros libres y triple liberado" },
+  { id: "tovPct", etiqueta: "TOV%", nombre: "las perdidas",
+    menosEsMejor: true, sufijo: "%", decimales: 1,
+    accion: "jugar posesiones mas seguras y cuidar el pase de entrada" },
+  { id: "pctRd", etiqueta: "DRB%", nombre: "el cierre del rebote defensivo",
+    menosEsMejor: false, sufijo: "%", decimales: 1,
+    accion: "asignar responsabilidades de bloqueo de rebote por posicion" },
+  { id: "ftr", etiqueta: "FTr", nombre: "la capacidad de generar tiros libres",
+    menosEsMejor: false, sufijo: "%", decimales: 1,
+    accion: "atacar mas el aro y provocar contacto en vez de resolver de fuera" },
+];
+
+// Mete FTr (tiros libres intentados por cada tiro de campo) en las metricas
+function metricasConFtr(acumulado) {
+  const m = metricasEquipo(acumulado);
+  if (!m) return null;
+  m.ftr = acumulado.tci ? Math.round(100 * acumulado.tli / acumulado.tci * 10) / 10 : null;
+  return m;
+}
+
+function diagnosticoEquipo(nombre) {
+  if (!avanzadasCalculo || !avanzadasCalculo.equipos) return null;
+  const oficial = equipoOficial(nombre);
+  const clave = [...avanzadasCalculo.equipos.keys()]
+    .find(k => normalizarEquipo(equipoOficial(k)) === normalizarEquipo(oficial));
+  if (!clave) return null;
+
+  const grupo = grupoDeEquipo(oficial);
+  const rivales = [...avanzadasCalculo.equipos.entries()]
+    .filter(([eq]) => !grupo || grupoDeEquipo(eq) === grupo)
+    .map(([eq, acc]) => ({ equipo: eq, m: metricasConFtr(acc) }))
+    .filter(x => x.m);
+  const lista = rivales.length >= 4 ? rivales
+    : [...avanzadasCalculo.equipos.entries()].map(([eq, acc]) => ({ equipo: eq, m: metricasConFtr(acc) })).filter(x => x.m);
+
+  const yo = lista.find(x => x.equipo === clave);
+  if (!yo) return null;
+
+  const total = lista.length;
+  const metricas = METRICAS_DIAG.map(def => {
+    const valores = lista.map(x => x.m[def.id]).filter(v => v !== null && v !== undefined);
+    const valor = yo.m[def.id];
+    if (valor === null || valor === undefined || valores.length < 3) return { def, valor: null };
+    const ordenados = [...valores].sort((a, b) => def.menosEsMejor ? a - b : b - a);
+    const puesto = ordenados.indexOf(valor) + 1;
+    const media = Math.round(valores.reduce((a, b) => a + b, 0) / valores.length * 10) / 10;
+    const percentil = valores.length > 1
+      ? Math.round((valores.length - puesto) / (valores.length - 1) * 100) : 50;
+    return { def, valor, media, puesto, total: valores.length, percentil };
+  });
+
+  const conDato = metricas.filter(x => x.valor !== null);
+  const ordenPct = [...conDato].sort((a, b) => b.percentil - a.percentil);
+  return {
+    equipo: clave, grupo, total, m: yo.m, metricas,
+    mejor: ordenPct[0] || null,
+    peores: ordenPct.slice(-2).reverse(),
+  };
+}
+
+function colorPercentil(p) {
+  if (p === null || p === undefined) return "";
+  return p >= 66 ? "bien" : (p >= 34 ? "medio" : "mal");
+}
+
+function resumenDiagnostico(d) {
+  if (!d) return "";
+  const n = (v, suf) => v === null || v === undefined ? "N/D" : fmtNum(v) + (suf || "");
+  const frases = [];
+  frases.push(`${d.equipo} lleva un balance de ${d.m.v}-${d.m.d} en ${d.m.pj} partidos` +
+    (d.m.net !== null ? ` y un Rating Neto de ${d.m.net > 0 ? "+" : ""}${n(d.m.net)}` : "") + ".");
+  if (d.m.ortg !== null && d.m.drtg !== null) {
+    frases.push(`El ataque produce ${n(d.m.ortg)} puntos por cada 100 posesiones y la defensa concede ${n(d.m.drtg)}.`);
+  }
+  const malas = d.peores.filter(x => x.percentil < 50);
+  if (malas.length) {
+    frases.push(`La principal fuga aparece en ${malas.map(x => `${x.def.nombre} (${n(x.valor, x.def.sufijo)}, puesto ${x.puesto} de ${x.total})`).join(" y en ")}.`);
+  }
+  if (d.mejor && d.mejor.percentil >= 50) {
+    frases.push(`Lo que mejor sostiene al equipo es ${d.mejor.def.nombre}: ${n(d.mejor.valor, d.mejor.def.sufijo)}, puesto ${d.mejor.puesto} de ${d.mejor.total}.`);
+  }
+  if (malas.length) {
+    frases.push(`El plan de mejora deberia priorizar ${malas[0].def.accion}.`);
+  }
+  return frases.join(" ");
+}
+
+function tarjetaDiagHtml(etiqueta, valor, contexto, calidad) {
+  return `<div class="diag-kpi ${calidad || ""}">
+    <div class="k-tit">${escapeHtml(etiqueta)}</div>
+    <div class="k-val">${escapeHtml(String(valor))}</div>
+    <div class="k-ctx">${escapeHtml(contexto || "")}</div>
+  </div>`;
+}
+
+function bloqueDiagnostico(nombre) {
+  const d = diagnosticoEquipo(nombre);
+  if (!d) {
+    return `<p class="hint">Diagnostico: hacen falta las estadisticas de cada partido.
+      Entra una vez en el menu Estadisticas y vuelve aqui.</p>`;
+  }
+  const n = (v, suf) => v === null || v === undefined ? "N/D" : fmtNum(v) + (suf || "");
+  const ambito = d.grupo ? `del grupo ${d.grupo}` : "de la liga";
+  const pct = (id) => { const x = d.metricas.find(y => y.def.id === id); return x && x.valor !== null ? x : null; };
+  const ctx = (id) => { const x = pct(id); return x ? `media ${fmtNum(x.media)} · puesto ${x.puesto}/${x.total}` : ""; };
+  const cal = (id) => { const x = pct(id); return x ? colorPercentil(x.percentil) : ""; };
+
+  const kpis = [
+    tarjetaDiagHtml("Balance", `${d.m.v}-${d.m.d}`, `${d.m.pj} partidos`, ""),
+    tarjetaDiagHtml("ORtg", n(d.m.ortg), ctx("ortg"), cal("ortg")),
+    tarjetaDiagHtml("DRtg", n(d.m.drtg), ctx("drtg") + " · menor es mejor", cal("drtg")),
+    tarjetaDiagHtml("Net Rtg", (d.m.net > 0 ? "+" : "") + n(d.m.net), "por 100 posesiones",
+      d.m.net === null ? "" : (d.m.net > 0 ? "bien" : "mal")),
+    tarjetaDiagHtml("Ritmo", n(d.m.ritmo), "posesiones por partido", ""),
+    tarjetaDiagHtml("TS%", n(d.m.ts, "%"), ctx("ts"), cal("ts")),
+    tarjetaDiagHtml("eFG%", n(d.m.efg, "%"), "tiro de campo efectivo", ""),
+    tarjetaDiagHtml("AS/BP", n(d.m.astto), "asistencias por perdida", ""),
+  ].join("");
+
+  const barras = d.metricas.map(x => {
+    if (x.valor === null) {
+      return `<div class="diag-barra"><div class="b-tit">${escapeHtml(x.def.etiqueta)}</div>
+        <div class="b-nd">Sin datos suficientes</div></div>`;
+    }
+    return `<div class="diag-barra">
+      <div class="b-tit" title="${escapeAttr(x.def.nombre)}">${escapeHtml(x.def.etiqueta)}</div>
+      <div class="b-pista">
+        <span class="t mal"></span><span class="t medio"></span><span class="t bien"></span>
+        <span class="punto" style="left:${x.percentil}%"></span>
+      </div>
+      <div class="b-pct ${colorPercentil(x.percentil)}">P${x.percentil}</div>
+      <div class="b-det">${fmtNum(x.valor)}${x.def.sufijo} · puesto ${x.puesto}/${x.total}</div>
+    </div>`;
+  }).join("");
+
+  const fortaleza = d.mejor
+    ? `Donde mejor compite el equipo es en ${d.mejor.def.nombre}: ${fmtNum(d.mejor.valor)}${d.mejor.def.sufijo}, puesto ${d.mejor.puesto} de ${d.mejor.total} ${ambito}.`
+    : "Todavia no hay muestra suficiente para señalar una fortaleza clara.";
+  const riesgo = d.peores.length && d.peores[0].valor !== null
+    ? `El punto mas debil es ${d.peores[0].def.nombre}: ${fmtNum(d.peores[0].valor)}${d.peores[0].def.sufijo}, puesto ${d.peores[0].puesto} de ${d.peores[0].total}. Conviene ${d.peores[0].def.accion}.`
+    : "Todavia no hay muestra suficiente para señalar un riesgo claro.";
+
+  return `<div class="diag">
+    <div class="diag-resumen">${escapeHtml(resumenDiagnostico(d))}</div>
+    <div class="diag-kpis">${kpis}</div>
+    <h4 class="diag-sub">Identidad estadistica dentro ${escapeHtml(ambito)}</h4>
+    <p class="hint" style="margin-top:-4px;">El punto marca donde queda el equipo frente a los ${d.total} del grupo.
+      P100 es el mejor y P0 el ultimo. En las metricas donde menos es mejor, la escala ya va girada.</p>
+    <div class="diag-barras">${barras}</div>
+    <div class="diag-lectura">
+      <div class="l-caja"><div class="l-tit">Fortaleza relativa</div><div>${escapeHtml(fortaleza)}</div></div>
+      <div class="l-caja"><div class="l-tit">Riesgo principal</div><div>${escapeHtml(riesgo)}</div></div>
+    </div>
+    <p class="diag-aviso"><b>Importante:</b> las posesiones y los ratings son estimaciones calculadas con el
+      cuadro de cada partido (TCI − RO + BP + 0,44 × TLI). Sirven para comparar equipos entre si, no como dato oficial.</p>
+  </div>`;
+}
+
+/* ============================================================
    CONSTRUCTOR DE INFORMES
    Reutiliza las pantallas que ya existen: prepara la que haga
    falta, copia su contenido y lo pega en el informe. Los graficos
@@ -7666,6 +7892,8 @@ const BLOQUES_INFORME = [
   { id: "fichajes",      nombre: "Fichajes a futuro",              grupo: "Liga",      vista: "fichajes",      sel: "#fichajesContent" },
   { id: "miEquipo",      nombre: "Panel de mi equipo",             grupo: "Mi equipo", vista: "mi-equipo",     sel: "#miEquipoContent",   espera: 1200 },
 
+  { id: "diagnostico", nombre: "Diagnostico de temporada (percentiles y resumen)", grupo: "Equipo", param: "equipo",
+    prep: (v) => showEquipoDetail(v), sel: "#diagnosticoEquipo", espera: 1600 },
   { id: "equipo",   nombre: "Perfil completo del equipo", grupo: "Equipo",   param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#equipoDetailContent", espera: 1400 },
   { id: "jugadora", nombre: "Perfil completo de la jugadora", grupo: "Jugadora", param: "jugadora",
@@ -8536,7 +8764,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-08";
+const VERSION_APP = "2026-10-09";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
