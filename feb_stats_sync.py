@@ -1675,6 +1675,28 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
     return equipos, eventos
 
 
+def _clave_jugadora(nombre: str) -> str:
+    """Primer apellido + inicial del nombre, sin tildes. Sirve para emparejar
+    el nombre del cuadro estadistico con el del jugada a jugada."""
+    txt = _sin_tildes(str(nombre or "")).upper()
+    txt = re.sub(r"[^A-Z, ]", " ", txt)
+    txt = re.sub(r"\s+", " ", txt).strip()
+    if not txt:
+        return ""
+    if "," in txt:
+        apellidos, _, nombre_pila = txt.partition(",")
+    else:
+        partes = txt.split()
+        if len(partes) == 1:
+            apellidos, nombre_pila = partes[0], ""
+        elif len(partes[0]) == 1:          # "E. MAGUIRE"
+            nombre_pila, apellidos = partes[0], " ".join(partes[1:])
+        else:                               # "ENYA MAGUIRE" -> apellido al final
+            apellidos, nombre_pila = " ".join(partes[:-1]), partes[-1]
+    apellido1 = apellidos.strip().split(" ")[0] if apellidos.strip() else ""
+    return apellido1 + nombre_pila.strip()[:1]
+
+
 def _quintetos_iniciales(eventos: list, equipo: str) -> set:
     """Quien estaba en pista al empezar el cuarto: quien actua o sale sin haber entrado."""
     inicial, actual = set(), set()
@@ -1693,8 +1715,11 @@ def _quintetos_iniciales(eventos: list, equipo: str) -> set:
     return inicial
 
 
-def quintetos_de_partido(datos: dict, partido_id: str) -> list:
-    """Minutos y puntos de cada quinteto en un partido."""
+def quintetos_de_partido(datos: dict, partido_id: str, cuadro: dict = None) -> list:
+    """Minutos y puntos de cada quinteto en un partido.
+    cuadro: {equipo_normalizado: {"todas": set, "titulares": set}} sacado del
+    cuadro estadistico. Sin el, el primer cuarto casi nunca se puede reconstruir,
+    y una titular que no aparece en el jugada a jugada no tiene ni nombre."""
     equipos, eventos = eventos_de_keyfacts(datos)
     if len(equipos) != 2 or not eventos:
         return []
@@ -1703,6 +1728,39 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
     cuartos = sorted({ev["cuarto"] for ev in eventos})
     ultimo_quinteto = {}        # con que cinco acabo cada equipo el cuarto anterior
     saltados = 0
+
+    # Nombres tal y como los escribe el jugada a jugada, por equipo
+    nombres_pbp = {e: set() for e in equipos}
+    for ev in eventos:
+        if ev["equipo"] in nombres_pbp and ev["jugadora"]:
+            nombres_pbp[ev["equipo"]].add(ev["jugadora"])
+
+    # El jugada a jugada y el cuadro escriben los nombres distinto. Se pasa todo
+    # a la version del cuadro: asi una misma jugadora no acaba con dos grafias
+    # y, sobre todo, se puede nombrar a quien no aparece en el jugada a jugada.
+    titulares_pbp = {}
+    for e in equipos:
+        datos_eq = (cuadro or {}).get(normalizar_equipo(e)) or {}
+        todas = datos_eq.get("todas") or set()
+        titulares_pbp[e] = set(datos_eq.get("titulares") or set())
+        if not todas:
+            continue
+        por_clave = {}
+        for n in todas:
+            por_clave.setdefault(_clave_jugadora(n), []).append(n)
+        traduccion = {}
+        for n in nombres_pbp[e]:
+            candidatas = por_clave.get(_clave_jugadora(n), [])
+            if len(candidatas) == 1:
+                traduccion[n] = candidatas[0]
+        if traduccion:
+            for ev in eventos:
+                if ev["equipo"] == e and ev["jugadora"] in traduccion:
+                    ev["jugadora"] = traduccion[ev["jugadora"]]
+            nombres_pbp[e] = {traduccion.get(n, n) for n in nombres_pbp[e]}
+
+    primer_cuarto = cuartos[0] if cuartos else 1
+
     for cuarto in cuartos:
         evs = [e for e in eventos if e["cuarto"] == cuarto]
         if not evs:
@@ -1713,14 +1771,38 @@ def quintetos_de_partido(datos: dict, partido_id: str) -> list:
 
         pista = {}
         for e in equipos:
+            # 1) Quien actua o es sustituida sin haber entrado: seguro que estaba
             deducido = _quintetos_iniciales(evs, e)
-            if len(deducido) != 5 and len(ultimo_quinteto.get(e, set())) == 5:
-                # La FEB no siempre registra quien sale a cada cuarto:
-                # si no cuadra, se sigue con el cinco que acabo el cuarto anterior
-                deducido = set(ultimo_quinteto[e])
-            pista[e] = deducido
+            entraron = {ev["jugadora"] for ev in evs
+                        if ev["equipo"] == e and ev["tipo"] == "entra" and ev["jugadora"]}
+
+            # 2) Se completa hasta cinco: en el primer cuarto con las titulares del
+            #    cuadro, y en el resto con las que acabaron el cuarto anterior.
+            if cuarto == primer_cuarto:
+                reserva = [j for j in titulares_pbp.get(e, set()) if j not in entraron]
+            else:
+                reserva = [j for j in ultimo_quinteto.get(e, set()) if j not in entraron]
+
+            quinteto = set(deducido)
+            for j in sorted(reserva):
+                if len(quinteto) >= 5:
+                    break
+                quinteto.add(j)
+
+            # 3) Ultimo recurso: si aun no cuadra, se usa el cinco de referencia entero
+            if len(quinteto) != 5:
+                if cuarto == primer_cuarto and len(titulares_pbp.get(e, set())) == 5:
+                    quinteto = set(titulares_pbp[e])
+                elif len(ultimo_quinteto.get(e, set())) == 5:
+                    quinteto = set(ultimo_quinteto[e])
+
+            pista[e] = quinteto
+
         if any(len(pista[e]) != 5 for e in equipos):
             saltados += 1
+            # Sin este cuarto no se sabe con quien se acabo: mejor no arrastrar
+            # un cinco viejo al siguiente que inventar minutos.
+            ultimo_quinteto = {}
             continue   # cuarto mal registrado: se descarta antes que inventar minutos
 
         t_ini = inicio
@@ -2145,7 +2227,7 @@ def obtener_token_livestats(session, partido_id: str) -> str:
     return token_livestats(html)
 
 
-def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
+def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame = None) -> tuple:
     """Devuelve (detalle por partido, resumen por equipo, nuevos)."""
     if resultados_df.empty or "PartidoID" not in resultados_df.columns:
         return pd.DataFrame(), pd.DataFrame(), 0
@@ -2160,6 +2242,13 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
         print("  [quintetos] datos antiguos sin posesiones: se vuelven a descargar", file=sys.stderr)
         df_viejo = pd.DataFrame()
     ya = set(df_viejo["PartidoID"]) if "PartidoID" in df_viejo.columns else set()
+    # Los partidos guardados con la logica vieja pueden tener cuartos perdidos.
+    # Con FEB_REHACER_QUINTETOS=1 se vuelven a calcular todos desde cero.
+    if os.environ.get("FEB_REHACER_QUINTETOS") == "1":
+        print(f"  [quintetos] FEB_REHACER_QUINTETOS=1: se rehacen los {len(ya)} partidos ya guardados",
+              file=sys.stderr)
+        ya = set()
+        df_viejo = pd.DataFrame()
 
     def _ids_de_pestana(nombre_tab):
         try:
@@ -2176,6 +2265,24 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
     ya_tiros, tiros_viejos = _ids_de_pestana(TAB_TIROS_MAPA)
     _, clutch_viejo = _ids_de_pestana(TAB_CLUTCH + "_Partido")
     _, rebotes_viejos = _ids_de_pestana(TAB_REBOTES)
+
+    # Titulares de cada partido segun el cuadro estadistico: es la unica fuente
+    # fiable para saber quien salio de inicio en el primer cuarto.
+    cuadros = {}
+    if partidos_df is not None and not partidos_df.empty and "Titular" in partidos_df.columns:
+        for _, fila in partidos_df.iterrows():
+            jug = str(fila.get("Jugador", "")).strip()
+            if not jug or jug == "TOTAL":
+                continue
+            pid = str(fila.get("PartidoID", "")).strip()
+            eq = normalizar_equipo(str(fila.get("Equipo", "")))
+            if not pid or not eq:
+                continue
+            ficha = cuadros.setdefault(pid, {}).setdefault(eq, {"todas": set(), "titulares": set()})
+            ficha["todas"].add(jug)
+            if str(fila.get("Titular", "")).strip() == "Si":
+                ficha["titulares"].add(jug)
+        print(f"  [quintetos] cuadro estadistico disponible en {len(cuadros)} partidos", file=sys.stderr)
 
     jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
     completos = ya & ya_cuartos & ya_tiros
@@ -2233,7 +2340,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame) -> tuple:
                 resp = _request_con_reintentos(session, "GET", KEYFACTS_URL.format(id=pid.lstrip("p")),
                                                headers_extra=cabeceras)
                 datos = resp.json()
-                filas = quintetos_de_partido(datos, pid)
+                filas = quintetos_de_partido(datos, pid, cuadros.get(pid))
                 try:
                     resp_t = _request_con_reintentos(session, "GET", SHOTCHART_URL.format(id=pid.lstrip("p")),
                                                      headers_extra=cabeceras)
@@ -2441,7 +2548,8 @@ def main():
     # 5) Quintetos reales (jugada a jugada de la API LiveStats)
     try:
         (detalle_q, resumen_q, cuartos_q, tiros_mapa,
-         clutch_detalle, clutch_resumen, rebotes_q, nuevos_q) = fetch_quintetos(sh, resultados_df)
+         clutch_detalle, clutch_resumen, rebotes_q, nuevos_q) = fetch_quintetos(
+            sh, resultados_df, partidos_df)
         detalle_q, _ = aplicar_canonicos(detalle_q, canonicos)
         resumen_q, raros = aplicar_canonicos(resumen_q, canonicos)
         nombres_raros |= raros
