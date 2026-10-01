@@ -615,6 +615,27 @@
     .evo-grafico{height:200px;}
   }
 
+  /* --- Identidad del documento impreso --- */
+  #impHeader, #impPie{display:none;}
+  .inf-portada-pro{background:#0f1620;color:#fff;border-radius:14px;padding:34px 30px 26px;
+    margin:0 0 26px;position:relative;overflow:hidden;}
+  .inf-portada-pro::after{content:"";position:absolute;right:-90px;bottom:-130px;width:330px;height:330px;
+    border-radius:50%;border:1.5px solid rgba(242,128,63,.35);}
+  .inf-portada-pro::before{content:"";position:absolute;right:-30px;bottom:-70px;width:190px;height:190px;
+    border-radius:50%;border:1.5px solid rgba(242,128,63,.22);}
+  .ip-marca{display:flex;align-items:center;gap:9px;margin-bottom:30px;}
+  .ip-marca .bola{width:26px;height:26px;border-radius:50%;background:#f2803f;display:inline-block;}
+  .ip-marca b{font-family:'Archivo Black',sans-serif;font-size:17px;letter-spacing:.02em;}
+  .ip-eyebrow{color:#f2803f;font-size:11px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.18em;margin-bottom:10px;}
+  .ip-titulo{font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.12;}
+  .ip-sub{font-size:14.5px;color:#aab4c4;margin-top:12px;line-height:1.55;max-width:600px;}
+  .ip-pies{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:18px;
+    margin-top:44px;position:relative;z-index:1;}
+  .ip-pie-dato{border-top:2px solid #f2803f;padding-top:9px;}
+  .ip-pie-dato .e{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:#8d97a8;}
+  .ip-pie-dato .v{font-size:14px;font-weight:700;margin-top:4px;}
+
   /* --- Plan de intervencion --- */
   .plan-tarjeta{display:flex;gap:0;border:1.5px solid var(--wood-line);border-radius:12px;
     overflow:hidden;margin-bottom:14px;background:var(--white);}
@@ -682,6 +703,15 @@
   .inf-portada .sub{font-size:15px;color:var(--ink-soft);margin-top:6px;}
   .inf-portada .meta{font-size:12.5px;color:var(--ink-soft);margin-top:12px;}
   .inf-bloque{margin:0 0 22px;}
+  #infMontado{counter-reset:bloqueinf;}
+  #infMontado .inf-bloque{counter-increment:bloqueinf;}
+  .inf-cab-bloque{display:none;align-items:flex-end;justify-content:space-between;gap:12px;
+    border-bottom:1.5px solid var(--wood-line);padding-bottom:5px;margin-bottom:12px;}
+  .inf-cab-bloque .c-izq{min-width:0;}
+  .inf-cab-bloque .c-marca{font-weight:800;font-size:11.5px;display:block;}
+  .inf-cab-bloque .c-doc{font-size:10.5px;color:var(--ink-soft);display:block;}
+  .inf-cab-bloque .c-der{color:var(--orange);font-weight:800;font-size:11px;white-space:nowrap;}
+  #infMontado .inf-bloque > .inf-etiqueta::before{content:counter(bloqueinf, decimal-leading-zero) " · ";}
   .inf-bloque > .inf-etiqueta{font-size:11px;font-weight:800;text-transform:uppercase;
     letter-spacing:.07em;color:var(--orange);border-bottom:1.5px solid var(--wood-line);
     padding-bottom:5px;margin-bottom:10px;}
@@ -690,7 +720,7 @@
   .solo-lectura{pointer-events:none;}
 
   @media print{
-    @page{ size:A4 portrait; margin:14mm 12mm 16mm; }
+    @page{ size:A4 portrait; margin:15mm 12mm 16mm; }
 
     body{background:#fff;color:#111;font-size:10.5pt;}
     header, nav, #grupoBar, .back-btn, .informe-barra{display:none !important;}
@@ -794,6 +824,19 @@
 
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   
+    /* ---- Portada a pagina completa ---- */
+    .inf-portada-pro{border-radius:0;margin:0;padding:40px 34px 30px;min-height:256mm;
+      display:flex;flex-direction:column;break-after:page;page-break-after:always;
+      print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+    .inf-portada-pro .ip-pies{margin-top:auto;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .inf-portada-pro .ip-pie-dato .v{font-size:11.5pt;}
+    .inf-portada-pro::before, .inf-portada-pro::after{display:none;}
+
+    /* ---- Un apartado por pagina, cada uno con su cabecera ---- */
+    #infMontado .inf-bloque{break-before:page;page-break-before:always;}
+    #infMontado .inf-bloque:first-of-type{break-before:auto;page-break-before:auto;}
+    #infMontado .inf-cab-bloque{display:flex !important;}
+
     /* ---- Impresion general: cualquier pantalla y el informe montado ---- */
     #barraLateral, #barraMovil, #fondoMenu, #avisoFallo, .no-imprimir,
     .pie-lateral, .subnav, .chips-qp{display:none !important;}
@@ -1290,6 +1333,15 @@
 </style>
 </head>
 <body>
+
+<div id="impHeader" aria-hidden="true">
+  <div class="ih-izq"><span class="ih-marca">LF2 Stats</span><span class="ih-sub" id="ihSub"></span></div>
+  <div class="ih-der" id="ihDer"></div>
+</div>
+<div id="impPie" aria-hidden="true">
+  <span>Fuente: FEB LiveStats · Elaboracion propia con LF2 Stats</span>
+  <span id="ipDer">Documento de analisis deportivo</span>
+</div>
 
 <div class="app">
 <div id="barraMovil">
@@ -8710,7 +8762,7 @@ async function prepararBloque(item) {
   if (b.id === "glosario") {
     const d = document.createElement("div");
     d.className = "inf-bloque";
-    d.innerHTML = `<div class="inf-etiqueta">Glosario y limites</div>
+    d.innerHTML = cabeceraBloqueHtml() + `<div class="inf-etiqueta">Glosario y limites</div>
       <div class="panel">${bloqueGlosario()}</div>`;
     return d;
   }
@@ -8724,9 +8776,21 @@ async function prepararBloque(item) {
 
   const caja = document.createElement("div");
   caja.className = "inf-bloque";
-  caja.innerHTML = `<div class="inf-etiqueta">${escapeHtml(etiquetaBloque(item))}</div>`;
+  caja.innerHTML = cabeceraBloqueHtml() + `<div class="inf-etiqueta">${escapeHtml(etiquetaBloque(item))}</div>`;
   caja.appendChild(clonarParaInforme(origen));
   return caja;
+}
+
+// Cabecera que lleva cada apartado: al imprimir, cada uno empieza en su pagina
+function cabeceraBloqueHtml() {
+  const tit = document.getElementById("infTitulo");
+  const texto = tit && tit.value.trim() ? tit.value.trim() : "Informe tecnico";
+  const grupoTxt = grupoActivo ? " · Grupo " + grupoActivo : "";
+  return `<div class="inf-cab-bloque">
+    <div class="c-izq"><span class="c-marca">LF2 Stats</span>
+      <span class="c-doc">${escapeHtml(texto + grupoTxt)}</span></div>
+    <div class="c-der">Informe tecnico</div>
+  </div>`;
 }
 
 function portadaInforme() {
@@ -8734,12 +8798,26 @@ function portadaInforme() {
   const sub = (document.getElementById("infSubtitulo").value || "").trim();
   const aut = (document.getElementById("infAutor").value || "").trim();
   if (!tit && !sub && !aut) return "";
-  const partes = [aut ? "Por " + aut : "", new Date().toLocaleDateString("es-ES",
-    { day: "numeric", month: "long", year: "numeric" })].filter(Boolean);
-  return `<div class="inf-portada">
-    ${tit ? `<div class="tit">${escapeHtml(tit)}</div>` : ""}
-    ${sub ? `<div class="sub">${escapeHtml(sub)}</div>` : ""}
-    <div class="meta">${escapeHtml(partes.join(" · "))} · LF2 Stats</div>
+
+  const nPartidos = resultados
+    ? resultados.rows.filter(r => cellText(r, "Jugado") === "Si").length : 0;
+  const competicion = "Liga Femenina 2" + (grupoActivo ? " · Grupo " + grupoActivo : "");
+  const fecha = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+
+  const pie = (etiqueta, valor) => valor
+    ? `<div class="ip-pie-dato"><div class="e">${escapeHtml(etiqueta)}</div><div class="v">${escapeHtml(valor)}</div></div>` : "";
+
+  return `<div class="inf-portada-pro">
+    <div class="ip-marca"><span class="bola"></span><b>LF2 Stats</b></div>
+    <div class="ip-eyebrow">Informe tecnico de rendimiento</div>
+    <div class="ip-titulo">${escapeHtml(tit || "Informe")}</div>
+    ${sub ? `<div class="ip-sub">${escapeHtml(sub)}</div>` : ""}
+    <div class="ip-pies">
+      ${pie("Competicion", competicion)}
+      ${pie("Muestra", nPartidos ? nPartidos + " partidos oficiales" : "")}
+      ${pie("Autor", aut)}
+      ${pie("Fecha", fecha)}
+    </div>
   </div>`;
 }
 
@@ -8779,7 +8857,26 @@ async function montarInforme() {
   return true;
 }
 
+// Pone en la cabecera y el pie del papel de que va el documento
+function rellenarCabeceraImpresion() {
+  const tit = document.getElementById("infTitulo");
+  const enInforme = vistaActual === "informes" && tit && tit.value.trim();
+  const sub = document.getElementById("ihSub");
+  const der = document.getElementById("ihDer");
+  const pieDer = document.getElementById("ipDer");
+  const fecha = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const grupoTxt = grupoActivo ? " · Grupo " + grupoActivo : "";
+
+  if (sub) {
+    sub.textContent = enInforme ? tit.value.trim() + grupoTxt
+      : (NOMBRE_VISTA[vistaActual] || "Liga Femenina 2") + grupoTxt;
+  }
+  if (der) der.textContent = enInforme ? "Informe tecnico" : "Liga Femenina 2";
+  if (pieDer) pieDer.textContent = "Generado el " + fecha;
+}
+
 function exportarPdfPagina() {
+  rellenarCabeceraImpresion();
   // En papel siempre fondo claro, aunque la app este en modo oscuro
   const temaPrevio = document.documentElement.getAttribute("data-tema") || "claro";
   if (temaPrevio === "oscuro") document.documentElement.setAttribute("data-tema", "claro");
@@ -9383,7 +9480,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-12";
+const VERSION_APP = "2026-10-13";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
