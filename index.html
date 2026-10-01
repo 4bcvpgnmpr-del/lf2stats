@@ -652,6 +652,31 @@
   .btn-partido.secundario{background:var(--white);color:var(--ink);border:1.5px solid var(--wood-line);}
   .btn-partido.secundario:hover{border-color:var(--orange);color:var(--orange-dark);}
 
+  /* --- Records --- */
+  .records-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:14px;margin-top:14px;}
+  .record{border:1.5px solid var(--wood-line);border-radius:12px;background:var(--white);padding:13px 15px;}
+  .record .r-cab{display:flex;align-items:center;gap:8px;border-bottom:1.5px solid var(--wood-line);
+    padding-bottom:8px;margin-bottom:10px;}
+  .record .r-ico{font-size:17px;}
+  .record .r-tit{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--orange);}
+  .record .r-lider{display:flex;align-items:center;gap:12px;}
+  .record .r-num{font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1;color:var(--ink);flex:none;}
+  .record .r-quien{min-width:0;}
+  .record .r-quien b{display:block;font-size:13.5px;line-height:1.25;cursor:pointer;}
+  .record .r-quien b:hover{color:var(--orange-dark);}
+  .record .r-quien span{display:block;font-size:11.5px;color:var(--ink-soft);}
+  .record .r-ctx{margin-top:2px;}
+  .record .r-resto{list-style:none;margin:11px 0 0;padding:9px 0 0;border-top:1px solid var(--wood-line);
+    display:flex;flex-direction:column;gap:5px;counter-reset:rec;}
+  .record .r-resto li{display:flex;align-items:baseline;gap:7px;font-size:12px;}
+  .record .r-resto .v{font-weight:800;min-width:26px;color:var(--orange-dark);}
+  .record .r-resto b{font-weight:700;cursor:pointer;}
+  .record .r-resto b:hover{color:var(--orange-dark);}
+  .record .r-resto .eq{color:var(--ink-soft);font-size:11px;margin-left:auto;text-align:right;}
+  .records-tablas{display:grid;grid-template-columns:1fr;gap:18px;}
+  .records-tablas > *{min-width:0;}
+  @media (min-width:1400px){ .records-tablas{grid-template-columns:1fr 1fr;} }
+
   /* --- Tiros en el scouting --- */
   .datos-jug.tiros-jug{margin-top:7px;}
   .dato-jug.tiro{background:var(--tiro-fondo);}
@@ -1611,11 +1636,7 @@
   </section>
 
   <section id="view-records" class="view" style="display:none;">
-    <div class="panel coming-soon">
-      <h2 class="section-title" style="margin-top:0;">Records de la temporada</h2>
-      <p>Los records (maxima anotacion en un partido, mas rebotes en un partido, etc.) necesitan el registro partido a partido de cada jugadora, que todavia no se captura.</p>
-      <p class="hint">Estructura preparada: en cuanto el scraper incorpore el detalle por partido, esta seccion se activara automaticamente sin rehacer el diseno.</p>
-    </div>
+    <div id="recordsContent" class="status">Cargando records...</div>
   </section>
 
 </main>
@@ -2159,6 +2180,7 @@ function showView(id, esVuelta) {
   if (id === "mi-equipo") renderMiEquipo();
   if (id === "fichajes") renderFichajes();
   if (id === "informes") rellenarSelectorInforme();
+  if (id === "records") cargarRecords();
 }
 
 function volverAtras(porDefecto) {
@@ -8130,6 +8152,229 @@ function dibujarEvolucionJugadora(nombre, equipo) {
 }
 
 /* ============================================================
+   RECORDS DE LA TEMPORADA
+   Mejores actuaciones individuales y de equipo en un partido,
+   sacadas de los cuadros de Partidos_Estadisticas.
+   ============================================================ */
+const RECORDS_JUGADORA = [
+  { id: "pt",   titulo: "Mas puntos",        campo: "PT",   icono: "🏀", unidad: "puntos" },
+  { id: "reb",  titulo: "Mas rebotes",       campo: "REB_T", icono: "💪", unidad: "rebotes" },
+  { id: "as",   titulo: "Mas asistencias",   campo: "AS",   icono: "🎯", unidad: "asistencias" },
+  { id: "va",   titulo: "Mejor valoracion",  campo: "VA",   icono: "⭐", unidad: "de valoracion" },
+  { id: "br",   titulo: "Mas robos",         campo: "BR",   icono: "✋", unidad: "robos" },
+  { id: "tap",  titulo: "Mas tapones",       campo: "TAP_F", icono: "🚫", unidad: "tapones" },
+  { id: "mm",   titulo: "Mejor +/-",         campo: "MAS_MENOS", icono: "📈", unidad: "de diferencia" },
+];
+
+let recordsCalculo = null;
+
+function calcularRecords() {
+  if (!partidosCache || !partidosCache.rows.length) return null;
+
+  const meta = new Map();
+  if (resultados) {
+    resultados.rows.forEach(r => {
+      const pid = cellText(r, "PartidoID");
+      if (pid) meta.set(pid, { fecha: cellText(r, "Fecha"), local: cellText(r, "Local"),
+                               visitante: cellText(r, "Visitante"), resultado: cellText(r, "Resultado") });
+    });
+  }
+  const contexto = (pid, equipo) => {
+    const m = meta.get(pid);
+    if (!m) return { texto: "", rival: "" };
+    const esLocal = normalizarEquipo(equipoOficial(m.local)) === normalizarEquipo(equipoOficial(equipo));
+    const rival = esLocal ? m.visitante : m.local;
+    return { texto: `${esLocal ? "vs" : "@"} ${rival} · ${m.resultado} · ${m.fecha}`, rival, fecha: m.fecha };
+  };
+
+  // --- Individuales ---
+  const mejores = {};
+  RECORDS_JUGADORA.forEach(d => { mejores[d.id] = []; });
+  // --- De equipo ---
+  const equipoPt = [];
+  const equipoT3 = [];
+  const partidosEq = [];
+
+  partidosCache.rows.forEach(r => {
+    const jugadora = cellText(r, "Jugador");
+    const equipo = cellText(r, "Equipo");
+    const pid = cellText(r, "PartidoID");
+    if (!pid || !equipo) return;
+
+    if (jugadora === "TOTAL") {
+      const t3 = paresTiro(r, "T3");
+      equipoPt.push({ equipo, pid, valor: numDe(r, "PT") });
+      equipoT3.push({ equipo, pid, valor: t3.a, intentos: t3.i });
+      partidosEq.push({ equipo, pid, pts: numDe(r, "PT") });
+      return;
+    }
+    if (!jugadora) return;
+
+    RECORDS_JUGADORA.forEach(d => {
+      const v = numDe(r, d.campo);
+      if (v === null || v === undefined) return;
+      mejores[d.id].push({ jugadora, equipo, pid, valor: v,
+                           min: cellText(r, "MIN"), pt: numDe(r, "PT") });
+    });
+  });
+
+  const top = (lista, n) => [...lista].sort((a, b) => b.valor - a.valor).slice(0, n)
+    .map(x => ({ ...x, ctx: contexto(x.pid, x.equipo) }));
+
+  // Partido con mas puntos entre los dos equipos y mayor diferencia
+  const porPartido = new Map();
+  partidosEq.forEach(x => {
+    if (!porPartido.has(x.pid)) porPartido.set(x.pid, []);
+    porPartido.get(x.pid).push(x);
+  });
+  const duelos = [];
+  porPartido.forEach((lista, pid) => {
+    if (lista.length !== 2) return;
+    const m = meta.get(pid) || {};
+    const suma = lista[0].pts + lista[1].pts;
+    const dif = Math.abs(lista[0].pts - lista[1].pts);
+    const gana = lista[0].pts >= lista[1].pts ? lista[0] : lista[1];
+    const pierde = lista[0].pts >= lista[1].pts ? lista[1] : lista[0];
+    duelos.push({ pid, suma, dif, gana: gana.equipo, pierde: pierde.equipo,
+                  marcador: `${gana.pts}-${pierde.pts}`, fecha: m.fecha || "" });
+  });
+
+  return {
+    individuales: RECORDS_JUGADORA.map(d => ({ def: d, lista: top(mejores[d.id], 5) })),
+    equipoPt: top(equipoPt, 5),
+    equipoT3: top(equipoT3, 5),
+    masPuntos: [...duelos].sort((a, b) => b.suma - a.suma).slice(0, 5),
+    masDiferencia: [...duelos].sort((a, b) => b.dif - a.dif).slice(0, 5),
+    totalPartidos: porPartido.size,
+  };
+}
+
+function tarjetaRecordHtml(def, lista) {
+  if (!lista.length) return "";
+  const lider = lista[0];
+  // Un record de 0 no es un record: si nadie ha sumado en esa estadistica,
+  // la tarjeta no se enseña en vez de anunciar un cero.
+  if (def.id === "mm") {
+    if (lista.every(x => x.valor === 0)) return "";
+  } else if (!(lider.valor > 0)) {
+    return "";
+  }
+  return `<div class="record">
+    <div class="r-cab"><span class="r-ico">${def.icono}</span>
+      <span class="r-tit">${escapeHtml(def.titulo)}</span></div>
+    <div class="r-lider">
+      <div class="r-num">${fmtNum(lider.valor)}</div>
+      <div class="r-quien">
+        <b class="rank-name" data-player="${escapeAttr(lider.jugadora)}">${escapeHtml(lider.jugadora)}</b>
+        <span>${escapeHtml(lider.equipo)}</span>
+        <span class="r-ctx">${escapeHtml(lider.ctx.texto)}</span>
+      </div>
+    </div>
+    ${lista.length > 1 ? `<ol class="r-resto">${lista.slice(1).map(x => `<li>
+      <span class="v">${fmtNum(x.valor)}</span>
+      <b class="rank-name" data-player="${escapeAttr(x.jugadora)}">${escapeHtml(x.jugadora)}</b>
+      <span class="eq">${escapeHtml(x.equipo)}</span></li>`).join("")}</ol>` : ""}
+  </div>`;
+}
+
+function renderRecords() {
+  const box = document.getElementById("recordsContent");
+  if (!box) return;
+  if (!recordsCalculo) recordsCalculo = calcularRecords();
+  const d = recordsCalculo;
+
+  if (!d) {
+    box.className = "";
+    box.innerHTML = `<div class="panel coming-soon"><h2 class="section-title" style="margin-top:0;">Records de la temporada</h2>
+      <p class="hint">Hacen falta los cuadros de cada partido. Entra una vez en el menu Estadisticas y vuelve aqui.</p></div>`;
+    return;
+  }
+
+  box.className = "";
+  const equipoFila = (lista, sufijo) => lista.map((x, i) => `<tr>
+    <td class="equipo">${i + 1}</td>
+    <td style="text-align:left;">${escudoImgHtml(x.equipo, 20)}${escapeHtml(x.equipo)}</td>
+    <td><b>${fmtNum(x.valor)}</b>${sufijo || ""}</td>
+    <td style="text-align:left;">${escapeHtml(x.ctx.texto)}</td></tr>`).join("");
+
+  const dueloFila = (lista, clave) => lista.map((x, i) => `<tr>
+    <td class="equipo">${i + 1}</td>
+    <td style="text-align:left;">${escapeHtml(x.gana)} <span class="hint">${escapeHtml(x.marcador)}</span> ${escapeHtml(x.pierde)}</td>
+    <td><b>${fmtNum(x[clave])}</b></td>
+    <td>${escapeHtml(x.fecha)}</td></tr>`).join("");
+
+  box.innerHTML = `
+    <div class="panel">
+      <h2 class="section-title" style="margin-top:0;">Records de la temporada</h2>
+      <p class="hint" style="margin-top:-6px;">La mejor actuacion en un solo partido, sacada de los ${d.totalPartidos}
+        partidos con cuadro estadistico. Pulsa un nombre para abrir su perfil.</p>
+      <div class="records-grid">
+        ${d.individuales.map(x => tarjetaRecordHtml(x.def, x.lista)).join("")}
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <h3 class="section-title">Records de equipo en un partido</h3>
+      <div class="records-tablas">
+        <div>
+          <h4 style="margin:0 0 8px;">Mas puntos anotados</h4>
+          <div class="table-scroll"><table class="limpia"><thead><tr>
+            <th class="equipo" style="width:40px;">#</th><th style="text-align:left;">Equipo</th>
+            <th>Puntos</th><th style="text-align:left;">Partido</th></tr></thead>
+            <tbody>${equipoFila(d.equipoPt)}</tbody></table></div>
+        </div>
+        <div>
+          <h4 style="margin:0 0 8px;">Mas triples anotados</h4>
+          <div class="table-scroll"><table class="limpia"><thead><tr>
+            <th class="equipo" style="width:40px;">#</th><th style="text-align:left;">Equipo</th>
+            <th>Triples</th><th style="text-align:left;">Partido</th></tr></thead>
+            <tbody>${equipoFila(d.equipoT3)}</tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <h3 class="section-title">Partidos para recordar</h3>
+      <div class="records-tablas">
+        <div>
+          <h4 style="margin:0 0 8px;">Mas puntos entre los dos equipos</h4>
+          <div class="table-scroll"><table class="limpia"><thead><tr>
+            <th class="equipo" style="width:40px;">#</th><th style="text-align:left;">Partido</th>
+            <th>Total</th><th>Fecha</th></tr></thead>
+            <tbody>${dueloFila(d.masPuntos, "suma")}</tbody></table></div>
+        </div>
+        <div>
+          <h4 style="margin:0 0 8px;">Mayor diferencia</h4>
+          <div class="table-scroll"><table class="limpia"><thead><tr>
+            <th class="equipo" style="width:40px;">#</th><th style="text-align:left;">Partido</th>
+            <th>Dif.</th><th>Fecha</th></tr></thead>
+            <tbody>${dueloFila(d.masDiferencia, "dif")}</tbody></table></div>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:10px;">Solo cuentan los partidos cuyo cuadro estadistico esta descargado.
+        Si falta alguno, aparecera en cuanto la actualizacion automatica lo recoja.</p>
+    </div>`;
+  wireRankClicks(box);
+}
+
+async function cargarRecords() {
+  const box = document.getElementById("recordsContent");
+  if (!box) return;
+  if (!partidosCache) {
+    box.className = "status";
+    box.textContent = "Leyendo los cuadros de cada partido...";
+    try { partidosCache = await fetchSheetTab("Partidos_Estadisticas", null, 60000); }
+    catch (e) {
+      box.className = "";
+      box.innerHTML = `<div class="panel coming-soon"><h2 class="section-title" style="margin-top:0;">Records de la temporada</h2>
+        <p class="hint">No se pudo leer la pestaña Partidos_Estadisticas. Detalle: ${escapeHtml(String(e && e.message ? e.message : e))}</p></div>`;
+      return;
+    }
+  }
+  renderRecords();
+}
+
+/* ============================================================
    DIAGNOSTICO DE TEMPORADA
    Cada metrica se compara con el resto del grupo: puesto,
    media y percentil. Con eso se escribe un resumen en lenguaje
@@ -8838,6 +9083,7 @@ const BLOQUES_INFORME = [
   { id: "rankings",      nombre: "Rankings de jugadoras",          grupo: "Liga",      vista: "rankings",      sel: "#view-rankings" },
   { id: "quintetosLiga", nombre: "Quintetos y combinaciones",      grupo: "Liga",      vista: "quintetos",     sel: "#quintetosContent",  espera: 1800 },
   { id: "fichajes",      nombre: "Fichajes a futuro",              grupo: "Liga",      vista: "fichajes",      sel: "#fichajesContent" },
+  { id: "records",       nombre: "Records de la temporada",        grupo: "Liga",      vista: "records",       sel: "#recordsContent", espera: 1800 },
   { id: "miEquipo",      nombre: "Panel de mi equipo",             grupo: "Mi equipo", vista: "mi-equipo",     sel: "#miEquipoContent",   espera: 1200 },
 
   { id: "diagnostico", nombre: "Diagnostico de temporada (percentiles y resumen)", grupo: "Equipo", param: "equipo",
@@ -9773,7 +10019,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-18";
+const VERSION_APP = "2026-10-19";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
