@@ -578,16 +578,11 @@ def _paginas_por_fase(url: str, solo_liga_regular: bool = True):
             r2 = _request_con_reintentos(s2, "GET", url)
             soup2 = BeautifulSoup(r2.text, "html.parser")
             post_url = _url_formulario(soup2, r2.url)
-            # Siempre se hace el postback, incluso si la fase ya viene elegida:
-            # la pagina recien cargada no trae la tabla de clasificacion, solo
-            # aparece despues de usar el desplegable. Si el postback falla se
-            # usa la pagina tal cual.
-            try:
-                html = _cambiar_desplegable(s2, post_url, soup2, campo, target, valor)
-                if not html or len(html) < 1000:
-                    raise ValueError("respuesta vacia")
-            except Exception:  # noqa: BLE001
+            sel2 = _desplegable_fases(soup2)
+            if sel2 is not None and _valor_seleccionado(sel2) == valor:
                 html = r2.text
+            else:
+                html = _cambiar_desplegable(s2, post_url, soup2, campo, target, valor)
             yield texto, _nombre_grupo(texto), s2, html, post_url
         except Exception as exc:  # noqa: BLE001
             print(f"  Aviso: no se pudo abrir la fase '{texto}': {exc}", file=sys.stderr)
@@ -876,6 +871,37 @@ def _clave_fecha(fila: dict):
         return (1, datetime.max)
 
 
+def _clasificacion_forzando_desplegable(url: str, texto_fase: str) -> pd.DataFrame:
+    """La pagina de resultados no trae la tabla de clasificacion al abrirla:
+    solo la dibuja cuando el desplegable de fases CAMBIA de valor. Para la fase
+    que viene elegida por defecto hay que ir primero a otra fase y volver."""
+    try:
+        s = requests.Session()
+        r = _request_con_reintentos(s, "GET", url)
+        soup = BeautifulSoup(r.text, "html.parser")
+        sel = _desplegable_fases(soup)
+        if sel is None:
+            return pd.DataFrame()
+        campo, target = sel.get("name"), _target_postback(sel)
+        post_url = _url_formulario(soup, r.url)
+        opciones = _opciones(sel)
+        valor = next((v for v, t in opciones if t == texto_fase), None)
+        if valor is None:
+            return pd.DataFrame()
+        otros = [v for v, t in opciones if v != valor]
+        if not otros:
+            return pd.DataFrame()
+        # 1) ir a otra fase  2) volver a la nuestra -> ahora si la dibuja
+        html = _cambiar_desplegable(s, post_url, soup, campo, target, otros[0])
+        soup = BeautifulSoup(html, "html.parser")
+        html = _cambiar_desplegable(s, post_url, soup, campo, target, valor)
+        return _parse_resultados_html(html, texto_fase, _nombre_grupo(texto_fase))[1]
+    except Exception as exc:  # noqa: BLE001
+        print(f"  Aviso: no se pudo recuperar la clasificacion de '{texto_fase}': {exc}",
+              file=sys.stderr)
+        return pd.DataFrame()
+
+
 def fetch_resultados_y_clasificacion(url: str) -> tuple:
     """Resultados de TODAS las fases y jornadas + Clasificacion de cada grupo
     + Clasificacion final (si la FEB la publica)."""
@@ -887,6 +913,11 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
         try:
             soup = BeautifulSoup(html, "html.parser")
             filas, clasif, final = _parse_resultados_html(html, fase, grupo)
+            if clasif.empty and fase:
+                clasif = _clasificacion_forzando_desplegable(url, fase)
+                if not clasif.empty:
+                    print(f"  [clasificacion] {fase}: recuperada con el desplegable",
+                          file=sys.stderr)
             if not clasif.empty and (grupo or not fase):
                 if grupo:
                     clasif.insert(0, "Grupo", grupo)
