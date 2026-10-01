@@ -261,7 +261,7 @@
   tr.media-row{border-bottom:1px solid var(--wood-line);}
   td.row-label{width:1%;white-space:nowrap;font-weight:600;color:var(--ink-soft);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;}
   tr.media-row td.row-label{font-style:normal;}
-  .photo-cell img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid var(--wood-line);display:block;background:var(--wood);}
+  .photo-cell img{width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:top center;border:1.5px solid var(--wood-line);display:block;background:var(--wood);}
   .photo-cell .placeholder{width:34px;height:34px;border-radius:50%;background:var(--wood-line);}
   .check{width:16px;height:16px;accent-color:var(--orange);cursor:pointer;}
   .compare-bar{
@@ -641,6 +641,9 @@
   .evoj td, .evoj th{padding:6px 4px;white-space:nowrap;}
   .evoj td:nth-child(2), .evoj th:nth-child(2){white-space:normal;}
   @media (max-width:700px){ .evoj-grafico{height:200px;} }
+
+  .btn-partido.secundario{background:var(--white);color:var(--ink);border:1.5px solid var(--wood-line);}
+  .btn-partido.secundario:hover{border-color:var(--orange);color:var(--orange-dark);}
 
   /* --- Tiros en el scouting --- */
   .datos-jug.tiros-jug{margin-top:7px;}
@@ -1040,7 +1043,7 @@
   .perfiles-plantilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
   .tarjeta-perfil{border:1.5px solid var(--wood-line);border-radius:10px;padding:14px;background:var(--white);}
   .tarjeta-perfil .p-cab{display:flex;gap:12px;align-items:center;margin-bottom:10px;}
-  .tarjeta-perfil .p-cab img, .tarjeta-perfil .p-sinfoto{width:54px;height:54px;border-radius:50%;object-fit:cover;object-position:top center;background:var(--barra);flex:none;}
+  .tarjeta-perfil .p-cab img, .tarjeta-perfil .p-sinfoto{width:48px;height:72px;border-radius:8px;object-fit:cover;object-position:top center;background:var(--barra);flex:none;}
   .tarjeta-perfil .p-sinfoto{display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;color:var(--ink-soft);}
   .tarjeta-perfil .p-cab b{cursor:pointer;font-size:14.5px;overflow-wrap:anywhere;}
   .p-datos{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;}
@@ -1140,7 +1143,7 @@
   .rank-row:hover{background:var(--hover);}
   .rank-pos{width:26px;text-align:center;font-weight:700;color:var(--ink-soft);}
   .rank-row.top1 .rank-pos, .rank-row.top2 .rank-pos, .rank-row.top3 .rank-pos{font-size:18px;}
-  .rank-photo img, .rank-photo .placeholder{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--wood-line);}
+  .rank-photo img, .rank-photo .placeholder{width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;background:var(--wood-line);}
   .rank-name{font-weight:700;flex:1;cursor:pointer;}
   .rank-name .team{font-weight:400;color:var(--ink-soft);font-size:12px;display:block;}
   .rank-value{font-family:'Archivo Black',sans-serif;font-size:18px;color:var(--orange-dark);}
@@ -1149,8 +1152,10 @@
   .hero-jug{display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;
     background:linear-gradient(135deg, var(--ink) 0%, #263447 100%);color:var(--white);border-radius:12px;padding:20px 24px;}
   .hj-foto{position:relative;flex:none;}
-  .hj-foto img, .hj-foto .placeholder{width:104px;height:104px;border-radius:12px;object-fit:cover;object-position:top center;background:#3a475c;}
-  .hj-foto .placeholder{display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:30px;color:#c7cedb;}
+  /* Las fotos de la FEB son 200x300 (vertical). Un recuadro 96x144 mantiene
+     esa proporcion: no recorta nada y se ve nitida en pantallas Retina. */
+  .hj-foto img, .hj-foto .placeholder{width:96px;height:144px;border-radius:12px;object-fit:cover;object-position:top center;background:#3a475c;}
+  .hj-foto .placeholder{display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:34px;color:#c7cedb;}
   .hj-dorsal{position:absolute;right:-8px;bottom:-8px;background:var(--orange);color:#fff;border-radius:8px;
     padding:2px 9px;font-family:'Archivo Black',sans-serif;font-size:15px;}
   .hj-info h2{margin:0 0 4px;font-size:26px;line-height:1.1;}
@@ -1174,7 +1179,7 @@
   .kpi-jug .p.alto{color:var(--verde);font-weight:800;}
   .kpi-jug .p.bajo{color:var(--rojo);font-weight:800;}
   .profile-hero{display:flex;align-items:center;gap:18px;background:linear-gradient(135deg, var(--ink) 0%, #263447 100%);color:var(--white);border-radius:10px;padding:24px;margin-bottom:18px;flex-wrap:wrap;box-shadow:5px 5px 0 rgba(27,36,50,0.1);}
-  .profile-hero img, .profile-hero .placeholder{width:76px;height:76px;border-radius:50%;object-fit:cover;background:var(--orange);border:3px solid var(--white);}
+  .profile-hero img, .profile-hero .placeholder{width:76px;height:76px;border-radius:50%;object-fit:cover;object-position:top center;background:var(--orange);border:3px solid var(--white);}
   .profile-hero .sub img{width:18px;height:18px;border:none;border-radius:0;background:none;}
   .profile-hero .placeholder{display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:26px;}
   .profile-hero h2{font-family:'Archivo Black',sans-serif;font-size:28px;margin:0;letter-spacing:-0.3px;}
@@ -1310,7 +1315,7 @@
 
   .compare-heads{display:flex;align-items:center;justify-content:center;gap:22px;margin-bottom:16px;flex-wrap:wrap;}
   .compare-head{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:100px;}
-  .compare-head img, .compare-head .placeholder{width:56px;height:56px;border-radius:50%;object-fit:cover;background:var(--wood-line);}
+  .compare-head img, .compare-head .placeholder{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:top center;background:var(--wood-line);}
   .compare-head .placeholder{display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;color:var(--ink-soft);}
   .compare-head .name{font-weight:700;font-size:13.5px;text-align:center;max-width:140px;}
   .compare-head .team{font-size:11.5px;color:var(--ink-soft);}
@@ -1461,6 +1466,7 @@
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="back-btn" data-back="jugadoras">&larr; Volver a Jugadoras</button>
       <button class="btn-partido" id="btnFichaje" style="margin-bottom:14px;">+ Anadir a fichajes</button>
+      <button class="btn-partido secundario" id="btnFotoJugadora" style="margin-bottom:14px;">Cambiar foto</button>
     </div>
     <div id="jugadoraDetailContent"></div>
   </section>
@@ -2421,11 +2427,12 @@ function rankRowHtml(row, index, valueCol, nameCol, teamCol) {
   const pos = index + 1;
   const medal = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : pos;
   const cls = pos <= 3 ? `top${pos}` : "";
-  const url = row["FotoURL"] ? row["FotoURL"].display : "";
+  const url = fotoJugadora(cellText(row, "Jugador"), cellText(row, "Equipo"),
+    row["FotoURL"] ? row["FotoURL"].display : "");
   const valueCell = valueCol === "Media" ? mediaOf(row) : row[valueCol];
   return `<div class="rank-row ${cls}">
     <div class="rank-pos">${medal}</div>
-    <div class="rank-photo">${url ? `<img src="${escapeAttr(url)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder'}))">` : `<div class="placeholder"></div>`}</div>
+    <div class="rank-photo">${url ? `<img loading="lazy" decoding="async" src="${escapeAttr(url)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder'}))">` : `<div class="placeholder"></div>`}</div>
     <div class="rank-name" data-player="${escapeAttr(row[nameCol] ? row[nameCol].display : "")}">${escapeHtml(row[nameCol] ? row[nameCol].display : "")}
       <span class="team">${escapeHtml(row[teamCol] ? row[teamCol].display : "")}</span>
     </div>
@@ -2926,7 +2933,8 @@ function showEquipoDetail(teamName) {
 function showJugadoraDetail(playerName) {
   const row = jugadoras.rows.find(r => r["Jugador"] && r["Jugador"].display === playerName);
   if (!row) { if (grupoActivo) { setGrupo(""); showJugadoraDetail(playerName); } return; }
-  const url = row["FotoURL"] ? row["FotoURL"].display : "";
+  const url = fotoJugadora(playerName, row["Equipo"] ? row["Equipo"].display : "",
+    row["FotoURL"] ? row["FotoURL"].display : "");
 
   const sorted = [...jugadoras.rows].filter(r => mediaOf(r) && mediaOf(r).numeric !== null).sort((a, b) => mediaOf(b).numeric - mediaOf(a).numeric);
   const posicionLiga = sorted.findIndex(r => r["Jugador"] && r["Jugador"].display === playerName) + 1;
@@ -3112,6 +3120,36 @@ function showJugadoraDetail(playerName) {
     };
     pintar();
     btnFich.onclick = () => { alternarFichaje(playerName, equipoJ); pintar(); };
+  }
+  const btnFoto = document.getElementById("btnFotoJugadora");
+  if (btnFoto) {
+    const equipoJ = row["Equipo"] ? row["Equipo"].display : "";
+    const tienePropia = !!fotosPropias[claveFoto(playerName, equipoJ)];
+    btnFoto.textContent = tienePropia ? "Quitar mi foto" : "Cambiar foto";
+    btnFoto.onclick = () => {
+      // Al cambiar la foto hay que repintar tambien las listas ya dibujadas
+      const refrescar = () => {
+        try { if (typeof renderJugadorasCompletas === "function") renderJugadorasCompletas(); } catch (e) { /* nada */ }
+        showJugadoraDetail(playerName);
+      };
+      if (tienePropia) {
+        guardarFotoPropia(playerName, equipoJ, "");
+        refrescar();
+        return;
+      }
+      const url = prompt(
+        "Pega la direccion de una foto (debe empezar por https:// y acabar en .jpg, .png o .webp).\n\n" +
+        "Truco: en cualquier web, boton derecho sobre la foto y 'Copiar direccion de la imagen'.",
+        "");
+      if (!url) return;
+      const limpia = url.trim();
+      if (!/^https:\/\//i.test(limpia)) {
+        alert("La direccion tiene que empezar por https://");
+        return;
+      }
+      guardarFotoPropia(playerName, equipoJ, limpia);
+      refrescar();
+    };
   }
   ajustarBotonVolver("jugadora-detail"); showView("jugadora-detail");
 }
@@ -3366,9 +3404,9 @@ function renderJugadorasCompletas() {
   rows.forEach(r => {
     const key = keyOf(r);
     const checked = selectedPlayers.has(key) ? "checked" : "";
-    const url = r["FotoURL"] ? r["FotoURL"].display : "";
     const name = r["Jugador"] ? r["Jugador"].display : "";
     const team = r["Equipo"] ? r["Equipo"].display : "";
+    const url = fotoJugadora(name, team, r["FotoURL"] ? r["FotoURL"].display : "");
     html += `<tr>
       <td><input type="checkbox" class="check" data-key="${escapeAttr(key)}" ${checked}></td>
       <td class="photo-cell">${url ? `<img src="${escapeAttr(url)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder'}))">` : `<div class="placeholder"></div>`}</td>
@@ -4646,6 +4684,31 @@ let cargandoPartidosInforme = false;
 // La FEB no escribe igual los nombres en los rankings ("SERRANO GARCIA, INES")
 // que en el cuadro del partido ("I. SERRANO GARCIA"). Se cruzan por el primer
 // apellido y la inicial del nombre.
+/* ============================================================
+   FOTOS DE LAS JUGADORAS
+   Las que publica la FEB son pequeñas. Aqui se pueden sustituir
+   por otra imagen, que se guarda en este navegador.
+   ============================================================ */
+let fotosPropias = {};
+try { fotosPropias = JSON.parse(localStorage.getItem("lf2_fotos") || "{}"); }
+catch (e) { fotosPropias = {}; }
+
+function claveFoto(nombre, equipo) {
+  return String(nombre || "").trim().toUpperCase() + "|" + normalizarEquipo(equipoOficial(equipo));
+}
+
+// Devuelve la foto que toca: la tuya si la has puesto, si no la de la FEB
+function fotoJugadora(nombre, equipo, original) {
+  const propia = fotosPropias[claveFoto(nombre, equipo)];
+  return propia || original || "";
+}
+
+function guardarFotoPropia(nombre, equipo, url) {
+  const k = claveFoto(nombre, equipo);
+  if (url) fotosPropias[k] = url; else delete fotosPropias[k];
+  try { localStorage.setItem("lf2_fotos", JSON.stringify(fotosPropias)); } catch (e) { /* sin guardar */ }
+}
+
 function clavesNombre(txt, equipo) {
   const limpio = String(txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .toUpperCase().replace(/[^A-Z, ]/g, " ").replace(/\s+/g, " ").trim();
@@ -4813,7 +4876,7 @@ function estadisticasJugadora(nombre, equipo) {
 
   salida.dorsal = dorsalDe(nombre, equipo);
   const fila = filaJugadoraEn(jugadoras, nombre, equipo) || filaJugadoraEn(rankingExtra["Valoracion"], nombre, equipo);
-  salida.foto = fila && fila["FotoURL"] ? fila["FotoURL"].display : "";
+  salida.foto = fotoJugadora(nombre, equipo, fila && fila["FotoURL"] ? fila["FotoURL"].display : "");
   salida.partidos = fila && fila["Part"] ? fila["Part"].display : "";
   return salida;
 }
@@ -4914,7 +4977,7 @@ function plantillaHtml(nombre) {
     </tr></thead><tbody>
     ${filas.map(f => `<tr>
       <td class="equipo"><b class="rank-name" data-player="${escapeAttr(f.jugadora)}">
-        ${f.foto ? `<img class="foto-mini" src="${escapeAttr(f.foto)}" onerror="this.style.display='none'" alt="">`
+        ${f.foto ? `<img class="foto-mini" loading="lazy" decoding="async" src="${escapeAttr(f.foto)}" onerror="this.style.display='none'" alt="">`
                  : `<span class="foto-mini sin">${escapeHtml(f.jugadora.slice(0, 2).toUpperCase())}</span>`}
         ${f.dorsal ? `<span class="dorsal">${escapeHtml(f.dorsal)}</span>` : ""}
         <span class="txt">${escapeHtml(f.jugadora)}</span></b></td>
@@ -6833,9 +6896,10 @@ function fotoDeJugadora(nombre, equipo) {
   for (const datos of fuentes) {
     if (!datos || !datos.rows) continue;
     const fila = datos.rows.find(r => clavesNombre(cellText(r, "Jugador"), cellText(r, "Equipo")).some(c => busca.includes(c)));
-    if (fila && fila["FotoURL"] && fila["FotoURL"].display) return fila["FotoURL"].display;
+    if (fila && fila["FotoURL"] && fila["FotoURL"].display)
+      return fotoJugadora(nombre, equipo, fila["FotoURL"].display);
   }
-  return "";
+  return fotoJugadora(nombre, equipo, "");
 }
 
 function fichaGrandeHtml(c) {
@@ -9701,7 +9765,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-15";
+const VERSION_APP = "2026-10-17";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
