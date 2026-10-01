@@ -135,12 +135,7 @@ def _request_con_reintentos(session, method, url, **kwargs):
 def fetch_tables(url: str) -> list[pd.DataFrame]:
     """Descarga una URL y devuelve todas las tablas HTML como DataFrames."""
     resp = _request_con_reintentos(requests.Session(), "GET", url)
-    try:
-        # io.StringIO: las versiones recientes de pandas no aceptan HTML "a pelo"
-        tables = pd.read_html(io.StringIO(resp.text))
-    except ValueError:
-        tables = []
-    return tables
+    return leer_tablas(resp.text)
 
 
 def get_formula_separator(sh: gspread.Spreadsheet) -> str:
@@ -1107,16 +1102,60 @@ def fetch_team_ids(url: str) -> dict:
     return _team_ids_de_html(resp.text)
 
 
+def _tabla_a_dataframe(tabla) -> pd.DataFrame:
+    """Convierte una <table> en DataFrame usando solo BeautifulSoup."""
+    filas = []
+    for tr in tabla.find_all("tr"):
+        celdas = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
+        if celdas:
+            filas.append(celdas)
+    if len(filas) < 2:
+        return pd.DataFrame()
+    ancho = max(len(f) for f in filas)
+    filas = [f + [""] * (ancho - len(f)) for f in filas]
+
+    columnas, vistos = [], {}
+    for i, texto in enumerate(filas[0]):
+        nombre = texto or f"col_{i}"
+        if nombre in vistos:
+            vistos[nombre] += 1
+            nombre = f"{nombre}.{vistos[nombre]}"
+        else:
+            vistos[nombre] = 0
+        columnas.append(nombre)
+    return pd.DataFrame(filas[1:], columns=columnas)
+
+
+def leer_tablas(html: str) -> list:
+    """Tablas de una pagina. Usa pandas si tiene parser instalado y, si no,
+    BeautifulSoup, que ya hace falta para el resto del script. Asi una libreria
+    opcional que falte no tumba toda la ejecucion."""
+    try:
+        return pd.read_html(io.StringIO(html))
+    except (ValueError, ImportError) as exc:
+        if isinstance(exc, ImportError):
+            print("  [tablas] pandas no tiene parser de HTML; se usa BeautifulSoup",
+                  file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001
+        print(f"  [tablas] pandas no pudo leer la pagina ({exc}); se usa BeautifulSoup",
+              file=sys.stderr)
+
+    soup = BeautifulSoup(html, "html.parser")
+    salida = []
+    for t in soup.find_all("table"):
+        df = _tabla_a_dataframe(t)
+        if not df.empty:
+            salida.append(df)
+    return salida
+
+
 def fetch_equipos_por_grupo(url: str) -> tuple:
     """Estadisticas de equipo de TODOS los grupos de la liga regular.
     Devuelve (df_equipos, ids_equipo, tablas_extra)."""
     frames, team_ids, extras = [], {}, []
     for fase, grupo, session, html, post_url in _paginas_por_fase(url):
         team_ids.update(_team_ids_de_html(html))
-        try:
-            tablas = pd.read_html(io.StringIO(html))
-        except ValueError:
-            tablas = []
+        tablas = leer_tablas(html)
         if not tablas:
             continue
         df = clean_dataframe(tablas[0])
