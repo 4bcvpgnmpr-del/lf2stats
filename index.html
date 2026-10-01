@@ -416,8 +416,12 @@
   .adn-valor.alto{color:var(--verde);}
   .adn-valor.bajo{color:var(--rojo);}
   .resumen-jug{margin-top:12px;background:var(--suave);border-left:4px solid var(--orange);border-radius:6px;padding:10px 14px;font-size:14px;}
-  .carta-wrap{display:grid;grid-template-columns:minmax(300px,480px) 1fr;gap:20px;align-items:start;}
-  @media (max-width:860px){ .carta-wrap{grid-template-columns:1fr;} }
+  /* La pista al lado de los datos solo cabe en pantallas anchas: la tabla de
+     zonas con puntos por tiro necesita su espacio o se corta por la derecha. */
+  .carta-wrap{display:grid;grid-template-columns:1fr;gap:20px;align-items:start;}
+  .carta-wrap > *{min-width:0;}
+  .carta-wrap svg.carta{max-width:480px;}
+  @media (min-width:1250px){ .carta-wrap{grid-template-columns:minmax(300px,440px) 1fr;} }
   svg.carta{width:100%;height:auto;border-radius:10px;shape-rendering:geometricPrecision;}
   svg.carta .madera{fill:var(--madera);}
   svg.carta .linea{fill:none;stroke:var(--linea-pista);stroke-width:2.5;stroke-linejoin:round;}
@@ -651,6 +655,24 @@
 
   .btn-partido.secundario{background:var(--white);color:var(--ink);border:1.5px solid var(--wood-line);}
   .btn-partido.secundario:hover{border-color:var(--orange);color:var(--orange-dark);}
+
+  /* --- Zonas de tiro con puntos por tiro --- */
+  table.tabla-zonas td.z-vol{min-width:120px;}
+  table.tabla-zonas .barra-zona{display:inline-block;width:72px;vertical-align:middle;}
+  table.tabla-zonas .barra-zona.alto span{background:var(--verde);}
+  table.tabla-zonas .barra-zona.bajo span{background:var(--rojo);}
+  table.tabla-zonas .z-share{font-size:11px;color:var(--ink-soft);margin-left:6px;}
+  table.tabla-zonas td.z-pps{font-weight:800;}
+  .zonas-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-top:14px;}
+  .zc{border-radius:11px;padding:12px 14px;border:1.5px solid var(--wood-line);}
+  .zc.verde{background:var(--verde-suave);border-color:var(--verde-linea);}
+  .zc.roja{background:var(--rojo-suave);border-color:#f0cdbe;}
+  .zc.naranja{background:#fdf2e6;border-color:#f3dcc0;}
+  .zc-tit{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
+  .zc-num{font-family:'Archivo Black',sans-serif;font-size:27px;line-height:1.15;margin:3px 0 2px;}
+  .zc.verde .zc-num{color:var(--verde);} .zc.roja .zc-num{color:var(--rojo);} .zc.naranja .zc-num{color:var(--orange-dark);}
+  .zc-txt{font-size:11.5px;color:var(--ink-soft);line-height:1.45;}
+  [data-tema="oscuro"] .zc.naranja{background:#33281c;border-color:#5a4730;}
 
   /* --- Records --- */
   .records-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:14px;margin-top:14px;}
@@ -7631,27 +7653,102 @@ function cartaSvg(tiros, modo) {
   </svg>`;
 }
 
-function tablaZonas(tiros) {
+// Puntos por tiro de cada zona: el criterio que de verdad decide donde tirar.
+// Un 33% desde el triple (1,00 pts/tiro) vale mas que un 45% de media distancia (0,90).
+function valorZona(zona) { return zona.startsWith("Triple") ? 3 : 2; }
+
+function datosZonas(tiros) {
   const porZona = {};
   tiros.forEach(t => {
     const z = zonaDelTiro(t);
-    const d = porZona[z] || (porZona[z] = { a: 0, i: 0 });
+    const d = porZona[z] || (porZona[z] = { zona: z, a: 0, i: 0 });
     d.i++; if (t.anotado) d.a++;
   });
+  const total = tiros.length || 1;
+  return Object.values(porZona).map(d => ({
+    ...d,
+    pct: Math.round(d.a / d.i * 1000) / 10,
+    share: Math.round(d.i / total * 1000) / 10,
+    pps: Math.round(d.a * valorZona(d.zona) / d.i * 100) / 100,
+  })).sort((x, y) => y.i - x.i);
+}
+
+function nivelPps(pps) {
+  if (pps >= 1.05) return "alto";
+  if (pps <= 0.85) return "bajo";
+  return "medio";
+}
+
+function tablaZonas(tiros) {
+  const zonas = datosZonas(tiros);
+  if (!zonas.length) return "";
   const total = tiros.length;
-  const filas = ORDEN_ZONAS.filter(z => porZona[z]).map(z => {
-    const d = porZona[z];
-    const pct = Math.round(d.a / d.i * 1000) / 10;
-    const share = Math.round(d.i / total * 1000) / 10;
-    const nivel = pct >= 45 ? "alto" : (pct <= 25 ? "bajo" : "medio");
-    return `<tr><td class="equipo">${escapeHtml(z)}</td>
-      <td>${d.a}/${d.i}</td>
-      <td class="${nivel === "alto" ? "bueno" : (nivel === "bajo" ? "malo" : "")}">${fmtNum(pct)}%</td>
-      <td><div class="barra-zona"><span style="width:${share}%"></span></div><span class="pct-reb">(${fmtNum(share)}% de sus tiros)</span></td></tr>`;
+  const maxShare = Math.max(...zonas.map(z => z.share), 1);
+
+  const filas = zonas.map(z => {
+    const nivel = nivelPps(z.pps);
+    return `<tr>
+      <td class="equipo">${escapeHtml(z.zona)}</td>
+      <td class="z-vol">
+        <div class="barra-zona ${nivel}"><span style="width:${Math.round(z.share / maxShare * 100)}%"></span></div>
+        <span class="z-share">${fmtNum(z.share)}%</span></td>
+      <td>${z.a}/${z.i}</td>
+      <td>${fmtNum(z.pct)}%</td>
+      <td class="z-pps ${nivel === "alto" ? "bueno" : (nivel === "bajo" ? "malo" : "")}">${fmtNum(z.pps)}</td>
+    </tr>`;
   }).join("");
-  return `<div class="table-scroll"><table class="limpia"><thead><tr>
-      <th class="equipo">Zona</th><th>Acierto</th><th>%</th><th>Volumen</th></tr></thead>
-      <tbody>${filas}</tbody></table></div>`;
+
+  // Para elegir la mejor y la peor zona hace falta muestra suficiente
+  const minimo = Math.max(12, Math.round(total * 0.06));
+  const conMuestra = zonas.filter(z => z.i >= minimo);
+  const base = conMuestra.length >= 2 ? conMuestra : zonas;
+  const porValor = [...base].sort((a, b) => b.pps - a.pps);
+  const mejor = porValor[0], peor = porValor[porValor.length - 1];
+
+  const triples = zonas.filter(z => z.zona.startsWith("Triple"));
+  const volTriple = Math.round(triples.reduce((s, z) => s + z.i, 0) / total * 1000) / 10;
+
+  // La zona con mas tiros pero poco valor es la que hay que corregir
+  const desperdicio = [...base].filter(z => z.pps < 0.95)
+    .sort((a, b) => b.i - a.i)[0];
+  const infrautilizada = [...base].filter(z => z.pps >= 1.0 && z.share < 15)
+    .sort((a, b) => b.pps - a.pps)[0];
+
+  const consejo = [];
+  if (desperdicio && desperdicio !== mejor) {
+    consejo.push(`${desperdicio.zona} se lleva el ${fmtNum(desperdicio.share)}% de los tiros y solo produce ${fmtNum(desperdicio.pps)} puntos por intento: es la primera candidata a recortar.`);
+  }
+  if (infrautilizada) {
+    consejo.push(`${infrautilizada.zona} rinde ${fmtNum(infrautilizada.pps)} puntos por tiro con solo el ${fmtNum(infrautilizada.share)}% del volumen: hay margen para buscarla mas.`);
+  }
+  if (!consejo.length) {
+    consejo.push("El reparto de tiros esta razonablemente alineado con el valor de cada zona.");
+  }
+
+  return `<div class="table-scroll"><table class="limpia tabla-zonas"><thead><tr>
+      <th class="equipo">Zona</th><th>Volumen</th><th>Acierto</th><th>%</th>
+      <th title="Puntos conseguidos por cada tiro intentado desde esa zona">Pts/tiro</th>
+      </tr></thead><tbody>${filas}</tbody></table></div>
+
+    <div class="zonas-cards">
+      <div class="zc verde"><div class="zc-tit">Zona de mas valor</div>
+        <div class="zc-num">${fmtNum(mejor.pps)}</div>
+        <div class="zc-txt">puntos por tiro en ${escapeHtml(mejor.zona.toLowerCase())} · ${mejor.a}/${mejor.i}</div></div>
+      <div class="zc roja"><div class="zc-tit">Zona de menos valor</div>
+        <div class="zc-num">${fmtNum(peor.pps)}</div>
+        <div class="zc-txt">puntos por tiro en ${escapeHtml(peor.zona.toLowerCase())} · ${peor.a}/${peor.i}</div></div>
+      <div class="zc naranja"><div class="zc-tit">Volumen de triple</div>
+        <div class="zc-num">${fmtNum(volTriple)}%</div>
+        <div class="zc-txt">de los tiros de campo se lanzan de tres</div></div>
+    </div>
+
+    <div class="diag-lectura" style="grid-template-columns:1fr;margin-top:14px;">
+      <div class="l-caja"><div class="l-tit">Decision de juego</div>
+        <div>${escapeHtml(consejo.join(" "))}</div></div>
+    </div>
+    <p class="hint" style="margin-top:10px;"><b>Puntos por tiro</b> es lo que produce cada intento desde esa zona
+      (anotados × su valor ÷ intentados). Un 33% de triple da 1,00 y un 45% de dos da 0,90: por eso el porcentaje
+      solo no basta para decidir desde donde tirar. Las zonas con menos de ${minimo} tiros no entran en el mejor/peor.</p>`;
 }
 
 function resumenCarta(tiros) {
@@ -10034,7 +10131,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-21";
+const VERSION_APP = "2026-10-22";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
