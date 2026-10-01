@@ -666,6 +666,7 @@
   .record .r-quien b:hover{color:var(--orange-dark);}
   .record .r-quien span{display:block;font-size:11.5px;color:var(--ink-soft);}
   .record .r-ctx{margin-top:2px;}
+  .record .r-det{color:var(--orange-dark) !important;font-weight:700;margin-top:2px;}
   .record .r-resto{list-style:none;margin:11px 0 0;padding:9px 0 0;border-top:1px solid var(--wood-line);
     display:flex;flex-direction:column;gap:5px;counter-reset:rec;}
   .record .r-resto li{display:flex;align-items:baseline;gap:7px;font-size:12px;}
@@ -8157,13 +8158,19 @@ function dibujarEvolucionJugadora(nombre, equipo) {
    sacadas de los cuadros de Partidos_Estadisticas.
    ============================================================ */
 const RECORDS_JUGADORA = [
-  { id: "pt",   titulo: "Mas puntos",        campo: "PT",   icono: "🏀", unidad: "puntos" },
-  { id: "reb",  titulo: "Mas rebotes",       campo: "REB_T", icono: "💪", unidad: "rebotes" },
-  { id: "as",   titulo: "Mas asistencias",   campo: "AS",   icono: "🎯", unidad: "asistencias" },
-  { id: "va",   titulo: "Mejor valoracion",  campo: "VA",   icono: "⭐", unidad: "de valoracion" },
-  { id: "br",   titulo: "Mas robos",         campo: "BR",   icono: "✋", unidad: "robos" },
-  { id: "tap",  titulo: "Mas tapones",       campo: "TAP_F", icono: "🚫", unidad: "tapones" },
-  { id: "mm",   titulo: "Mejor +/-",         campo: "MAS_MENOS", icono: "📈", unidad: "de diferencia" },
+  { id: "pt",   titulo: "Mas puntos",        campo: "PT",    icono: "🏀" },
+  { id: "t3",   titulo: "Mas triples",       icono: "🏹",
+    valorDe: (r) => paresTiro(r, "T3").a,
+    detalleDe: (r) => { const t = paresTiro(r, "T3"); return t.i ? `${t.a}/${t.i} desde el triple` : ""; } },
+  { id: "tl",   titulo: "Mas tiros libres",  icono: "🎯",
+    valorDe: (r) => paresTiro(r, "TL").a,
+    detalleDe: (r) => { const t = paresTiro(r, "TL"); return t.i ? `${t.a}/${t.i} desde la linea` : ""; } },
+  { id: "reb",  titulo: "Mas rebotes",       campo: "REB_T", icono: "💪" },
+  { id: "as",   titulo: "Mas asistencias",   campo: "AS",    icono: "🤝" },
+  { id: "va",   titulo: "Mejor valoracion",  campo: "VA",    icono: "⭐" },
+  { id: "br",   titulo: "Mas robos",         campo: "BR",    icono: "✋" },
+  { id: "tap",  titulo: "Mas tapones",       campo: "TAP_F", icono: "🚫" },
+  { id: "mm",   titulo: "Mejor +/-",         campo: "MAS_MENOS", icono: "📈" },
 ];
 
 let recordsCalculo = null;
@@ -8211,9 +8218,10 @@ function calcularRecords() {
     if (!jugadora) return;
 
     RECORDS_JUGADORA.forEach(d => {
-      const v = numDe(r, d.campo);
-      if (v === null || v === undefined) return;
+      const v = d.valorDe ? d.valorDe(r) : numDe(r, d.campo);
+      if (v === null || v === undefined || isNaN(v)) return;
       mejores[d.id].push({ jugadora, equipo, pid, valor: v,
+                           detalle: d.detalleDe ? d.detalleDe(r) : "",
                            min: cellText(r, "MIN"), pt: numDe(r, "PT") });
     });
   });
@@ -8267,6 +8275,7 @@ function tarjetaRecordHtml(def, lista) {
       <div class="r-quien">
         <b class="rank-name" data-player="${escapeAttr(lider.jugadora)}">${escapeHtml(lider.jugadora)}</b>
         <span>${escapeHtml(lider.equipo)}</span>
+        ${lider.detalle ? `<span class="r-det">${escapeHtml(lider.detalle)}</span>` : ""}
         <span class="r-ctx">${escapeHtml(lider.ctx.texto)}</span>
       </div>
     </div>
@@ -10019,7 +10028,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-19";
+const VERSION_APP = "2026-10-20";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
