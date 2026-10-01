@@ -3,7 +3,7 @@
    pero SIN guardar nunca datos viejos de Google Sheets ni de la FEB.
    Estrategia: red primero, y si no hay internet, lo guardado. */
 
-const CACHE = "lf2-stats-2026-10-10";
+const CACHE = "lf2-stats-2026-10-11";
 
 const BASICOS = [
   "./",

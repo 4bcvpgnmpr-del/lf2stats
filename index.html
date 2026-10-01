@@ -615,6 +615,15 @@
     .evo-grafico{height:200px;}
   }
 
+  /* --- Glosario --- */
+  .glos-lista{margin:10px 0 0;padding:0;}
+  .glos-item{padding:9px 0;border-top:1px solid var(--wood-line);}
+  .glos-item:first-child{border-top:0;}
+  .glos-item dt{font-size:13px;font-weight:800;margin:0;}
+  .glos-item dd{margin:3px 0 0;font-size:12.5px;line-height:1.6;color:var(--ink-soft);}
+  .glos-limites{margin:10px 0 0;padding-left:20px;font-size:12.5px;line-height:1.7;color:var(--ink-soft);}
+  .glos-limites li{margin-bottom:5px;}
+
   /* ============================================================
      CONSTRUCTOR DE INFORMES
      ============================================================ */
@@ -8171,6 +8180,54 @@ function bloqueEstilo(nombre) {
 }
 
 /* ============================================================
+   GLOSARIO Y LIMITES
+   Pagina final del informe: que significa cada metrica y que
+   NO dice el dato. Es texto fijo, no depende de la temporada.
+   ============================================================ */
+const GLOSARIO = [
+  ["Posesiones estimadas", "TCI − RO + BP + 0,44 × TLI, para los dos equipos. Es una aproximacion a partir del cuadro del partido, no un recuento real."],
+  ["ORtg / DRtg / Net Rating", "Puntos anotados, recibidos y la diferencia entre ambos por cada 100 posesiones estimadas. Permite comparar equipos que juegan a ritmos distintos."],
+  ["TS% (tiro verdadero)", "PT / (2 × (TCI + 0,44 × TLI)). Mide la eficiencia anotadora juntando tiros de dos, triples y tiros libres."],
+  ["eFG% (tiro de campo efectivo)", "(TCA + 0,5 × T3A) / TCI. Como el porcentaje de tiros de campo, pero dando al triple el valor que tiene."],
+  ["TOV% (perdidas)", "Perdidas por cada 100 posesiones. Cuanto menor, mejor."],
+  ["ORB% / DRB%", "Porcentaje de los rebotes disponibles que captura el equipo en ataque y en defensa. Un 70% defensivo significa que se queda 7 de cada 10 fallos del rival."],
+  ["FTr (tiros libres por tiro)", "TLI / TCI. Mide si el equipo ataca el aro y provoca contacto o resuelve desde fuera."],
+  ["Ritmo (pace)", "Posesiones por partido. Dice si el equipo corre o controla el tempo."],
+  ["Segundos por posesion", "2400 s / (2 × ritmo). Duracion media de cada jugada; el reloj de posesion son 24 s."],
+  ["Percentil (P0 a P100)", "Donde queda el equipo frente al resto de su grupo. P100 es el mejor y P0 el ultimo. En las metricas donde menos es mejor, la escala va girada."],
+  ["+/- y saldo", "Puntos a favor menos puntos en contra mientras esas jugadoras estaban en pista."],
+  ["Net/40", "El saldo llevado a un partido entero de 40 minutos, para poder comparar combinaciones que han jugado tiempos distintos."],
+  ["Quintetos", "Se reconstruyen con el jugada a jugada de la FEB. Solo se incluyen los partidos cuya reconstruccion se pudo validar."],
+  ["Clutch", "Ultimos 5 minutos del cuarto periodo o la prorroga, con una diferencia de 5 puntos o menos."],
+  ["Valoracion (VAL)", "La formula oficial de la FEB. Resume la aportacion en un numero, pero penaliza poco las perdidas y no mide la defensa sin balon."],
+];
+
+const LIMITES = [
+  "Las posesiones y los ratings son estimaciones calculadas con el cuadro de cada partido, no datos oficiales de la FEB. Sirven para comparar equipos entre si.",
+  "El jugada a jugada de la FEB no identifica emparejamientos defensivos, tipo de jugada ni calidad del contest. Nada de lo que hay aqui atribuye la defensa a una jugadora concreta.",
+  "Las combinaciones de jugadoras con pocos minutos son ruido: un triple cambia un Net Rating entero. Por eso en cada tabla se indica la muestra y se exigen minimos.",
+  "La FEB registra las asistencias de forma incompleta en algunos partidos, lo que puede infravalorar a las bases creadoras.",
+  "Donde no hay dato suficiente la app lo dice en vez de rellenar con un cero o una estimacion.",
+];
+
+function bloqueGlosario() {
+  return `<div class="glosario">
+    <h4 class="diag-sub" style="margin-top:0;">Que significa cada metrica</h4>
+    <dl class="glos-lista">
+      ${GLOSARIO.map(([t, d]) => `<div class="glos-item">
+        <dt>${escapeHtml(t)}</dt><dd>${escapeHtml(d)}</dd></div>`).join("")}
+    </dl>
+    <h4 class="diag-sub">Limites de este analisis</h4>
+    <ul class="glos-limites">${LIMITES.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>
+    <div class="diag-lectura" style="grid-template-columns:1fr;margin-top:18px;">
+      <div class="l-caja"><div class="l-tit">Como usar estos numeros</div>
+        <div>El dato localiza donde esta el problema; no dice por que ocurre. Antes de cambiar algo,
+        contrasta cada senal con el video y con lo que ves en el entrenamiento.</div></div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
    CONSTRUCTOR DE INFORMES
    Reutiliza las pantallas que ya existen: prepara la que haga
    falta, copia su contenido y lo pega en el informe. Los graficos
@@ -8209,6 +8266,7 @@ const BLOQUES_INFORME = [
   { id: "partidoReb",   nombre: "Solo rebotes del partido",  grupo: "Partido", param: "partido",
     prep: (v) => showPartidoDetail(v), sel: "#rebotesPartido", espera: 2600 },
 
+  { id: "glosario", nombre: "Glosario y limites del analisis", grupo: "Extras" },
   { id: "texto", nombre: "Texto libre (notas, conclusiones)", grupo: "Extras", param: "texto" },
   { id: "salto", nombre: "Salto de pagina",                   grupo: "Extras" },
 ];
@@ -8390,6 +8448,13 @@ async function prepararBloque(item) {
     const d = document.createElement("div");
     d.className = "inf-bloque";
     d.innerHTML = `<div class="panel"><div class="inf-nota">${escapeHtml(String(item.valor || ""))}</div></div>`;
+    return d;
+  }
+  if (b.id === "glosario") {
+    const d = document.createElement("div");
+    d.className = "inf-bloque";
+    d.innerHTML = `<div class="inf-etiqueta">Glosario y limites</div>
+      <div class="panel">${bloqueGlosario()}</div>`;
     return d;
   }
 
@@ -9061,7 +9126,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-10";
+const VERSION_APP = "2026-10-11";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
