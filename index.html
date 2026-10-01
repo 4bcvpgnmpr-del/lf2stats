@@ -648,6 +648,19 @@
   .chip.activa{background:var(--orange);border-color:var(--orange);color:var(--white);}
 
   /* --- Quintetos de un partido (post-partido) --- */
+  /* --- Aviso de fallo visible --- */
+  #avisoFallo{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:620px;
+    margin:0 auto;background:#fff5f2;border:2px solid #b4470f;border-radius:14px;
+    padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px;color:#4a1f0a;}
+  #avisoFallo .af-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  #avisoFallo .af-cab b{font-size:14px;color:#b4470f;}
+  #avisoFallo #afCerrar{border:none;background:transparent;font-size:22px;line-height:1;
+    cursor:pointer;color:#b4470f;padding:0 4px;}
+  #avisoFallo .af-item{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    background:#fff;border:1px solid #f0cdbe;border-radius:8px;padding:7px 9px;margin-top:8px;
+    word-break:break-word;}
+  #avisoFallo .af-pie{margin-top:9px;font-size:11.5px;opacity:.8;}
+
   .chips-qp{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;}
   .chips-qp .chip{display:inline-flex;align-items:center;padding:5px 11px;font-size:12.5px;}
   .chips-qp .chip img{margin-right:5px !important;}
@@ -8008,7 +8021,46 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-05";
+const VERSION_APP = "2026-10-06";
+
+/* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
+   Asi no hace falta abrir el panel de desarrollador para saber que paso. */
+(function () {
+  let yaMostrados = new Set();
+  function mostrarFallo(texto, donde) {
+    if (yaMostrados.has(texto) || yaMostrados.size > 6) return;
+    yaMostrados.add(texto);
+    let caja = document.getElementById("avisoFallo");
+    if (!caja) {
+      caja = document.createElement("div");
+      caja.id = "avisoFallo";
+      caja.innerHTML = '<div class="af-cab"><b>La app ha encontrado un fallo</b>' +
+        '<button type="button" id="afCerrar" aria-label="Cerrar">&times;</button></div><div class="af-lista"></div>' +
+        '<div class="af-pie">Haz una captura de este aviso: dice exactamente que se rompio.</div>';
+      document.body.appendChild(caja);
+      const btn = document.getElementById("afCerrar");
+      if (btn) btn.addEventListener("click", () => caja.remove());
+    }
+    const linea = document.createElement("div");
+    linea.className = "af-item";
+    linea.textContent = texto + (donde ? "  [" + donde + "]" : "");
+    caja.querySelector(".af-lista").appendChild(linea);
+  }
+
+  window.addEventListener("error", function (e) {
+    if (!e || !e.message) return;          // los fallos de descarga se ignoran aqui
+    const donde = e.lineno ? "linea " + e.lineno : "";
+    mostrarFallo(String(e.message), donde);
+  });
+
+  window.addEventListener("unhandledrejection", function (e) {
+    const r = e && e.reason;
+    const txt = r && r.message ? String(r.message) : String(r);
+    // Los avisos normales de "no llego a tiempo" no son fallos de la app
+    if (/TIMEOUT|SCRIPT_LOAD_ERROR|EMPTY/.test(txt)) return;
+    mostrarFallo(txt, "proceso en segundo plano");
+  });
+})();
 
 /* ---- App instalable (PWA): guarda la app en el movil/tablet ---- */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
