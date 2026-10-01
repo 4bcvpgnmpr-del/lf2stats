@@ -1198,6 +1198,166 @@ def add_escudos(df: pd.DataFrame, team_ids: dict, formula_sep: str = ";") -> pd.
 # solo se descargan los partidos que todavia NO estan en la pestaña.
 
 PARTIDO_URL = f"{BASE_URL}/Partido.aspx?p={{id}}"
+# ============================================================
+# PLANTILLAS OFICIALES (baloncestoenvivo.feb.es)
+# La web de resultados de la FEB no publica estadisticas hasta que se juega,
+# pero la ficha de cada equipo si trae la plantilla desde el primer dia:
+# nombre, dorsal, puesto, fecha de nacimiento, nacionalidad, altura y peso.
+# ============================================================
+BALONCESTO_BASE = "https://baloncestoenvivo.feb.es"
+
+# En ese sitio cada grupo es una "competicion" distinta: el A es la 9 y el B la 10.
+# Se puede cambiar con FEB_COMPETICIONES="A:9,B:10" por si la FEB renumera.
+def _competiciones_envivo() -> dict:
+    crudo = os.environ.get("FEB_COMPETICIONES", "A:9,B:10")
+    salida = {}
+    for trozo in crudo.split(","):
+        if ":" in trozo:
+            grupo, _, comp = trozo.partition(":")
+            grupo, comp = grupo.strip(), comp.strip()
+            if grupo and comp:
+                salida[grupo] = comp
+    return salida
+
+
+TAB_PLANTILLAS = "Plantillas"
+RE_FECHA = re.compile(r"(\d{2}/\d{2}/\d{4})")
+
+
+def _equipos_de_grupo_envivo(session, competicion: str) -> dict:
+    """{id_equipo: nombre} de un grupo, leyendo los enlaces de su calendario."""
+    url = f"{BALONCESTO_BASE}/resultados/{competicion}/{SEASON_START}"
+    try:
+        html = _request_con_reintentos(session, "GET", url).text
+    except Exception as exc:  # noqa: BLE001
+        print(f"  [plantillas] no se pudo abrir {url}: {exc}", file=sys.stderr)
+        return {}
+    soup = BeautifulSoup(html, "html.parser")
+    equipos = {}
+    for a in soup.find_all("a", href=True):
+        m = re.search(r"[?&]i=(\d+)", a["href"]) or re.search(r"/equipo/(\d+)", a["href"])
+        if not m:
+            continue
+        nombre = a.get_text(" ", strip=True)
+        if nombre and len(nombre) > 2:
+            equipos.setdefault(m.group(1), nombre)
+    return equipos
+
+
+def _celda_texto(celda) -> str:
+    txt = celda.get_text(" ", strip=True)
+    return "" if txt in ("-", "--") else txt
+
+
+def _plantilla_de_equipo(session, id_equipo: str) -> list:
+    """Filas de la plantilla de un equipo. Se busca la tabla por el nombre de
+    sus columnas, no por su posicion, para aguantar cambios en la web."""
+    url = f"{BALONCESTO_BASE}/equipo/{id_equipo}"
+    try:
+        html = _request_con_reintentos(session, "GET", url).text
+    except Exception as exc:  # noqa: BLE001
+        print(f"  [plantillas] equipo {id_equipo}: {exc}", file=sys.stderr)
+        return []
+
+    soup = BeautifulSoup(html, "html.parser")
+    quiero = {"nombre": "Jugadora", "puesto": "Puesto", "dorsal": "Dorsal",
+              "nacimiento": "Nacimiento", "nacionalidad": "Nacionalidad",
+              "altura": "Altura", "peso": "Peso"}
+
+    for tabla in soup.find_all("table"):
+        primera = tabla.find("tr")
+        if not primera:
+            continue
+        cabecera = [_sin_tildes(c.get_text(" ", strip=True)).lower()
+                    for c in primera.find_all(["th", "td"])]
+        if not any(c.startswith("nombre") for c in cabecera):
+            continue
+
+        indices = {}
+        for i, titulo in enumerate(cabecera):
+            for clave in quiero:
+                if titulo.startswith(clave):
+                    indices.setdefault(clave, i)
+        if "nombre" not in indices:
+            continue
+
+        filas = []
+        for tr in tabla.find_all("tr")[1:]:
+            celdas = tr.find_all(["td", "th"])
+            if len(celdas) <= indices["nombre"]:
+                continue
+            nombre = _celda_texto(celdas[indices["nombre"]])
+            if not nombre:
+                continue
+
+            fila = {"Jugadora": nombre}
+            for clave, columna in quiero.items():
+                if clave == "nombre" or clave not in indices:
+                    continue
+                i = indices[clave]
+                fila[columna] = _celda_texto(celdas[i]) if i < len(celdas) else ""
+
+            # "13/03/2002 Palma de Mallorca (Illes Balears)" -> fecha y lugar aparte
+            bruto = fila.get("Nacimiento", "")
+            m = RE_FECHA.search(bruto)
+            if m:
+                fila["Nacimiento"] = m.group(1)
+                fila["Lugar"] = bruto.replace(m.group(1), "").strip(" ,")
+                try:
+                    dia, mes, anio = (int(x) for x in m.group(1).split("/"))
+                    hoy = datetime.now()
+                    fila["Edad"] = hoy.year - anio - ((hoy.month, hoy.day) < (mes, dia))
+                except ValueError:
+                    fila["Edad"] = ""
+            else:
+                fila["Lugar"] = bruto
+                fila["Edad"] = ""
+
+            img = tr.find("img")
+            if img and img.get("src"):
+                src = img["src"]
+                if src.startswith("//"):
+                    src = "https:" + src
+                elif src.startswith("/"):
+                    src = BALONCESTO_BASE + src
+                fila["FotoURL"] = src
+            filas.append(fila)
+        if filas:
+            return filas
+    print(f"  [plantillas] equipo {id_equipo}: no encontre la tabla de plantilla", file=sys.stderr)
+    return []
+
+
+def fetch_plantillas() -> pd.DataFrame:
+    """Plantilla oficial de todos los equipos, grupo a grupo."""
+    session = requests.Session()
+    porequipo = []
+    for grupo, competicion in _competiciones_envivo().items():
+        equipos = _equipos_de_grupo_envivo(session, competicion)
+        print(f"  [plantillas] grupo {grupo}: {len(equipos)} equipos", file=sys.stderr)
+        for id_equipo, nombre in equipos.items():
+            porequipo.append((grupo, id_equipo, nombre))
+
+    if not porequipo:
+        return pd.DataFrame()
+
+    resultados = _en_paralelo(porequipo, lambda x: _plantilla_de_equipo(session, x[1]))
+    filas = []
+    for (grupo, id_equipo, nombre), plantilla in zip(porequipo, resultados):
+        for fila in (plantilla or []):
+            filas.append({"Grupo": grupo, "Equipo": nombre, "EquipoID": id_equipo, **fila})
+
+    if not filas:
+        return pd.DataFrame()
+    columnas = ["Grupo", "Equipo", "EquipoID", "Jugadora", "Dorsal", "Puesto",
+                "Nacimiento", "Edad", "Lugar", "Nacionalidad", "Altura", "Peso", "FotoURL"]
+    df = pd.DataFrame(filas)
+    for c in columnas:
+        if c not in df.columns:
+            df[c] = ""
+    return df[columnas].fillna("")
+
+
 TAB_PARTIDOS = "Partidos_Estadisticas"
 MAX_PARTIDOS_POR_EJECUCION = int(os.environ.get("FEB_MAX_PARTIDOS", "500"))
 
@@ -2527,6 +2687,19 @@ def main():
             resumen.append(f"Equipos_{i}: {len(df)} filas")
     else:
         resumen.append("Equipos: sin tablas (probablemente la temporada aun no tiene partidos)")
+
+    # Plantillas oficiales: estan disponibles desde el primer dia, antes
+    # incluso de que se juegue, asi que no dependen de las estadisticas.
+    try:
+        plantillas_df = fetch_plantillas()
+        if not plantillas_df.empty:
+            write_dataframe(sh, TAB_PLANTILLAS, plantillas_df)
+            resumen.append(f"{TAB_PLANTILLAS}: {len(plantillas_df)} jugadoras de "
+                           f"{plantillas_df['Equipo'].nunique()} equipos")
+        else:
+            resumen.append(f"{TAB_PLANTILLAS}: sin datos todavia")
+    except Exception as exc:  # noqa: BLE001
+        resumen.append(f"{TAB_PLANTILLAS}: error ({exc})")
 
     # Nombres buenos de equipo (los de la pestaña Equipos)
     canonicos = construir_canonicos(equipos_df)
