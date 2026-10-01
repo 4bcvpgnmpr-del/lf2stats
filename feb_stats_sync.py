@@ -578,11 +578,16 @@ def _paginas_por_fase(url: str, solo_liga_regular: bool = True):
             r2 = _request_con_reintentos(s2, "GET", url)
             soup2 = BeautifulSoup(r2.text, "html.parser")
             post_url = _url_formulario(soup2, r2.url)
-            sel2 = _desplegable_fases(soup2)
-            if sel2 is not None and _valor_seleccionado(sel2) == valor:
-                html = r2.text
-            else:
+            # Siempre se hace el postback, incluso si la fase ya viene elegida:
+            # la pagina recien cargada no trae la tabla de clasificacion, solo
+            # aparece despues de usar el desplegable. Si el postback falla se
+            # usa la pagina tal cual.
+            try:
                 html = _cambiar_desplegable(s2, post_url, soup2, campo, target, valor)
+                if not html or len(html) < 1000:
+                    raise ValueError("respuesta vacia")
+            except Exception:  # noqa: BLE001
+                html = r2.text
             yield texto, _nombre_grupo(texto), s2, html, post_url
         except Exception as exc:  # noqa: BLE001
             print(f"  Aviso: no se pudo abrir la fase '{texto}': {exc}", file=sys.stderr)
@@ -886,6 +891,14 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
                 if grupo:
                     clasif.insert(0, "Grupo", grupo)
                 clasificaciones.append(clasif)
+                print(f"  [clasificacion] {fase or 'fase por defecto'}: {len(clasif)} equipos",
+                      file=sys.stderr)
+            elif not clasif.empty:
+                print(f"  [clasificacion] {fase}: tabla encontrada pero sin grupo, se descarta",
+                      file=sys.stderr)
+            else:
+                print(f"  [clasificacion] {fase or 'fase por defecto'}: la pagina no trae tabla",
+                      file=sys.stderr)
             if len(final) > len(clasif_final):
                 clasif_final = final
 
@@ -2470,9 +2483,10 @@ def obtener_token_livestats(session, partido_id: str) -> str:
 
 
 def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame = None) -> tuple:
-    """Devuelve (detalle por partido, resumen por equipo, nuevos)."""
+    """Devuelve (detalle, resumen, cuartos, tiros, clutch_det, clutch_res, rebotes, nuevos)."""
+    vacio = pd.DataFrame()
     if resultados_df.empty or "PartidoID" not in resultados_df.columns:
-        return pd.DataFrame(), pd.DataFrame(), 0
+        return (vacio, vacio, vacio, vacio, vacio, vacio, vacio, 0)
 
     try:
         ws = sh.worksheet(tab(TAB_QUINTETOS_PARTIDO))
@@ -2630,7 +2644,10 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame =
     detalle = pd.concat([df_viejo, pd.DataFrame(nuevos)], ignore_index=True).fillna("") \
         if nuevos else df_viejo
     if detalle.empty:
-        return detalle, pd.DataFrame(), 0
+        # Nada que resumir todavia (temporada sin partidos jugados). Se devuelve
+        # la tupla completa de 8 elementos que espera main().
+        return (detalle, pd.DataFrame(), cuartos_viejos, tiros_viejos,
+                pd.DataFrame(), pd.DataFrame(), rebotes_viejos, 0)
 
     # Rellena jornada, fecha, rival y victoria en todas las filas (nuevas y viejas)
     extra = [_con_meta({"PartidoID": pid, "Equipo": eq}) for pid, eq in
