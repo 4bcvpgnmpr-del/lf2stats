@@ -580,6 +580,41 @@
     .diag-barra{grid-template-columns:54px 1fr 42px;}
   }
 
+  /* --- Evolucion y estilo de juego --- */
+  .evo-grafico{height:230px;position:relative;}
+  /* La tabla de cortes necesita ~440px: solo va al lado de la lectura en pantallas anchas */
+  .evo-abajo{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;align-items:start;}
+  @media (min-width:1400px){ .evo-abajo{grid-template-columns:1fr 1fr;} }
+  .evo-abajo > *, .estilo-abajo > *{min-width:0;}     /* si no, la tabla desborda su hueco */
+  .evo-abajo .table-scroll{overflow-x:auto;max-width:100%;}
+  .evo-abajo table{width:100%;}
+  .evo-lectura{background:var(--rojo-suave);border-radius:11px;padding:14px 16px;}
+  .evo-lectura .e-tit{font-size:14.5px;font-weight:800;color:var(--orange-dark);margin-bottom:10px;}
+  .evo-lectura .e-fila{display:grid;grid-template-columns:96px 1fr;gap:10px;font-size:12.5px;
+    line-height:1.55;padding:8px 0;border-top:1px solid var(--wood-line);}
+  .evo-lectura .e-fila:first-of-type{border-top:0;}
+  .evo-lectura .e-et{font-size:10.5px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--orange);line-height:1.4;}
+  .estilo-abajo{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+  .reparto{display:flex;height:26px;border-radius:7px;overflow:hidden;margin-top:8px;}
+  .reparto span{display:flex;align-items:center;justify-content:center;font-size:11.5px;
+    font-weight:800;color:#fff;min-width:0;}
+  .reparto .r-dos{background:var(--orange);}
+  .reparto .r-tres{background:#1b2430;}
+  .reparto .r-tl{background:#9aa7bd;}
+  .reparto-leyenda{display:flex;gap:14px;margin-top:7px;font-size:11.5px;color:var(--ink-soft);}
+  .reparto-leyenda span{display:flex;align-items:center;gap:5px;}
+  .reparto-leyenda i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .reparto-leyenda i.r-dos{background:var(--orange);}
+  .reparto-leyenda i.r-tres{background:#1b2430;}
+  .reparto-leyenda i.r-tl{background:#9aa7bd;}
+  [data-tema="oscuro"] .reparto .r-tres{background:#55627a;}
+  [data-tema="oscuro"] .reparto-leyenda i.r-tres{background:#55627a;}
+  @media (max-width:900px){
+    .estilo-abajo{grid-template-columns:1fr;}
+    .evo-grafico{height:200px;}
+  }
+
   /* ============================================================
      CONSTRUCTOR DE INFORMES
      ============================================================ */
@@ -2731,7 +2766,11 @@ function showEquipoDetail(teamName) {
     </div>
     <div class="section-block">
       <h3 class="section-title">Evolucion durante la temporada</h3>
-      <div class="panel coming-soon"><p class="hint">Proximamente: requiere el desglose de estadisticas por jornada.</p></div>
+      <div class="panel" id="evolucionEquipo"><p class="hint">Calculando...</p></div>
+    </div>
+    <div class="section-block">
+      <h3 class="section-title">Estilo de juego</h3>
+      <div class="panel" id="estiloEquipo"><p class="hint">Calculando...</p></div>
     </div>
     <div class="section-block">
       <h3 class="section-title">Sus jugadoras en los rankings</h3>
@@ -4007,6 +4046,10 @@ async function rellenarAvanzadasEquipo(teamName) {
   }
   const cajaDiag = document.getElementById("diagnosticoEquipo");
   if (cajaDiag) cajaDiag.innerHTML = bloqueDiagnostico(teamName);
+  const cajaEvo = document.getElementById("evolucionEquipo");
+  if (cajaEvo) { cajaEvo.innerHTML = bloqueEvolucion(teamName); dibujarEvolucion(teamName); }
+  const cajaEstilo = document.getElementById("estiloEquipo");
+  if (cajaEstilo) cajaEstilo.innerHTML = bloqueEstilo(teamName);
   const cajaPerfiles = document.getElementById("perfilPlantilla");
   if (cajaPerfiles) {
     cajaPerfiles.innerHTML = perfilPlantillaHtml(teamName);
@@ -7878,6 +7921,256 @@ function bloqueDiagnostico(nombre) {
 }
 
 /* ============================================================
+   EVOLUCION Y ESTILO DE JUEGO
+   Se calculan partido a partido con la pestaña de cuadros, para
+   poder cortar por local/visitante y por primera/segunda vuelta.
+   ============================================================ */
+function partidosDeEquipo(nombre) {
+  if (!partidosCache || !partidosCache.rows.length || !resultados) return [];
+  const oficial = normalizarEquipo(equipoOficial(nombre));
+  const meta = new Map();
+  resultados.rows.forEach(r => {
+    const pid = cellText(r, "PartidoID");
+    if (!pid) return;
+    meta.set(pid, { fecha: cellText(r, "Fecha"), jornada: cellText(r, "Jornada"),
+                    local: cellText(r, "Local"), visitante: cellText(r, "Visitante") });
+  });
+
+  const lista = [];
+  partidosAgrupados(partidosCache.rows).forEach((porEquipo, pid) => {
+    const eqs = [...porEquipo.keys()];
+    if (eqs.length !== 2) return;
+    const miIdx = eqs.findIndex(e => normalizarEquipo(equipoOficial(e)) === oficial);
+    if (miIdx < 0) return;
+    const tot = porEquipo.get(eqs[miIdx]).find(r => cellText(r, "Jugador") === "TOTAL");
+    const totR = porEquipo.get(eqs[1 - miIdx]).find(r => cellText(r, "Jugador") === "TOTAL");
+    if (!tot || !totR) return;
+
+    const tc = paresTiro(tot, "TC"), t3 = paresTiro(tot, "T3"), tl = paresTiro(tot, "TL");
+    const tcR = paresTiro(totR, "TC"), tlR = paresTiro(totR, "TL");
+    const pf = numDe(tot, "PT"), pc = numDe(totR, "PT");
+    const pos = tc.i - numDe(tot, "REB_O") + numDe(tot, "BP") + 0.44 * tl.i;
+    const posR = tcR.i - numDe(totR, "REB_O") + numDe(totR, "BP") + 0.44 * tlR.i;
+    const m = meta.get(pid) || {};
+    const casa = m.local ? normalizarEquipo(equipoOficial(m.local)) === oficial : null;
+
+    lista.push({
+      pid, fecha: m.fecha || "", jornada: m.jornada || "", casa,
+      rival: casa === null ? "" : (casa ? m.visitante : m.local),
+      pf, pc, dif: pf - pc, pos, posR,
+      ortg: pos > 0 ? 100 * pf / pos : null,
+      drtg: posR > 0 ? 100 * pc / posR : null,
+      tca: tc.a, tci: tc.i, t3a: t3.a, t3i: t3.i, tla: tl.a, tli: tl.i,
+    });
+  });
+  return lista.sort((a, b) => fechaNum(a.fecha) - fechaNum(b.fecha));
+}
+
+function corteEvolucion(etiqueta, partidos) {
+  if (!partidos.length) return null;
+  const sum = (f) => partidos.reduce((a, x) => a + (f(x) || 0), 0);
+  const pos = sum(x => x.pos), posR = sum(x => x.posR);
+  const pf = sum(x => x.pf), pc = sum(x => x.pc);
+  const v = partidos.filter(x => x.dif > 0).length;
+  const dd = partidos.filter(x => x.dif < 0).length;
+  const ortg = pos > 0 ? Math.round(100 * pf / pos * 10) / 10 : null;
+  const drtg = posR > 0 ? Math.round(100 * pc / posR * 10) / 10 : null;
+  return { etiqueta, pj: partidos.length, v, d: dd, dif: pf - pc, ortg, drtg,
+           net: (ortg !== null && drtg !== null) ? Math.round((ortg - drtg) * 10) / 10 : null };
+}
+
+function evolucionEquipo(nombre) {
+  const todos = partidosDeEquipo(nombre);
+  if (todos.length < 2) return null;
+  const mitad = Math.ceil(todos.length / 2);
+  const cortes = [
+    corteEvolucion("Local", todos.filter(x => x.casa === true)),
+    corteEvolucion("Visitante", todos.filter(x => x.casa === false)),
+    corteEvolucion("1a vuelta", todos.slice(0, mitad)),
+    corteEvolucion("2a vuelta", todos.slice(mitad)),
+  ].filter(Boolean);
+  const v1 = cortes.find(c => c.etiqueta === "1a vuelta");
+  const v2 = cortes.find(c => c.etiqueta === "2a vuelta");
+  return { partidos: todos, cortes, v1, v2 };
+}
+
+function bloqueEvolucion(nombre) {
+  const e = evolucionEquipo(nombre);
+  if (!e) return `<p class="hint">Evolucion: hacen falta al menos dos partidos con cuadro estadistico.</p>`;
+  const n = (v, suf) => v === null || v === undefined ? "-" : fmtNum(v) + (suf || "");
+  const signo = (v) => v === null ? "-" : (v > 0 ? "+" : "") + fmtNum(v);
+
+  const filas = e.cortes.map(c => `<tr>
+    <td class="equipo">${escapeHtml(c.etiqueta)}</td>
+    <td>${c.v}-${c.d}</td>
+    <td class="${c.dif > 0 ? "bueno" : (c.dif < 0 ? "malo" : "")}">${signo(c.dif)}</td>
+    <td>${n(c.ortg)}</td><td>${n(c.drtg)}</td>
+    <td class="${c.net > 0 ? "bueno" : (c.net < 0 ? "malo" : "")}">${signo(c.net)}</td></tr>`).join("");
+
+  let lectura = "";
+  if (e.v1 && e.v2 && e.v1.net !== null && e.v2.net !== null) {
+    const cambio = Math.round((e.v2.net - e.v1.net) * 10) / 10;
+    lectura = `<div class="evo-lectura">
+      <div class="e-tit">Lectura de evolucion</div>
+      <div class="e-fila"><span class="e-et">Primera vuelta</span>
+        <span>Net Rating ${signo(e.v1.net)} en ${e.v1.pj} partidos (${e.v1.v}-${e.v1.d}).</span></div>
+      <div class="e-fila"><span class="e-et">Segunda vuelta</span>
+        <span>Net Rating ${signo(e.v2.net)} en ${e.v2.pj} partidos (${e.v2.v}-${e.v2.d}): ${
+          cambio > 0 ? `mejora de ${fmtNum(cambio)} puntos por 100 posesiones`
+          : (cambio < 0 ? `caida de ${fmtNum(Math.abs(cambio))} puntos por 100 posesiones` : "mismo rendimiento")}.</span></div>
+      <div class="e-fila"><span class="e-et">Uso practico</span>
+        <span>Identificar que cambios de rotacion o de estilo coinciden con ${cambio >= 0 ? "la mejora" : "la caida"} y convertirlos en principios estables.</span></div>
+    </div>`;
+  }
+
+  return `<div class="evo">
+    <div class="evo-grafico"><canvas id="chartEvolucion"></canvas></div>
+    <p class="hint" style="margin-top:6px;">Diferencia de puntos en cada partido, por orden de fecha.
+      Verde cuando gano, rojo cuando perdio.</p>
+    <div class="evo-abajo">
+      <div class="table-scroll"><table class="limpia"><thead><tr>
+        <th class="equipo">Corte</th><th>Balance</th><th>Dif.</th>
+        <th title="Puntos por 100 posesiones">ORtg</th>
+        <th title="Puntos recibidos por 100 posesiones">DRtg</th>
+        <th title="ORtg menos DRtg">Net</th></tr></thead>
+        <tbody>${filas}</tbody></table></div>
+      ${lectura}
+    </div>
+  </div>`;
+}
+
+let graficoEvolucion = null;
+function dibujarEvolucion(nombre) {
+  const canvas = document.getElementById("chartEvolucion");
+  if (!canvas || typeof Chart === "undefined") return;
+  const e = evolucionEquipo(nombre);
+  if (!e) return;
+  if (graficoEvolucion) { try { graficoEvolucion.destroy(); } catch (x) { /* nada */ } }
+  const verde = "#1f7a5a", rojo = "#b4470f";
+  graficoEvolucion = new Chart(canvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: e.partidos.map((x, i) => "J" + (i + 1)),
+      datasets: [{
+        label: "Diferencia",
+        data: e.partidos.map(x => x.dif),
+        backgroundColor: e.partidos.map(x => x.dif >= 0 ? verde : rojo),
+        borderRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { title: (it) => {
+            const x = e.partidos[it[0].dataIndex];
+            return (x.casa ? "En casa vs " : "Fuera vs ") + (x.rival || "");
+          }, label: (it) => {
+            const x = e.partidos[it.dataIndex];
+            return `${x.pf}-${x.pc} (${x.dif > 0 ? "+" : ""}${x.dif}) · ${x.fecha}`;
+          } } },
+      },
+      scales: { y: { grid: { color: "rgba(128,128,128,.18)" } }, x: { grid: { display: false } } },
+    },
+  });
+}
+
+/* --- Estilo de juego --- */
+function estiloEquipo(nombre) {
+  if (!avanzadasCalculo || !avanzadasCalculo.equipos) return null;
+  const clave = [...avanzadasCalculo.equipos.keys()]
+    .find(k => normalizarEquipo(equipoOficial(k)) === normalizarEquipo(equipoOficial(nombre)));
+  if (!clave) return null;
+  const a = avanzadasCalculo.equipos.get(clave);
+  const m = metricasEquipo(a);
+  if (!m || !m.pj) return null;
+
+  const t2a = a.tca - a.t3a, t2i = a.tci - a.t3i;
+  const ptos2 = 2 * t2a, ptos3 = 3 * a.t3a, ptosTl = a.tla;
+  const ptosTot = ptos2 + ptos3 + ptosTl || 1;
+  const intTot = t2i + a.t3i + a.tli || 1;
+  const r0 = (x) => Math.round(x);
+
+  const grupo = grupoDeEquipo(clave);
+  const ritmos = [...avanzadasCalculo.equipos.entries()]
+    .filter(([eq]) => !grupo || grupoDeEquipo(eq) === grupo)
+    .map(([eq, acc]) => ({ eq, r: metricasEquipo(acc) ? metricasEquipo(acc).ritmo : null }))
+    .filter(x => x.r !== null);
+  const orden = [...ritmos].sort((x, y) => y.r - x.r);
+  const puestoRitmo = orden.findIndex(x => x.eq === clave) + 1;
+  const mediaRitmo = ritmos.length
+    ? Math.round(ritmos.reduce((s, x) => s + x.r, 0) / ritmos.length * 10) / 10 : null;
+
+  return {
+    equipo: clave, grupo,
+    posPartido: m.ritmo,
+    segPosesion: m.ritmo ? Math.round(2400 / (2 * m.ritmo) * 10) / 10 : null,
+    puestoRitmo, totalRitmo: ritmos.length, mediaRitmo,
+    volTriple: a.tci ? Math.round(100 * a.t3i / a.tci) : null,
+    tovPct: m.tovPct,
+    puntos: { dos: r0(100 * ptos2 / ptosTot), tres: r0(100 * ptos3 / ptosTot), tl: r0(100 * ptosTl / ptosTot) },
+    intentos: { dos: r0(100 * t2i / intTot), tres: r0(100 * a.t3i / intTot), tl: r0(100 * a.tli / intTot) },
+  };
+}
+
+function barraRepartoHtml(d) {
+  return `<div class="reparto">
+      <span class="r-dos" style="width:${d.dos}%">${d.dos}%</span>
+      <span class="r-tres" style="width:${d.tres}%">${d.tres}%</span>
+      <span class="r-tl" style="width:${d.tl}%">${d.tl}%</span>
+    </div>
+    <div class="reparto-leyenda">
+      <span><i class="r-dos"></i>Dos</span><span><i class="r-tres"></i>Triple</span><span><i class="r-tl"></i>Tiro libre</span>
+    </div>`;
+}
+
+function bloqueEstilo(nombre) {
+  const e = estiloEquipo(nombre);
+  if (!e) return `<p class="hint">Estilo de juego: hacen falta las estadisticas de cada partido.</p>`;
+  const n = (v, suf) => v === null || v === undefined ? "-" : fmtNum(v) + (suf || "");
+
+  const rapido = e.puestoRitmo && e.puestoRitmo <= Math.ceil(e.totalRitmo / 3);
+  const lento = e.puestoRitmo && e.puestoRitmo > Math.ceil(2 * e.totalRitmo / 3);
+  const titulo = rapido ? "Juego rapido y de posesion corta"
+    : (lento ? "Juego lento y de posesion larga" : "Ritmo intermedio");
+  const texto = `${e.equipo} ${rapido ? "acelera el tempo" : (lento ? "controla el tempo" : "juega a un ritmo medio")}: ` +
+    `cada posesion dura de media ${n(e.segPosesion)} segundos (ritmo ${n(e.posPartido)}, ` +
+    `puesto ${e.puestoRitmo} de ${e.totalRitmo} del grupo). Reparte el tiro entre ${e.puntos.dos}% de puntos de dos, ` +
+    `${e.puntos.tres}% de tres y ${e.puntos.tl}% de tiros libres. ` +
+    (lento ? "Un equipo asi vive de la ejecucion en media pista: cada posesion pesa mas, asi que la seleccion de tiro y evitar la perdida valen el doble."
+           : (rapido ? "Un equipo asi busca ventajas antes de que la defensa se coloque: el valor esta en correr tras rebote y en no precipitar el tiro facil."
+                     : "Con un ritmo medio el margen esta en elegir cuando correr y cuando parar el juego."));
+
+  return `<div class="estilo">
+    <div class="diag-kpis">
+      ${tarjetaDiagHtml("Posesiones por partido", n(e.posPartido),
+        e.mediaRitmo !== null ? `media del grupo ${fmtNum(e.mediaRitmo)}` : "", "")}
+      ${tarjetaDiagHtml("Segundos por posesion", n(e.segPosesion) + "s",
+        `puesto ${e.puestoRitmo} de ${e.totalRitmo} en ritmo`, "")}
+      ${tarjetaDiagHtml("Puntos de 3", e.puntos.tres + "%", `volumen de triple ${n(e.volTriple, "%")} de los tiros`, "")}
+      ${tarjetaDiagHtml("Puntos de TL", e.puntos.tl + "%", "peso del tiro libre en la anotacion", "")}
+    </div>
+    <div class="estilo-abajo">
+      <div>
+        <h4 class="diag-sub" style="margin-top:18px;">De donde vienen los puntos</h4>
+        ${barraRepartoHtml(e.puntos)}
+        <h4 class="diag-sub" style="margin-top:18px;">Reparto de intentos (2 · 3 · TL)</h4>
+        ${barraRepartoHtml(e.intentos)}
+        <p class="diag-aviso" style="margin-top:14px;">Los segundos por posesion son la duracion media de cada jugada
+          (el reloj de posesion son 24 s). Menos segundos y mas triple indican un equipo de transicion;
+          mas segundos y mas tiro de dos, un equipo de media pista.</p>
+      </div>
+      <div class="diag-lectura" style="grid-template-columns:1fr;margin-top:18px;">
+        <div class="l-caja">
+          <div class="l-tit">${escapeHtml(titulo)}</div>
+          <div>${escapeHtml(texto)}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
    CONSTRUCTOR DE INFORMES
    Reutiliza las pantallas que ya existen: prepara la que haga
    falta, copia su contenido y lo pega en el informe. Los graficos
@@ -7894,6 +8187,10 @@ const BLOQUES_INFORME = [
 
   { id: "diagnostico", nombre: "Diagnostico de temporada (percentiles y resumen)", grupo: "Equipo", param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#diagnosticoEquipo", espera: 1600 },
+  { id: "evolucion", nombre: "Evolucion durante la temporada", grupo: "Equipo", param: "equipo",
+    prep: (v) => showEquipoDetail(v), sel: "#evolucionEquipo", espera: 1800 },
+  { id: "estilo", nombre: "Estilo de juego (ritmo y reparto de tiro)", grupo: "Equipo", param: "equipo",
+    prep: (v) => showEquipoDetail(v), sel: "#estiloEquipo", espera: 1600 },
   { id: "equipo",   nombre: "Perfil completo del equipo", grupo: "Equipo",   param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#equipoDetailContent", espera: 1400 },
   { id: "jugadora", nombre: "Perfil completo de la jugadora", grupo: "Jugadora", param: "jugadora",
@@ -8764,7 +9061,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-09";
+const VERSION_APP = "2026-10-10";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
