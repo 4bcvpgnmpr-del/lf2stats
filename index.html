@@ -636,6 +636,12 @@
   .ip-pie-dato .e{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:#8d97a8;}
   .ip-pie-dato .v{font-size:14px;font-weight:700;margin-top:4px;}
 
+  .evoj-grafico{height:240px;position:relative;margin-top:16px;}
+  .evoj table{width:100%;font-size:12px;}
+  .evoj td, .evoj th{padding:6px 4px;white-space:nowrap;}
+  .evoj td:nth-child(2), .evoj th:nth-child(2){white-space:normal;}
+  @media (max-width:700px){ .evoj-grafico{height:200px;} }
+
   /* --- Plan de intervencion --- */
   .plan-tarjeta{display:flex;gap:0;border:1.5px solid var(--wood-line);border-radius:12px;
     overflow:hidden;margin-bottom:14px;background:var(--white);}
@@ -3032,7 +3038,7 @@ function showJugadoraDetail(playerName) {
     </div>
     <div class="section-block">
       <h3 class="section-title">Evolucion por jornada</h3>
-      <div class="panel coming-soon"><p class="hint">Proximamente: requiere el registro de cada partido individual.</p></div>
+      <div class="panel" id="evoJugadora"><p class="hint">Calculando...</p></div>
     </div>
     <div class="section-block">
       <h3 class="section-title">Ranking en la liga</h3>
@@ -3071,6 +3077,17 @@ function showJugadoraDetail(playerName) {
     const recargar = () => { cajaScoutJ.innerHTML = scoutingPanelHtml("jugadoras", playerName); wireScouting(cajaScoutJ, recargar); };
     wireScouting(cajaScoutJ, recargar);
   }
+  const equipoJug = row["Equipo"] ? row["Equipo"].display : "";
+  const pintarEvoJug = () => {
+    const caja = document.getElementById("evoJugadora");
+    if (!caja) return;
+    caja.innerHTML = bloqueEvolucionJugadora(playerName, equipoJug);
+    dibujarEvolucionJugadora(playerName, equipoJug);
+  };
+  if (partidosCache) pintarEvoJug();
+  else fetchSheetTab("Partidos_Estadisticas")
+        .then(d => { partidosCache = d; pintarEvoJug(); })
+        .catch(() => pintarEvoJug());
   dibujarRadarJugadora(playerName, row["Equipo"] ? row["Equipo"].display : "");
   dibujarDonutConsumo(playerName, row["Equipo"] ? row["Equipo"].display : "");
   filtroCuartoCarta = "";
@@ -7839,6 +7856,143 @@ function tablasCuartoEquipo(nombre, propias, rivales, cuartos, num) {
 }
 
 /* ============================================================
+   EVOLUCION POR JORNADA DE UNA JUGADORA
+   Se saca de Partidos_Estadisticas: una fila por partido jugado.
+   ============================================================ */
+function partidosDeJugadora(nombre, equipo) {
+  if (!partidosCache || !partidosCache.rows.length) return [];
+  const claves = clavesNombre(nombre, equipo);
+  const meta = new Map();
+  if (resultados) {
+    resultados.rows.forEach(r => {
+      const pid = cellText(r, "PartidoID");
+      if (pid) meta.set(pid, { fecha: cellText(r, "Fecha"), jornada: cellText(r, "Jornada"),
+                               local: cellText(r, "Local"), visitante: cellText(r, "Visitante") });
+    });
+  }
+  // Primero se busca el nombre exacto; solo si no aparece se recurre al
+  // emparejamiento flexible, que podria confundir a dos jugadoras del mismo
+  // equipo con el mismo primer apellido e inicial.
+  const limpiar = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase().replace(/\s+/g, " ").trim();
+  const exacto = limpiar(nombre);
+  const mismoEquipo = (r) => !equipo ||
+    normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === normalizarEquipo(equipoOficial(equipo));
+
+  const candidatas = partidosCache.rows.filter(r => {
+    const n = cellText(r, "Jugador");
+    return n && n !== "TOTAL";
+  });
+  let filas = candidatas.filter(r => limpiar(cellText(r, "Jugador")) === exacto && mismoEquipo(r));
+  if (!filas.length) {
+    filas = candidatas.filter(r =>
+      clavesNombre(cellText(r, "Jugador"), cellText(r, "Equipo")).some(c => claves.includes(c)));
+  }
+  // Un partido, una fila: si algo cuadra dos veces, se queda la primera
+  const vistos = new Set();
+  filas = filas.filter(r => {
+    const pid = cellText(r, "PartidoID");
+    if (!pid || vistos.has(pid)) return false;
+    vistos.add(pid);
+    return true;
+  });
+
+  return filas.map(r => {
+    const pid = cellText(r, "PartidoID");
+    const m = meta.get(pid) || {};
+    const miEq = cellText(r, "Equipo");
+    const casa = m.local ? normalizarEquipo(equipoOficial(m.local)) === normalizarEquipo(equipoOficial(miEq)) : null;
+    const seg = (() => {
+      const t = /^(\d+):([0-5]\d)/.exec(cellText(r, "MIN"));
+      return t ? Number(t[1]) + Number(t[2]) / 60 : parseSpanishNumber(cellText(r, "MIN"));
+    })();
+    return {
+      pid, fecha: m.fecha || "", casa,
+      rival: casa === null ? "" : (casa ? m.visitante : m.local),
+      min: seg === null ? 0 : Math.round(seg * 10) / 10,
+      pt: numDe(r, "PT"), va: numDe(r, "VA"), reb: numDe(r, "REB_T"),
+      as: numDe(r, "AS"), bp: numDe(r, "BP"), mm: numDe(r, "MAS_MENOS"),
+      tc: paresTiro(r, "TC"), t3: paresTiro(r, "T3"), tl: paresTiro(r, "TL"),
+    };
+  }).sort((a, b) => fechaNum(a.fecha) - fechaNum(b.fecha));
+}
+
+function bloqueEvolucionJugadora(nombre, equipo) {
+  const ps = partidosDeJugadora(nombre, equipo);
+  if (!ps.length) {
+    return `<p class="hint">Todavia no hay cuadros de partido de esta jugadora.
+      Entra una vez en el menu Estadisticas para que se carguen.</p>`;
+  }
+  const med = (f) => Math.round(ps.reduce((a, x) => a + f(x), 0) / ps.length * 10) / 10;
+  const mejor = [...ps].sort((a, b) => b.va - a.va)[0];
+  const mediaPt = med(x => x.pt), mediaMin = med(x => x.min), mediaVa = med(x => x.va);
+  const ultimos = ps.slice(-5);
+  const mediaPt5 = ultimos.length
+    ? Math.round(ultimos.reduce((a, x) => a + x.pt, 0) / ultimos.length * 10) / 10 : null;
+  const tendencia = mediaPt5 === null ? null : Math.round((mediaPt5 - mediaPt) * 10) / 10;
+
+  const filas = [...ps].reverse().slice(0, 12).map(x => `<tr>
+    <td class="equipo">${escapeHtml(x.fecha || "-")}</td>
+    <td style="text-align:left;">${x.casa === null ? "" : (x.casa ? "vs " : "@ ")}${escapeHtml(x.rival || "")}</td>
+    <td>${fmtNum(x.min)}</td><td><b>${fmtNum(x.pt)}</b></td>
+    <td>${x.tc.a}/${x.tc.i}</td><td>${x.t3.a}/${x.t3.i}</td><td>${x.tl.a}/${x.tl.i}</td>
+    <td>${fmtNum(x.reb)}</td><td>${fmtNum(x.as)}</td><td>${fmtNum(x.bp)}</td>
+    <td class="${x.mm > 0 ? "bueno" : (x.mm < 0 ? "malo" : "")}">${x.mm > 0 ? "+" : ""}${fmtNum(x.mm)}</td>
+    <td>${fmtNum(x.va)}</td></tr>`).join("");
+
+  return `<div class="evoj">
+    <div class="diag-kpis">
+      ${tarjetaDiagHtml("Partidos", String(ps.length), `${fmtNum(mediaMin)} minutos de media`, "")}
+      ${tarjetaDiagHtml("Puntos", fmtNum(mediaPt), "media por partido", "")}
+      ${tarjetaDiagHtml("Valoracion", fmtNum(mediaVa), "media por partido", "")}
+      ${tarjetaDiagHtml("Ultimos 5", fmtNum(mediaPt5),
+        tendencia === null ? "" : (tendencia > 0 ? `+${fmtNum(tendencia)} sobre su media` :
+          (tendencia < 0 ? `${fmtNum(tendencia)} sobre su media` : "igual que su media")),
+        tendencia === null ? "" : (tendencia > 0.5 ? "bien" : (tendencia < -0.5 ? "mal" : "medio")))}
+    </div>
+    <div class="evoj-grafico"><canvas id="chartEvoJugadora"></canvas></div>
+    <p class="hint" style="margin-top:6px;">Puntos y valoracion en cada partido, por orden de fecha.
+      ${mejor ? `Su mejor partido: ${escapeHtml(mejor.fecha)} ${mejor.casa === null ? "" : (mejor.casa ? "vs " : "@ ")}${escapeHtml(mejor.rival || "")}, ${fmtNum(mejor.pt)} puntos y ${fmtNum(mejor.va)} de valoracion.` : ""}</p>
+    <div class="table-scroll" style="margin-top:14px;"><table class="limpia"><thead><tr>
+      <th class="equipo">Fecha</th><th style="text-align:left;">Rival</th><th>Min</th><th>PT</th>
+      <th>TC</th><th>T3</th><th>TL</th><th>REB</th><th>AS</th><th>BP</th><th>+/-</th><th>VAL</th>
+      </tr></thead><tbody>${filas}</tbody></table></div>
+    ${ps.length > 12 ? `<p class="hint" style="margin-top:8px;">Se muestran los 12 partidos mas recientes de ${ps.length}.</p>` : ""}
+  </div>`;
+}
+
+let graficoEvoJugadora = null;
+function dibujarEvolucionJugadora(nombre, equipo) {
+  const canvas = document.getElementById("chartEvoJugadora");
+  if (!canvas || typeof Chart === "undefined") return;
+  const ps = partidosDeJugadora(nombre, equipo);
+  if (!ps.length) return;
+  if (graficoEvoJugadora) { try { graficoEvoJugadora.destroy(); } catch (e) { /* nada */ } }
+  graficoEvoJugadora = new Chart(canvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: ps.map((x, i) => "J" + (i + 1)),
+      datasets: [
+        { label: "Puntos", data: ps.map(x => x.pt), backgroundColor: "#e0602a", borderRadius: 3, order: 2 },
+        { label: "Valoracion", data: ps.map(x => x.va), type: "line", borderColor: "#1f7a5a",
+          backgroundColor: "#1f7a5a", tension: 0.3, pointRadius: 3, order: 1 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { title: (it) => {
+          const x = ps[it[0].dataIndex];
+          return (x.casa ? "vs " : "@ ") + (x.rival || "") + " · " + x.fecha;
+        } } },
+      },
+      scales: { y: { grid: { color: "rgba(128,128,128,.18)" } }, x: { grid: { display: false } } },
+    },
+  });
+}
+
+/* ============================================================
    DIAGNOSTICO DE TEMPORADA
    Cada metrica se compara con el resto del grupo: puesto,
    media y percentil. Con eso se escribe un resumen en lenguaje
@@ -8559,6 +8713,8 @@ const BLOQUES_INFORME = [
     prep: (v) => showEquipoDetail(v), sel: "#estiloEquipo", espera: 1600 },
   { id: "equipo",   nombre: "Perfil completo del equipo", grupo: "Equipo",   param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#equipoDetailContent", espera: 1400 },
+  { id: "evoJugadora", nombre: "Evolucion por jornada de la jugadora", grupo: "Jugadora", param: "jugadora",
+    prep: (v) => showJugadoraDetail(v), sel: "#evoJugadora", espera: 2000 },
   { id: "jugadora", nombre: "Perfil completo de la jugadora", grupo: "Jugadora", param: "jugadora",
     prep: (v) => showJugadoraDetail(v), sel: "#jugadoraDetailContent", espera: 1600 },
 
@@ -9480,7 +9636,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-13";
+const VERSION_APP = "2026-10-14";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
