@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LF2 Stats</title>
+<meta name="description" content="Estadisticas, scouting y analisis de la Liga Femenina 2 de baloncesto.">
+<meta name="theme-color" content="#e0602a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icono-192.png">
+<link rel="apple-touch-icon" href="icono-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LF2 Stats">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -177,7 +186,7 @@
     background:var(--ink);
     color:var(--white);
   }
-  main{max-width:1400px;margin:0 auto;padding:24px;border-top:1px solid transparent;}
+  main{max-width:1500px;margin:0 auto;padding:22px 26px 60px;}
   .panel{
     background:var(--white);
     border:2px solid var(--ink);
@@ -323,9 +332,10 @@
   table.limpia td{white-space:nowrap;}
   table.limpia thead th.equipo{background:var(--wood);}
   table.limpia th.equipo, table.limpia td.equipo{
-    text-align:left;position:sticky;left:0;z-index:2;background:var(--white);
-    box-shadow:1px 0 0 var(--wood-line);max-width:260px;
+    text-align:left;position:sticky;left:0;z-index:3;background:var(--white);
+    box-shadow:1px 0 0 var(--wood-line);max-width:260px;min-width:150px;
   }
+  table.limpia thead th.equipo{z-index:5;}
   table.limpia tbody tr:nth-child(even) td{background:var(--suave);}
   table.limpia tbody tr:nth-child(even) td.equipo{background:var(--suave);}
   table.limpia tbody tr:hover td{background:var(--hover);}
@@ -636,6 +646,19 @@
   .scout-chips{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-bottom:1.5px solid var(--wood-line);}
   .chip{border:1.5px solid var(--wood-line);background:var(--white);border-radius:14px;padding:3px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Archivo',sans-serif;}
   .chip.activa{background:var(--orange);border-color:var(--orange);color:var(--white);}
+
+  /* --- Quintetos de un partido (post-partido) --- */
+  .chips-qp{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;}
+  .chips-qp .chip{display:inline-flex;align-items:center;padding:5px 11px;font-size:12.5px;}
+  .chips-qp .chip img{margin-right:5px !important;}
+  .qp-destacados{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-top:16px;}
+  .qp-destacado{border:1.5px solid var(--wood-line);border-radius:14px;padding:12px 14px;background:var(--white);}
+  .qp-tit{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);}
+  .qp-jug{font-size:13px;font-weight:700;line-height:1.35;margin:6px 0 4px;}
+  .qp-grande{font-family:'Archivo Black',sans-serif;font-size:30px;line-height:1.1;}
+  .qp-grande.bien{color:var(--verde);} .qp-grande.mal{color:var(--rojo);}
+  .qp-sub{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
+  .qp-pie{font-size:11px;color:var(--ink-soft);margin-top:7px;font-style:italic;}
   .scout-items{overflow-y:auto;max-height:420px;}
   .scout-item{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--wood-line);padding:10px 12px;cursor:pointer;font-family:'Archivo',sans-serif;}
   .scout-item:hover{background:var(--hover);}
@@ -666,6 +689,57 @@
   .aviso-file{background:var(--suave);border-left:4px solid var(--orange);border-radius:6px;padding:8px 12px;}
   .video-externo{background:var(--suave);border:1.5px dashed var(--wood-line);border-radius:8px;padding:16px;text-align:center;}
   .copia-seguridad{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:16px;border-top:1.5px solid var(--wood-line);padding-top:14px;}
+  /* --- Dashboard de Mi equipo --- */
+  .dash-tit{margin:0 0 12px;font-size:12.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--orange-dark);font-weight:800;}
+  .dash-fila{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:16px;}
+  .dash-fila2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  @media (max-width:980px){ .dash-fila, .dash-fila2{grid-template-columns:1fr;} }
+  .dp-equipos{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .dp-eq{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:110px;font-size:13.5px;}
+  .dp-eq img{margin-right:0 !important;}
+  .dp-vs{color:var(--ink-soft);font-weight:800;}
+  .dp-cuando{margin-left:auto;text-align:right;font-weight:700;}
+  .dp-abajo{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:14px 0;
+    border-top:1.5px solid var(--wood-line);border-bottom:1.5px solid var(--wood-line);padding:12px 0;}
+  .dp-dias span{font-family:'Archivo Black',sans-serif;font-size:34px;color:var(--orange);}
+  .dp-dias small{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.5px;}
+  .estrellas{font-size:18px;color:#d9b25f;letter-spacing:2px;}
+  .estrellas .apagadas{color:var(--barra);}
+  .etiqueta-dif{display:inline-block;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:800;}
+  .etiqueta-dif.dificil{background:var(--rojo-suave);color:var(--rojo);}
+  .etiqueta-dif.media{background:#f7ecd0;color:#8a6a1f;}
+  .etiqueta-dif.facil{background:var(--verde-suave);color:var(--verde);}
+  .btn-grande{width:100%;background:var(--orange);color:#fff;border:none;border-radius:10px;padding:14px;
+    font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;cursor:pointer;letter-spacing:0.4px;}
+  .btn-grande:hover{background:var(--orange-dark);}
+  .anillo{width:130px;height:130px;display:block;margin:0 auto 10px;}
+  .anillo .fondo{fill:none;stroke:var(--barra);stroke-width:12;}
+  .anillo .progreso{fill:none;stroke:var(--verde);stroke-width:12;stroke-linecap:round;transform:rotate(-90deg);transform-origin:60px 60px;}
+  .anillo .pct{text-anchor:middle;font-family:'Archivo Black',sans-serif;font-size:26px;fill:var(--ink);}
+  .checklist{list-style:none;padding:0;margin:0;font-size:13px;}
+  .checklist li{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--wood-line);}
+  .checklist li span{font-weight:800;}
+  .checklist li.ok span{color:var(--verde);}
+  .checklist li.pendiente{color:var(--ink-soft);}
+  .checklist small{margin-left:auto;color:var(--ink-soft);font-size:11px;}
+  .alerta{border-left:4px solid var(--orange);background:var(--suave);border-radius:6px;padding:8px 12px;margin-bottom:8px;cursor:pointer;}
+  .alerta b{display:block;font-size:13px;}
+  .alerta.video{border-left-color:var(--teal);}
+  .alerta.calendario{border-left-color:var(--ink-soft);}
+  .burbuja{background:var(--orange);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;}
+  .accesos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+  .acceso{border:1.5px solid var(--wood-line);border-radius:10px;background:var(--white);padding:14px 10px;cursor:pointer;
+    font-family:'Archivo',sans-serif;text-align:center;transition:transform 0.12s ease,border-color 0.12s ease;}
+  .acceso:hover{border-color:var(--orange);transform:translateY(-2px);}
+  .acceso b{display:block;font-size:14px;margin-bottom:2px;}
+  .acceso span{font-size:11.5px;color:var(--ink-soft);}
+  .rival-cab{display:flex;gap:12px;align-items:center;}
+  .rival-cab img{margin-right:0 !important;}
+  .resumen-temporada{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .rt-caja{border:1.5px solid var(--wood-line);border-radius:8px;padding:10px;text-align:center;}
+  .rt-caja b{display:block;font-family:'Archivo Black',sans-serif;font-size:26px;}
+  .rt-caja b.verde{color:var(--verde);} .rt-caja b.rojo{color:var(--rojo);}
+  .rt-caja span{font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-soft);}
   .mi-equipo-cabecera{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--white);border:1.5px solid var(--wood-line);border-radius:10px;padding:16px 20px;margin-bottom:16px;}
   .mi-equipo-cabecera h2{margin:0;font-size:22px;}
   .mi-equipo-cabecera img{margin-right:0 !important;}
@@ -808,6 +882,33 @@
   .rank-value{font-family:'Archivo Black',sans-serif;font-size:18px;color:var(--orange-dark);}
   .rankings-pending-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;}
 
+  .hero-jug{display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;
+    background:linear-gradient(135deg, var(--ink) 0%, #263447 100%);color:var(--white);border-radius:12px;padding:20px 24px;}
+  .hj-foto{position:relative;flex:none;}
+  .hj-foto img, .hj-foto .placeholder{width:104px;height:104px;border-radius:12px;object-fit:cover;object-position:top center;background:#3a475c;}
+  .hj-foto .placeholder{display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:30px;color:#c7cedb;}
+  .hj-dorsal{position:absolute;right:-8px;bottom:-8px;background:var(--orange);color:#fff;border-radius:8px;
+    padding:2px 9px;font-family:'Archivo Black',sans-serif;font-size:15px;}
+  .hj-info h2{margin:0 0 4px;font-size:26px;line-height:1.1;}
+  .hj-equipo{display:flex;align-items:center;gap:6px;font-weight:700;color:#c7cedb;cursor:pointer;font-size:13.5px;}
+  .hj-equipo img{margin-right:0 !important;background:#fff;border-radius:4px;}
+  .hj-datos{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px;}
+  .hj-dato b{display:block;font-family:'Archivo Black',sans-serif;font-size:18px;}
+  .hj-dato span{font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:#a9b4c6;}
+  .hj-nota{text-align:center;border-left:1.5px solid rgba(255,255,255,0.15);padding-left:22px;}
+  .hj-nota .hint{color:#a9b4c6;}
+  .hj-num{font-family:'Archivo Black',sans-serif;font-size:46px;line-height:1;color:var(--orange-dark);}
+  .hj-num small{font-size:15px;color:#a9b4c6;}
+  .hj-etiqueta{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#e9edf5;}
+  @media (max-width:760px){ .hero-jug{grid-template-columns:1fr;text-align:center;}
+    .hj-datos{justify-content:center;} .hj-nota{border-left:0;border-top:1.5px solid rgba(255,255,255,0.15);padding:12px 0 0;} }
+  .kpis-jug{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:14px 0 18px;}
+  .kpi-jug{border:1.5px solid var(--wood-line);border-radius:10px;padding:10px;text-align:center;background:var(--white);}
+  .kpi-jug .k{font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-soft);font-weight:800;}
+  .kpi-jug b{display:block;font-family:'Archivo Black',sans-serif;font-size:22px;line-height:1.2;}
+  .kpi-jug .p{font-size:10.5px;color:var(--ink-soft);}
+  .kpi-jug .p.alto{color:var(--verde);font-weight:800;}
+  .kpi-jug .p.bajo{color:var(--rojo);font-weight:800;}
   .profile-hero{display:flex;align-items:center;gap:18px;background:linear-gradient(135deg, var(--ink) 0%, #263447 100%);color:var(--white);border-radius:10px;padding:24px;margin-bottom:18px;flex-wrap:wrap;box-shadow:5px 5px 0 rgba(27,36,50,0.1);}
   .profile-hero img, .profile-hero .placeholder{width:76px;height:76px;border-radius:50%;object-fit:cover;background:var(--orange);border:3px solid var(--white);}
   .profile-hero .sub img{width:18px;height:18px;border:none;border-radius:0;background:none;}
@@ -838,12 +939,76 @@
   .duel .lbl{text-align:center;font-weight:700;}
   .duel .v{font-weight:700;}
   #selEquipoScouting{font-family:'Archivo',sans-serif;font-size:13.5px;padding:8px 10px;border:1.5px solid var(--wood-line);border-radius:6px;background:var(--white);max-width:260px;}
-  #temaBar{max-width:1400px;margin:10px auto 0;padding:0 24px;display:flex;justify-content:flex-end;}
-  #temaBar button{
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh;}
+  #barraLateral{
+    background:var(--white);border-right:1.5px solid var(--wood-line);
+    display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh;
+  }
+  .marca-app{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 6px;}
+  .marca-app .logo-bola{color:var(--orange);font-size:26px;line-height:1;}
+  .marca-app b{font-family:'Archivo Black',sans-serif;font-size:17px;display:block;}
+  .marca-app b span{color:var(--orange);}
+  .marca-app small{display:block;font-size:10.5px;color:var(--ink-soft);}
+  #barraLateral nav{display:flex;flex-direction:column;gap:3px;margin:0;padding:0;max-width:none;overflow-y:auto;flex:1;}
+  #barraLateral nav button{
+    text-align:left;border:none;background:transparent;border-radius:8px;padding:9px 12px;
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:13.5px;color:var(--ink-soft);cursor:pointer;top:0;
+  }
+  #barraLateral nav button:hover{background:var(--suave);color:var(--ink);}
+  #barraLateral nav button.active{background:var(--orange);color:#fff;}
+  .pie-lateral{border-top:1.5px solid var(--wood-line);padding-top:12px;margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .pie-lateral .hint{font-size:10.5px;line-height:1.3;}
+  .contenido{min-width:0;max-width:100%;overflow-x:hidden;}
+  main, .view, .panel, .section-block{min-width:0;}
+  .table-scroll{max-width:100%;}
+  #barraMovil{display:none;}
+  #fondoMenu{display:none;}
+
+  /* ---- Movil y tablet ---- */
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;}
+    #barraMovil{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      position:sticky;top:0;z-index:60;background:var(--white);border-bottom:1.5px solid var(--wood-line);
+      padding:10px 14px;
+    }
+    #barraMovil b{font-family:'Archivo Black',sans-serif;font-size:16px;}
+    #barraMovil b span{color:var(--orange);}
+    #barraMovil button{background:transparent;border:none;font-size:22px;cursor:pointer;color:var(--ink);padding:2px 6px;}
+    #barraLateral{
+      position:fixed;top:0;left:0;height:100vh;width:250px;z-index:70;
+      transform:translateX(-102%);transition:transform 0.2s ease;box-shadow:4px 0 18px var(--sombra);
+    }
+    #barraLateral.abierta{transform:translateX(0);}
+    #fondoMenu.visible{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:65;}
+    main{padding:14px 12px 40px;}
+    .dash-fila, .dash-fila2, .dos-columnas, .ff, .cuartos-pro-wrap,
+    .carta-wrap, .adn, .consumo, .impacto-fila, .scout-columnas, .mp-cols, .fichas{grid-template-columns:1fr !important;}
+    .hero-jug{grid-template-columns:1fr;text-align:center;}
+    .hj-datos{justify-content:center;}
+    .kpis-jug{grid-template-columns:repeat(2,1fr);}
+    .stat-big-grid{grid-template-columns:repeat(2,1fr);}
+    .resumen-temporada{grid-template-columns:repeat(2,1fr);}
+    .accesos{grid-template-columns:repeat(2,1fr);}
+    .caja-grafico, .caja-radar, .caja-donut{height:220px;}
+    .table-scroll{max-height:65vh;}
+    table{font-size:12px;}
+    .section-title{font-size:17px;}
+    .match-hero .score{font-size:30px;}
+    .dp-cuando{margin-left:0;text-align:left;width:100%;}
+  }
+  @media (max-width:560px){
+    .kpis-jug, .stat-big-grid, .datos-informe, .accesos{grid-template-columns:repeat(2,1fr);}
+    .p-datos{grid-template-columns:repeat(3,1fr) !important;}
+    .perfiles-plantilla{grid-template-columns:1fr;}
+    .toolbar{flex-direction:column;align-items:stretch;}
+    .toolbar input, .toolbar select{width:100%;}
+  }
+  .pie-lateral button{
     border:1.5px solid var(--wood-line);background:var(--white);color:var(--ink);border-radius:16px;
     padding:6px 14px;font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;cursor:pointer;
   }
-  #temaBar button:hover{border-color:var(--orange);}
+  .pie-lateral button:hover{border-color:var(--orange);}
   #grupoBar{max-width:1400px;margin:14px auto 0;padding:0 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   #grupoBar .lbl{font-weight:700;font-size:13.5px;color:var(--ink-soft);}
   #grupoBar button{
@@ -920,17 +1085,19 @@
 </head>
 <body>
 
-<header>
-  <div class="inner">
-    <div>
-      <h1>LF2 <span>Stats</span></h1>
-      <div class="subtitle">Liga Femenina 2 &middot; Temporada 2025/26</div>
-    </div>
-    <div class="hint" id="lastUpdated"></div>
+<div class="app">
+<div id="barraMovil">
+  <button id="btnMenu" aria-label="Abrir el menu">☰</button>
+  <b>LF2 <span>Stats</span></b>
+  <button id="btnTemaMovil" aria-label="Cambiar el fondo">🌙</button>
+</div>
+<div id="fondoMenu"></div>
+<aside id="barraLateral">
+  <div class="marca-app">
+    <span class="logo-bola">●</span>
+    <div><b>LF2 <span>Stats</span></b><small>Liga Femenina 2 · 2025/26</small></div>
   </div>
-</header>
-
-<nav id="mainNav">
+  <nav id="mainNav">
   <button data-view="inicio" class="active">Inicio</button>
   <button data-view="mi-equipo">Mi equipo</button>
   <button data-view="clasificacion">Clasificacion</button>
@@ -943,11 +1110,13 @@
   <button data-view="comparador">Comparador</button>
   <button data-view="resultados">Resultados</button>
   <button data-view="records">Records</button>
-</nav>
-
-<div id="temaBar">
-  <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
-</div>
+  </nav>
+  <div class="pie-lateral">
+    <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
+    <div class="hint" id="lastUpdated"></div>
+  </div>
+</aside>
+<div class="contenido">
 
 <div id="grupoBar" style="display:none;">
   <span class="lbl">Ver estadisticas de:</span>
@@ -1103,6 +1272,8 @@
   </section>
 
 </main>
+</div>
+</div>
 
 <footer>
   Fuente de datos: tu Google Sheet, sincronizado automaticamente desde la web de la FEB.
@@ -2487,20 +2658,17 @@ function showJugadoraDetail(playerName) {
   };
 
   document.getElementById("jugadoraDetailContent").innerHTML = `
-    <div class="profile-hero">
-      ${url ? `<img src="${escapeAttr(url)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder'}))">` : `<div class="placeholder">${escapeHtml(playerName.slice(0, 2).toUpperCase())}</div>`}
-      <div>
-        <h2>${escapeHtml(playerName)}</h2>
-        <div class="sub">${escudoImgHtml(row["Equipo"] ? row["Equipo"].display : "", 18)}${escapeHtml(row["Equipo"] ? row["Equipo"].display : "")} &middot; Posicion: <span class="nd">N/D</span></div>
-      </div>
-    </div>
+    ${cabeceraJugadoraHtml(playerName, row, url)}
     <div class="stat-big-grid">
-      <div class="stat-big"><div class="v">${mediaOf(row) ? mediaOf(row).display : "N/D"}</div><div class="l">PPG</div></div>
-      ${bigStat(reb, "RPG")}
-      ${bigStat(ast, "APG")}
-      ${bigStat(rob, "SPG")}
-      ${bigStat(tap, "BPG")}
-      ${bigStat(val, "PIR")}
+      ${bigStat(rob, "Robos por partido")}
+      ${bigStat(tap, "Tapones por partido")}
+      ${(() => {
+        const mm = metricasJugadora(row);
+        const caja = (v, etiqueta, suf) => (v === null || v === undefined) ? "" :
+          `<div class="stat-big"><div class="v">${fmtNum(v)}${suf || ""}</div><div class="l">${escapeHtml(etiqueta)}</div></div>`;
+        return caja(mm.PER, "Perdidas por partido") + caja(mm["AST/TO"], "Asistencias por perdida") +
+               caja(mm.eFG, "eFG") + caja(mm["eFG%"], "eFG %", "%");
+      })()}
     </div>
     <div class="section-block">
       <h3 class="section-title">Tiro</h3>
@@ -3092,7 +3260,7 @@ async function showPartidoDetail(partidoId) {
 
   box.innerHTML = hero + `<div class="match-meta">${escapeHtml(meta.join(" · "))}</div>`
     + bloqueFourFactors(nombreL, rowsL, nombreV, rowsV)
-    + `<div id="desglosePartido"></div><div id="rebotesPartido"></div><div id="cuartosPartido"></div>`
+    + `<div id="desglosePartido"></div><div id="rebotesPartido"></div><div id="cuartosPartido"></div><div id="quintetosPartido"></div>`
     + duelHtml(totL, totV)
     + `<div class="panel" style="margin-top:16px;">${boxTableHtml(nombreL, rowsL)}</div>`
     + `<div class="panel" style="margin-top:16px;">${boxTableHtml(nombreV, rowsV)}</div>`
@@ -3120,6 +3288,13 @@ async function showPartidoDetail(partidoId) {
       dibujarCuartos(partidoId, nombreL, nombreV);
     }
   });
+  // Quintetos del partido: arranca por mi equipo si jugo este partido
+  const esMio = (e) => miEquipo && normalizarEquipo(equipoOficial(e)) === normalizarEquipo(equipoOficial(miEquipo));
+  qpEstado = {
+    partido: partidoId, local: nombreL, visitante: nombreV, tamano: 5,
+    equipo: esMio(nombreV) ? nombreV : nombreL,
+  };
+  cargarTramosQuintetos().then(() => pintarQuintetosPartido());
 }
 
 /* ============================================================
@@ -5243,6 +5418,56 @@ function perfilAvanzadoHtml(playerName, equipoNombre) {
     </div>`;
 }
 
+// Cabecera del perfil: foto, datos, valoracion general y franja de medias
+function cabeceraJugadoraHtml(playerName, row, url) {
+  const equipo = row["Equipo"] ? row["Equipo"].display : "";
+  const st = estadisticasJugadora(playerName, equipo);
+  const m = metricasJugadora(row);
+  const liga = ligaComparable();
+  const impacto = liga.length >= 10 ? indiceImpacto(m, liga) : null;
+  const etiqueta = impacto ? (impacto.valor >= 80 ? "Jugadora determinante"
+    : (impacto.valor >= 65 ? "Jugadora importante"
+    : (impacto.valor >= 45 ? "Rotacion" : "Complemento"))) : "";
+
+  const kpi = [["PTS", m.PTS], ["REB", m.REB], ["AST", m.AST],
+               ["2P%", m["2P%"]], ["3P%", m["3P%"]], ["TL%", m["TL%"]], ["TS%", m["TS%"]]]
+    .filter(([, v]) => v !== null && v !== undefined)
+    .map(([k, v]) => {
+      const d = puestosYpercentiles(k, v, liga);
+      return `<div class="kpi-jug">
+        <span class="k">${escapeHtml(k)}</span>
+        <b>${fmtNum(v)}${k.includes("%") ? "%" : ""}</b>
+        ${d ? `<span class="p ${d.percentil >= 75 ? "alto" : (d.percentil <= 25 ? "bajo" : "")}">${d.puesto}º de ${d.total}</span>` : ""}
+      </div>`;
+    }).join("");
+
+  const dato = (etiq, valor) => valor ? `<div class="hj-dato"><b>${escapeHtml(String(valor))}</b><span>${escapeHtml(etiq)}</span></div>` : "";
+
+  return `<div class="hero-jug">
+    <div class="hj-foto">
+      ${url ? `<img src="${escapeAttr(url)}" onerror="this.style.display='none'">`
+            : `<div class="placeholder">${escapeHtml(playerName.slice(0, 2).toUpperCase())}</div>`}
+      ${st.dorsal ? `<span class="hj-dorsal">${escapeHtml(st.dorsal)}</span>` : ""}
+    </div>
+    <div class="hj-info">
+      <h2>${escapeHtml(playerName)}</h2>
+      <div class="hj-equipo" data-team="${escapeAttr(equipo)}">${escudoImgHtml(equipo, 20)}${escapeHtml(equipo)}</div>
+      <div class="hj-datos">
+        ${dato("Partidos", m.PJ !== null ? fmtNum(m.PJ) : "")}
+        ${dato("Minutos por partido", m.MIN !== null ? fmtNum(m.MIN) : "")}
+        ${dato("Valoracion", m.VAL !== null ? fmtNum(m.VAL) : "")}
+        ${dato("Uso de posesiones", m["USO%"] !== null && m["USO%"] !== undefined ? fmtNum(m["USO%"]) + "%" : "")}
+      </div>
+    </div>
+    ${impacto ? `<div class="hj-nota">
+      <div class="hint">Indice de impacto</div>
+      <div class="hj-num">${impacto.valor}<small>/100</small></div>
+      <div class="hj-etiqueta">${escapeHtml(etiqueta)}</div>
+    </div>` : ""}
+  </div>
+  ${kpi ? `<div class="kpis-jug">${kpi}</div>` : ""}`;
+}
+
 function dibujarRadarJugadora(playerName, equipoNombre) {
   const canvas = document.getElementById("radarJugadora");
   if (!canvas || typeof Chart === "undefined") return;
@@ -5608,6 +5833,204 @@ function renderScouting() {
 }
 
 /* ============================================================
+   DASHBOARD DE MI EQUIPO
+   ============================================================ */
+function diasHasta(fechaTxt) {
+  const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(String(fechaTxt || ""));
+  if (!m) return null;
+  const f = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  return Math.round((f - hoy) / 86400000);
+}
+
+// Dificultad del rival: su puesto y su saldo de puntos
+function dificultadRival(rival) {
+  let puesto = null, total = 14;
+  if (clasificacion) {
+    const grupo = grupoDeEquipo(rival);
+    const delGrupo = clasificacion.rows.filter(r => !grupo || cellText(r, "Grupo") === grupo);
+    const fila = delGrupo.find(r => normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === normalizarEquipo(equipoOficial(rival)));
+    if (fila && fila["Po"]) { puesto = fila["Po"].numeric; total = delGrupo.length || 14; }
+  }
+  if (puesto === null) return { estrellas: 3, texto: "Media", clase: "media" };
+  const parte = puesto / total;
+  if (parte <= 0.25) return { estrellas: 5, texto: "Muy dificil", clase: "dificil", puesto };
+  if (parte <= 0.5) return { estrellas: 4, texto: "Dificil", clase: "dificil", puesto };
+  if (parte <= 0.75) return { estrellas: 3, texto: "Media", clase: "media", puesto };
+  return { estrellas: 2, texto: "Asequible", clase: "facil", puesto };
+}
+
+// Que llevas preparado del proximo rival
+function preparacionRival(rival) {
+  const ficha = scoutFicha("equipos", rival);
+  const inf = ficha.informe || { campos: {}, jugadoras: {} };
+  const camposEscritos = Object.values(inf.campos || {}).filter(v => (v || "").trim()).length;
+  const tareas = [
+    { texto: "Informe escrito", hecho: camposEscritos >= 3, detalle: `${camposEscritos} de ${CAMPOS_INFORME.length} apartados` },
+    { texto: "Jugadoras analizadas", hecho: Object.values(inf.jugadoras || {}).some(v => (typeof v === "string" ? v : (v && v.texto) || "").trim()) },
+    { texto: "Videos guardados", hecho: (ficha.videos || []).length > 0, detalle: `${(ficha.videos || []).length} videos` },
+    { texto: "Jugadas del rival", hecho: (ficha.jugadas || []).length > 0, detalle: `${(ficha.jugadas || []).length} jugadas` },
+  ];
+  const hechas = tareas.filter(t => t.hecho).length;
+  return { tareas, pct: Math.round(hechas / tareas.length * 100) };
+}
+
+function anilloHtml(pct) {
+  const r = 52, c = 2 * Math.PI * r;
+  return `<svg class="anillo" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="${r}" class="fondo"></circle>
+    <circle cx="60" cy="60" r="${r}" class="progreso" stroke-dasharray="${c}"
+      stroke-dashoffset="${c * (1 - pct / 100)}"></circle>
+    <text x="60" y="68" class="pct">${pct}%</text>
+  </svg>`;
+}
+
+// Fortalezas y debilidades sacadas de sus KPIs
+function clavesDelRival(rival) {
+  const datos = tablaKpis(rival);
+  if (!datos) return { fuertes: [], debiles: [] };
+  const lista = Object.entries(datos).filter(([, d]) => d && d.puesto)
+    .map(([clave, d]) => ({ clave, ...d, parte: d.puesto / d.total }));
+  const fuertes = lista.filter(x => x.parte <= 0.3).sort((a, b) => a.parte - b.parte).slice(0, 3);
+  const debiles = lista.filter(x => x.parte >= 0.7).sort((a, b) => b.parte - a.parte).slice(0, 3);
+  const texto = (x) => `${x.clave}: ${fmtNum(x.valor)} · ${x.puesto}º de ${x.total}`;
+  return { fuertes: fuertes.map(texto), debiles: debiles.map(texto) };
+}
+
+function dashboardMiEquipo(nombre, partidos, jugados, pendientes, proximo) {
+  const victorias = jugados.filter(p => p.gano).length;
+  const derrotas = jugados.length - victorias;
+  const pctV = jugados.length ? Math.round(victorias / jugados.length * 100) : 0;
+  const ultimos = jugados.slice(-5).reverse();
+
+  // Racha actual
+  let racha = 0, tipoRacha = "";
+  for (const p of [...jugados].reverse()) {
+    if (tipoRacha === "") { tipoRacha = p.gano ? "V" : "D"; racha = 1; }
+    else if ((p.gano ? "V" : "D") === tipoRacha) racha++;
+    else break;
+  }
+
+  const dias = proximo ? diasHasta(proximo.fecha) : null;
+  const dif = proximo ? dificultadRival(proximo.rival) : null;
+  const prep = proximo ? preparacionRival(proximo.rival) : null;
+  const claves = proximo ? clavesDelRival(proximo.rival) : null;
+  const rachaRival = proximo ? partidosDeEquipo(proximo.rival).filter(p => p.jugado && p.gano !== null).slice(-5).reverse() : [];
+
+  // Avisos utiles
+  const alertas = [];
+  if (proximo && prep) {
+    if (prep.pct < 100) alertas.push({ tipo: "informe", titulo: "Scouting sin terminar",
+      detalle: `${prep.tareas.filter(t => !t.hecho).map(t => t.texto.toLowerCase()).join(", ")}`, accion: "scouting" });
+    if (!(scoutFicha("equipos", proximo.rival).videos || []).length) alertas.push({ tipo: "video",
+      titulo: "Sin videos del rival", detalle: proximo.rival, accion: "scouting" });
+  }
+  if (!pendientes.length) alertas.push({ tipo: "calendario", titulo: "Sin partidos por delante",
+    detalle: "La FEB no tiene mas jornadas publicadas", accion: "resultados" });
+
+  const accesos = [
+    ["scouting", "Scouting", "Analiza a tu rival"],
+    ["jugadoras", "Jugadoras", "Tu plantilla y la liga"],
+    ["fichajes", "Fichajes", "Sigue a tus candidatas"],
+    ["quintetos", "Quintetos", "Quien funciona junta"],
+    ["resultados", "Calendario", "Partidos y resultados"],
+    ["estadisticas", "Estadisticas", "Numeros de la liga"],
+  ];
+
+  return `<div class="dash">
+    <div class="dash-fila">
+      <div class="panel dash-proximo">
+        <h3 class="dash-tit">Proximo partido</h3>
+        ${proximo ? `
+          <div class="dp-equipos">
+            <div class="dp-eq">${escudoImgHtml(nombre, 54)}<b>${escapeHtml(nombre)}</b></div>
+            <span class="dp-vs">vs</span>
+            <div class="dp-eq" data-team="${escapeAttr(proximo.rival)}" style="cursor:pointer;">${escudoImgHtml(proximo.rival, 54)}<b>${escapeHtml(proximo.rival)}</b></div>
+            <div class="dp-cuando">
+              <div>${escapeHtml(proximo.fecha)}</div>
+              <div class="hint">${escapeHtml(proximo.hora || "")} · ${proximo.esLocal ? "En casa" : "Fuera"}</div>
+              <div class="hint">${escapeHtml([proximo.fase, proximo.jornada].filter(Boolean).join(" · "))}</div>
+            </div>
+          </div>
+          <div class="dp-abajo">
+            <div class="dp-dias"><span>${dias === null ? "-" : (dias === 0 ? "Hoy" : (dias < 0 ? "Jugado" : dias))}</span>
+              <small>${dias > 0 ? (dias === 1 ? "dia restante" : "dias restantes") : ""}</small></div>
+            <div class="dp-dif">
+              <div class="hint">Dificultad</div>
+              <div class="estrellas">${"★".repeat(dif.estrellas)}<span class="apagadas">${"★".repeat(5 - dif.estrellas)}</span></div>
+              <span class="etiqueta-dif ${dif.clase}">${escapeHtml(dif.texto)}${dif.puesto ? ` · ${dif.puesto}º` : ""}</span>
+            </div>
+          </div>
+          <button class="btn-grande" id="irScoutingRival">Preparar el partido</button>
+        ` : `<p class="hint">No queda ningun partido por jugar en el calendario de la FEB.</p>`}
+      </div>
+
+      <div class="panel dash-prep">
+        <h3 class="dash-tit">Estado de preparacion</h3>
+        ${prep ? `${anilloHtml(prep.pct)}
+          <ul class="checklist">${prep.tareas.map(t => `<li class="${t.hecho ? "ok" : "pendiente"}">
+            <span>${t.hecho ? "✓" : "○"}</span>${escapeHtml(t.texto)}
+            ${t.detalle ? `<small>${escapeHtml(t.detalle)}</small>` : ""}</li>`).join("")}</ul>`
+          : `<p class="hint">Sin proximo partido que preparar.</p>`}
+      </div>
+
+      <div class="panel dash-alertas">
+        <h3 class="dash-tit">Avisos ${alertas.length ? `<span class="burbuja">${alertas.length}</span>` : ""}</h3>
+        ${alertas.length ? alertas.map(a => `<div class="alerta ${a.tipo}" data-ir="${escapeAttr(a.accion)}">
+            <b>${escapeHtml(a.titulo)}</b><span class="hint">${escapeHtml(a.detalle)}</span></div>`).join("")
+          : `<p class="hint">Todo en orden: el scouting del proximo rival esta completo.</p>`}
+      </div>
+    </div>
+
+    <div class="panel dash-accesos">
+      <h3 class="dash-tit">Accesos rapidos</h3>
+      <div class="accesos">${accesos.map(([vista, titulo, sub]) => `
+        <button class="acceso" data-ir="${vista}"><b>${escapeHtml(titulo)}</b><span>${escapeHtml(sub)}</span></button>`).join("")}</div>
+    </div>
+
+    <div class="dash-fila2">
+      <div class="panel">
+        <h3 class="dash-tit">El rival de esta semana</h3>
+        ${proximo ? `
+          <div class="rival-cab">${escudoImgHtml(proximo.rival, 46)}
+            <div><b>${escapeHtml(proximo.rival)}</b>
+              <div class="hint">${dif.puesto ? dif.puesto + "º de su grupo · " : ""}Ultimos 5: ${rachaRival.map(p => badgeVD(p.gano)).join("") || "sin datos"}</div>
+            </div>
+          </div>
+          <div class="dos-columnas" style="margin-top:12px;">
+            <div><h4>Donde son fuertes</h4>
+              ${claves.fuertes.length ? claves.fuertes.map(t => `<div class="linea-mp buena">${escapeHtml(t)}</div>`).join("") : `<p class="hint">Sin datos suficientes.</p>`}</div>
+            <div><h4>Donde flojean</h4>
+              ${claves.debiles.length ? claves.debiles.map(t => `<div class="linea-mp mala">${escapeHtml(t)}</div>`).join("") : `<p class="hint">Sin datos suficientes.</p>`}</div>
+          </div>
+          <p class="hint" style="margin-top:8px;">Sale de su puesto en la liga en cada estadistica. Tus notas estan en Scouting.</p>
+        ` : `<p class="hint">Sin rival asignado.</p>`}
+      </div>
+
+      <div class="panel">
+        <h3 class="dash-tit">La temporada</h3>
+        <div class="resumen-temporada">
+          <div class="rt-caja"><b class="verde">${victorias}</b><span>Victorias</span></div>
+          <div class="rt-caja"><b class="rojo">${derrotas}</b><span>Derrotas</span></div>
+          <div class="rt-caja"><b>${tipoRacha || "-"}${racha || ""}</b><span>Racha actual</span></div>
+          <div class="rt-caja"><b>${pctV}%</b><span>Victorias</span></div>
+        </div>
+        <h4 class="kpi-grupo">Proximos partidos</h4>
+        ${pendientes.slice(0, 4).map(p => {
+          const d = dificultadRival(p.rival);
+          return `<div class="mini-partido" ${p.pid ? `data-partido="${escapeAttr(p.pid)}"` : ""}>
+            <span class="fecha">${escapeHtml(p.fecha)}</span>
+            <span class="rival">${p.esLocal ? "vs" : "en"} ${escudoImgHtml(p.rival, 18)}${escapeHtml(p.rival)}</span>
+            <span class="etiqueta-dif ${d.clase}">${escapeHtml(d.texto)}</span></div>`;
+        }).join("") || `<p class="hint">No queda calendario por delante.</p>`}
+        <h4 class="kpi-grupo">Ultimos resultados</h4>
+        ${ultimos.map(filaResultado).join("") || `<p class="hint">Aun no hay partidos jugados.</p>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
    MI EQUIPO: panel propio del equipo que elija el usuario
    ============================================================ */
 let miEquipo = "";
@@ -5765,50 +6188,7 @@ function renderMiEquipo() {
       </div>
     </div>`;
 
-  // Proximo partido
-  html += `<div class="panel"><h2 class="section-title" style="margin-top:0;">Proximo partido</h2>`;
-  if (!proximo) {
-    html += `<p class="hint">No queda ningun partido por jugar en el calendario de la FEB.</p>`;
-  } else {
-    const racha = partidosDeEquipo(proximo.rival).filter(p => p.jugado && p.gano !== null).slice(-5).reverse();
-    const historial = jugados.filter(p => normalizarEquipo(equipoOficial(p.rival)) === normalizarEquipo(equipoOficial(proximo.rival)));
-    html += `<div class="proximo">
-        <div class="lado">${escudoImgHtml(nombre, 56)}<div class="n">${escapeHtml(nombre)}</div><div class="hint">${proximo.esLocal ? "En casa" : "Fuera"}</div></div>
-        <div class="centro">
-          <div class="cuando">${escapeHtml(proximo.fecha)}${proximo.hora ? " · " + escapeHtml(proximo.hora) : ""}</div>
-          <div class="hint">${escapeHtml([proximo.fase, proximo.jornada].filter(Boolean).join(" · "))}</div>
-        </div>
-        <div class="lado">${escudoImgHtml(proximo.rival, 56)}<div class="n" data-team="${escapeAttr(proximo.rival)}" style="cursor:pointer;">${escapeHtml(proximo.rival)}</div>
-          <div class="hint">${racha.length ? racha.map(p => badgeVD(p.gano)).join("") : "Sin partidos"}</div></div>
-      </div>
-      <h3 class="section-title">Como llegan</h3>
-      <div class="dos-columnas">
-        <div><h4>Tus ultimos partidos</h4>${ultimos.length ? ultimos.map(filaResultado).join("") : `<p class="hint">Aun no hay partidos jugados.</p>`}</div>
-        <div><h4>Ultimos del rival</h4>${racha.length ? racha.map(filaResultado).join("") : `<p class="hint">Aun no hay partidos jugados.</p>`}</div>
-      </div>
-      <h3 class="section-title">Cara a cara</h3>
-      ${historial.length ? historial.map(filaResultado).join("") : `<p class="hint">Todavia no se han enfrentado esta temporada.</p>`}
-      <h3 class="section-title">Comparativa de equipos</h3>
-      <div class="table-scroll">${tablaDuelo(nombre, proximo.rival)}</div>
-      <h3 class="section-title">Jugadoras a vigilar del rival</h3>
-      ${jugadorasDestacadas(proximo.rival, 3).map(r => `<div class="mini-jugadora">
-          <b class="rank-name" data-player="${escapeAttr(cellText(r, "Jugador"))}">${escapeHtml(cellText(r, "Jugador"))}</b>
-          <span class="hint">${fmtNum(mediaOf(r) ? mediaOf(r).numeric : null)} de valoracion</span></div>`).join("")
-        || `<p class="hint">Proximamente: sin datos de sus jugadoras.</p>`}
-    `;
-  }
-  html += `</div>`;
-
-  // Calendario y plantilla
-  html += `<div class="dos-columnas" style="margin-top:16px;">
-      <div class="panel"><h2 class="section-title" style="margin-top:0;">Proximos partidos</h2>
-        ${pendientes.slice(0, 6).map(filaResultado).join("") || `<p class="hint">No queda calendario por delante.</p>`}</div>
-      <div class="panel"><h2 class="section-title" style="margin-top:0;">Tus jugadoras destacadas</h2>
-        ${jugadorasDestacadas(nombre, 6).map(r => `<div class="mini-jugadora">
-            <b class="rank-name" data-player="${escapeAttr(cellText(r, "Jugador"))}">${escapeHtml(cellText(r, "Jugador"))}</b>
-            <span class="hint">${fmtNum(mediaOf(r) ? mediaOf(r).numeric : null)} de valoracion</span></div>`).join("")
-          || `<p class="hint">Proximamente: sin datos de jugadoras.</p>`}</div>
-    </div>`;
+  html += dashboardMiEquipo(nombre, partidos, jugados, pendientes, proximo);
 
   box.innerHTML = html;
   box.querySelectorAll("[data-partido]").forEach(el =>
@@ -5828,6 +6208,15 @@ function renderMiEquipo() {
 
   const btnScoutMi = document.getElementById("verScoutingEquipo");
   if (btnScoutMi) btnScoutMi.addEventListener("click", () => showScouting(nombre));
+
+  // Botones del dashboard
+  const irScouting = document.getElementById("irScoutingRival");
+  if (irScouting && proximo) irScouting.addEventListener("click", () => showScouting(proximo.rival));
+  box.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", () => {
+    const destino = el.getAttribute("data-ir");
+    if (destino === "scouting") showScouting(proximo ? proximo.rival : nombre);
+    else showView(destino);
+  }));
 }
 
 /* ============================================================
@@ -7111,6 +7500,171 @@ function tablasCuartoEquipo(nombre, propias, rivales, cuartos, num) {
   </div>`;
 }
 
+/* ============================================================
+   QUINTETOS DE ESTE PARTIDO (post-partido)
+   Usa la pestaña Quintetos_Partido: cada fila es un cinco que
+   estuvo junto en ese partido, con sus segundos y sus puntos.
+   ============================================================ */
+let qpEstado = { partido: "", equipo: "", tamano: 5, local: "", visitante: "" };
+
+async function cargarTramosQuintetos() {
+  if (tramosQuintetos === null) {
+    try { tramosQuintetos = await fetchSheetTab("Quintetos_Partido"); }
+    catch (e) { tramosQuintetos = false; }
+  }
+  return tramosQuintetos;
+}
+
+// Combinaciones (parejas, trios, cuartetos o quintetos) de UN solo partido
+function combosDePartido(partidoId, equipo, tamano) {
+  if (!tramosQuintetos || !tramosQuintetos.rows) return [];
+  const mismo = (a, b) => normalizarEquipo(equipoOficial(a)) === normalizarEquipo(equipoOficial(b));
+  const filas = tramosQuintetos.rows.filter(r =>
+    cellText(r, "PartidoID") === partidoId && mismo(cellText(r, "Equipo"), equipo));
+  if (!filas.length) return [];
+
+  const mapa = new Map();
+  filas.forEach(r => {
+    const jug = cellText(r, "Quinteto").split(" · ").map(x => x.trim()).filter(Boolean);
+    if (jug.length < tamano) return;
+    combinaciones([...jug].sort(), tamano).forEach(combo => {
+      const clave = combo.join(" · ");
+      let d = mapa.get(clave);
+      if (!d) {
+        d = { equipo, combo: clave, seg: 0, pf: 0, pc: 0, pos: 0, posR: 0,
+              tca: 0, tci: 0, t3a: 0, rebO: 0, rebD: 0, as: 0, bp: 0,
+              rebORival: 0, rebDRival: 0, partidos: new Map() };
+        mapa.set(clave, d);
+      }
+      d.seg += numQ(r, "Segundos"); d.pf += numQ(r, "PF"); d.pc += numQ(r, "PC");
+      d.pos += numQ(r, "POS"); d.posR += numQ(r, "POS_Rival");
+      d.tca += numQ(r, "TCA"); d.tci += numQ(r, "TCI"); d.t3a += numQ(r, "T3A");
+      d.rebO += numQ(r, "REB_O"); d.rebD += numQ(r, "REB_D");
+      d.as += numQ(r, "AS"); d.bp += numQ(r, "BP");
+      d.rebORival += numQ(r, "REB_O_Rival"); d.rebDRival += numQ(r, "REB_D_Rival");
+    });
+  });
+
+  const lista = [...mapa.values()].map(d => {
+    const minutos = d.seg / 60;
+    // En un solo partido las posesiones son pocas: con menos de 6 no se muestran ratios
+    const hayPos = d.pos >= 6 && d.posR >= 6;
+    return {
+      ...d,
+      minutos: Math.round(minutos * 10) / 10,
+      pj: 1,
+      dif: d.pf - d.pc,
+      dif40: minutos > 0 ? Math.round((d.pf - d.pc) / (minutos / 40) * 10) / 10 : null,
+      ortg: hayPos ? Math.round(100 * d.pf / d.pos * 10) / 10 : null,
+      drtg: hayPos ? Math.round(100 * d.pc / d.posR * 10) / 10 : null,
+      net: hayPos ? Math.round((100 * d.pf / d.pos - 100 * d.pc / d.posR) * 10) / 10 : null,
+      victorias: 0, derrotas: 0, pctV: null,
+    };
+  }).sort((a, b) => b.minutos - a.minutos);
+
+  const minimo = tamano === 5 ? 1 : 2;
+  const utiles = lista.filter(d => d.minutos >= minimo);
+  return utiles.length ? utiles : lista;
+}
+
+function tarjetaQpHtml(titulo, c, pie) {
+  if (!c) return "";
+  const m = metricasCombo(c);
+  const signo = c.dif > 0 ? "+" : "";
+  return `<div class="qp-destacado">
+    <div class="qp-tit">${escapeHtml(titulo)}</div>
+    <div class="qp-jug">${escapeHtml(c.combo)}</div>
+    <div class="qp-grande ${c.dif >= 0 ? "bien" : "mal"}">${signo}${fmtNum(c.dif)}</div>
+    <div class="qp-sub">${fmtNum(c.minutos)} minutos juntas · ${fmtNum(c.pf)} a favor · ${fmtNum(c.pc)} en contra</div>
+    ${m.efg !== null ? `<div class="qp-sub">${fmtNum(m.efg)}% eFG · ${fmtNum(c.as)} asistencias · ${fmtNum(c.bp)} perdidas</div>` : ""}
+    ${pie ? `<div class="qp-pie">${escapeHtml(pie)}</div>` : ""}
+  </div>`;
+}
+
+function listaQpHtml(filas) {
+  const maxAbs = Math.max(...filas.map(f => Math.abs(f.dif || 0)), 1);
+  return `<div class="lista-quintetos">${filas.map((f, i) => {
+    const ancho = Math.min(100, Math.abs(f.dif) / maxAbs * 100);
+    const ratios = f.ortg !== null ? ` · OER ${fmtNum(f.ortg)} · DER ${fmtNum(f.drtg)}` : "";
+    return `<div class="tarjeta-q">
+      <div class="q-num">${i + 1}</div>
+      <div class="q-cuerpo">
+        <div class="q-jug">${escapeHtml(f.combo)}</div>
+        <div class="q-det">${fmtNum(f.minutos)}' juntas · ${fmtNum(f.pf)}-${fmtNum(f.pc)} en puntos${ratios}
+          · ${fmtNum(f.rebO + f.rebD)} rebotes · ${fmtNum(f.as)} as. · ${fmtNum(f.bp)} perd.</div>
+        <div class="q-barra"><span class="${f.dif >= 0 ? "bien" : "mal"}" style="width:${ancho}%"></span></div>
+      </div>
+      <div class="q-valor ${f.dif >= 0 ? "bien" : "mal"}">${f.dif > 0 ? "+" : ""}${fmtNum(f.dif)}
+        <span>saldo</span></div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+const QP_TAMANOS = { 5: "Quintetos", 4: "Cuartetos", 3: "Trios", 2: "Parejas" };
+
+function bloqueQuintetosPartido() {
+  const { partido, equipo, tamano, local, visitante } = qpEstado;
+  if (!tramosQuintetos || !tramosQuintetos.rows || !tramosQuintetos.rows.length) {
+    return `<div class="panel coming-soon" style="margin-top:16px;">
+      <h3 style="margin-top:0;">Quintetos de este partido: Proximamente</h3>
+      <p class="hint">Hace falta la pestaña <b>Quintetos_Partido</b> del Google Sheet, que crea el script
+        con el jugada a jugada de la FEB.</p></div>`;
+  }
+
+  const chipsEquipo = [local, visitante].filter(Boolean).map(e =>
+    `<button class="chip ${normalizarEquipo(e) === normalizarEquipo(equipo) ? "activa" : ""}" data-qp-equipo="${escapeAttr(e)}">
+      ${escudoImgHtml(e, 16)}${escapeHtml(e)}${normalizarEquipo(e) === normalizarEquipo(miEquipo) ? " ★" : ""}</button>`).join("");
+  const chipsTamano = Object.keys(QP_TAMANOS).sort((a, b) => b - a).map(t =>
+    `<button class="chip ${Number(t) === tamano ? "activa" : ""}" data-qp-tamano="${t}">${QP_TAMANOS[t]}</button>`).join("");
+
+  const cabecera = `<div class="panel" style="margin-top:16px;">
+    <h2 class="section-title" style="margin-top:0;">Quintetos de este partido</h2>
+    <p class="hint" style="margin-top:-6px;">Quien funciono junta en el partido: minutos compartidos y
+      el saldo de puntos (lo que anotaron menos lo que recibieron) mientras estaban en pista.</p>
+    <div class="chips-qp">${chipsEquipo}</div>
+    <div class="chips-qp">${chipsTamano}</div>`;
+
+  const filas = combosDePartido(partido, equipo, tamano);
+  if (!filas.length) {
+    return cabecera + `<p class="hint" style="margin-top:12px;">No hay jugada a jugada utilizable de
+      ${escapeHtml(equipo)} en este partido, asi que no se pueden calcular los ${QP_TAMANOS[tamano].toLowerCase()}.</p></div>`;
+  }
+
+  const conMinutos = filas.filter(f => f.minutos >= (tamano === 5 ? 2 : 4));
+  const base = conMinutos.length >= 2 ? conMinutos : filas;
+  const porSaldo = [...base].sort((a, b) => b.dif - a.dif);
+  const mejor = porSaldo[0];
+  const peor = porSaldo[porSaldo.length - 1];
+  const masMinutos = filas[0];
+
+  const destacados = `<div class="qp-destacados">
+    ${tarjetaQpHtml("La que mas jugo junta", masMinutos, "El cinco de referencia del partido.")}
+    ${mejor && mejor !== masMinutos ? tarjetaQpHtml("El mejor saldo", mejor, "Con esta combinacion el equipo gano la diferencia.") : ""}
+    ${peor && peor !== mejor && peor !== masMinutos ? tarjetaQpHtml("El peor saldo", peor, "Aqui es donde se escapo el partido.") : ""}
+  </div>`;
+
+  return cabecera + destacados
+    + `<h4 style="margin:18px 0 8px;">Todas las combinaciones, por minutos juntas</h4>`
+    + listaQpHtml(filas.slice(0, 10))
+    + `<p class="hint" style="margin-top:10px;"><b>Saldo</b> = puntos a favor menos en contra con esas jugadoras en pista.
+       <b>OER/DER</b> solo salen cuando hubo suficientes posesiones (6 o mas); en tramos cortos el dato enganaria.</p>
+    </div>`;
+}
+
+function pintarQuintetosPartido() {
+  const hueco = document.getElementById("quintetosPartido");
+  if (!hueco) return;
+  hueco.innerHTML = bloqueQuintetosPartido();
+  hueco.querySelectorAll("[data-qp-equipo]").forEach(b => b.addEventListener("click", () => {
+    qpEstado.equipo = b.getAttribute("data-qp-equipo");
+    pintarQuintetosPartido();
+  }));
+  hueco.querySelectorAll("[data-qp-tamano]").forEach(b => b.addEventListener("click", () => {
+    qpEstado.tamano = Number(b.getAttribute("data-qp-tamano"));
+    pintarQuintetosPartido();
+  }));
+}
+
 function bloqueCuartos(partidoId, nombreL, nombreV) {
   const filas = cuartosDelPartido(partidoId);
   if (!filas.length) {
@@ -7454,15 +8008,43 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-01";
+const VERSION_APP = "2026-10-05";
+
+/* ---- App instalable (PWA): guarda la app en el movil/tablet ---- */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
 
 /* --- Fondo claro u oscuro, a gusto de cada uno --- */
 function aplicarTema(tema) {
   document.documentElement.setAttribute("data-tema", tema);
   const btn = document.getElementById("btnTema");
   if (btn) btn.textContent = tema === "oscuro" ? "☀️ Modo claro" : "🌙 Modo oscuro";
+  const btnMovil = document.getElementById("btnTemaMovil");
+  if (btnMovil) btnMovil.textContent = tema === "oscuro" ? "☀️" : "🌙";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", tema === "oscuro" ? "#12161d" : "#faf6ee");
   try { localStorage.setItem("lf2_tema", tema); } catch (e) { /* sin guardar, no pasa nada */ }
 }
+
+// El menu lateral, en movil, se abre con el boton
+document.addEventListener("DOMContentLoaded", () => {
+  const barra = document.getElementById("barraLateral");
+  const fondo = document.getElementById("fondoMenu");
+  const abrir = () => { barra.classList.add("abierta"); fondo.classList.add("visible"); };
+  const cerrar = () => { barra.classList.remove("abierta"); fondo.classList.remove("visible"); };
+  const btn = document.getElementById("btnMenu");
+  if (btn) btn.addEventListener("click", () => barra.classList.contains("abierta") ? cerrar() : abrir());
+  if (fondo) fondo.addEventListener("click", cerrar);
+  document.querySelectorAll("#mainNav button").forEach(b => b.addEventListener("click", cerrar));
+  const temaMovil = document.getElementById("btnTemaMovil");
+  if (temaMovil) temaMovil.addEventListener("click", () => {
+    const actual = document.documentElement.getAttribute("data-tema") === "oscuro" ? "claro" : "oscuro";
+    aplicarTema(actual);
+  });
+});
 
 (function iniciarTema() {
   let guardado = "claro";
