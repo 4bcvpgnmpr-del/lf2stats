@@ -8207,6 +8207,8 @@ function calcularRecords() {
     const equipo = cellText(r, "Equipo");
     const pid = cellText(r, "PartidoID");
     if (!pid || !equipo) return;
+    // Con un grupo elegido solo cuentan sus equipos
+    if (grupoActivo && grupoDeEquipo(equipo) !== grupoActivo) return;
 
     if (jugadora === "TOTAL") {
       const t3 = paresTiro(r, "T3");
@@ -8237,7 +8239,7 @@ function calcularRecords() {
   });
   const duelos = [];
   porPartido.forEach((lista, pid) => {
-    if (lista.length !== 2) return;
+    if (lista.length !== 2) return;   // con filtro de grupo puede faltar un lado
     const m = meta.get(pid) || {};
     const suma = lista[0].pts + lista[1].pts;
     const dif = Math.abs(lista[0].pts - lista[1].pts);
@@ -8315,8 +8317,9 @@ function renderRecords() {
   box.innerHTML = `
     <div class="panel">
       <h2 class="section-title" style="margin-top:0;">Records de la temporada</h2>
-      <p class="hint" style="margin-top:-6px;">La mejor actuacion en un solo partido, sacada de los ${d.totalPartidos}
-        partidos con cuadro estadistico. Pulsa un nombre para abrir su perfil.</p>
+      <p class="hint" style="margin-top:-6px;">La mejor actuacion en un solo partido${
+        grupoActivo ? ` <b>del grupo ${escapeHtml(grupoActivo)}</b>` : " de toda la liga"},
+        sacada de ${d.totalPartidos} partidos con cuadro estadistico. Pulsa un nombre para abrir su perfil.</p>
       <div class="records-grid">
         ${d.individuales.map(x => tarjetaRecordHtml(x.def, x.lista)).join("")}
       </div>
@@ -9994,6 +9997,9 @@ function setGrupo(g) {
   renderTodo();
   if (avanzadasCalculo) renderAvanzadas();
   if (tramosQuintetos) { filtrosQ.equipo = ""; filtrosQ.partido = ""; renderQuintetos(); }
+  // Los records dependen del grupo: se recalculan desde cero
+  recordsCalculo = null;
+  if (vistaActual === "records") renderRecords();
 }
 
 function prepararBarraGrupos() {
@@ -10028,7 +10034,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-20";
+const VERSION_APP = "2026-10-21";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
