@@ -438,11 +438,17 @@
   .barra-zona span{display:block;height:100%;background:var(--orange);}
   table.limpia td.bueno{color:var(--verde);font-weight:800;}
   table.limpia td.malo{color:var(--rojo);font-weight:800;}
-  .cuartos-pro-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
-  @media (max-width:900px){ .cuartos-pro-wrap{grid-template-columns:1fr;} }
+  /* Una tabla debajo de la otra: con 11 columnas, a dos columnas se cortaba.
+     Solo se ponen lado a lado en pantallas muy anchas. */
+  .cuartos-pro-wrap{display:grid;grid-template-columns:1fr;gap:18px;margin-top:16px;}
+  .cuartos-pro-wrap > *{min-width:0;}          /* evita que la tabla desborde su hueco */
+  .cuartos-pro-wrap .table-scroll{overflow-x:auto;max-width:100%;}
+  @media (min-width:1500px){ .cuartos-pro-wrap{grid-template-columns:1fr 1fr;} }
   .cuarto-equipo h4{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:13.5px;}
   .cuarto-equipo h4 img{margin-right:0 !important;}
-  table.cuartos-pro td, table.cuartos-pro th{font-size:11.5px;padding:5px 4px;}
+  table.cuartos-pro{width:100%;table-layout:auto;}
+  table.cuartos-pro td, table.cuartos-pro th{font-size:12px;padding:6px 5px;white-space:nowrap;}
+  table.cuartos-pro th.equipo, table.cuartos-pro td.equipo{width:1%;}
   table.cuartos-pro td.celda-bien{background:var(--verde-suave) !important;color:var(--verde);font-weight:800;}
   table.cuartos-pro td.celda-mal{background:var(--rojo-suave) !important;color:var(--rojo);font-weight:800;}
   .marcadores-cuarto{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;}
@@ -8021,7 +8027,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-06";
+const VERSION_APP = "2026-10-07";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
