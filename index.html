@@ -656,6 +656,29 @@
   .btn-partido.secundario{background:var(--white);color:var(--ink);border:1.5px solid var(--wood-line);}
   .btn-partido.secundario:hover{border-color:var(--orange);color:var(--orange-dark);}
 
+  /* --- Produccion y eficiencia (PER) --- */
+  .per-lista{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
+  .per-fila{display:grid;grid-template-columns:minmax(110px,1.4fr) 3fr 44px 62px;gap:10px;align-items:center;}
+  .per-fila .p-nom b{font-size:12.5px;cursor:pointer;}
+  .per-fila .p-nom b:hover{color:var(--orange-dark);}
+  .per-fila .p-barra{position:relative;height:17px;background:var(--barra);border-radius:5px;overflow:visible;}
+  .per-fila .p-barra span{display:block;height:100%;border-radius:5px;}
+  .per-fila .p-barra span.bien{background:var(--verde);}
+  .per-fila .p-barra span.medio{background:var(--orange);}
+  .per-fila .p-barra span.mal{background:var(--rojo);}
+  .per-fila .p-barra .p-media{position:absolute;top:-3px;bottom:-3px;width:0;
+    border-left:2px dashed var(--ink-soft);opacity:.65;}
+  .per-fila .p-val{font-weight:800;font-size:13px;text-align:right;}
+  .per-fila .p-val.bien{color:var(--verde);} .per-fila .p-val.medio{color:var(--orange-dark);}
+  .per-fila .p-val.mal{color:var(--rojo);}
+  .per-fila .p-min{font-size:11px;color:var(--ink-soft);text-align:right;}
+  .prod-grafico{height:300px;position:relative;margin-top:10px;}
+  @media (max-width:700px){
+    .per-fila{grid-template-columns:minmax(84px,1.2fr) 2fr 38px;}
+    .per-fila .p-min{display:none;}
+    .prod-grafico{height:250px;}
+  }
+
   /* --- Zonas de tiro con puntos por tiro --- */
   table.tabla-zonas td.z-vol{min-width:120px;}
   table.tabla-zonas .barra-zona{display:inline-block;width:72px;vertical-align:middle;}
@@ -2946,6 +2969,10 @@ function showEquipoDetail(teamName) {
       <div class="panel" id="perfilPlantilla"><p class="hint">Calculando...</p></div>
     </div>
     <div class="section-block">
+      <h3 class="section-title">Produccion y eficiencia de las jugadoras</h3>
+      <div class="panel" id="produccionEquipo"><p class="hint">Calculando...</p></div>
+    </div>
+    <div class="section-block">
       <h3 class="section-title">Rebotes segun el tiro fallado</h3>
       <div class="panel" id="rebotesEquipo"><p class="hint">Cargando...</p></div>
     </div>
@@ -4258,6 +4285,20 @@ async function rellenarAvanzadasEquipo(teamName) {
   if (cajaEvo) { cajaEvo.innerHTML = bloqueEvolucion(teamName); dibujarEvolucion(teamName); }
   const cajaEstilo = document.getElementById("estiloEquipo");
   if (cajaEstilo) cajaEstilo.innerHTML = bloqueEstilo(teamName);
+  asegurarPartidosParaInforme(() => {
+    const caja = document.getElementById("produccionEquipo");
+    if (!caja) return;
+    produccionCalculo = null;
+    caja.innerHTML = bloqueProduccion(teamName);
+    wireRankClicks(caja);
+    dibujarUsoEficiencia(teamName);
+  });
+  const cajaProd = document.getElementById("produccionEquipo");
+  if (cajaProd && (tirosResumen || partidosCache)) {
+    cajaProd.innerHTML = bloqueProduccion(teamName);
+    wireRankClicks(cajaProd);
+    dibujarUsoEficiencia(teamName);
+  }
   const cajaPerfiles = document.getElementById("perfilPlantilla");
   if (cajaPerfiles) {
     cajaPerfiles.innerHTML = perfilPlantillaHtml(teamName);
@@ -8484,6 +8525,221 @@ async function cargarRecords() {
 }
 
 /* ============================================================
+   PRODUCCION Y EFICIENCIA DE LAS JUGADORAS
+   PER aproximado (produccion por minuto, con 15 = media del grupo),
+   uso de posesiones y eficiencia de tiro.
+   ============================================================ */
+function totalesJugadorasLiga() {
+  // Camino bueno: la pestaña resumida, una fila por jugadora
+  if (tirosResumen && tirosResumen.rows && tirosResumen.rows.length) {
+    return tirosResumen.rows.map(r => {
+      const n = (c) => { const v = parseSpanishNumber(cellText(r, c)); return v === null ? 0 : v; };
+      const tca = n("T2A") + n("T3A"), tci = n("T2I") + n("T3I");
+      return { jugadora: cellText(r, "Jugador"), equipo: cellText(r, "Equipo"),
+               pj: n("Partidos"), min: n("Minutos"), pts: n("Puntos"),
+               reb: n("RebTot"), ast: n("Asistencias"), bp: n("Perdidas"),
+               rob: n("Robos"), tap: n("Tapones"), fc: n("FaltasCom"),
+               tca, tci, t3a: n("T3A"), t3i: n("T3I"), tla: n("TLA"), tli: n("TLI"),
+               val: n("Valoracion") };
+    });
+  }
+  // Plan B: sumar los cuadros de cada partido
+  if (!partidosCache || !partidosCache.rows) return [];
+  const mapa = new Map();
+  partidosCache.rows.forEach(r => {
+    const nombre = cellText(r, "Jugador");
+    const equipo = cellText(r, "Equipo");
+    if (!nombre || nombre === "TOTAL" || !equipo) return;
+    const clave = nombre + "|" + normalizarEquipo(equipoOficial(equipo));
+    let d = mapa.get(clave);
+    if (!d) { d = { jugadora: nombre, equipo, pj: 0, min: 0, pts: 0, reb: 0, ast: 0,
+                    bp: 0, rob: 0, tap: 0, fc: 0, tca: 0, tci: 0, t3a: 0, t3i: 0,
+                    tla: 0, tli: 0, val: 0 };
+             mapa.set(clave, d); }
+    const t = /^(\d+):([0-5]\d)/.exec(cellText(r, "MIN"));
+    d.pj++;
+    d.min += t ? Number(t[1]) + Number(t[2]) / 60 : 0;
+    d.pts += numDe(r, "PT"); d.reb += numDe(r, "REB_T"); d.ast += numDe(r, "AS");
+    d.bp += numDe(r, "BP"); d.rob += numDe(r, "BR"); d.tap += numDe(r, "TAP_F");
+    d.fc += numDe(r, "FAL_C"); d.val += numDe(r, "VA");
+    const tc = paresTiro(r, "TC"), t3 = paresTiro(r, "T3"), tl = paresTiro(r, "TL");
+    d.tca += tc.a; d.tci += tc.i; d.t3a += t3.a; d.t3i += t3.i; d.tla += tl.a; d.tli += tl.i;
+  });
+  return [...mapa.values()];
+}
+
+// Produccion bruta por minuto: suma lo que aporta y resta lo que falla.
+// No es el PER de Hollinger exacto (ese necesita factores de liga que la FEB
+// no publica), pero ordena igual y se normaliza para que 15 sea la media.
+function perBruto(j) {
+  if (!j.min) return null;
+  const positivo = j.pts + j.reb + j.ast + j.rob + j.tap;
+  const negativo = (j.tci - j.tca) + (j.tli - j.tla) + j.bp;
+  return (positivo - negativo) / j.min;
+}
+
+let produccionCalculo = null;
+
+function calcularProduccion() {
+  const todas = totalesJugadorasLiga().filter(j => j.min > 0);
+  if (!todas.length) return null;
+
+  const delAmbito = grupoActivo
+    ? todas.filter(j => grupoDeEquipo(j.equipo) === grupoActivo)
+    : todas;
+  const base = delAmbito.length >= 10 ? delAmbito : todas;
+
+  // La media se pondera por minutos: una jugadora de 400 minutos pesa mas
+  // que una de 20 a la hora de decidir donde esta el "nivel medio".
+  const conPer = base.map(j => ({ j, bruto: perBruto(j) })).filter(x => x.bruto !== null);
+  const minTot = conPer.reduce((a, x) => a + x.j.min, 0);
+  const mediaBruta = minTot ? conPer.reduce((a, x) => a + x.bruto * x.j.min, 0) / minTot : 0;
+  const factor = mediaBruta > 0 ? 15 / mediaBruta : 0;
+
+  // Totales de cada equipo, para el uso de posesiones
+  const porEquipo = new Map();
+  base.forEach(j => {
+    const k = normalizarEquipo(equipoOficial(j.equipo));
+    let e = porEquipo.get(k);
+    if (!e) { e = { tci: 0, tli: 0, bp: 0, min: 0 }; porEquipo.set(k, e); }
+    e.tci += j.tci; e.tli += j.tli; e.bp += j.bp; e.min += j.min;
+  });
+
+  const lista = base.map(j => {
+    const bruto = perBruto(j);
+    const e = porEquipo.get(normalizarEquipo(equipoOficial(j.equipo)));
+    const jugadasEq = e ? e.tci + 0.44 * e.tli + e.bp : 0;
+    const jugadas = j.tci + 0.44 * j.tli + j.bp;
+    const uso = (e && e.min && jugadasEq && j.min)
+      ? Math.round(100 * jugadas * (e.min / 5) / (j.min * jugadasEq) * 10) / 10 : null;
+    const tiros = j.tci + 0.44 * j.tli;
+    return {
+      ...j,
+      per: bruto !== null && factor ? Math.round(bruto * factor * 10) / 10 : null,
+      ts: tiros > 0 ? Math.round(100 * j.pts / (2 * tiros) * 10) / 10 : null,
+      efg: j.tci > 0 ? Math.round(100 * (j.tca + 0.5 * j.t3a) / j.tci * 10) / 10 : null,
+      uso,
+      astTo: j.bp > 0 ? Math.round(j.ast / j.bp * 100) / 100 : null,
+      minPorPartido: j.pj ? Math.round(j.min / j.pj * 10) / 10 : null,
+    };
+  });
+
+  return { lista, media: 15, ambito: grupoActivo ? "grupo " + grupoActivo : "la liga" };
+}
+
+const MIN_ROTACION = 100;   // minutos para considerar que una jugadora es de la rotacion
+
+function bloqueProduccion(nombreEquipo) {
+  if (!produccionCalculo) produccionCalculo = calcularProduccion();
+  const d = produccionCalculo;
+  if (!d) {
+    return `<p class="hint">Produccion y eficiencia: hacen falta los totales de cada jugadora.
+      Entra una vez en el menu Estadisticas y vuelve aqui.</p>`;
+  }
+  const mias = d.lista
+    .filter(j => normalizarEquipo(equipoOficial(j.equipo)) === normalizarEquipo(equipoOficial(nombreEquipo)))
+    .sort((a, b) => (b.per ?? -99) - (a.per ?? -99));
+  if (!mias.length) return `<p class="hint">Sin datos de jugadoras de este equipo.</p>`;
+
+  const rotacion = mias.filter(j => j.min >= MIN_ROTACION);
+  const fuera = mias.length - rotacion.length;
+  const lista = rotacion.length >= 3 ? rotacion : mias;
+  const maxPer = Math.max(...lista.map(j => j.per ?? 0), 15);
+  const sobreMedia = lista.filter(j => (j.per ?? 0) > 15).length;
+
+  const barras = lista.map(j => {
+    const per = j.per ?? 0;
+    const nivel = per >= 15 ? "bien" : (per >= 11 ? "medio" : "mal");
+    return `<div class="per-fila">
+      <div class="p-nom"><b class="rank-name" data-player="${escapeAttr(j.jugadora)}">${escapeHtml(j.jugadora)}</b></div>
+      <div class="p-barra"><span class="${nivel}" style="width:${Math.max(2, Math.round(per / maxPer * 100))}%"></span>
+        <i class="p-media" style="left:${Math.round(15 / maxPer * 100)}%"></i></div>
+      <div class="p-val ${nivel}">${fmtNum(j.per)}</div>
+      <div class="p-min">${fmtNum(Math.round(j.min))} min</div>
+    </div>`;
+  }).join("");
+
+  const filas = mias.map(j => `<tr>
+    <td class="equipo"><b class="rank-name" data-player="${escapeAttr(j.jugadora)}">${escapeHtml(j.jugadora)}</b></td>
+    <td>${j.pj}</td><td>${fmtNum(Math.round(j.min))}</td><td>${fmtNum(j.pts)}</td>
+    <td class="${(j.per ?? 0) >= 15 ? "bueno" : ((j.per ?? 0) < 11 ? "malo" : "")}">${fmtNum(j.per)}</td>
+    <td>${j.ts === null ? "-" : fmtNum(j.ts) + "%"}</td>
+    <td>${j.efg === null ? "-" : fmtNum(j.efg) + "%"}</td>
+    <td>${j.uso === null ? "-" : fmtNum(j.uso) + "%"}</td>
+    <td>${j.astTo === null ? "-" : fmtNum(j.astTo)}</td></tr>`).join("");
+
+  return `<div class="prod">
+    <h4 class="diag-sub" style="margin-top:0;">PER · eficiencia de cada jugadora</h4>
+    <p class="hint" style="margin-top:-4px;">Resume en un numero lo que produce por minuto. La linea marca el
+      <b>15</b>, que es la media de ${escapeHtml(d.ambito)}: ${sobreMedia} de ${lista.length} la superan.
+      ${rotacion.length >= 3 ? `Solo salen las de ${MIN_ROTACION}+ minutos${fuera ? `; quedan ${fuera} con muestra menor` : ""}.` : ""}</p>
+    <div class="per-lista">${barras}</div>
+
+    <h4 class="diag-sub">Uso frente a eficiencia</h4>
+    <p class="hint" style="margin-top:-4px;">Arriba a la derecha, quien asume carga y ademas anota bien.
+      Abajo a la derecha, quien tira mucho con poca eficacia: ahi suele estar el margen de mejora.</p>
+    <div class="prod-grafico"><canvas id="chartUsoEf"></canvas></div>
+
+    <h4 class="diag-sub">Tabla completa</h4>
+    <div class="table-scroll"><table class="limpia"><thead><tr>
+      <th class="equipo">Jugadora</th><th>PJ</th><th title="Minutos totales">MIN</th>
+      <th title="Puntos totales">PTS</th><th title="15 es la media del grupo">PER</th>
+      <th title="Tiro verdadero: junta dos, triples y libres">TS%</th>
+      <th title="Tiro de campo efectivo">eFG%</th>
+      <th title="Que parte de las jugadas del equipo acaban en sus manos">USO%</th>
+      <th title="Asistencias por cada perdida">AS/BP</th></tr></thead>
+      <tbody>${filas}</tbody></table></div>
+
+    <p class="diag-aviso"><b>Como leer el PER:</b> 15 es la media, 20 o mas es una jugadora de referencia,
+      entre 12 y 15 es rol util y por debajo de 10 aportacion limitada. Es una version simplificada: suma
+      puntos, rebotes, asistencias, robos y tapones, resta tiros fallados y perdidas, y lo divide entre los
+      minutos. No es el PER oficial de Hollinger, que necesita factores de liga que la FEB no publica.
+      Favorece a quien tiene muestra amplia: con pocos minutos es inestable.</p>
+  </div>`;
+}
+
+let graficoUsoEf = null;
+function dibujarUsoEficiencia(nombreEquipo) {
+  const canvas = document.getElementById("chartUsoEf");
+  if (!canvas || typeof Chart === "undefined" || !produccionCalculo) return;
+  const mias = produccionCalculo.lista.filter(j =>
+    normalizarEquipo(equipoOficial(j.equipo)) === normalizarEquipo(equipoOficial(nombreEquipo)) &&
+    j.uso !== null && j.ts !== null && j.min >= 40);
+  if (!mias.length) return;
+  if (graficoUsoEf) { try { graficoUsoEf.destroy(); } catch (e) { /* nada */ } }
+
+  const medUso = mias.reduce((a, j) => a + j.uso, 0) / mias.length;
+  const medTs = mias.reduce((a, j) => a + j.ts, 0) / mias.length;
+
+  graficoUsoEf = new Chart(canvas.getContext("2d"), {
+    type: "scatter",
+    data: {
+      datasets: [{
+        label: "Jugadoras",
+        data: mias.map(j => ({ x: j.uso, y: j.ts, nombre: j.jugadora, min: Math.round(j.min) })),
+        pointRadius: mias.map(j => Math.max(4, Math.min(13, Math.sqrt(j.min) / 2))),
+        backgroundColor: mias.map(j => (j.uso >= medUso && j.ts >= medTs) ? "#1f7a5a"
+          : ((j.uso >= medUso && j.ts < medTs) ? "#b4470f" : "#e0602a")),
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (it) => {
+          const p = it.raw;
+          return `${p.nombre}: uso ${fmtNum(p.x)}% · TS ${fmtNum(p.y)}% · ${p.min} min`;
+        } } },
+      },
+      scales: {
+        x: { title: { display: true, text: "Uso de posesiones (%)" }, grid: { color: "rgba(128,128,128,.18)" } },
+        y: { title: { display: true, text: "Eficiencia de tiro TS (%)" }, grid: { color: "rgba(128,128,128,.18)" } },
+      },
+    },
+  });
+}
+
+/* ============================================================
    DIAGNOSTICO DE TEMPORADA
    Cada metrica se compara con el resto del grupo: puesto,
    media y percentil. Con eso se escribe un resumen en lenguaje
@@ -9201,6 +9457,8 @@ const BLOQUES_INFORME = [
     prep: (v) => showEquipoDetail(v), sel: "#planEquipo", espera: 1700 },
   { id: "evolucion", nombre: "Evolucion durante la temporada", grupo: "Equipo", param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#evolucionEquipo", espera: 1800 },
+  { id: "produccion", nombre: "Jugadoras: PER, uso y eficiencia", grupo: "Equipo", param: "equipo",
+    prep: (v) => showEquipoDetail(v), sel: "#produccionEquipo", espera: 2400 },
   { id: "estilo", nombre: "Estilo de juego (ritmo y reparto de tiro)", grupo: "Equipo", param: "equipo",
     prep: (v) => showEquipoDetail(v), sel: "#estiloEquipo", espera: 1600 },
   { id: "equipo",   nombre: "Perfil completo del equipo", grupo: "Equipo",   param: "equipo",
@@ -10096,6 +10354,7 @@ function setGrupo(g) {
   if (tramosQuintetos) { filtrosQ.equipo = ""; filtrosQ.partido = ""; renderQuintetos(); }
   // Los records dependen del grupo: se recalculan desde cero
   recordsCalculo = null;
+  produccionCalculo = null;
   if (vistaActual === "records") renderRecords();
 }
 
@@ -10131,7 +10390,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-22";
+const VERSION_APP = "2026-10-23";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
