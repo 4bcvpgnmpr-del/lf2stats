@@ -656,6 +656,18 @@
   .btn-partido.secundario{background:var(--white);color:var(--ink);border:1.5px solid var(--wood-line);}
   .btn-partido.secundario:hover{border-color:var(--orange);color:var(--orange-dark);}
 
+  /* --- Selector de temporada --- */
+  .sel-temporada{margin:2px 0 14px;display:flex;flex-direction:column;gap:4px;}
+  .sel-temporada label{font-size:10px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.09em;color:var(--ink-soft);}
+  .sel-temporada select{padding:7px 9px;border:1.5px solid var(--wood-line);border-radius:8px;
+    background:var(--white);color:var(--ink);font-family:'Archivo',sans-serif;font-size:13.5px;
+    font-weight:700;cursor:pointer;width:100%;}
+  .sel-temporada select:hover{border-color:var(--orange);}
+  .aviso-temporada{background:var(--rojo-suave);border:1.5px solid var(--wood-line);
+    border-radius:11px;padding:14px 16px;margin-bottom:16px;}
+  .aviso-temporada b{display:block;margin-bottom:5px;}
+
   /* --- Produccion y eficiencia (PER) --- */
   .per-lista{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
   .per-fila{display:grid;grid-template-columns:minmax(110px,1.4fr) 3fr 44px 62px;gap:10px;align-items:center;}
@@ -1452,7 +1464,11 @@
 <aside id="barraLateral">
   <div class="marca-app">
     <span class="logo-bola">●</span>
-    <div><b>LF2 <span>Stats</span></b><small>Liga Femenina 2 · 2025/26</small></div>
+    <div><b>LF2 <span>Stats</span></b><small id="marcaTemporada">Liga Femenina 2</small></div>
+  </div>
+  <div class="sel-temporada">
+    <label for="selTemporada">Temporada</label>
+    <select id="selTemporada"></select>
   </div>
   <nav id="mainNav">
   <button data-view="inicio" class="active">Inicio</button>
@@ -1700,6 +1716,29 @@
    ============================================================ */
 const SHEET_ID = "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94";
 
+/* ============================================================
+   TEMPORADAS
+   Cada una vive en sus propias pestañas del mismo Google Sheet.
+   La 2025/26 usa los nombres de siempre (Resultados, Equipos...);
+   las siguientes llevan el año detras (Resultados_2026).
+   Para añadir una temporada nueva basta con ponerla aqui arriba.
+   ============================================================ */
+const TEMPORADAS = [
+  { id: "2026", etiqueta: "2026/27", sufijo: "_2026" },
+  { id: "2025", etiqueta: "2025/26", sufijo: "" },
+];
+
+let temporadaActiva = TEMPORADAS[0].id;
+try {
+  const guardada = localStorage.getItem("lf2_temporada");
+  if (guardada && TEMPORADAS.some(t => t.id === guardada)) temporadaActiva = guardada;
+} catch (e) { /* sin guardar, se usa la mas reciente */ }
+
+function datosTemporada() {
+  return TEMPORADAS.find(t => t.id === temporadaActiva) || TEMPORADAS[0];
+}
+function sufijoTemporada() { return datosTemporada().sufijo; }
+
 document.getElementById("sheetLink").innerHTML =
   ` <a href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit" target="_blank" rel="noopener">Ver hoja original</a>`;
 
@@ -1722,7 +1761,8 @@ async function fetchSheetTab(tabName, query, esperaMs) {
     };
     const tqx = encodeURIComponent(`out:json;responseHandler:${cbName}`);
     const script = document.createElement("script");
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=${tqx}&sheet=${encodeURIComponent(tabName)}&headers=1` + (query ? `&tq=${encodeURIComponent(query)}` : "");
+    const pestana = tabName + sufijoTemporada();
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=${tqx}&sheet=${encodeURIComponent(pestana)}&headers=1` + (query ? `&tq=${encodeURIComponent(query)}` : "");
     script.onerror = () => { cleanup(); reject(new Error("SCRIPT_LOAD_ERROR")); };
     document.body.appendChild(script);
   });
@@ -10390,7 +10430,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-23";
+const VERSION_APP = "2026-10-24";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
@@ -10484,7 +10524,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 })();
-console.log("App LF2 - version", VERSION_APP);
+function prepararSelectorTemporada() {
+  const sel = document.getElementById("selTemporada");
+  if (!sel) return;
+  sel.innerHTML = TEMPORADAS.map(t =>
+    `<option value="${escapeAttr(t.id)}"${t.id === temporadaActiva ? " selected" : ""}>${escapeHtml(t.etiqueta)}</option>`).join("");
+  const marca = document.getElementById("marcaTemporada");
+  if (marca) marca.textContent = "Liga Femenina 2 · " + datosTemporada().etiqueta;
+
+  sel.addEventListener("change", () => {
+    const nueva = sel.value;
+    if (nueva === temporadaActiva) return;
+    temporadaActiva = nueva;
+    try { localStorage.setItem("lf2_temporada", nueva); } catch (e) { /* nada */ }
+    // Recargar la pagina es lo mas limpio: hay muchas tablas en memoria y
+    // mezclar dos temporadas daria numeros falsos.
+    location.reload();
+  });
+}
+
+console.log("App LF2 - version", VERSION_APP, "· temporada", temporadaActiva);
+prepararSelectorTemporada();
 document.getElementById("lastUpdated").textContent = "Cargando... (v" + VERSION_APP + ")";
 Promise.all([loadEquipos(), loadJugadoras(), loadResultados(), loadRankingExtras(), loadClasificacion()]).then(() => {
   const completas = buildJugadorasCompletas();
@@ -10492,6 +10552,29 @@ Promise.all([loadEquipos(), loadJugadoras(), loadResultados(), loadRankingExtras
 
   document.getElementById("lastUpdated").textContent =
     "Datos cargados " + new Date().toLocaleString("es-ES") + " · v" + VERSION_APP;
+
+  // Si la temporada elegida aun no tiene nada, se dice claramente en vez de
+  // dejar la app entera en blanco sin explicacion.
+  const hayEquipos = equipos && equipos.rows && equipos.rows.length;
+  const hayResultados = resultados && resultados.rows && resultados.rows.length;
+  if (!hayEquipos && !hayResultados) {
+    const otras = TEMPORADAS.filter(t => t.id !== temporadaActiva);
+    const inicio = document.getElementById("view-inicio");
+    if (inicio) {
+      inicio.insertAdjacentHTML("afterbegin", `<div class="aviso-temporada">
+        <b>La temporada ${escapeHtml(datosTemporada().etiqueta)} todavia no tiene datos</b>
+        <p class="hint" style="margin:0 0 10px;">Pasa cuando la FEB aun no ha publicado partidos
+        o cuando el script todavia no se ha ejecutado para esta temporada.</p>
+        ${otras.map(t => `<button class="inf-btn" type="button" data-ir-temporada="${escapeAttr(t.id)}">
+          Ver la temporada ${escapeHtml(t.etiqueta)}</button>`).join(" ")}
+      </div>`);
+      inicio.querySelectorAll("[data-ir-temporada]").forEach(b => b.addEventListener("click", () => {
+        try { localStorage.setItem("lf2_temporada", b.getAttribute("data-ir-temporada")); } catch (e) { /* nada */ }
+        location.reload();
+      }));
+    }
+    showView("inicio");
+  }
   // Limpieza de duplicados antes de guardar la copia maestra
   equipos = quitarDuplicados(equipos, claveEquipo);
   jugadoras = quitarDuplicados(jugadoras, claveJugadora);

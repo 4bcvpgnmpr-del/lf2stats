@@ -39,10 +39,23 @@ from google.oauth2.service_account import Credentials
 # ----------------------------- CONFIG ------------------------------------
 
 GROUP_ID = os.environ.get("FEB_GROUP_ID", "9")
-SEASON_START = os.environ.get("FEB_SEASON_START", "2025")
+# Temporada que se descarga. Para volver a bajar una antigua, se pone
+# FEB_SEASON_START=2025 como variable en GitHub Actions.
+SEASON_START = os.environ.get("FEB_SEASON_START", "2026")
 SLUG = os.environ.get("FEB_SLUG", "lf2")
 
 SHEET_ID = os.environ.get("GOOGLE_SHEET_ID", "PON_AQUI_EL_ID_DE_TU_GOOGLE_SHEET")
+
+# Cada temporada vive en sus propias pestañas del mismo Google Sheet.
+# La 2025/26 se queda con los nombres de siempre (Resultados, Equipos...) para
+# no perder lo ya descargado; las siguientes llevan el año detrás (Resultados_2026).
+SUFIJO_TEMPORADA = "" if SEASON_START == "2025" else f"_{SEASON_START}"
+
+
+def tab(nombre: str) -> str:
+    """Nombre real de la pestaña para la temporada que se esta procesando."""
+    return nombre + SUFIJO_TEMPORADA
+
 
 BASE_URL = "https://www.feb.es/competiciones"
 ESTADISTICAS_URL = f"{BASE_URL}/estadisticas.aspx?g={GROUP_ID}&t={SEASON_START}&nm={SLUG}"
@@ -1033,7 +1046,9 @@ def _protege_minutos(celda):
 
 def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, has_photos: bool = False):
     """Escribe (sobrescribiendo) un DataFrame en una pestaña y le da formato.
-    RAW salvo en pestañas con formulas =IMAGE(...)."""
+    RAW salvo en pestañas con formulas =IMAGE(...).
+    El nombre lleva el sufijo de la temporada que se este procesando."""
+    tab_name = tab(tab_name)
     n_filas = len(df) + 1
     n_cols = max(len(df.columns), 1)
     try:
@@ -1246,7 +1261,7 @@ def parse_partido_html(html: str, partido_id: str) -> pd.DataFrame:
 def _ids_ya_guardados(sh) -> tuple:
     """(ids ya descargados, DataFrame con lo que ya habia en la pestaña)."""
     try:
-        ws = sh.worksheet(TAB_PARTIDOS)
+        ws = sh.worksheet(tab(TAB_PARTIDOS))
         valores = ws.get_all_values()
     except gspread.WorksheetNotFound:
         return set(), pd.DataFrame()
@@ -2233,7 +2248,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame =
         return pd.DataFrame(), pd.DataFrame(), 0
 
     try:
-        ws = sh.worksheet(TAB_QUINTETOS_PARTIDO)
+        ws = sh.worksheet(tab(TAB_QUINTETOS_PARTIDO))
         valores = ws.get_all_values()
         df_viejo = pd.DataFrame(valores[1:], columns=valores[0]) if len(valores) > 1 else pd.DataFrame()
     except Exception:  # noqa: BLE001
@@ -2252,7 +2267,7 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame =
 
     def _ids_de_pestana(nombre_tab):
         try:
-            ws = sh.worksheet(nombre_tab)
+            ws = sh.worksheet(tab(nombre_tab))
             valores = ws.get_all_values()
             if len(valores) < 2:
                 return set(), pd.DataFrame()
