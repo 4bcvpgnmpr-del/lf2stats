@@ -135,6 +135,12 @@
   .clip .texto b{font-size:14.5px;}
   .clip .texto p{margin:4px 0 0;font-size:13.5px;color:var(--ink-soft);white-space:pre-wrap;}
 
+  .diag-previa{margin-top:14px;background:#fff8e6;border:1.5px solid #e8d9a8;
+    border-radius:12px;padding:14px;font-size:13.5px;color:#5a4a1f;text-align:left;}
+  .diag-previa b{display:block;margin-bottom:6px;}
+  .diag-previa p{margin:6px 0;}
+  .diag-previa ul{margin:4px 0 0;padding-left:20px;}
+  .diag-previa code{background:#fff;padding:1px 5px;border-radius:4px;font-size:12.5px;}
   .elector{display:flex;flex-direction:column;gap:8px;}
   .eleg{display:block;width:100%;text-align:left;background:var(--white);
     border:1.5px solid var(--wood-line);border-radius:12px;padding:13px 15px;
@@ -225,7 +231,7 @@ const CONFIG = {
 };
 const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
 let temporadaElegida = "2026";
-const VERSION = "2026-10-02l";
+const VERSION = "2026-10-02m";
 
 /* ============================================================
    UTILIDADES
@@ -562,6 +568,33 @@ async function cargarNumeros() {
     caja.innerHTML = `<div class="vacio">${hayAlgo
       ? "Todavia no apareces en las estadisticas de la FEB.<br><br>Puede ser que aun no hayas jugado los minutos minimos que pide."
       : `La temporada ${esc(ETIQUETA_TEMPORADA[temporadaElegida] || temporadaElegida)} aun no ha empezado.<br><br>En cuanto se juegue la primera jornada veras aqui tus numeros y tu sitio en la liga.`}</div>`;
+
+    // En vista previa (solo el entrenador) se explica POR QUE no salen
+    if (modoVistaPrevia) {
+      const base = tabs[1] && tabs[1].filas.length ? tabs[1] : tabs.slice(1).find(t => t && t.filas.length);
+      let pistas = "";
+      if (base) {
+        const trozos = limpiarNombre(jugadora.nombre).split(/\s+/).filter(x => x.length > 3);
+        const parecidos = base.filas
+          .map(f => f.Jugador || f.Jugadora || "")
+          .filter(n => trozos.some(t => limpiarNombre(n).includes(t)))
+          .slice(0, 5);
+        pistas = parecidos.length
+          ? `<p><b>Nombres parecidos en la FEB:</b></p><ul>${parecidos.map(n =>
+              `<li>${esc(n)}</li>`).join("")}</ul><p>Si alguno es ella, copia ese nombre
+              tal cual en su ficha del panel.</p>`
+          : `<p>No hay ningun nombre parecido en la tabla de la FEB (${base.filas.length} jugadoras).
+              O no jugo esta temporada, o esta en otro grupo.</p>`;
+      } else {
+        pistas = `<p>Las tablas de estadisticas de esta temporada estan vacias en el Google Sheet.
+          Cambia la temporada en tu panel o espera a que se juegue la primera jornada.</p>`;
+      }
+      caja.insertAdjacentHTML("beforeend", `<div class="diag-previa">
+        <b>Solo lo ves tu (vista previa)</b>
+        <p>Buscando: <code>${esc(jugadora.nombre)}</code> &middot; temporada
+          ${esc(ETIQUETA_TEMPORADA[temporadaElegida] || temporadaElegida)}</p>
+        ${pistas}</div>`);
+    }
     return;
   }
 

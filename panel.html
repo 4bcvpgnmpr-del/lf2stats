@@ -200,17 +200,30 @@
         a <b>todas</b> tus jugadoras de golpe. Elige que apartados ven: el informe que
         tu usas suele llevar cosas que a ellas no les hacen falta.</p>
 
-      <div class="fila">
-        <div><label>Equipo rival</label>
-          <select id="selRivalScout"><option value="">Cargando...</option></select></div>
-        <div><label>Partido (opcional)</label>
-          <input id="scPartido" placeholder="Jornada 3 · fuera"></div>
+      <div class="pestanas" style="margin:4px 0 10px;">
+        <button data-modo="notas" class="activa" id="modoNotas">Desde mis notas</button>
+        <button data-modo="mano" id="modoMano">Escribirlo aqui</button>
       </div>
-      <label>Titulo</label>
-      <input id="scTitulo" placeholder="Scouting: CB Claret">
 
-      <label>Apartados que van a ver</label>
-      <div id="scApartados" class="interruptores"></div>
+      <div id="scDesdeNotas">
+        <label>Equipo rival</label>
+        <select id="selRivalScout"><option value="">Cargando...</option></select>
+        <label>Apartados que van a ver</label>
+        <div id="scApartados" class="interruptores"></div>
+      </div>
+
+      <div id="scAMano" hidden>
+        <p class="expl" style="margin:0 0 6px;">Rellena solo lo que quieras que lean.
+          Lo que dejes en blanco no se manda.</p>
+        <label>Equipo rival</label>
+        <input id="scRivalMano" placeholder="CB CLARET">
+        <div id="scCamposMano"></div>
+      </div>
+
+      <div class="fila" style="margin-top:12px;">
+        <div><label>Titulo</label><input id="scTitulo" placeholder="Scouting: CB Claret"></div>
+        <div><label>Partido (opcional)</label><input id="scPartido" placeholder="Jornada 3 · fuera"></div>
+      </div>
 
       <button class="boton" id="btnEnviarScout">Mandar a todas</button>
       <div id="avisoScout"></div>
@@ -319,7 +332,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02l";
+const VERSION = "2026-10-02m";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)
@@ -660,9 +673,17 @@ function prepararScouting() {
   const sel = $("selRivalScout");
   const fichas = fichasScouting();
   if (!fichas.length) {
-    sel.innerHTML = `<option value="">No hay ningun scouting escrito todavia</option>`;
-    $("scApartados").innerHTML = `<p class="expl" style="margin:0;">Escribe primero un informe
-      en la pantalla de <b>Scouting</b> de la app y vuelve aqui.</p>`;
+    const hayAlgo = Object.keys((leerScouting().equipos) || {}).length;
+    sel.innerHTML = `<option value="">Nada que mandar desde este aparato</option>`;
+    $("scApartados").innerHTML = `<div class="aviso mal" style="margin:4px 0 0;">
+      ${hayAlgo
+        ? `Tienes scouting de ${hayAlgo} equipos en este navegador, pero ninguno con los
+           apartados escritos (Estilo de juego, Puntos fuertes...). Rellena alguno en la
+           pantalla de <b>Scouting</b>, o usa aqui <b>Escribirlo aqui</b>.`
+        : `Tus notas de scouting se guardan <b>en el navegador donde las escribes</b>, y en
+           este no hay ninguna. Si las escribiste en el ordenador, abre el panel alli, o
+           usa <b>Escribirlo aqui</b> para escribirlo a mano desde este aparato.`}
+      </div>`;
     return;
   }
   sel.innerHTML = fichas.map(f =>
@@ -683,22 +704,52 @@ function pintarApartados() {
   }
 }
 
-async function enviarScouting() {
-  const ficha = fichasScouting().find(f => f.clave === $("selRivalScout").value);
-  if (!ficha) { avisar("avisoScout", "Elige un rival.", "mal"); return; }
-  const elegidos = [...document.querySelectorAll("#scApartados input:checked")]
-    .map(i => i.getAttribute("data-campo"));
-  if (!elegidos.length) { avisar("avisoScout", "Marca al menos un apartado.", "mal"); return; }
+let modoScout = "notas";
 
-  const secciones = CAMPOS_SCOUT
-    .filter(c => elegidos.includes(c.id))
-    .map(c => ({ titulo: c.titulo, texto: String(ficha.campos[c.id] || "").trim() }))
-    .filter(sc => sc.texto);
+function prepararAMano() {
+  if ($("scCamposMano").childElementCount) return;
+  $("scCamposMano").innerHTML = CAMPOS_SCOUT.map(c => `
+    <label>${esc(c.titulo)}</label>
+    <textarea data-mano="${esc(c.id)}" rows="3" placeholder="Dejalo vacio si no quieres mandarlo"></textarea>
+  `).join("");
+}
+
+function cambiarModoScout(modo) {
+  modoScout = modo;
+  document.querySelectorAll(".pestanas [data-modo]").forEach(b =>
+    b.classList.toggle("activa", b.getAttribute("data-modo") === modo));
+  $("scDesdeNotas").hidden = (modo !== "notas");
+  $("scAMano").hidden = (modo !== "mano");
+  if (modo === "mano") prepararAMano();
+}
+
+async function enviarScouting() {
+  let secciones = [], rival = "";
+
+  if (modoScout === "mano") {
+    rival = $("scRivalMano").value.trim();
+    secciones = CAMPOS_SCOUT.map(c => {
+      const ta = document.querySelector(`[data-mano="${c.id}"]`);
+      return { titulo: c.titulo, texto: ta ? ta.value.trim() : "" };
+    }).filter(sc => sc.texto);
+    if (!secciones.length) { avisar("avisoScout", "Escribe al menos un apartado.", "mal"); return; }
+  } else {
+    const ficha = fichasScouting().find(f => f.clave === $("selRivalScout").value);
+    if (!ficha) { avisar("avisoScout", "No hay ningun scouting que mandar desde aqui. Usa 'Escribirlo aqui'.", "mal"); return; }
+    rival = ficha.nombre;
+    const elegidos = [...document.querySelectorAll("#scApartados input:checked")]
+      .map(i => i.getAttribute("data-campo"));
+    if (!elegidos.length) { avisar("avisoScout", "Marca al menos un apartado.", "mal"); return; }
+    secciones = CAMPOS_SCOUT
+      .filter(c => elegidos.includes(c.id))
+      .map(c => ({ titulo: c.titulo, texto: String(ficha.campos[c.id] || "").trim() }))
+      .filter(sc => sc.texto);
+  }
 
   const b = $("btnEnviarScout"); b.disabled = true; b.textContent = "Mandando...";
   const { error } = await sb.from("informes").insert({
-    titulo: $("scTitulo").value.trim() || ("Scouting: " + ficha.nombre),
-    rival: ficha.nombre,
+    titulo: $("scTitulo").value.trim() || ("Scouting: " + (rival || "el rival")),
+    rival: rival || null,
     partido: $("scPartido").value.trim() || null,
     secciones,
   });
@@ -709,6 +760,10 @@ async function enviarScouting() {
     return;
   }
   $("scPartido").value = "";
+  if (modoScout === "mano") {
+    document.querySelectorAll("[data-mano]").forEach(t => { t.value = ""; });
+    $("scRivalMano").value = "";
+  }
   avisar("avisoScout", "Mandado. Lo veran en la pestaña 'El rival' de su app.", "ok");
   cargarInformes();
 }
@@ -853,6 +908,8 @@ $("btnVerComoElla").addEventListener("click", () => {
 });
 $("selRivalScout").addEventListener("change", pintarApartados);
 $("selTemporadaVen").addEventListener("change", guardarTemporada);
+document.querySelectorAll(".pestanas [data-modo]").forEach(b =>
+  b.addEventListener("click", () => cambiarModoScout(b.getAttribute("data-modo"))));
 $("btnEnviarScout").addEventListener("click", enviarScouting);
 $("scTitulo").addEventListener("input", () => { $("scTitulo").dataset.auto = "0"; });
 $("btnTraer").addEventListener("click", traerPlantilla);
