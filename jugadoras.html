@@ -183,6 +183,32 @@
   .sr-tabla .izq{text-align:left;white-space:normal;}
   .sr-tabla tbody tr:nth-child(odd) td{background:var(--suave);}
 
+  .sr-reparto-tit{font-size:12.5px;font-weight:800;color:var(--ink-soft);margin:12px 0 5px;}
+  .sr-reparto{display:flex;height:26px;border-radius:7px;overflow:hidden;font-size:11px;font-weight:800;}
+  .sr-reparto span{display:flex;align-items:center;justify-content:center;color:#fff;min-width:0;}
+  .sr-reparto .r2{background:var(--orange);} .sr-reparto .r3{background:var(--ink);}
+  .sr-reparto .rt{background:#9aa5b4;}
+  .sr-leyenda{display:flex;gap:14px;margin-top:7px;font-size:11.5px;color:var(--ink-soft);}
+  .sr-leyenda i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;}
+  .sr-leyenda .r2{background:var(--orange);} .sr-leyenda .r3{background:var(--ink);}
+  .sr-leyenda .rt{background:#9aa5b4;}
+
+  .sr-jugs{display:flex;flex-direction:column;gap:8px;}
+  .sr-jug{display:flex;gap:11px;align-items:center;background:var(--suave);
+          border:1.5px solid var(--wood-line);border-radius:12px;padding:9px 11px;}
+  .sr-jug img, .sr-jug .sinfoto2{width:46px;height:46px;border-radius:50%;object-fit:cover;
+          object-position:top center;flex:none;background:var(--wood-line);
+          display:flex;align-items:center;justify-content:center;font-weight:800;
+          font-size:13px;color:var(--ink-soft);}
+  .sj-info{min-width:0;flex:1;}
+  .sj-info b{display:block;font-size:14px;line-height:1.2;}
+  .sj-info .dor{display:inline-block;background:var(--ink);color:#fff;border-radius:5px;
+          font-size:11px;padding:0 5px;margin-right:6px;vertical-align:1px;}
+  .sj-datos{display:flex;gap:11px;margin-top:4px;flex-wrap:wrap;}
+  .sj-datos span{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .sj-datos i{font-style:normal;font-size:9.5px;font-weight:800;text-transform:uppercase;
+          letter-spacing:.05em;color:var(--ink-soft);margin-right:3px;}
+
   .sr-mp{border:1.5px solid var(--wood-line);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
   .sr-mp .mp-tit{font-size:13px;font-weight:800;margin-bottom:6px;}
   .sr-mp .mp-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -268,7 +294,7 @@ const CONFIG = {
 };
 const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
 let temporadaElegida = "2026";
-const VERSION = "2026-10-02t";
+const VERSION = "2026-10-02v";
 
 /* ============================================================
    UTILIDADES
@@ -773,6 +799,43 @@ function seccionRivalHtml(sc) {
         <tbody>${sc.filas.map(f => `<tr>${f.map((v, i) =>
           `<td${i ? "" : ' class="izq"'}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
       </table></div></div>`;
+  }
+
+  if (sc.tipo === "estilo") {
+    const barra = (d, et) => d ? `<div class="sr-reparto-tit">${esc(et)}</div>
+      <div class="sr-reparto">
+        <span class="r2" style="width:${d.dos}%">${d.dos}%</span>
+        <span class="r3" style="width:${d.tres}%">${d.tres}%</span>
+        <span class="rt" style="width:${d.tl}%">${d.tl}%</span>
+      </div>` : "";
+    return `<div class="seccion-rival">${tit}
+      ${(sc.datos || []).length ? `<div class="sr-datos">${sc.datos.map(d => `<div class="sr-dato">
+        <div class="v">${esc(d.v)}</div><div class="l">${esc(d.et)}</div>
+        ${d.pie ? `<div class="p">${esc(d.pie)}</div>` : ""}</div>`).join("")}</div>` : ""}
+      ${barra(sc.puntos, "De donde vienen sus puntos")}
+      ${barra(sc.intentos, "Como reparten los tiros")}
+      ${(sc.puntos || sc.intentos) ? `<div class="sr-leyenda">
+        <span><i class="r2"></i>Dos</span><span><i class="r3"></i>Triple</span><span><i class="rt"></i>Tiro libre</span>
+      </div>` : ""}
+      ${sc.texto ? `<p style="margin-top:10px;">${esc(sc.texto)}</p>` : ""}
+    </div>`;
+  }
+
+  if (sc.tipo === "jugadoras" && (sc.jugadoras || []).length) {
+    return `<div class="seccion-rival">${tit}
+      <div class="sr-jugs">${sc.jugadoras.map(j => {
+        const ini = limpiarNombre(j.nombre).replace(/[^A-Z ]/g, "").trim().slice(0, 2);
+        return `<div class="sr-jug">
+          ${j.foto ? `<img src="${esc(j.foto)}" loading="lazy" alt=""
+                onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'sinfoto2',textContent:'${esc(ini)}'}))">`
+                   : `<div class="sinfoto2">${esc(ini)}</div>`}
+          <div class="sj-info">
+            <b>${j.dorsal ? `<span class="dor">${esc(j.dorsal)}</span>` : ""}${esc(j.nombre)}</b>
+            <div class="sj-datos">${(j.datos || []).map(d =>
+              `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div>
+          </div>
+        </div>`;
+      }).join("")}</div></div>`;
   }
 
   if (sc.tipo === "mejores" && (sc.bloques || []).length) {

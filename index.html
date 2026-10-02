@@ -6325,6 +6325,53 @@ function trozosEnvio(nombre) {
     });
   }
 
+  // --- Estilo de juego (lo calcula la app con el jugada a jugada) ---
+  const est = (typeof estiloEquipo === "function") ? estiloEquipo(nombre) : null;
+  if (est) {
+    const n2 = (x) => (x === null || x === undefined) ? null : String(x).replace(".", ",");
+    const datosEst = [];
+    if (n2(est.posPartido) !== null) datosEst.push({ et: "Posesiones", v: n2(est.posPartido), pie: "por partido" });
+    if (n2(est.segPosesion) !== null) datosEst.push({ et: "Segundos", v: n2(est.segPosesion) + "s", pie: "por posesion" });
+    if (est.puestoRitmo) datosEst.push({ et: "Ritmo", v: est.puestoRitmo + "º", pie: `de ${est.totalRitmo} del grupo` });
+    if (n2(est.volTriple) !== null) datosEst.push({ et: "Volumen de 3", v: n2(est.volTriple) + "%", pie: "de sus tiros" });
+    if (datosEst.length) trozos.push({
+      id: "__estilo", titulo: "Estilo de juego (automatico)", porDefecto: true,
+      carga: {
+        tipo: "estilo", titulo: "Como juegan",
+        datos: datosEst,
+        puntos: est.puntos, intentos: est.intentos,
+        texto: est.posPartido
+          ? (est.posPartido >= (est.mediaRitmo || 0) + 2
+              ? "Juegan rapido: buscan ventajas antes de que la defensa se coloque. Hay que frenar su transicion y volver corriendo."
+              : (est.posPartido <= (est.mediaRitmo || 0) - 2
+                  ? "Juegan lento, de media pista. Cada posesion pesa: si no pierdes el balon y defiendes el primer tiro, les cuesta mucho anotar."
+                  : "Ritmo medio: eligen cuando correr y cuando parar el juego."))
+          : "",
+      },
+    });
+  }
+
+  // --- Perfiles de las jugadoras mas valoradas, con su foto ---
+  // La plantilla ya viene ordenada por valoracion, asi que las primeras son
+  // las que hay que vigilar. Asi no depende de que exista el ranking de la FEB.
+  const vigilar = ((typeof plantillaDe === "function") ? plantillaDe(nombre) : []).slice(0, 6);
+  if (vigilar.length) {
+    trozos.push({
+      id: "__perfiles", titulo: `Jugadoras a vigilar (${vigilar.length})`, porDefecto: true,
+      carga: {
+        tipo: "jugadoras", titulo: "Jugadoras a vigilar",
+        jugadoras: vigilar.map(f2 => ({
+          nombre: f2.jugadora,
+          dorsal: f2.dorsal ? String(f2.dorsal) : "",
+          foto: (typeof fotoJugadora === "function")
+            ? fotoJugadora(f2.jugadora, nombre, f2.foto || "") : (f2.foto || ""),
+          datos: [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]]
+            .map(([k, et]) => ({ et, v: (f2[k] != null && f2[k] !== "") ? String(f2[k]) : "–" })),
+        })),
+      },
+    });
+  }
+
   const plantilla = (typeof plantillaDe === "function") ? plantillaDe(nombre) : [];
   if (plantilla.length) {
     const COLS = [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]];
@@ -6378,6 +6425,19 @@ function cerrarEnvio() {
 async function abrirEnvioJugadoras(nombre) {
   cerrarEnvio();
   const oficial = equipoOficial(nombre);
+
+  // El estilo de juego sale de las metricas avanzadas, que solo se calculan
+  // al entrar en Estadisticas. Se piden aqui para que no falte nunca.
+  if (typeof cargarAvanzadas === "function" &&
+      (typeof avanzadasCalculo === "undefined" || !avanzadasCalculo)) {
+    document.body.insertAdjacentHTML("beforeend", `<div id="capaEnvio"
+      style="position:fixed;inset:0;z-index:10000;background:rgba(27,36,50,.55);
+             display:flex;align-items:center;justify-content:center;color:#fff;
+             font-family:'Archivo',sans-serif;font-size:15px;">Preparando el envio...</div>`);
+    try { await cargarAvanzadas(); } catch (e) { /* se sigue sin estilo */ }
+    cerrarEnvio();
+  }
+
   const trozos = trozosEnvio(nombre);
 
   const cuerpo = trozos.length
@@ -11327,7 +11387,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02t";
+const VERSION_APP = "2026-10-02v";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
