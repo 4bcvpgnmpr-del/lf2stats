@@ -1588,6 +1588,7 @@
   <button data-view="resultados">Resultados</button>
   <button data-view="records">Records</button>
   <button data-view="informes">Informes</button>
+  <button data-view="mis-jugadoras">Mis jugadoras</button>
   </nav>
   <div class="pie-lateral">
     <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
@@ -1803,6 +1804,19 @@
 
   <section id="view-records" class="view" style="display:none;">
     <div id="recordsContent" class="status">Cargando records...</div>
+  </section>
+
+  <!-- Area de jugadoras: el panel vive en panel.html y se muestra aqui dentro.
+       Se hace asi para que esta app no tenga que cargar el login ni tocar nada
+       de lo que ya funciona. -->
+  <section id="view-mis-jugadoras" class="view" style="display:none;">
+    <div class="panel no-imprimir" style="padding:0;overflow:hidden;">
+      <iframe id="marcoPanel" title="Panel de jugadoras"
+        style="width:100%;height:min(1500px,calc(100svh - 120px));border:0;display:block;"></iframe>
+    </div>
+    <p class="hint" style="margin-top:10px;">Si no carga,
+      <a href="panel.html" target="_blank" rel="noopener">abrelo en una pestaña aparte</a>.
+      La primera vez te pedira entrar con tu correo de entrenador.</p>
   </section>
 
 </main>
@@ -2453,7 +2467,7 @@ document.getElementById("filterResultados").addEventListener("input", () => {
 /* ============================================================
    ROUTER
    ============================================================ */
-const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes"];
+const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes", "mis-jugadoras"];
 
 // Historial de pantallas: al pulsar "Volver" se regresa a la anterior,
 // en el mismo sitio de la pagina donde estabas.
@@ -2479,6 +2493,11 @@ function showView(id, esVuelta) {
   if (id === "mi-equipo") renderMiEquipo();
   if (id === "fichajes") renderFichajes();
   if (id === "informes") rellenarSelectorInforme();
+  // El panel se carga la primera vez que entras, no al abrir la app
+  if (id === "mis-jugadoras") {
+    const marco = document.getElementById("marcoPanel");
+    if (marco && !marco.getAttribute("src")) marco.setAttribute("src", "panel.html");
+  }
   if (id === "records") cargarRecords();
 }
 
@@ -11021,7 +11040,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02e";
+const VERSION_APP = "2026-10-02f";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */

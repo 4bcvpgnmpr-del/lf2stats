@@ -394,6 +394,19 @@ function claveNombre(txt) {
 
 async function cargarNumeros() {
   const caja = $("tab-numeros");
+
+  // El entrenador puede apagar las estadisticas de una jugadora
+  if (jugadora.ver_numeros === false) {
+    caja.innerHTML = `<div class="vacio">Aqui apareceran las cosas que te mande
+      el entrenador. Mira las pestañas de <b>Mensajes</b> y <b>Videos</b>.</div>`;
+    const plant = await leerPestana("Plantillas");
+    if (plant && plant.filas.length) {
+      const f = plant.filas.find(x => claveNombre(x.Jugadora) === claveNombre(jugadora.nombre));
+      if (f) pintarCabecera(f.FotoURL || "");
+    }
+    return;
+  }
+
   const mia = claveNombre(jugadora.nombre);
 
   const tabs = await Promise.all(
@@ -459,9 +472,9 @@ async function cargarNumeros() {
       Medias por partido en ${conComa(pj, 0)} partidos jugados${grupo ? " · grupo " + esc(grupo) : ""}.</p>`;
   }
 
-  // Barras de percentil
+  // Barras de percentil (el entrenador puede apagarlas)
   let barras = "";
-  encontrado.forEach(d => {
+  if (jugadora.ver_percentiles !== false) encontrado.forEach(d => {
     if (d.percentil === null) return;
     const clase = d.percentil >= 70 ? "alto" : (d.percentil <= 30 ? "bajo" : "");
     barras += `<div class="barra">
