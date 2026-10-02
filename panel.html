@@ -82,6 +82,9 @@
   .sw{display:flex;align-items:center;gap:10px;margin:0;font-size:14.5px;
       text-transform:none;letter-spacing:0;font-weight:600;color:var(--ink);cursor:pointer;}
   .sw input{width:auto;accent-color:var(--orange);width:19px;height:19px;flex:none;}
+  .nube{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--suave);
+        border:1.5px solid var(--wood-line);border-radius:11px;padding:11px 13px;margin:4px 0 14px;}
+  .nube > div{flex:1;min-width:180px;}
   .feb-fila{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;
             border:1.5px solid var(--wood-line);margin-bottom:7px;background:var(--suave);}
   .feb-fila b{font-size:14px;flex:1;min-width:0;font-weight:700;}
@@ -206,6 +209,14 @@
       </div>
 
       <div id="scDesdeNotas">
+        <div class="nube">
+          <div>
+            <b>Tus scoutings en la nube</b>
+            <p class="expl" id="estadoNube" style="margin:2px 0 0;">Comprobando...</p>
+          </div>
+          <button class="boton fina gris" id="btnSubirNube" style="white-space:nowrap;">
+            Subir los de este aparato</button>
+        </div>
         <label>Equipo rival</label>
         <select id="selRivalScout"><option value="">Cargando...</option></select>
         <label>Apartados que van a ver</label>
@@ -332,7 +343,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02o";
+const VERSION = "2026-10-02p";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)
@@ -416,9 +427,10 @@ async function entrar(sesion) {
       Anadelo a la tabla <b>entrenadores</b> en Supabase.</div>`;
   }
   cargarJugadoras();
-  prepararScouting();
   cargarInformes();
   cargarTemporada();
+  // primero la nube, y luego se pinta la lista con todo junto
+  cargarScoutNube().then(prepararScouting);
 }
 
 /* ============================================================
@@ -657,11 +669,53 @@ function normEquipo(t) {
     .replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
 
-/* Se coge TODO lo que tengas de ese rival: los siete apartados del informe,
-   las notas de la videoteca y las jugadas guardadas. */
+/* Los scoutings de la nube, para poder mandarlos desde cualquier aparato */
+let scoutNube = {};
+
+async function cargarScoutNube() {
+  const est = $("estadoNube");
+  const { data, error } = await sb.from("scoutings").select("*");
+  if (error) {
+    scoutNube = {};
+    est.textContent = "No disponible (¿has ejecutado el script del paso 5?)";
+    return;
+  }
+  scoutNube = {};
+  (data || []).forEach(f => { scoutNube[f.clave] = f; });
+  const n = Object.keys(scoutNube).length;
+  est.textContent = n
+    ? `${n} equipos guardados en la nube. Los ves desde cualquier aparato.`
+    : "Vacia. Pulsa el boton para subir los de este aparato.";
+}
+
+async function subirScoutNube() {
+  const equipos = (leerScouting().equipos) || {};
+  const claves = Object.keys(equipos);
+  if (!claves.length) {
+    avisar("avisoScout", "En este aparato no hay ningun scouting que subir.", "mal");
+    return;
+  }
+  const b = $("btnSubirNube"); b.disabled = true; b.textContent = "Subiendo...";
+  const filas = claves.map(k => ({
+    clave: k, nombre: equipos[k].nombre || k,
+    datos: equipos[k], actualizado: new Date().toISOString(),
+  }));
+  const { error } = await sb.from("scoutings").upsert(filas);
+  b.disabled = false; b.textContent = "Subir los de este aparato";
+  if (error) { avisar("avisoScout", "No se han podido subir: " + error.message, "mal"); return; }
+  avisar("avisoScout", `${filas.length} scoutings subidos. Ya los tienes en todos tus aparatos.`, "ok");
+  await cargarScoutNube();
+  prepararScouting();
+}
+
+/* Se junta lo de este navegador con lo de la nube. Si un equipo esta en los
+   dos, manda el de aqui (es lo que acabas de escribir). */
 function fichasScouting() {
   const datos = leerScouting();
-  const equipos = (datos && datos.equipos) ? datos.equipos : {};
+  const locales = (datos && datos.equipos) ? datos.equipos : {};
+  const equipos = {};
+  Object.keys(scoutNube).forEach(k => { equipos[k] = scoutNube[k].datos || {}; });
+  Object.keys(locales).forEach(k => { equipos[k] = locales[k]; });
   return Object.keys(equipos).map(k => {
     const f = equipos[k] || {};
     const campos = (f.informe && f.informe.campos) ? f.informe.campos : {};
@@ -703,8 +757,10 @@ function fichasScouting() {
       });
     }
 
+    const enLocal = !!locales[k], enNube = !!scoutNube[k];
     return {
       clave: k, nombre: f.nombre || k, trozos,
+      donde: enLocal ? (enNube ? "" : " · solo aqui") : " · de la nube",
       inventario: {
         apartados: trozos.filter(t => t.id.indexOf("__") !== 0).length,
         notas: notas.length, jugadas: jugadas.length, videos: videos.length,
@@ -735,7 +791,7 @@ function prepararScouting() {
     const resumen = [i.apartados ? i.apartados + " apartados" : "", i.notas ? i.notas + " notas" : "",
                      i.jugadas ? i.jugadas + " jugadas" : "", i.videos ? i.videos + " videos" : ""]
       .filter(Boolean).join(", ") || "vacio";
-    return `<option value="${esc(f.clave)}">${esc(f.nombre)} — ${esc(resumen)}</option>`;
+    return `<option value="${esc(f.clave)}">${esc(f.nombre)} — ${esc(resumen)}${esc(f.donde || "")}</option>`;
   }).join("");
   pintarApartados();
 }
@@ -964,6 +1020,7 @@ $("btnVerComoElla").addEventListener("click", () => {
 });
 $("selRivalScout").addEventListener("change", pintarApartados);
 $("selTemporadaVen").addEventListener("change", guardarTemporada);
+$("btnSubirNube").addEventListener("click", subirScoutNube);
 document.querySelectorAll(".pestanas [data-modo]").forEach(b =>
   b.addEventListener("click", () => cambiarModoScout(b.getAttribute("data-modo"))));
 $("btnEnviarScout").addEventListener("click", enviarScouting);
