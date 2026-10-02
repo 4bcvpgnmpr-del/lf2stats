@@ -1087,6 +1087,15 @@ function seccionRivalHtml(sc) {
     </div>`;
   }
 
+  if (sc.tipo === "mapa" && sc.mapa && String(sc.mapa.svg || "").startsWith("<svg")) {
+    return `<div class="seccion-rival">${tit}
+      <p style="margin-bottom:6px;">${esc(sc.mapa.tiros)} tiros de campo · ${esc(String(sc.mapa.pct).replace(".", ","))}% de acierto.
+        Verde: buen porcentaje; naranja: medio; rojo: bajo.</p>
+      <img class="sj-mapa" data-visor-img="1" alt="Mapa de tiro del equipo" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(sc.mapa.svg)}">
+      ${tablaZonasHtml((sc.mapa.zonas || []).map(z => ({ zona: z.zona, a: z.a, i: z.i, pct: Number(z.pct), pps: Number(z.pps) })))}
+      <p style="font-size:12px;color:var(--ink-soft);margin-top:6px;">Pts/tiro: puntos que da cada intento desde esa zona.</p></div>`;
+  }
+
   if (sc.tipo === "plantilla" && (sc.jugadoras || []).length) {
     return `<div class="seccion-rival">${tit}
       <p style="color:var(--orange);font-weight:800;font-size:13.5px;margin:0 0 8px;">De cada jugadora: toca «Todas sus estadísticas» o «Mapa de tiro» para verlos.</p>${sc.jugadoras.map(p => {

@@ -6342,8 +6342,8 @@ function mapaTiroParaEnvio(jugadora, equipoNombre) {
   try {
     const datos = tirosPorEquipo[equipoOficial(equipoNombre)];
     if (!datos || !datos.rows) return null;
-    const busca = clavesNombre(jugadora, equipoNombre);
-    const tiros = datos.rows.filter(r =>
+    const busca = jugadora ? clavesNombre(jugadora, equipoNombre) : null;
+    const tiros = datos.rows.filter(r => !busca ||
       clavesNombre(cellText(r, "Jugadora"), cellText(r, "Equipo")).some(c => busca.includes(c))
     ).map(tiroEnMetros).filter(Boolean);
     if (tiros.length < 3) return null;
@@ -6444,6 +6444,13 @@ function trozosEnvio(nombre) {
         })) },
     });
   }
+
+  // --- Mapa de tiro de todo el equipo rival ---
+  const mapaEq = (typeof mapaTiroParaEnvio === "function") ? mapaTiroParaEnvio(null, nombre) : null;
+  if (mapaEq) trozos.push({
+    id: "__mapaequipo", titulo: `Mapa de tiro del equipo rival (${mapaEq.tiros} tiros)`, porDefecto: true,
+    carga: { tipo: "mapa", titulo: "Mapa de tiro del equipo rival", mapa: mapaEq },
+  });
 
   // --- Estilo de juego (lo calcula la app con el jugada a jugada) ---
   const est = (typeof estiloEquipo === "function") ? estiloEquipo(nombre) : null;
