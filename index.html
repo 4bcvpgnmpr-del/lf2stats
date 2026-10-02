@@ -5574,6 +5574,46 @@ function cajasTiroJugadora(nombre, equipo) {
     </div>`).join("")}</div>`;
 }
 
+/* Todas las estadisticas de una jugadora: las de los rankings que no estaban en la ficha,
+   los tiros con su porcentaje, y lo que se calcula con los partidos (perdidas, TS%, eFG%...) */
+const STATS_EXTRA = [
+  ["Tapones_Favor", "TAP+", "Tapones a favor"], ["Tapones_Contra", "TAP-", "Tapones en contra"],
+  ["Mates", "MAT", "Mates"], ["Faltas_Recibidas", "FR", "Faltas recibidas"],
+  ["Faltas_Cometidas", "FC", "Faltas cometidas"],
+];
+function todasStatsJugadora(nombre, equipo) {
+  const salida = [];
+  const st = estadisticasJugadora(nombre, equipo);
+  if (st.partidos) salida.push({ et: "PJ", v: String(st.partidos), titulo: "Partidos jugados" });
+  STATS_FICHA.forEach(([, corta, larga]) => {
+    if (st[corta] !== null && st[corta] !== undefined && st[corta] !== "") salida.push({ et: corta, v: String(st[corta]), titulo: larga });
+  });
+  STATS_EXTRA.forEach(([clave, corta, larga]) => {
+    const fila = filaJugadoraEn(rankingExtra[clave], nombre, equipo);
+    const media = fila ? mediaOf(fila) : null;
+    if (media && media.display !== "" && media.display != null) salida.push({ et: corta, v: String(media.display), titulo: larga });
+  });
+  const t = tirosDeJugadora(nombre, equipo);
+  const tt = tirosTotalesJugadora(nombre, equipo);
+  if (tt) {
+    TIPOS_TIRO.forEach(([k, titulo]) => {
+      if (tt[k].i > 0) salida.push({ et: k, v: `${tt[k].a}/${tt[k].i}` + (tt[k].pct !== null ? ` · ${String(tt[k].pct).replace(".", ",")}%` : ""), titulo });
+    });
+    const tci = tt.TC.i, tli = tt.TL.i;
+    const pts = tt.T2.a * 2 + tt.T3.a * 3 + tt.TL.a;
+    if (tci) salida.push({ et: "eFG%", v: String(Math.round((tt.TC.a + 0.5 * tt.T3.a) / tci * 1000) / 10).replace(".", ","), titulo: "Acierto de campo ajustado por los triples" });
+    if (tci + tli) salida.push({ et: "TS%", v: String(Math.round(pts / (2 * (tci + 0.44 * tli)) * 1000) / 10).replace(".", ","), titulo: "Acierto real (cuenta triples y libres)" });
+  }
+  if (t && t.perdidas !== undefined && t.partidos) {
+    const per = Math.round(t.perdidas / t.partidos * 10) / 10;
+    salida.push({ et: "PER", v: String(per).replace(".", ","), titulo: "Perdidas por partido" });
+    const asRaw = parseSpanishNumber(st.AS);
+    if (t.perdidas && asRaw !== null && asRaw !== undefined)
+      salida.push({ et: "AS/PER", v: String(Math.round(asRaw / per * 100) / 100).replace(".", ","), titulo: "Asistencias por cada perdida" });
+  }
+  return salida;
+}
+
 function fichaJugadoraInformeHtml(nombre, equipo, inf) {
   const st = estadisticasJugadora(nombre, equipo);
   const nota = notaJugadora(inf, nombre);
@@ -5595,6 +5635,8 @@ function fichaJugadoraInformeHtml(nombre, equipo, inf) {
     </div>
     <div class="datos-jug">${cajas || `<span class="hint">Sin estadisticas en los rankings de la FEB.</span>`}</div>
     ${cajasTiroJugadora(nombre, equipo)}
+    ${(() => { const ex = todasStatsJugadora(nombre, equipo).filter(d => !["PJ"].concat(STATS_FICHA.map(x => x[1]), TIPOS_TIRO.map(x => x[0])).includes(d.et));
+      return ex.length ? `<div class="datos-jug tiros-jug">${ex.map(d => `<div class="dato-jug" title="${escapeAttr(d.titulo)}"><span class="v">${escapeHtml(d.v)}</span><span class="l">${escapeHtml(d.et)}</span></div>`).join("")}</div>` : ""; })()}
     <textarea class="campo-jugadora" data-jugadora="${escapeAttr(nombre)}" rows="2"
       placeholder="Mano dominante, tiro, como atacarla, como defenderla...">${escapeHtml(nota.texto)}</textarea>
     <div class="texto-print">${escapeHtml(nota.texto).replace(/\n/g, "<br>") || "<span class='hint'>—</span>"}</div>
@@ -6081,8 +6123,8 @@ function htmlImpresionInforme(nombre) {
   const perfiles = destacadas.map(j => {
     const st = estadisticasJugadora(j, nombre);
     const nota = notaJugadora(inf, j);
-    const chips = STATS_FICHA.filter(([, c]) => st[c] !== null && st[c] !== "")
-      .map(([, c]) => `<span class="chip">${esc(c)} <b>${esc(String(st[c]))}</b></span>`).join("");
+    const chips = todasStatsJugadora(j, nombre)
+      .map(d => `<span class="chip">${esc(d.et)} <b>${esc(d.v)}</b></span>`).join("");
     return `<div class="jug">
       <div class="id">
         ${st.foto ? `<img src="${escapeAttr(st.foto)}" alt="">` : `<img alt="">`}
@@ -6434,6 +6476,7 @@ function trozosEnvio(nombre) {
               ? fotoJugadora(f2.jugadora, nombre, f2.foto || fotoEnRankings(f2.jugadora, nombre)) : (f2.foto || fotoEnRankings(f2.jugadora, nombre)),
             datos: [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]]
               .map(([k, et]) => ({ et, v: (f2[k] != null && f2[k] !== "") ? String(f2[k]) : "–" })),
+            todas: (typeof todasStatsJugadora === "function") ? todasStatsJugadora(f2.jugadora, nombre).map(d => ({ et: d.et, v: d.v })) : [],
           };
         }),
       },
