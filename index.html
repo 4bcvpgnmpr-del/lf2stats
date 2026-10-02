@@ -5614,6 +5614,16 @@ function todasStatsJugadora(nombre, equipo) {
   return salida;
 }
 
+/* Mapa de tiro dentro del perfil de cada jugadora: se pinta al abrir el desplegable */
+document.addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (!d || !d.classList || !d.classList.contains("mapa-jug") || !d.open) return;
+  const caja = d.querySelector(".mapa-jug-caja");
+  if (!caja || caja.getAttribute("data-listo")) return;
+  caja.setAttribute("data-listo", "1");
+  pintarCartaTiro(caja.id, d.getAttribute("data-equipo"), d.getAttribute("data-jugadora"));
+}, true);
+
 function fichaJugadoraInformeHtml(nombre, equipo, inf) {
   const st = estadisticasJugadora(nombre, equipo);
   const nota = notaJugadora(inf, nombre);
@@ -5637,6 +5647,10 @@ function fichaJugadoraInformeHtml(nombre, equipo, inf) {
     ${cajasTiroJugadora(nombre, equipo)}
     ${(() => { const ex = todasStatsJugadora(nombre, equipo).filter(d => !["PJ"].concat(STATS_FICHA.map(x => x[1]), TIPOS_TIRO.map(x => x[0])).includes(d.et));
       return ex.length ? `<div class="datos-jug tiros-jug">${ex.map(d => `<div class="dato-jug" title="${escapeAttr(d.titulo)}"><span class="v">${escapeHtml(d.v)}</span><span class="l">${escapeHtml(d.et)}</span></div>`).join("")}</div>` : ""; })()}
+    <details class="mapa-jug" data-jugadora="${escapeAttr(nombre)}" data-equipo="${escapeAttr(equipo)}" style="margin:8px 0;">
+      <summary style="cursor:pointer;font-weight:800;font-size:13.5px;color:var(--orange);">Mapa de tiro y zonas</summary>
+      <div class="mapa-jug-caja" id="mapaJug_${escapeAttr(String(nombre).replace(/[^A-Za-z0-9]/g, "_"))}" style="margin-top:8px;"></div>
+    </details>
     <textarea class="campo-jugadora" data-jugadora="${escapeAttr(nombre)}" rows="2"
       placeholder="Mano dominante, tiro, como atacarla, como defenderla...">${escapeHtml(nota.texto)}</textarea>
     <div class="texto-print">${escapeHtml(nota.texto).replace(/\n/g, "<br>") || "<span class='hint'>—</span>"}</div>
@@ -6315,6 +6329,33 @@ function fotoEnRankings(nombreJ, equipo) {
   return "";
 }
 
+/* Mapa de tiro de una jugadora listo para mandar: dibujo (SVG con su propio estilo) y zonas */
+function mapaTiroParaEnvio(jugadora, equipoNombre) {
+  try {
+    const datos = tirosPorEquipo[equipoOficial(equipoNombre)];
+    if (!datos || !datos.rows) return null;
+    const busca = clavesNombre(jugadora, equipoNombre);
+    const tiros = datos.rows.filter(r =>
+      clavesNombre(cellText(r, "Jugadora"), cellText(r, "Equipo")).some(c => busca.includes(c))
+    ).map(tiroEnMetros).filter(Boolean);
+    if (tiros.length < 3) return null;
+    const estilo = `<style>.madera{fill:#f3e6d2}.linea{fill:none;stroke:#c2ac8c;stroke-width:2.5;stroke-linejoin:round}`
+      + `.tablero{stroke:#8a6a4f;stroke-width:5;stroke-linecap:round}.aro{fill:none;stroke:#c0562a;stroke-width:3.5}`
+      + `.burbuja text{text-anchor:middle;font-family:Arial,sans-serif;font-weight:800;fill:#3a2d20}`
+      + `.burbuja circle{stroke-width:2.5}.b-pct{font-size:20px;fill:#20170e}.b-int{font-size:13px;font-weight:700}`
+      + `.z-buena circle{fill:rgba(64,176,132,.8);stroke:#14543d}.z-media circle{fill:rgba(240,181,68,.85);stroke:#9a6b12}`
+      + `.z-mala circle{fill:rgba(224,110,76,.8);stroke:#8c3a12}</style>`;
+    const svg = cartaSvg(tiros, "zonas")
+      .replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ')
+      .replace(/^(<svg[^>]*>)/, "$1" + estilo);
+    const dentro = tiros.filter(t => t.anotado).length;
+    return {
+      svg, tiros: tiros.length, pct: Math.round(dentro / tiros.length * 1000) / 10,
+      zonas: datosZonas(tiros).map(z => ({ zona: z.zona, a: z.a, i: z.i, pct: z.pct, pps: z.pps })),
+    };
+  } catch (e) { return null; }
+}
+
 const CAMPOS_ENVIO = [
   { id: "estilo", titulo: "Estilo de juego", porDefecto: true },
   { id: "fortalezas", titulo: "Puntos fuertes", porDefecto: true },
@@ -6476,6 +6517,7 @@ function trozosEnvio(nombre) {
               ? fotoJugadora(f2.jugadora, nombre, f2.foto || fotoEnRankings(f2.jugadora, nombre)) : (f2.foto || fotoEnRankings(f2.jugadora, nombre)),
             datos: [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]]
               .map(([k, et]) => ({ et, v: (f2[k] != null && f2[k] !== "") ? String(f2[k]) : "–" })),
+            mapa: mapaTiroParaEnvio(f2.jugadora, nombre),
             todas: (typeof todasStatsJugadora === "function") ? todasStatsJugadora(f2.jugadora, nombre).map(d => ({ et: d.et, v: d.v })) : [],
           };
         }),
@@ -6539,6 +6581,9 @@ function cerrarEnvio() {
 async function abrirEnvioJugadoras(nombre) {
   cerrarEnvio();
   const oficial = equipoOficial(nombre);
+
+  // Los tiros (para el mapa de tiro de cada jugadora) se bajan antes de armar el envio
+  try { await cargarTirosEquipo(nombre); } catch (e) { /* se sigue sin mapa */ }
 
   // El estilo de juego sale de las metricas avanzadas, que solo se calculan
   // al entrar en Estadisticas. Se piden aqui para que no falte nunca.
