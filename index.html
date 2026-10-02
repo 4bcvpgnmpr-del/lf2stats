@@ -1015,12 +1015,18 @@
        "pega aqui el enlace" no pintan nada en un informe impreso. */
     textarea, input, button, .btn-partido, .nueva-jugada, .copia-seguridad,
     .scout-acciones, .scout-barra, .scout-form, .chips-qp, .barra-acciones,
-    .hg-btns, .elige-equipos, .compare-bar{display:none !important;}
+    .hg-btns, .elige-equipos, .compare-bar, .nueva-jugada, .j-imagen,
+    .scout-visor-cabecera button, .copia-seguridad{display:none !important;}
+    /* Un panel que se queda sin nada dentro no deja un marco vacio */
+    .panel:empty, .scout-pro:empty, .caja:empty{display:none !important;}
+    .panel:has(.copia-seguridad), .panel:has(.nueva-jugada):not(:has(.jugada)){display:none !important;}
     /* Los desplegables se imprimen como texto, para saber que se esta viendo */
     select{appearance:none;-webkit-appearance:none;border:0 !important;background:none !important;
       padding:0 !important;font-weight:700;color:#1b2430;}
+    /* Ojo: ".informe .texto-print{display:none}" pesa mas que ".texto-print",
+       asi que aqui hace falta el !important o no se imprime lo escrito. */
     .texto-print{
-      display:block;white-space:pre-wrap;font-size:10pt;line-height:1.45;
+      display:block !important;white-space:pre-wrap;font-size:10pt;line-height:1.45;
       padding:6px 9px;margin:2px 0 8px;border:1px solid #d9d2c8;border-left:3px solid var(--orange);
       border-radius:3px;background:#fdfbf8;break-inside:avoid;
     }
@@ -10653,9 +10659,15 @@ function textosParaImprimir() {
     }
     destino.textContent = valor;                 // siempre lo ultimo escrito
     destino.style.whiteSpace = "pre-wrap";
+
+    // La ayuda ("Ritmo, como quieren jugar...") es para ti, no para el papel
+    const ayuda = ta.previousElementSibling;
+    if (ayuda && ayuda.classList && ayuda.classList.contains("hint")) {
+      ayuda.dataset.ocultoAlImprimir = "1";
+    }
     if (valor) return;
 
-    // Apartado vacio: se oculta entero, con su titulo y su ayuda
+    // Apartado vacio: se oculta entero, con su titulo tambien
     destino.dataset.ocultoAlImprimir = "1";
     let prev = ta.previousElementSibling;
     let pasos = 0;
@@ -11304,7 +11316,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02r";
+const VERSION_APP = "2026-10-02s";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
