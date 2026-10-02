@@ -135,6 +135,10 @@
   .clip .texto b{font-size:14.5px;}
   .clip .texto p{margin:4px 0 0;font-size:13.5px;color:var(--ink-soft);white-space:pre-wrap;}
 
+  .seccion-rival{border-left:3px solid var(--orange);padding:2px 0 2px 12px;margin:14px 0;}
+  .seccion-rival .sr-tit{font-size:12px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--orange);margin-bottom:3px;}
+  .seccion-rival p{margin:0;white-space:pre-wrap;font-size:14.5px;}
   .vacio{text-align:center;color:var(--ink-soft);font-size:14px;padding:30px 16px;
          background:var(--white);border:1.5px dashed var(--wood-line);border-radius:14px;}
   .cargando{text-align:center;color:var(--ink-soft);padding:40px 0;font-size:14px;}
@@ -181,11 +185,13 @@
       <button data-tab="numeros" class="activa">Mis numeros</button>
       <button data-tab="mensajes">Mensajes<span class="punto" id="puntoMensajes" hidden></span></button>
       <button data-tab="clips">Videos</button>
+      <button data-tab="rival">El rival<span class="punto" id="puntoRival" hidden></span></button>
     </div>
 
     <section id="tab-numeros"></section>
     <section id="tab-mensajes" hidden></section>
     <section id="tab-clips" hidden></section>
+    <section id="tab-rival" hidden></section>
 
     <p class="pie" style="margin-top:22px;">
       Datos de la FEB · <span id="pieVersion"></span>
@@ -206,7 +212,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",     // "" para 2025/26, "_2026" para 2026/27
 };
-const VERSION = "2026-10-02";
+const VERSION = "2026-10-02h";
 
 /* ============================================================
    UTILIDADES
@@ -355,6 +361,7 @@ async function cargarPerfil(sesion) {
   // los objetivos se pintan DESPUES de los numeros: si no, cargarNumeros
   // reescribe la pestana entera y se los lleva por delante
   cargarNumeros().then(cargarObjetivos);
+  cargarInformes();
 }
 
 function pintarCabecera(foto) {
@@ -562,6 +569,39 @@ async function marcarLeidos() {
   });
 }
 
+/* ---------- Pestana 4: el scouting del rival ---------- */
+let ultimoInforme = "";
+async function cargarInformes() {
+  const caja = $("tab-rival");
+  const { data, error } = await sb.from("informes")
+    .select("*").order("fecha", { ascending: false });
+  if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
+  const lista = data || [];
+  if (!lista.length) {
+    caja.innerHTML = `<div class="vacio">Cuando el entrenador mande el scouting
+      de un rival, lo veras aqui.</div>`;
+    return;
+  }
+  // Aviso si el ultimo es de los ultimos 7 dias
+  ultimoInforme = lista[0].id;
+  const ultimo = new Date(lista[0].fecha).getTime();
+  if (!isNaN(ultimo) && Date.now() - ultimo < 7 * 24 * 3600 * 1000) {
+    const visto = (() => { try { return localStorage.getItem("lf2_rival_visto"); } catch (e) { return null; } })();
+    if (visto !== lista[0].id) $("puntoRival").hidden = false;
+  }
+
+  caja.innerHTML = lista.map((i, n) => `
+    <div class="bloque">
+      <h3>${esc(i.titulo)}</h3>
+      <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
+      ${(i.secciones || []).map(sc => `
+        <div class="seccion-rival">
+          <div class="sr-tit">${esc(sc.titulo)}</div>
+          <p>${esc(sc.texto)}</p>
+        </div>`).join("")}
+    </div>`).join("");
+}
+
 /* ---------- Pestana 3: clips ---------- */
 function incrustar(url) {
   const u = String(url || "").trim();
@@ -613,8 +653,13 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["numeros", "mensajes", "clips"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
+    ["numeros", "mensajes", "clips", "rival"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
+    if (t === "rival") {
+      $("puntoRival").hidden = true;
+      try { localStorage.setItem("lf2_rival_visto", ultimoInforme || ""); }
+      catch (e) { /* nada */ }
+    }
   });
 });
 $("btnEntrar").addEventListener("click", pedirEnlace);

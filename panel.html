@@ -184,6 +184,32 @@
       <div id="avisoImportar"></div>
     </div>
 
+    <!-- Scouting del rival para todo el equipo -->
+    <div class="caja">
+      <h2>Mandar el scouting del rival</h2>
+      <p class="expl">Coge lo que ya escribiste en la pantalla de Scouting y se lo manda
+        a <b>todas</b> tus jugadoras de golpe. Elige que apartados ven: el informe que
+        tu usas suele llevar cosas que a ellas no les hacen falta.</p>
+
+      <div class="fila">
+        <div><label>Equipo rival</label>
+          <select id="selRivalScout"><option value="">Cargando...</option></select></div>
+        <div><label>Partido (opcional)</label>
+          <input id="scPartido" placeholder="Jornada 3 · fuera"></div>
+      </div>
+      <label>Titulo</label>
+      <input id="scTitulo" placeholder="Scouting: CB Claret">
+
+      <label>Apartados que van a ver</label>
+      <div id="scApartados" class="interruptores"></div>
+
+      <button class="boton" id="btnEnviarScout">Mandar a todas</button>
+      <div id="avisoScout"></div>
+
+      <h3 style="font-size:14px;margin:20px 0 8px;">Scoutings que ya has mandado</h3>
+      <div id="listaInformes" class="cargando">Cargando...</div>
+    </div>
+
     <!-- Ficha de la jugadora elegida -->
     <div id="fichaJugadora" hidden>
       <div class="caja">
@@ -280,7 +306,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02g";
+const VERSION = "2026-10-02h";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)
@@ -364,6 +390,8 @@ async function entrar(sesion) {
       Anadelo a la tabla <b>entrenadores</b> en Supabase.</div>`;
   }
   cargarJugadoras();
+  prepararScouting();
+  cargarInformes();
 }
 
 /* ============================================================
@@ -545,6 +573,123 @@ async function traerPlantilla() {
 }
 
 /* ============================================================
+   SCOUTING DEL RIVAL
+   Las notas de scouting estan guardadas en el navegador (localStorage),
+   no en Supabase. Como el panel se abre dentro de la misma pagina, se
+   pueden leer desde aqui sin tener que reescribir nada.
+   ============================================================ */
+const SCOUT_KEY = "lf2_scouting_v1";
+const CAMPOS_SCOUT = [
+  { id: "estilo",      titulo: "Estilo de juego" },
+  { id: "fortalezas",  titulo: "Puntos fuertes" },
+  { id: "debilidades", titulo: "Puntos debiles" },
+  { id: "ataque",      titulo: "Sistemas de ataque" },
+  { id: "defensa",     titulo: "Defensa" },
+  { id: "especiales",  titulo: "Situaciones especiales" },
+  { id: "claves",      titulo: "Claves del partido" },
+];
+// Lo que se manda por defecto: lo util para una jugadora
+const POR_DEFECTO = ["estilo", "fortalezas", "debilidades", "claves"];
+
+function leerScouting() {
+  try { return JSON.parse(localStorage.getItem(SCOUT_KEY) || "{}"); }
+  catch (e) { return {}; }
+}
+
+function normEquipo(t) {
+  return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]/gi, "").toUpperCase();
+}
+
+function fichasScouting() {
+  const datos = leerScouting();
+  const equipos = (datos && datos.equipos) ? datos.equipos : {};
+  return Object.keys(equipos).map(k => {
+    const f = equipos[k];
+    const campos = (f && f.informe && f.informe.campos) ? f.informe.campos : {};
+    const escritos = CAMPOS_SCOUT.filter(c => String(campos[c.id] || "").trim());
+    return { clave: k, nombre: f.nombre || k, campos, escritos };
+  }).filter(f => f.escritos.length)
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"));
+}
+
+function prepararScouting() {
+  const sel = $("selRivalScout");
+  const fichas = fichasScouting();
+  if (!fichas.length) {
+    sel.innerHTML = `<option value="">No hay ningun scouting escrito todavia</option>`;
+    $("scApartados").innerHTML = `<p class="expl" style="margin:0;">Escribe primero un informe
+      en la pantalla de <b>Scouting</b> de la app y vuelve aqui.</p>`;
+    return;
+  }
+  sel.innerHTML = fichas.map(f =>
+    `<option value="${esc(f.clave)}">${esc(f.nombre)} (${f.escritos.length} apartados)</option>`).join("");
+  pintarApartados();
+}
+
+function pintarApartados() {
+  const ficha = fichasScouting().find(f => f.clave === $("selRivalScout").value);
+  const caja = $("scApartados");
+  if (!ficha) { caja.innerHTML = ""; return; }
+  caja.innerHTML = ficha.escritos.map(c => `<label class="sw">
+      <input type="checkbox" data-campo="${esc(c.id)}" ${POR_DEFECTO.includes(c.id) ? "checked" : ""}>
+      <span>${esc(c.titulo)}</span></label>`).join("");
+  if (!$("scTitulo").value.trim() || $("scTitulo").dataset.auto === "1") {
+    $("scTitulo").value = "Scouting: " + ficha.nombre;
+    $("scTitulo").dataset.auto = "1";
+  }
+}
+
+async function enviarScouting() {
+  const ficha = fichasScouting().find(f => f.clave === $("selRivalScout").value);
+  if (!ficha) { avisar("avisoScout", "Elige un rival.", "mal"); return; }
+  const elegidos = [...document.querySelectorAll("#scApartados input:checked")]
+    .map(i => i.getAttribute("data-campo"));
+  if (!elegidos.length) { avisar("avisoScout", "Marca al menos un apartado.", "mal"); return; }
+
+  const secciones = CAMPOS_SCOUT
+    .filter(c => elegidos.includes(c.id))
+    .map(c => ({ titulo: c.titulo, texto: String(ficha.campos[c.id] || "").trim() }))
+    .filter(sc => sc.texto);
+
+  const b = $("btnEnviarScout"); b.disabled = true; b.textContent = "Mandando...";
+  const { error } = await sb.from("informes").insert({
+    titulo: $("scTitulo").value.trim() || ("Scouting: " + ficha.nombre),
+    rival: ficha.nombre,
+    partido: $("scPartido").value.trim() || null,
+    secciones,
+  });
+  b.disabled = false; b.textContent = "Mandar a todas";
+  if (error) {
+    avisar("avisoScout", "No se ha podido mandar: " + error.message
+      + " (¿has ejecutado el script del paso 3?)", "mal");
+    return;
+  }
+  $("scPartido").value = "";
+  avisar("avisoScout", "Mandado. Lo veran en la pestaña 'El rival' de su app.", "ok");
+  cargarInformes();
+}
+
+async function cargarInformes() {
+  const caja = $("listaInformes");
+  const { data, error } = await sb.from("informes").select("*").order("fecha", { ascending: false });
+  caja.className = "";
+  if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
+  if (!data || !data.length) { caja.innerHTML = `<div class="vacio">Todavia no has mandado ninguno.</div>`; return; }
+  caja.innerHTML = data.map(i => `<div class="item">
+    <div class="cab"><b>${esc(i.titulo)}</b><span>${esc(fechaCorta(i.fecha))}</span></div>
+    <p style="font-size:13px;color:var(--ink-soft);">
+      ${esc(i.partido || "")}${i.partido ? " · " : ""}${(i.secciones || []).length} apartados</p>
+    <div class="acciones"><button class="boton fina borrar" data-informe="${esc(i.id)}">Quitarlo</button></div>
+  </div>`).join("");
+  caja.querySelectorAll("[data-informe]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("¿Quitar este scouting? Dejaran de verlo.")) return;
+    await sb.from("informes").delete().eq("id", b.getAttribute("data-informe"));
+    cargarInformes();
+  }));
+}
+
+/* ============================================================
    ENVIAR COSAS
    ============================================================ */
 async function enviarMensaje() {
@@ -658,6 +803,9 @@ $("btnSalir").addEventListener("click", salir);
 $("btnGuardarNueva").addEventListener("click", guardarNueva);
 $("btnGuardarCorreo").addEventListener("click", guardarCorreo);
 $("btnQuitarJugadora").addEventListener("click", quitarJugadora);
+$("selRivalScout").addEventListener("change", pintarApartados);
+$("btnEnviarScout").addEventListener("click", enviarScouting);
+$("scTitulo").addEventListener("input", () => { $("scTitulo").dataset.auto = "0"; });
 $("btnTraer").addEventListener("click", traerPlantilla);
 $("selEquipoFeb").addEventListener("change", pintarListaFeb);
 $("swNumeros").addEventListener("change", guardarQueVe);
