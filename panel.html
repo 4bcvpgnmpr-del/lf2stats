@@ -187,8 +187,14 @@
     <!-- Ficha de la jugadora elegida -->
     <div id="fichaJugadora" hidden>
       <div class="caja">
-        <h2 id="tituloJugadora"></h2>
-        <p class="expl" id="subJugadora"></p>
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="min-width:0;flex:1;">
+            <h2 id="tituloJugadora"></h2>
+            <p class="expl" id="subJugadora" style="margin-bottom:0;"></p>
+          </div>
+          <button class="boton borrar fina" id="btnQuitarJugadora"
+                  title="Quitar a esta jugadora">Quitar</button>
+        </div>
 
         <label>Correo con el que entra</label>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -254,13 +260,10 @@
         <div id="historial" class="cargando">Cargando...</div>
       </div>
 
-      <div class="caja" style="border-color:#f0cdbe;">
-        <h2 style="font-size:15px;">Quitar a esta jugadora</h2>
-        <p class="expl">Se borra su ficha y con ella sus mensajes, videos y objetivos.
-          No se puede deshacer. Si solo quieres que deje de entrar, borra su correo arriba.</p>
-        <button class="boton borrar" id="btnQuitarJugadora" style="margin-top:0;">Quitar del todo</button>
-        <div id="avisoQuitar"></div>
-      </div>
+      <p class="expl" style="text-align:center;">El boton <b>Quitar</b> de arriba borra su ficha
+        y con ella sus mensajes, videos y objetivos. Si solo quieres que deje de entrar,
+        borra su correo en vez de quitarla.</p>
+      <div id="avisoQuitar"></div>
     </div>
 
     <p class="pie">Panel del entrenador · <span id="pieVersion"></span></p>
@@ -277,7 +280,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02";
+const VERSION = "2026-10-02g";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)

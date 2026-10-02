@@ -2496,7 +2496,8 @@ function showView(id, esVuelta) {
   // El panel se carga la primera vez que entras, no al abrir la app
   if (id === "mis-jugadoras") {
     const marco = document.getElementById("marcoPanel");
-    if (marco && !marco.getAttribute("src")) marco.setAttribute("src", "panel.html");
+    // La version en la direccion evita que el navegador sirva una copia vieja
+    if (marco && !marco.getAttribute("src")) marco.setAttribute("src", "panel.html?v=" + VERSION_APP);
   }
   if (id === "records") cargarRecords();
 }
@@ -11040,7 +11041,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02f";
+const VERSION_APP = "2026-10-02g";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
