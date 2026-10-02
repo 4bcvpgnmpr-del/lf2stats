@@ -216,6 +216,22 @@
   .sj-zonas th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);text-align:right;padding:3px 4px;}
   .sj-zonas td{padding:4px;text-align:right;border-top:1px solid var(--wood-line);}
   .sj-zonas th:first-child,.sj-zonas td:first-child{text-align:left;}
+  svg.carta{width:100%;max-width:440px;height:auto;display:block;margin:0 auto 10px;border-radius:10px;}
+  svg.carta .madera{fill:#f3e6d2}svg.carta .linea{fill:none;stroke:#c2ac8c;stroke-width:2.5;stroke-linejoin:round}
+  svg.carta .tablero{stroke:#8a6a4f;stroke-width:5;stroke-linecap:round}svg.carta .aro{fill:none;stroke:#c0562a;stroke-width:3.5}
+  svg.carta .burbuja text{text-anchor:middle;font-weight:800;fill:#3a2d20}svg.carta .burbuja circle{stroke-width:2.5}
+  svg.carta .b-pct{font-size:20px;fill:#20170e}svg.carta .b-int{font-size:13px;font-weight:700}
+  svg.carta .z-buena circle{fill:rgba(64,176,132,.8);stroke:#14543d}svg.carta .z-media circle{fill:rgba(240,181,68,.85);stroke:#9a6b12}
+  svg.carta .z-mala circle{fill:rgba(224,110,76,.8);stroke:#8c3a12}
+  svg.carta .tiro-dentro{fill:rgba(31,122,90,.75);stroke:#14543d}svg.carta .tiro-fuera{fill:rgba(199,80,40,.55);stroke:#8c3a12}
+  .subnav{display:flex;gap:6px;}
+  .subnav button{flex:1;padding:9px;border:1.5px solid var(--wood-line);background:var(--white);border-radius:9px;
+    font:inherit;font-size:13.5px;font-weight:700;color:var(--ink-soft);}
+  .subnav button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .sr-plant{background:var(--suave);border:1.5px solid var(--wood-line);border-radius:12px;margin-bottom:8px;}
+  .sr-plant>summary{list-style:none;cursor:pointer;display:flex;gap:10px;align-items:center;padding:9px 11px;}
+  .sr-plant>summary::-webkit-details-marker{display:none;}
+  .sr-plant .cuerpo{padding:0 11px 11px;}
   .sj-todas{margin-top:7px;}
   .sj-todas summary{font-size:12.5px;font-weight:800;color:var(--orange);cursor:pointer;}
   .sj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;margin-top:7px;}
@@ -344,7 +360,7 @@ function conComa(n, dec) {
 
 /* Lee una pestana del Google Sheet. Igual que en la app del entrenador:
    JSONP, porque el Sheet no deja leerlo de la forma normal. */
-function leerPestana(nombreTab) {
+function leerPestana(nombreTab, consulta) {
   return new Promise((ok) => {
     const tab = nombreTab + CONFIG.TEMPORADA;
     const cb = "lf2cb_" + Math.random().toString(36).slice(2);
@@ -370,9 +386,10 @@ function leerPestana(nombreTab) {
     };
     const guion = document.createElement("script");
     guion.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq`
-      + `?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(tab)}`;
+      + `?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(tab)}&headers=1`
+      + (consulta ? `&tq=${encodeURIComponent(consulta)}` : "");
     guion.onerror = () => { limpiar(); ok(null); };
-    const reloj = setTimeout(() => { limpiar(); ok(null); }, 15000);
+    const reloj = setTimeout(() => { limpiar(); ok(null); }, consulta ? 30000 : 15000);
     document.head.appendChild(guion);
   });
 }
@@ -588,6 +605,148 @@ function claveNombre(txt) {
     .split(/\s+/).filter(Boolean).sort().join(" ");
 }
 
+/* ============================================================
+   MAPA DE TIRO Y ESTADISTICAS COMPLETAS (Mis numeros)
+   ============================================================ */
+const EXTRAS_TABS = [
+  ["Jugadoras_Tapones_Favor", "TAP+", "Tapones a favor"], ["Jugadoras_Tapones_Contra", "TAP-", "Tapones en contra"],
+  ["Jugadoras_Mates", "MAT", "Mates"], ["Jugadoras_Faltas_Recibidas", "FR", "Faltas recibidas"],
+  ["Jugadoras_Faltas_Cometidas", "FC", "Faltas cometidas"],
+];
+const PISTA = { largo: 28, ancho: 15, aroX: 1.575, aroY: 7.5 };
+const POS_ZONAS = {
+  "Cerca del aro": { mx: 2.6, my: 7.5 }, "Pintura": { mx: 4.8, my: 7.5 }, "Media distancia": { mx: 7.0, my: 7.5 },
+  "Triple frontal": { mx: 9.4, my: 7.5 }, "Triple 45 izq.": { mx: 7.6, my: 11.9 }, "Triple 45 der.": { mx: 7.6, my: 3.1 },
+  "Triple esquina izq.": { mx: 1.5, my: 13.6 }, "Triple esquina der.": { mx: 1.5, my: 1.4 },
+};
+function coord(v) {
+  const n = parseFloat(String(v == null ? "" : v).replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+function tiroMetros(fila) {
+  let x = coord(fila.X), y = coord(fila.Y);
+  if (x === null || y === null || x < 0 || x > 100 || y < 0 || y > 100) return null;
+  if (x > 50) { x = 100 - x; y = 100 - y; }
+  const mx = x / 100 * PISTA.largo, my = y / 100 * PISTA.ancho;
+  return { mx, my, dist: Math.hypot(mx - PISTA.aroX, my - PISTA.aroY), anotado: String(fila.Anotado).trim() === "Si" };
+}
+function zonaTiro(t) {
+  const dy = t.my - PISTA.aroY;
+  const esquina = Math.abs(dy) > 5.5 && t.mx < 4.5;
+  if (t.dist >= 6.75 || esquina) {
+    if (esquina) return dy > 0 ? "Triple esquina izq." : "Triple esquina der.";
+    if (Math.abs(dy) < 2.5) return "Triple frontal";
+    return dy > 0 ? "Triple 45 izq." : "Triple 45 der.";
+  }
+  if (t.dist <= 1.6) return "Cerca del aro";
+  if (Math.abs(dy) <= 2.45 && t.mx <= 5.8) return "Pintura";
+  return "Media distancia";
+}
+function zonasDeTiros(tiros) {
+  const m = {};
+  tiros.forEach(t => { const z = zonaTiro(t); const d = m[z] || (m[z] = { zona: z, a: 0, i: 0 }); d.i++; if (t.anotado) d.a++; });
+  return Object.values(m).map(d => ({
+    ...d, pct: Math.round(d.a / d.i * 1000) / 10,
+    pps: Math.round(d.a * (d.zona.startsWith("Triple") ? 3 : 2) / d.i * 100) / 100,
+  })).sort((a, b) => b.i - a.i);
+}
+function pistaSvg(tiros, modo) {
+  const ESC = 36, FONDO = 14, W = PISTA.ancho * ESC, H = FONDO * ESC;
+  const X = (my) => (PISTA.ancho - my) * ESC, Y = (mx) => mx * ESC;
+  const R3 = 6.75, B3 = 0.9, ay = PISTA.aroY, ax = PISTA.aroX;
+  const yEsq = ax + Math.sqrt(R3 * R3 - Math.pow(ay - B3, 2));
+  const arco3 = `M ${X(B3)} ${Y(0)} L ${X(B3)} ${Y(yEsq)} A ${R3 * ESC} ${R3 * ESC} 0 0 1 ${X(PISTA.ancho - B3)} ${Y(yEsq)} L ${X(PISTA.ancho - B3)} ${Y(0)}`;
+  const fijo = `<rect x="${X(ay + 2.45)}" y="${Y(0)}" width="${4.9 * ESC}" height="${5.8 * ESC}" class="linea"></rect>
+    <circle cx="${X(ay)}" cy="${Y(5.8)}" r="${1.8 * ESC}" class="linea"></circle>
+    <path d="M ${X(ay + 1.25)} ${Y(ax)} A ${1.25 * ESC} ${1.25 * ESC} 0 0 0 ${X(ay - 1.25)} ${Y(ax)}" class="linea"></path>
+    <line x1="${X(ay + 0.9)}" y1="${Y(1.2)}" x2="${X(ay - 0.9)}" y2="${Y(1.2)}" class="tablero"></line>
+    <circle cx="${X(ay)}" cy="${Y(ax)}" r="${0.225 * ESC}" class="aro"></circle>
+    <path d="M ${X(ay + 1.8)} ${Y(FONDO)} A ${1.8 * ESC} ${1.8 * ESC} 0 0 1 ${X(ay - 1.8)} ${Y(FONDO)}" class="linea"></path>`;
+  let encima = "";
+  if (modo === "puntos") {
+    encima = tiros.map(t => `<circle cx="${X(t.my).toFixed(1)}" cy="${Y(t.mx).toFixed(1)}" r="7" class="${t.anotado ? "tiro-dentro" : "tiro-fuera"}"></circle>`).join("");
+  } else {
+    const zs = zonasDeTiros(tiros);
+    const maxI = Math.max(...zs.map(z => z.i), 1);
+    encima = zs.map(z => {
+      const p = POS_ZONAS[z.zona]; if (!p) return "";
+      const r = (0.55 + 0.55 * Math.sqrt(z.i / maxI)) * ESC, cx = X(p.my), cy = Y(p.mx);
+      const col = z.pct >= 45 ? "z-buena" : (z.pct >= 33 ? "z-media" : "z-mala");
+      return `<g class="burbuja ${col}"><circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}"></circle>
+        <text x="${cx.toFixed(1)}" y="${(cy - 1).toFixed(1)}" class="b-pct">${Math.round(z.pct)}%</text>
+        <text x="${cx.toFixed(1)}" y="${(cy + 15).toFixed(1)}" class="b-int">${z.a}/${z.i}</text></g>`;
+    }).join("");
+  }
+  return `<svg class="carta" viewBox="0 0 ${W} ${H}"><rect x="0" y="0" width="${W}" height="${H}" class="madera"></rect>
+    <rect x="1" y="1" width="${W - 2}" height="${H - 2}" class="linea"></rect><path d="${arco3}" class="linea"></path>${fijo}${encima}</svg>`;
+}
+/* "I. SERRANO GARCIA" o "SERRANO GARCIA, INES" contra mi nombre completo */
+function mismoNombre(nombreTiro, mio) {
+  const a = limpiarNombre(nombreTiro).replace(/[.,]/g, " ").split(/\s+/).filter(Boolean);
+  const b = limpiarNombre(mio).replace(/[.,]/g, " ").split(/\s+/).filter(Boolean);
+  if (a.length < 2 || !b.length) return false;
+  return a.every(t => t.length === 1 ? b.some(x => x[0] === t) : b.includes(t));
+}
+const tablaZonasHtml = (zonas) => `<table class="sj-zonas"><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>
+  ${zonas.map(z => `<tr><td>${esc(z.zona)}</td><td>${esc(z.a)}/${esc(z.i)}</td><td>${conComa(z.pct, 1)}%</td><td>${conComa(z.pps, 2)}</td></tr>`).join("")}</tbody></table>`;
+
+async function pintarExtrasNumeros(caja, mia, equipo, encontrado) {
+  try {
+    const [extras, resumen] = await Promise.all([
+      Promise.all(EXTRAS_TABS.map(t => leerPestana(t[0]))),
+      leerPestana("Jugadoras_Tiros"),
+    ]);
+    const mio = (t) => t && t.filas ? t.filas.find(f => claveNombre(f.Jugador || f.Jugadora) === mia) : null;
+    const cajas = [];
+    encontrado.forEach(d => cajas.push([d.corta, conComa(d.valor, 1) + (d.pct ? "%" : "")]));
+    EXTRAS_TABS.forEach((t, i) => {
+      const f = mio(extras[i]); if (!f) return;
+      const v = numero(f.Med !== undefined ? f.Med : f.Media);
+      if (v !== null) cajas.push([t[1], conComa(v, 1)]);
+    });
+    const r = mio(resumen);
+    if (r) {
+      const n = (c) => numero(r[c]) || 0;
+      const t2a = n("T2A"), t2i = n("T2I"), t3a = n("T3A"), t3i = n("T3I"), tla = n("TLA"), tli = n("TLI");
+      const par = (a, i) => `${a}/${i}` + (i ? ` · ${conComa(a / i * 100, 1)}%` : "");
+      if (t2i) cajas.push(["T2", par(t2a, t2i)]);
+      if (t3i) cajas.push(["T3", par(t3a, t3i)]);
+      if (t2i + t3i) {
+        cajas.push(["TC", par(t2a + t3a, t2i + t3i)]);
+        cajas.push(["eFG%", conComa((t2a + 1.5 * t3a) / (t2i + t3i) * 100, 1)]);
+      }
+      if (tli) cajas.push(["TL", par(tla, tli)]);
+      if (t2i + t3i + tli) cajas.push(["TS%", conComa((t2a * 2 + t3a * 3 + tla) / (2 * (t2i + t3i + 0.44 * tli)) * 100, 1)]);
+      const pj = n("Partidos"), per = n("Perdidas");
+      if (pj && r.Perdidas !== undefined && r.Perdidas !== "") cajas.push(["PER", conComa(per / pj, 1)]);
+    }
+    if (cajas.length) caja.insertAdjacentHTML("beforeend", `<div class="bloque"><h3>Todas tus estadísticas</h3>
+      <div class="sj-grid" style="grid-template-columns:repeat(auto-fill,minmax(92px,1fr));">
+      ${cajas.map(c => `<div><b>${esc(c[1])}</b><i>${esc(c[0])}</i></div>`).join("")}</div></div>`);
+
+    // Mapa de tiro: solo se piden los tiros de su equipo
+    if (!equipo) return;
+    const seguro = String(equipo).replace(/'/g, "");
+    const datos = await leerPestana("Tiros", `select * where B = '${seguro}'`);
+    if (!datos || !datos.filas.length) return;
+    const tiros = datos.filas.filter(f => mismoNombre(f.Jugadora, jugadora.nombre)).map(tiroMetros).filter(Boolean);
+    if (tiros.length < 3) return;
+    const dentro = tiros.filter(t => t.anotado).length;
+    const id = "mapaMio";
+    caja.insertAdjacentHTML("beforeend", `<div class="bloque"><h3>Tu mapa de tiro</h3>
+      <p class="expl">${tiros.length} tiros de campo · ${conComa(dentro / tiros.length * 100, 1)}% de acierto.
+      Verde: buen porcentaje; naranja: medio; rojo: a mejorar. Los libres no tienen posición.</p>
+      <div class="subnav" style="margin:0 0 10px;"><button class="active" data-m="zonas">Por zonas</button><button data-m="puntos">Tiro a tiro</button></div>
+      <div id="${id}">${pistaSvg(tiros, "zonas")}</div>${tablaZonasHtml(zonasDeTiros(tiros))}</div>`);
+    const bl = caja.querySelectorAll(".bloque");
+    const ult = bl[bl.length - 1];
+    ult.querySelectorAll(".subnav button").forEach(b => b.addEventListener("click", () => {
+      ult.querySelectorAll(".subnav button").forEach(x => x.classList.toggle("active", x === b));
+      ult.querySelector("#" + id).innerHTML = pistaSvg(tiros, b.getAttribute("data-m"));
+    }));
+  } catch (e) { /* los numeros de arriba ya estan; esto es un extra */ }
+}
+
 async function cargarNumeros() {
   const caja = $("tab-numeros");
 
@@ -629,11 +788,13 @@ async function cargarNumeros() {
 
   // Su fila en cada ranking, con su percentil dentro de su grupo
   const encontrado = [];
+  let equipoMio = (ficha && ficha.Equipo) ? ficha.Equipo : "";
   CATEGORIAS.forEach((c, i) => {
     const datos = tabs[i + 1];
     if (!datos || !datos.filas.length) return;
     const fila = datos.filas.find(f => claveNombre(f.Jugador || f.Jugadora) === mia);
     if (!fila) return;
+    if (!equipoMio && fila.Equipo) equipoMio = fila.Equipo;
     const valor = numero(fila.Med !== undefined ? fila.Med : fila.Media);
     if (valor === null) return;
 
@@ -737,6 +898,7 @@ async function cargarNumeros() {
   }
 
   caja.innerHTML = html;
+  pintarExtrasNumeros(caja, mia, equipoMio, encontrado);
 }
 
 /* ---------- Objetivos: se pintan arriba de sus numeros ---------- */
@@ -863,6 +1025,15 @@ document.addEventListener("click", (e) => {
   if (f) { e.preventDefault(); abrirVisor("frame", f.getAttribute("data-visor-frame")); }
 });
 
+function extrasJugadoraHtml(j) {
+  const todas = (j.todas || []).length ? `<details class="sj-todas"><summary>Todas sus estadísticas</summary>
+    <div class="sj-grid">${j.todas.map(d => `<div><b>${esc(d.v)}</b><i>${esc(d.et)}</i></div>`).join("")}</div></details>` : "";
+  const mapa = (j.mapa && String(j.mapa.svg || "").startsWith("<svg")) ? `<details class="sj-todas"><summary>Mapa de tiro (${esc(j.mapa.tiros)} tiros · ${esc(String(j.mapa.pct).replace(".", ","))}%)</summary>
+    <img class="sj-mapa" data-visor-img="1" alt="Mapa de tiro" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(j.mapa.svg)}">
+    ${tablaZonasHtml((j.mapa.zonas || []).map(z => ({ zona: z.zona, a: z.a, i: z.i, pct: Number(z.pct), pps: Number(z.pps) })))}</details>` : "";
+  return todas + mapa;
+}
+
 /* Cada apartado se pinta segun lo que sea: tarjetas, tabla, lista o texto.
    Los informes antiguos no llevan "tipo": se tratan como texto. */
 function seccionRivalHtml(sc) {
@@ -914,6 +1085,19 @@ function seccionRivalHtml(sc) {
     </div>`;
   }
 
+  if (sc.tipo === "plantilla" && (sc.jugadoras || []).length) {
+    return `<div class="seccion-rival">${tit}${sc.jugadoras.map(p => {
+      const ini = limpiarNombre(p.nombre).replace(/[^A-Z ]/g, "").trim().slice(0, 2);
+      return `<details class="sr-plant"><summary>
+        ${p.foto ? `<img src="${esc(p.foto)}" loading="lazy" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:top center;flex:none;"
+              onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'sinfoto2',textContent:'${esc(ini)}'}))">`
+               : `<div class="sinfoto2" style="width:40px;height:40px;border-radius:50%;background:var(--wood-line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:none;">${esc(ini)}</div>`}
+        <div class="sj-info"><b>${p.dorsal ? `<span class="dor">${esc(p.dorsal)}</span>` : ""}${esc(p.nombre)}</b>
+          <div class="sj-datos">${(p.datos || []).map(d => `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div></div></summary>
+        <div class="cuerpo">${extrasJugadoraHtml(p)}</div></details>`;
+    }).join("")}</div>`;
+  }
+
   if (sc.tipo === "jugadoras" && (sc.jugadoras || []).length) {
     return `<div class="seccion-rival">${tit}
       <div class="sr-jugs">${sc.jugadoras.map(j => {
@@ -927,13 +1111,7 @@ function seccionRivalHtml(sc) {
             ${j.puesto ? `<div class="sj-puesto">${esc(j.puesto)}</div>` : ""}
             <div class="sj-datos">${(j.datos || []).map(d =>
               `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div>
-            ${(j.todas || []).length ? `<details class="sj-todas"><summary>Todas sus estadísticas</summary>
-              <div class="sj-grid">${j.todas.map(d => `<div><b>${esc(d.v)}</b><i>${esc(d.et)}</i></div>`).join("")}</div></details>` : ""}
-            ${(j.mapa && String(j.mapa.svg || "").startsWith("<svg")) ? `<details class="sj-todas"><summary>Mapa de tiro (${esc(j.mapa.tiros)} tiros · ${esc(String(j.mapa.pct).replace(".", ","))}%)</summary>
-              <img class="sj-mapa" data-visor-img="1" alt="Mapa de tiro" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(j.mapa.svg)}">
-              <table class="sj-zonas"><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>
-              ${(j.mapa.zonas || []).map(z => `<tr><td>${esc(z.zona)}</td><td>${esc(z.a)}/${esc(z.i)}</td><td>${esc(String(z.pct).replace(".", ","))}%</td><td>${esc(String(z.pps).replace(".", ","))}</td></tr>`).join("")}
-              </tbody></table></details>` : ""}
+            ${extrasJugadoraHtml(j)}
             ${j.nota ? `<div class="sj-nota">${esc(j.nota)}</div>` : ""}
           </div>
         </div>`;

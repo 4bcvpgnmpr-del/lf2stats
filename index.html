@@ -6529,13 +6529,18 @@ function trozosEnvio(nombre) {
   if (plantilla.length) {
     const COLS = [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]];
     trozos.push({
-      id: "__plantilla", titulo: `Plantilla del rival (${plantilla.length})`, porDefecto: false,
+      id: "__plantilla", titulo: `Plantilla del rival (${plantilla.length}) con estadisticas y mapa de tiro`, porDefecto: true,
       carga: {
-        tipo: "tabla", titulo: "Plantilla del rival",
-        columnas: ["Jugadora"].concat(COLS.map(c => c[1])),
-        filas: plantilla.map(f2 => [
-          (f2.dorsal ? f2.dorsal + " · " : "") + f2.jugadora,
-        ].concat(COLS.map(([corta]) => (f2[corta] === "" || f2[corta] == null) ? "–" : String(f2[corta])))),
+        tipo: "plantilla", titulo: "Plantilla del rival",
+        jugadoras: plantilla.map(f2 => ({
+          nombre: f2.jugadora,
+          dorsal: f2.dorsal ? String(f2.dorsal) : "",
+          foto: (typeof fotoJugadora === "function")
+            ? fotoJugadora(f2.jugadora, nombre, f2.foto || fotoEnRankings(f2.jugadora, nombre)) : (f2.foto || ""),
+          datos: COLS.map(([corta, et]) => ({ et, v: (f2[corta] != null && f2[corta] !== "") ? String(f2[corta]) : "–" })),
+          todas: todasStatsJugadora(f2.jugadora, nombre).map(d => ({ et: d.et, v: d.v })),
+          mapa: mapaTiroParaEnvio(f2.jugadora, nombre),
+        })),
       },
     });
 
