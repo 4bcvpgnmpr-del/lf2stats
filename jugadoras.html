@@ -135,6 +135,11 @@
   .clip .texto b{font-size:14.5px;}
   .clip .texto p{margin:4px 0 0;font-size:13.5px;color:var(--ink-soft);white-space:pre-wrap;}
 
+  .barra-previa{background:#1b2430;color:#fff;font-size:13px;padding:9px 14px;
+    display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .barra-previa b{color:var(--orange);}
+  .barra-previa button{margin-left:auto;background:none;border:1.5px solid rgba(255,255,255,.3);
+    color:#fff;border-radius:16px;padding:4px 11px;font-family:inherit;font-size:12px;cursor:pointer;}
   .seccion-rival{border-left:3px solid var(--orange);padding:2px 0 2px 12px;margin:14px 0;}
   .seccion-rival .sr-tit{font-size:12px;font-weight:800;text-transform:uppercase;
     letter-spacing:.07em;color:var(--orange);margin-bottom:3px;}
@@ -212,7 +217,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",     // "" para 2025/26, "_2026" para 2026/27
 };
-const VERSION = "2026-10-02i";
+const VERSION = "2026-10-02j";
 
 /* ============================================================
    UTILIDADES
@@ -327,6 +332,8 @@ async function salir() {
 /* ============================================================
    CARGAR LO SUYO
    ============================================================ */
+let modoVistaPrevia = false;
+
 async function cargarPerfil(sesion) {
   $("pantallaEntrar").hidden = true;
   $("pantallaPerfil").hidden = false;
@@ -334,6 +341,31 @@ async function cargarPerfil(sesion) {
   $("tab-numeros").innerHTML = `<p class="cargando">Cargando tus datos...</p>`;
 
   const correo = (sesion.user && sesion.user.email) || "";
+
+  // Vista previa: el entrenador abre ?ver=<id> para ver el perfil de una
+  // jugadora tal y como lo ve ella. Nadie mas puede: el servidor no le
+  // dejaria leer esa ficha.
+  const quiere = new URLSearchParams(location.search).get("ver");
+  if (quiere) {
+    const { data: soy } = await sb.rpc("es_entrenador");
+    if (soy === true) {
+      const { data: una } = await sb.from("jugadoras").select("*").eq("id", quiere).limit(1);
+      if (una && una.length) {
+        jugadora = una[0];
+        modoVistaPrevia = true;
+        document.body.insertAdjacentHTML("afterbegin", `<div class="barra-previa">
+          Vista previa &middot; asi lo ve <b>${esc(jugadora.nombre)}</b>
+          <button id="btnCerrarPrevia">Cerrar</button></div>`);
+        $("btnCerrarPrevia").addEventListener("click", () => window.close() || history.back());
+        pintarCabecera(null);
+        cargarMensajes();
+        cargarClips();
+        cargarInformes();
+        cargarNumeros().then(cargarObjetivos);
+        return;
+      }
+    }
+  }
 
   // 1) Su ficha. Las reglas del servidor solo le dejan ver la suya.
   const { data: fichas, error } = await sb.from("jugadoras").select("*").limit(5);
@@ -558,6 +590,7 @@ async function cargarMensajes() {
 
 async function marcarLeidos() {
   if (!sb || !jugadora) return;
+  if (modoVistaPrevia) return;      // mirar no es leer: se deja tal cual
   const ahora = new Date().toISOString();
   await sb.from("mensajes").update({ leido_el: ahora })
     .eq("jugadora_id", jugadora.id).is("leido_el", null);

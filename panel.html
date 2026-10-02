@@ -218,8 +218,12 @@
             <h2 id="tituloJugadora"></h2>
             <p class="expl" id="subJugadora" style="margin-bottom:0;"></p>
           </div>
-          <button class="boton borrar fina" id="btnQuitarJugadora"
-                  title="Quitar a esta jugadora">Quitar</button>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="boton fina gris" id="btnVerComoElla"
+                    title="Abrir su perfil tal y como lo ve ella">Ver su perfil</button>
+            <button class="boton borrar fina" id="btnQuitarJugadora"
+                    title="Quitar a esta jugadora">Quitar</button>
+          </div>
         </div>
 
         <label>Correo con el que entra</label>
@@ -306,7 +310,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02i";
+const VERSION = "2026-10-02j";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)
@@ -803,6 +807,11 @@ $("btnSalir").addEventListener("click", salir);
 $("btnGuardarNueva").addEventListener("click", guardarNueva);
 $("btnGuardarCorreo").addEventListener("click", guardarCorreo);
 $("btnQuitarJugadora").addEventListener("click", quitarJugadora);
+$("btnVerComoElla").addEventListener("click", () => {
+  if (!elegida) return;
+  // Se abre en otra pestaña para no perder lo que estes escribiendo aqui
+  window.open("jugadoras.html?ver=" + encodeURIComponent(elegida.id), "_blank", "noopener");
+});
 $("selRivalScout").addEventListener("change", pintarApartados);
 $("btnEnviarScout").addEventListener("click", enviarScouting);
 $("scTitulo").addEventListener("input", () => { $("scTitulo").dataset.auto = "0"; });
