@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b2430">
+<title>Panel del entrenador · LF2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --wood:#fdf8f2; --wood-line:#e4dcd0; --ink:#1b2430; --ink-soft:#5a6472;
+    --white:#ffffff; --suave:#f7f3ec; --orange:#e0602a; --orange-dark:#c44f1e;
+    --verde:#1f7a5a; --verde-suave:#eef7f2; --rojo:#b4470f; --rojo-suave:#fdf0ec;
+    --sombra:rgba(27,36,50,.10);
+  }
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  body{margin:0;background:var(--wood);color:var(--ink);
+       font-family:'Archivo',system-ui,sans-serif;font-size:15px;line-height:1.5;}
+  h1,h2,h3{font-family:'Archivo Black',sans-serif;letter-spacing:-.3px;margin:0;}
+  .envoltorio{max-width:860px;margin:0 auto;padding:0 14px 70px;}
+
+  .barra{background:var(--ink);color:#fff;padding:14px 16px;margin-bottom:18px;}
+  .barra .dentro{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:12px;}
+  .barra .bola{width:28px;height:28px;border-radius:50%;background:var(--orange);flex:none;}
+  .barra b{font-family:'Archivo Black',sans-serif;font-size:17px;}
+  .barra .quien{margin-left:auto;font-size:12.5px;opacity:.75;}
+  .barra button{background:none;border:1.5px solid rgba(255,255,255,.3);color:#fff;
+    border-radius:18px;padding:5px 12px;font-family:inherit;font-size:12.5px;cursor:pointer;}
+
+  .caja{background:var(--white);border:1.5px solid var(--wood-line);border-radius:15px;
+        padding:18px;margin-bottom:16px;box-shadow:0 3px 12px var(--sombra);}
+  .caja h2{font-size:17px;margin-bottom:3px;}
+  .caja .expl{font-size:13px;color:var(--ink-soft);margin:0 0 14px;}
+
+  label{display:block;font-size:12px;font-weight:800;text-transform:uppercase;
+        letter-spacing:.07em;color:var(--ink-soft);margin:12px 0 5px;}
+  input, select, textarea{
+    width:100%;font-family:inherit;font-size:15px;padding:11px 12px;color:var(--ink);
+    border:1.5px solid var(--wood-line);border-radius:9px;background:var(--suave);
+  }
+  textarea{min-height:110px;resize:vertical;line-height:1.5;}
+  input:focus, select:focus, textarea:focus{outline:none;border-color:var(--orange);background:var(--white);}
+  .fila{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:620px){ .fila{grid-template-columns:1fr;} }
+
+  .boton{font-family:inherit;font-size:15px;font-weight:800;padding:12px 18px;border:0;
+         border-radius:9px;background:var(--orange);color:#fff;cursor:pointer;margin-top:14px;}
+  .boton:active{background:var(--orange-dark);}
+  .boton[disabled]{opacity:.5;cursor:default;}
+  .boton.gris{background:var(--ink);}
+  .boton.fina{padding:8px 13px;font-size:13px;margin-top:0;}
+  .boton.borrar{background:none;color:var(--rojo);border:1.5px solid var(--wood-line);}
+
+  .aviso{margin-top:12px;padding:11px 13px;border-radius:9px;font-size:14px;}
+  .aviso.ok{background:var(--verde-suave);border:1.5px solid #cfe6da;color:#14543d;}
+  .aviso.mal{background:var(--rojo-suave);border:1.5px solid #f0cdbe;color:#8a3608;}
+
+  .jugadoras{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px;}
+  .jug{display:flex;gap:10px;align-items:center;text-align:left;background:var(--white);
+       border:1.5px solid var(--wood-line);border-radius:11px;padding:10px 12px;
+       cursor:pointer;font-family:inherit;font-size:14px;color:var(--ink);width:100%;}
+  .jug.activa{border-color:var(--orange);background:var(--rojo-suave);}
+  .jug .ini{width:34px;height:34px;border-radius:50%;background:var(--suave);flex:none;
+            display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;
+            color:var(--ink-soft);}
+  .jug .n{min-width:0;}
+  .jug b{display:block;font-size:14px;line-height:1.2;}
+  .jug span{font-size:11.5px;color:var(--ink-soft);}
+  .jug .sincorreo{color:var(--rojo);font-weight:700;}
+
+  .pestanas{display:flex;gap:6px;margin:16px 0 14px;flex-wrap:wrap;}
+  .pestanas button{font-family:inherit;font-size:13.5px;font-weight:800;padding:9px 15px;
+    border:1.5px solid var(--wood-line);background:var(--white);color:var(--ink-soft);
+    border-radius:20px;cursor:pointer;}
+  .pestanas button.activa{background:var(--orange);border-color:var(--orange);color:#fff;}
+
+  .item{background:var(--suave);border:1.5px solid var(--wood-line);border-radius:11px;
+        padding:12px 14px;margin-bottom:9px;}
+  .item .cab{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+  .item .cab b{font-size:14.5px;}
+  .item .cab span{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+  .item p{margin:5px 0 0;font-size:14px;white-space:pre-wrap;}
+  .item .acciones{margin-top:9px;display:flex;gap:8px;}
+  .leido{font-size:11.5px;color:var(--verde);font-weight:700;}
+  .sinleer{font-size:11.5px;color:var(--orange);font-weight:700;}
+  .vacio{color:var(--ink-soft);font-size:14px;padding:18px;text-align:center;
+         border:1.5px dashed var(--wood-line);border-radius:11px;}
+  .cargando{color:var(--ink-soft);padding:26px 0;text-align:center;}
+  .pie{font-size:12.5px;color:var(--ink-soft);text-align:center;margin-top:24px;}
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-tema="claro"]){
+      --wood:#161b22; --wood-line:#2b3341; --ink:#eef1f5; --ink-soft:#9aa5b4;
+      --white:#1d242e; --suave:#232b36; --verde-suave:#16302a; --rojo-suave:#33211a;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ ENTRAR ============ -->
+<div id="pantallaEntrar" style="min-height:100svh;display:flex;align-items:center;">
+  <div class="envoltorio" style="width:100%;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);"></div>
+      <b style="font-family:'Archivo Black',sans-serif;font-size:20px;">Panel del entrenador</b>
+    </div>
+    <div class="caja" style="max-width:420px;">
+      <h2>Entrar</h2>
+      <p class="expl">Con el correo que diste de alta como entrenador.</p>
+      <input type="email" id="correo" placeholder="tucorreo@ejemplo.com"
+             autocomplete="email" inputmode="email" autocapitalize="off">
+      <button class="boton" id="btnEntrar" style="width:100%;">Enviarme el enlace</button>
+      <div id="avisoEntrar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PANEL ============ -->
+<div id="pantallaPanel" hidden>
+  <div class="barra"><div class="dentro">
+    <div class="bola"></div><b>Panel</b>
+    <span class="quien" id="quien"></span>
+    <button id="btnSalir">Salir</button>
+  </div></div>
+
+  <div class="envoltorio">
+    <div id="avisoPermiso"></div>
+
+    <!-- Lista de jugadoras -->
+    <div class="caja">
+      <h2>Tus jugadoras</h2>
+      <p class="expl">Elige una para escribirle, mandarle un video o ponerle objetivos.</p>
+      <div id="listaJugadoras" class="cargando">Cargando...</div>
+      <div class="pestanas" style="margin-bottom:0;">
+        <button id="btnNueva" class="activa" style="background:var(--ink);border-color:var(--ink);color:#fff;">+ Añadir jugadora</button>
+        <button id="btnImportar">Traer una plantilla de la FEB</button>
+      </div>
+    </div>
+
+    <!-- Alta manual -->
+    <div class="caja" id="cajaNueva" hidden>
+      <h2>Nueva jugadora</h2>
+      <p class="expl">El nombre tiene que llevar las mismas palabras que en la FEB,
+        asi la app encuentra sus estadisticas. El correo es con el que entrara.</p>
+      <div class="fila">
+        <div><label>Nombre</label><input id="nvNombre" placeholder="ANGULO QUINTANA, MARIA"></div>
+        <div><label>Equipo</label><input id="nvEquipo" placeholder="MARISCOS ANTON CORTEGADA"></div>
+      </div>
+      <div class="fila">
+        <div><label>Correo</label><input id="nvCorreo" type="email" placeholder="jugadora@correo.com"></div>
+        <div><label>Dorsal (opcional)</label><input id="nvDorsal" placeholder="7"></div>
+      </div>
+      <button class="boton" id="btnGuardarNueva">Guardar jugadora</button>
+      <div id="avisoNueva"></div>
+    </div>
+
+    <!-- Importar de la FEB -->
+    <div class="caja" id="cajaImportar" hidden>
+      <h2>Traer una plantilla de la FEB</h2>
+      <p class="expl">Crea de golpe las fichas de todas las jugadoras de un equipo,
+        con el nombre ya escrito como lo escribe la FEB. Los correos los pones despues.</p>
+      <label>Equipo</label>
+      <select id="selEquipoFeb"><option value="">Cargando equipos...</option></select>
+      <button class="boton" id="btnTraer">Traer esa plantilla</button>
+      <div id="avisoImportar"></div>
+    </div>
+
+    <!-- Ficha de la jugadora elegida -->
+    <div id="fichaJugadora" hidden>
+      <div class="caja">
+        <h2 id="tituloJugadora"></h2>
+        <p class="expl" id="subJugadora"></p>
+
+        <label>Correo con el que entra</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="edCorreo" type="email" placeholder="todavia sin correo">
+          <button class="boton fina gris" id="btnGuardarCorreo" style="white-space:nowrap;">Guardar</button>
+        </div>
+        <div id="avisoCorreo"></div>
+
+        <div class="pestanas">
+          <button data-p="mensaje" class="activa">Mensaje</button>
+          <button data-p="clip">Video</button>
+          <button data-p="objetivo">Objetivo</button>
+        </div>
+
+        <div id="form-mensaje">
+          <label>Titulo</label>
+          <input id="msTitulo" placeholder="Tras el partido vs ...">
+          <label>Mensaje</label>
+          <textarea id="msTexto" placeholder="Lo que quieres que lea."></textarea>
+          <button class="boton" id="btnEnviarMensaje">Enviar mensaje</button>
+        </div>
+
+        <div id="form-clip" hidden>
+          <label>Titulo</label>
+          <input id="clTitulo" placeholder="Bloqueo directo, 2a parte">
+          <label>Enlace del video</label>
+          <input id="clUrl" placeholder="https://www.youtube.com/watch?v=...">
+          <p class="expl" style="margin:6px 0 0;">YouTube (subelo como <b>oculto</b>), Vimeo o Drive
+            compartido con "cualquiera con el enlace".</p>
+          <div class="fila">
+            <div><label>Empezar en el minuto (opcional)</label><input id="clMin" placeholder="12:30"></div>
+            <div><label>Nota (opcional)</label><input id="clNota" placeholder="Fijate en el cambio de ritmo"></div>
+          </div>
+          <button class="boton" id="btnEnviarClip">Enviar video</button>
+        </div>
+
+        <div id="form-objetivo" hidden>
+          <label>Objetivo</label>
+          <input id="obTexto" placeholder="Subir el acierto en tiros libres">
+          <div class="fila">
+            <div><label>Estadistica (opcional)</label><input id="obMetrica" placeholder="TL%"></div>
+            <div><label>Numero a alcanzar (opcional)</label><input id="obNumero" placeholder="70"></div>
+          </div>
+          <button class="boton" id="btnEnviarObjetivo">Poner objetivo</button>
+        </div>
+
+        <div id="avisoEnvio"></div>
+      </div>
+
+      <div class="caja">
+        <h2>Lo que ya le has mandado</h2>
+        <div id="historial" class="cargando">Cargando...</div>
+      </div>
+    </div>
+
+    <p class="pie">Panel del entrenador · <span id="pieVersion"></span></p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACION
+   ============================================================ */
+const CONFIG = {
+  SUPABASE_URL: "https://tizmzblksovdqqnlxpli.supabase.co",
+  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo",
+  SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
+  TEMPORADA: "_2026",
+};
+const VERSION = "2026-10-02";
+
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? "" : t)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const fechaCorta = (iso) => {
+  try { return new Date(iso).toLocaleDateString("es-ES",
+    { day: "2-digit", month: "short", year: "numeric" }); } catch (e) { return ""; }
+};
+function avisar(donde, texto, tipo) {
+  $(donde).innerHTML = texto ? `<div class="aviso ${tipo}">${esc(texto)}</div>` : "";
+  if (texto && tipo === "ok") setTimeout(() => { $(donde).innerHTML = ""; }, 4000);
+}
+function aSegundos(txt) {
+  const v = String(txt || "").trim();
+  if (!v) return 0;
+  const p = v.split(":");
+  if (p.length === 2) return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0);
+  const n = parseFloat(v.replace(",", "."));
+  return isNaN(n) ? 0 : Math.round(n * 60);
+}
+
+/* Lee una pestana del Google Sheet (para traer plantillas de la FEB) */
+function leerPestana(nombreTab) {
+  return new Promise((ok) => {
+    const tab = nombreTab + CONFIG.TEMPORADA;
+    const cb = "lf2cb_" + Math.random().toString(36).slice(2);
+    const limpiar = () => { delete window[cb]; if (g.parentNode) g.parentNode.removeChild(g); clearTimeout(r); };
+    window[cb] = (resp) => {
+      limpiar();
+      const t = resp && resp.table;
+      if (!t || !t.cols) return ok(null);
+      const cols = t.cols.map(c => (c.label || c.id || "").trim());
+      ok({ cols, filas: (t.rows || []).map(fila => {
+        const o = {};
+        cols.forEach((c, i) => {
+          const celda = fila.c && fila.c[i];
+          o[c] = celda ? (celda.f != null ? celda.f : (celda.v != null ? celda.v : "")) : "";
+        });
+        return o;
+      }) });
+    };
+    const g = document.createElement("script");
+    g.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq`
+      + `?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(tab)}`;
+    g.onerror = () => { limpiar(); ok(null); };
+    const r = setTimeout(() => { limpiar(); ok(null); }, 15000);
+    document.head.appendChild(g);
+  });
+}
+
+/* ============================================================
+   ENTRAR
+   ============================================================ */
+let sb = null, jugadoras = [], elegida = null, plantillasFeb = null;
+
+async function pedirEnlace() {
+  const correo = $("correo").value.trim();
+  if (!correo || correo.indexOf("@") < 1) { avisar("avisoEntrar", "Escribe tu correo completo.", "mal"); return; }
+  const b = $("btnEntrar"); b.disabled = true; b.textContent = "Enviando...";
+  const { error } = await sb.auth.signInWithOtp({
+    email: correo, options: { emailRedirectTo: location.href.split("#")[0] } });
+  b.disabled = false; b.textContent = "Enviarme el enlace";
+  if (error) { avisar("avisoEntrar", "No se ha podido enviar: " + error.message, "mal"); return; }
+  avisar("avisoEntrar", "Listo. Abre el enlace del correo en este mismo aparato.", "ok");
+}
+
+async function salir() { if (sb) await sb.auth.signOut(); location.reload(); }
+
+async function entrar(sesion) {
+  $("pantallaEntrar").hidden = true;
+  $("pantallaPanel").hidden = false;
+  $("pieVersion").textContent = "v" + VERSION;
+  $("quien").textContent = (sesion.user && sesion.user.email) || "";
+
+  // ¿Este correo esta dado de alta como entrenador?
+  const { data: soy } = await sb.rpc("es_entrenador");
+  if (soy === false) {
+    $("avisoPermiso").innerHTML = `<div class="aviso mal">
+      Tu correo no esta dado de alta como entrenador, asi que no podras guardar nada.
+      Anadelo a la tabla <b>entrenadores</b> en Supabase.</div>`;
+  }
+  cargarJugadoras();
+}
+
+/* ============================================================
+   JUGADORAS
+   ============================================================ */
+async function cargarJugadoras() {
+  const caja = $("listaJugadoras");
+  const { data, error } = await sb.from("jugadoras").select("*").order("nombre");
+  if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
+  jugadoras = data || [];
+  if (!jugadoras.length) {
+    caja.className = "";
+    caja.innerHTML = `<div class="vacio">Todavia no hay ninguna. Empieza por traer una plantilla de la FEB.</div>`;
+    return;
+  }
+  caja.className = "jugadoras";
+  caja.innerHTML = jugadoras.map(j => {
+    const ini = String(j.nombre || "?").replace(/[^A-Za-zÁÉÍÓÚÑ ]/g, "").trim().slice(0, 2).toUpperCase();
+    return `<button class="jug ${elegida && elegida.id === j.id ? "activa" : ""}" data-id="${esc(j.id)}">
+      <span class="ini">${esc(ini)}</span>
+      <span class="n"><b>${esc(j.nombre)}</b>
+        <span class="${j.email ? "" : "sincorreo"}">${esc(j.email || "sin correo")}</span></span>
+    </button>`;
+  }).join("");
+  caja.querySelectorAll(".jug").forEach(b =>
+    b.addEventListener("click", () => elegir(b.getAttribute("data-id"))));
+}
+
+function elegir(id) {
+  elegida = jugadoras.find(j => String(j.id) === String(id)) || null;
+  if (!elegida) return;
+  $("fichaJugadora").hidden = false;
+  $("tituloJugadora").textContent = elegida.nombre;
+  $("subJugadora").textContent = elegida.equipo || "";
+  $("edCorreo").value = elegida.email || "";
+  avisar("avisoCorreo", "", "ok");
+  cargarJugadoras();
+  cargarHistorial();
+  $("fichaJugadora").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function guardarCorreo() {
+  if (!elegida) return;
+  const correo = $("edCorreo").value.trim().toLowerCase();
+  const { error } = await sb.from("jugadoras").update({ email: correo || null }).eq("id", elegida.id);
+  if (error) { avisar("avisoCorreo", "No se ha podido guardar: " + error.message, "mal"); return; }
+  elegida.email = correo;
+  avisar("avisoCorreo", "Correo guardado. Ya puede entrar con el.", "ok");
+  cargarJugadoras();
+}
+
+async function guardarNueva() {
+  const nombre = $("nvNombre").value.trim();
+  if (!nombre) { avisar("avisoNueva", "Hace falta al menos el nombre.", "mal"); return; }
+  const fila = {
+    nombre, equipo: $("nvEquipo").value.trim() || null,
+    email: ($("nvCorreo").value.trim() || "").toLowerCase() || null,
+    dorsal: $("nvDorsal").value.trim() || null,
+  };
+  const { error } = await sb.from("jugadoras").insert(fila);
+  if (error) { avisar("avisoNueva", "No se ha podido guardar: " + error.message, "mal"); return; }
+  ["nvNombre", "nvEquipo", "nvCorreo", "nvDorsal"].forEach(i => { $(i).value = ""; });
+  avisar("avisoNueva", "Jugadora creada.", "ok");
+  cargarJugadoras();
+}
+
+/* ---------- Traer una plantilla de la FEB ---------- */
+async function prepararImportar() {
+  const sel = $("selEquipoFeb");
+  if (!plantillasFeb) {
+    plantillasFeb = await leerPestana("Plantillas");
+  }
+  if (!plantillasFeb || !plantillasFeb.filas.length) {
+    sel.innerHTML = `<option value="">No hay plantillas en el Sheet todavia</option>`;
+    return;
+  }
+  const equipos = [...new Set(plantillasFeb.filas.map(f => f.Equipo).filter(Boolean))].sort();
+  sel.innerHTML = equipos.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
+}
+
+async function traerPlantilla() {
+  const equipo = $("selEquipoFeb").value;
+  if (!equipo || !plantillasFeb) return;
+  const b = $("btnTraer"); b.disabled = true; b.textContent = "Trayendo...";
+
+  // Se compara por palabras ordenadas: "LADO SALGADO, CLAUDIA" y
+  // "CLAUDIA LADO SALGADO" son la misma persona y no hay que duplicarla.
+  const clave = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.,]/g, " ").toUpperCase().split(/\s+/).filter(Boolean).sort().join(" ");
+  const yaHay = new Set(jugadoras.map(j => clave(j.nombre)));
+  const nuevas = plantillasFeb.filas
+    .filter(f => f.Equipo === equipo && f.Jugadora)
+    .filter(f => !yaHay.has(clave(f.Jugadora)))
+    .map(f => ({ nombre: f.Jugadora, equipo: f.Equipo, dorsal: f.Dorsal || null, email: null }));
+
+  if (!nuevas.length) {
+    b.disabled = false; b.textContent = "Traer esa plantilla";
+    avisar("avisoImportar", "Ya estaban todas creadas.", "ok");
+    return;
+  }
+  const { error } = await sb.from("jugadoras").insert(nuevas);
+  b.disabled = false; b.textContent = "Traer esa plantilla";
+  if (error) { avisar("avisoImportar", "No se ha podido: " + error.message, "mal"); return; }
+  avisar("avisoImportar", `${nuevas.length} jugadoras creadas. Ahora ponles el correo a las que vayan a entrar.`, "ok");
+  cargarJugadoras();
+}
+
+/* ============================================================
+   ENVIAR COSAS
+   ============================================================ */
+async function enviarMensaje() {
+  if (!elegida) return;
+  const texto = $("msTexto").value.trim();
+  if (!texto) { avisar("avisoEnvio", "Escribe el mensaje.", "mal"); return; }
+  const { error } = await sb.from("mensajes").insert({
+    jugadora_id: elegida.id, titulo: $("msTitulo").value.trim() || null, texto });
+  if (error) { avisar("avisoEnvio", "No se ha podido enviar: " + error.message, "mal"); return; }
+  $("msTitulo").value = ""; $("msTexto").value = "";
+  avisar("avisoEnvio", "Mensaje enviado. Le saldra con aviso de nuevo.", "ok");
+  cargarHistorial();
+}
+
+async function enviarClip() {
+  if (!elegida) return;
+  const url = $("clUrl").value.trim();
+  if (!url) { avisar("avisoEnvio", "Pega el enlace del video.", "mal"); return; }
+  const { error } = await sb.from("clips").insert({
+    jugadora_id: elegida.id, titulo: $("clTitulo").value.trim() || null, url,
+    nota: $("clNota").value.trim() || null, segundos: aSegundos($("clMin").value) });
+  if (error) { avisar("avisoEnvio", "No se ha podido enviar: " + error.message, "mal"); return; }
+  ["clTitulo", "clUrl", "clMin", "clNota"].forEach(i => { $(i).value = ""; });
+  avisar("avisoEnvio", "Video enviado.", "ok");
+  cargarHistorial();
+}
+
+async function enviarObjetivo() {
+  if (!elegida) return;
+  const texto = $("obTexto").value.trim();
+  if (!texto) { avisar("avisoEnvio", "Escribe el objetivo.", "mal"); return; }
+  const num = parseFloat(String($("obNumero").value).replace(",", "."));
+  const { error } = await sb.from("objetivos").insert({
+    jugadora_id: elegida.id, texto, metrica: $("obMetrica").value.trim() || null,
+    objetivo: isNaN(num) ? null : num });
+  if (error) { avisar("avisoEnvio", "No se ha podido guardar: " + error.message, "mal"); return; }
+  ["obTexto", "obMetrica", "obNumero"].forEach(i => { $(i).value = ""; });
+  avisar("avisoEnvio", "Objetivo puesto.", "ok");
+  cargarHistorial();
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+async function cargarHistorial() {
+  if (!elegida) return;
+  const caja = $("historial");
+  caja.className = "cargando"; caja.textContent = "Cargando...";
+  const [ms, cl, ob] = await Promise.all([
+    sb.from("mensajes").select("*").eq("jugadora_id", elegida.id).order("fecha", { ascending: false }),
+    sb.from("clips").select("*").eq("jugadora_id", elegida.id).order("fecha", { ascending: false }),
+    sb.from("objetivos").select("*").eq("jugadora_id", elegida.id).order("fecha", { ascending: false }),
+  ]);
+  const trozos = [];
+  const bloque = (titulo, filas, pinta) => {
+    if (!filas || !filas.length) return;
+    trozos.push(`<h3 style="font-size:14px;margin:14px 0 8px;">${esc(titulo)}</h3>`
+      + filas.map(pinta).join(""));
+  };
+
+  bloque("Mensajes", ms.data, m => `<div class="item">
+    <div class="cab"><b>${esc(m.titulo || "Mensaje")}</b>
+      <span>${m.leido_el ? `<span class="leido">leido</span>` : `<span class="sinleer">sin leer</span>`}
+        · ${esc(fechaCorta(m.fecha))}</span></div>
+    <p>${esc(m.texto)}</p>
+    <div class="acciones"><button class="boton fina borrar" data-borrar="mensajes" data-id="${esc(m.id)}">Borrar</button></div>
+  </div>`);
+
+  bloque("Videos", cl.data, c => `<div class="item">
+    <div class="cab"><b>${esc(c.titulo || "Video")}</b><span>${esc(fechaCorta(c.fecha))}</span></div>
+    <p style="font-size:13px;color:var(--ink-soft);word-break:break-all;">${esc(c.url)}</p>
+    ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}
+    <div class="acciones"><button class="boton fina borrar" data-borrar="clips" data-id="${esc(c.id)}">Borrar</button></div>
+  </div>`);
+
+  bloque("Objetivos", ob.data, o => `<div class="item">
+    <div class="cab"><b>${esc(o.texto)}</b><span>${esc(fechaCorta(o.fecha))}</span></div>
+    ${o.metrica ? `<p style="font-size:13px;color:var(--ink-soft);">${esc(o.metrica)}${o.objetivo != null ? " → " + esc(o.objetivo) : ""}</p>` : ""}
+    <div class="acciones"><button class="boton fina borrar" data-borrar="objetivos" data-id="${esc(o.id)}">Borrar</button></div>
+  </div>`);
+
+  caja.className = "";
+  caja.innerHTML = trozos.length ? trozos.join("")
+    : `<div class="vacio">Todavia no le has mandado nada.</div>`;
+  caja.querySelectorAll("[data-borrar]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("¿Borrar esto? No se puede deshacer.")) return;
+    await sb.from(b.getAttribute("data-borrar")).delete().eq("id", b.getAttribute("data-id"));
+    cargarHistorial();
+  }));
+}
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+$("btnEntrar").addEventListener("click", pedirEnlace);
+$("correo").addEventListener("keydown", e => { if (e.key === "Enter") pedirEnlace(); });
+$("btnSalir").addEventListener("click", salir);
+$("btnGuardarNueva").addEventListener("click", guardarNueva);
+$("btnGuardarCorreo").addEventListener("click", guardarCorreo);
+$("btnTraer").addEventListener("click", traerPlantilla);
+$("btnEnviarMensaje").addEventListener("click", enviarMensaje);
+$("btnEnviarClip").addEventListener("click", enviarClip);
+$("btnEnviarObjetivo").addEventListener("click", enviarObjetivo);
+
+$("btnNueva").addEventListener("click", () => {
+  $("cajaNueva").hidden = !$("cajaNueva").hidden;
+  $("cajaImportar").hidden = true;
+});
+$("btnImportar").addEventListener("click", async () => {
+  $("cajaImportar").hidden = !$("cajaImportar").hidden;
+  $("cajaNueva").hidden = true;
+  if (!$("cajaImportar").hidden) prepararImportar();
+});
+document.querySelectorAll(".pestanas [data-p]").forEach(b => {
+  b.addEventListener("click", () => {
+    const p = b.getAttribute("data-p");
+    document.querySelectorAll(".pestanas [data-p]").forEach(x => x.classList.toggle("activa", x === b));
+    ["mensaje", "clip", "objetivo"].forEach(n => { $("form-" + n).hidden = (n !== p); });
+  });
+});
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+(async function arrancar() {
+  if (!window.supabase || !window.supabase.createClient) {
+    avisar("avisoEntrar", "No se ha podido cargar la conexion. Comprueba tu internet.", "mal");
+    return;
+  }
+  sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON);
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) { entrar(data.session); return; }
+  sb.auth.onAuthStateChange((ev, ses) => {
+    if (ses && $("pantallaPanel").hidden) entrar(ses);
+  });
+})();
+</script>
+</body>
+</html>

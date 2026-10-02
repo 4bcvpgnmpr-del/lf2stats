@@ -352,7 +352,9 @@ async function cargarPerfil(sesion) {
   pintarCabecera(null);
   cargarMensajes();
   cargarClips();
-  cargarNumeros();
+  // los objetivos se pintan DESPUES de los numeros: si no, cargarNumeros
+  // reescribe la pestana entera y se los lleva por delante
+  cargarNumeros().then(cargarObjetivos);
 }
 
 function pintarCabecera(foto) {
@@ -489,6 +491,22 @@ async function cargarNumeros() {
   }
 
   caja.innerHTML = html;
+}
+
+/* ---------- Objetivos: se pintan arriba de sus numeros ---------- */
+async function cargarObjetivos() {
+  const { data, error } = await sb.from("objetivos")
+    .select("*").eq("jugadora_id", jugadora.id).order("fecha", { ascending: false });
+  if (error || !data || !data.length) return;
+  const html = `<div class="bloque"><h3>Tus objetivos</h3>
+    <p class="expl">Lo que el entrenador quiere que trabajes ahora.</p>
+    ${data.map(o => `<div class="objetivo ${o.hecho ? "hecho" : ""}">
+      <span class="marca-ob">${o.hecho ? "&#10003;" : ""}</span>
+      <span><span class="txt">${esc(o.texto)}</span>
+      ${o.metrica ? `<div class="meta">${esc(o.metrica)}${o.objetivo != null ? " · llegar a " + esc(o.objetivo) : ""}</div>` : ""}
+      </span></div>`).join("")}</div>`;
+  const caja = $("tab-numeros");
+  caja.insertAdjacentHTML("afterbegin", html);
 }
 
 /* ---------- Pestana 2: mensajes ---------- */
