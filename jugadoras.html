@@ -221,9 +221,11 @@ const CONFIG = {
 
   // El mismo Google Sheet que usa la app del entrenador
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
-  TEMPORADA: "_2026",     // "" para 2025/26, "_2026" para 2026/27
+  TEMPORADA: "_2026",     // de partida; la decide el entrenador desde su panel
 };
-const VERSION = "2026-10-02k";
+const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
+let temporadaElegida = "2026";
+const VERSION = "2026-10-02l";
 
 /* ============================================================
    UTILIDADES
@@ -352,9 +354,15 @@ async function cargarPerfil(sesion) {
   // jugadora tal y como lo ve ella. Nadie mas puede: el servidor no le
   // dejaria leer esa ficha.
   const quiere = new URLSearchParams(location.search).get("ver");
-  const { data: soyEntrenador } = await sb.rpc("es_entrenador");
+  // Si esta consulta fallara, la jugadora no puede quedarse con la pantalla
+  // en blanco: se da por hecho que no es entrenadora y se sigue.
+  let soyEntrenador = false;
+  try {
+    const r = await sb.rpc("es_entrenador");
+    soyEntrenador = (r && r.data === true);
+  } catch (e) { soyEntrenador = false; }
 
-  if (soyEntrenador === true) {
+  if (soyEntrenador) {
     const { data: todas } = await sb.from("jugadoras").select("*").order("nombre");
     const lista = todas || [];
 
@@ -385,7 +393,7 @@ async function cargarPerfil(sesion) {
         cargarMensajes();
         cargarClips();
         cargarInformes();
-        cargarNumeros().then(cargarObjetivos);
+        aplicarTemporada().then(() => cargarNumeros().then(cargarObjetivos));
         return;
       }
     }
@@ -416,7 +424,7 @@ async function cargarPerfil(sesion) {
   cargarClips();
   // los objetivos se pintan DESPUES de los numeros: si no, cargarNumeros
   // reescribe la pestana entera y se los lleva por delante
-  cargarNumeros().then(cargarObjetivos);
+  aplicarTemporada().then(() => cargarNumeros().then(cargarObjetivos));
   cargarInformes();
 }
 
@@ -460,6 +468,15 @@ function pintarCabecera(foto) {
     </div>
     <button class="salir" id="btnSalir">Salir</button>`;
   $("btnSalir").addEventListener("click", salir);
+}
+
+/* El entrenador decide que temporada ven, desde su panel. */
+async function aplicarTemporada() {
+  try {
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", "temporada").limit(1);
+    if (data && data.length && data[0].valor) temporadaElegida = String(data[0].valor);
+  } catch (e) { /* si falla, se queda la de partida */ }
+  CONFIG.TEMPORADA = (temporadaElegida === "2025") ? "" : "_" + temporadaElegida;
 }
 
 /* ---------- Pestana 1: sus numeros ----------
@@ -544,7 +561,7 @@ async function cargarNumeros() {
     const hayAlgo = tabs.slice(1).some(t => t && t.filas.length);
     caja.innerHTML = `<div class="vacio">${hayAlgo
       ? "Todavia no apareces en las estadisticas de la FEB.<br><br>Puede ser que aun no hayas jugado los minutos minimos que pide."
-      : "La temporada aun no ha empezado.<br><br>En cuanto se juegue la primera jornada veras aqui tus numeros y tu sitio en la liga."}</div>`;
+      : `La temporada ${esc(ETIQUETA_TEMPORADA[temporadaElegida] || temporadaElegida)} aun no ha empezado.<br><br>En cuanto se juegue la primera jornada veras aqui tus numeros y tu sitio en la liga.`}</div>`;
     return;
   }
 
@@ -559,9 +576,10 @@ async function cargarNumeros() {
 
   const pj = encontrado.map(d => d.partidos).filter(v => v)[0];
   const grupo = encontrado.map(d => d.grupo).filter(Boolean)[0];
+  const et = ETIQUETA_TEMPORADA[temporadaElegida] || temporadaElegida;
   if (pj) {
     html += `<p class="expl" style="margin:-6px 0 14px;text-align:center;">
-      Medias por partido en ${conComa(pj, 0)} partidos jugados${grupo ? " · grupo " + esc(grupo) : ""}.</p>`;
+      Temporada ${esc(et)} &middot; medias por partido en ${conComa(pj, 0)} partidos${grupo ? " · grupo " + esc(grupo) : ""}.</p>`;
   }
 
   // Barras de percentil (el entrenador puede apagarlas)

@@ -144,6 +144,15 @@
   <div class="envoltorio">
     <div id="avisoPermiso"></div>
 
+    <!-- Que temporada ven -->
+    <div class="caja">
+      <h2>Temporada que ven las jugadoras</h2>
+      <p class="expl">Las estadisticas que aparecen en su perfil. Util al principio de
+        temporada, cuando todavia no se ha jugado nada: les ensenas la del ano pasado.</p>
+      <select id="selTemporadaVen"></select>
+      <div id="avisoTemporada"></div>
+    </div>
+
     <!-- Lista de jugadoras -->
     <div class="caja">
       <h2>Tus jugadoras</h2>
@@ -310,7 +319,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02j";
+const VERSION = "2026-10-02l";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)
@@ -396,6 +405,36 @@ async function entrar(sesion) {
   cargarJugadoras();
   prepararScouting();
   cargarInformes();
+  cargarTemporada();
+}
+
+/* ============================================================
+   TEMPORADA QUE VEN
+   ============================================================ */
+const TEMPORADAS = [
+  { id: "2026", etiqueta: "2026/27 (la de ahora)" },
+  { id: "2025", etiqueta: "2025/26 (la pasada)" },
+];
+
+async function cargarTemporada() {
+  const sel = $("selTemporadaVen");
+  sel.innerHTML = TEMPORADAS.map(t =>
+    `<option value="${esc(t.id)}">${esc(t.etiqueta)}</option>`).join("");
+  const { data } = await sb.from("ajustes").select("*").eq("clave", "temporada").limit(1);
+  if (data && data.length) sel.value = data[0].valor || "2026";
+}
+
+async function guardarTemporada() {
+  const valor = $("selTemporadaVen").value;
+  const { error } = await sb.from("ajustes")
+    .upsert({ clave: "temporada", valor, actualizado: new Date().toISOString() });
+  if (error) {
+    avisar("avisoTemporada", "No se ha podido guardar: " + error.message
+      + " (¿has ejecutado el script del paso 4?)", "mal");
+    return;
+  }
+  const et = (TEMPORADAS.find(t => t.id === valor) || {}).etiqueta || valor;
+  avisar("avisoTemporada", "Guardado. Veran la temporada " + et + ".", "ok");
 }
 
 /* ============================================================
@@ -813,6 +852,7 @@ $("btnVerComoElla").addEventListener("click", () => {
   window.open("jugadoras.html?ver=" + encodeURIComponent(elegida.id), "_blank", "noopener");
 });
 $("selRivalScout").addEventListener("change", pintarApartados);
+$("selTemporadaVen").addEventListener("change", guardarTemporada);
 $("btnEnviarScout").addEventListener("click", enviarScouting);
 $("scTitulo").addEventListener("input", () => { $("scTitulo").dataset.auto = "0"; });
 $("btnTraer").addEventListener("click", traerPlantilla);
