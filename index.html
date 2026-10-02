@@ -1044,6 +1044,9 @@
   .video-miniatura .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(224,96,42,0.92);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;padding-left:4px;}
   .video-miniatura:hover .play{background:var(--orange-dark);}
   .aviso-file{background:var(--suave);border-left:4px solid var(--orange);border-radius:6px;padding:8px 12px;}
+  .scout-subir{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 4px;}
+  .scout-subir-boton{cursor:pointer;display:inline-block;}
+  .scout-archivo-elegido{word-break:break-all;}
   .video-externo{background:var(--suave);border:1.5px dashed var(--wood-line);border-radius:8px;padding:16px;text-align:center;}
   .copia-seguridad{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:16px;border-top:1.5px solid var(--wood-line);padding-top:14px;}
   /* --- Dashboard de Mi equipo --- */
@@ -4771,7 +4774,91 @@ function aSegundos(txt) {
   return isNaN(n) ? 0 : Math.round(n * 60);
 }
 
+/* ---- Videos subidos desde el ordenador -------------------------------
+   Los archivos no caben en localStorage (unos 5 MB como mucho), asi que se
+   guardan en IndexedDB, que es el almacen grande del navegador. Se quedan en
+   ESTE ordenador y ESTE navegador: no se suben a ningun sitio. */
+const VIDEO_DB = "lf2_videos";
+const VIDEO_ALMACEN = "archivos";
+
+function videoDB() {
+  return new Promise((ok, mal) => {
+    if (!window.indexedDB) return mal(new Error("Este navegador no permite guardar archivos."));
+    const pet = indexedDB.open(VIDEO_DB, 1);
+    pet.onupgradeneeded = () => {
+      if (!pet.result.objectStoreNames.contains(VIDEO_ALMACEN)) pet.result.createObjectStore(VIDEO_ALMACEN);
+    };
+    pet.onsuccess = () => ok(pet.result);
+    pet.onerror = () => mal(pet.error);
+  });
+}
+
+function videoArchivoGuardar(id, archivo) {
+  return videoDB().then(db => new Promise((ok, mal) => {
+    const tx = db.transaction(VIDEO_ALMACEN, "readwrite");
+    tx.objectStore(VIDEO_ALMACEN).put(archivo, id);
+    tx.oncomplete = () => ok(true);
+    tx.onerror = () => mal(tx.error);
+    tx.onabort = () => mal(tx.error || new Error("No hay espacio suficiente."));
+  }));
+}
+
+function videoArchivoLeer(id) {
+  return videoDB().then(db => new Promise((ok, mal) => {
+    const tx = db.transaction(VIDEO_ALMACEN, "readonly");
+    const p = tx.objectStore(VIDEO_ALMACEN).get(id);
+    p.onsuccess = () => ok(p.result || null);
+    p.onerror = () => mal(p.error);
+  })).catch(() => null);
+}
+
+function videoArchivoBorrar(id) {
+  return videoDB().then(db => new Promise((ok) => {
+    const tx = db.transaction(VIDEO_ALMACEN, "readwrite");
+    tx.objectStore(VIDEO_ALMACEN).delete(id);
+    tx.oncomplete = () => ok(true);
+    tx.onerror = () => ok(false);
+  })).catch(() => false);
+}
+
+function tamanoLegible(bytes) {
+  const n = Number(bytes) || 0;
+  if (n > 1024 * 1024 * 1024) return (n / 1024 / 1024 / 1024).toFixed(1).replace(".", ",") + " GB";
+  if (n > 1024 * 1024) return Math.round(n / 1024 / 1024) + " MB";
+  return Math.max(1, Math.round(n / 1024)) + " KB";
+}
+
+/* Pone en marcha los videos locales que haya en pantalla: busca el archivo
+   guardado y se lo da al reproductor. */
+function montarVideosLocales(raiz) {
+  (raiz || document).querySelectorAll("video[data-local]").forEach(el => {
+    if (el.dataset.montado === "1") return;
+    el.dataset.montado = "1";
+    const id = el.getAttribute("data-local");
+    const desde = Number(el.getAttribute("data-desde") || 0);
+    videoArchivoLeer(id).then(archivo => {
+      if (!archivo) {
+        const caja = el.closest(".video-caja");
+        if (caja) caja.outerHTML = `<div class="video-externo"><p>El archivo de este video ya no esta en este navegador.</p>
+          <p class="hint">Pasa si se borraron los datos del navegador o si abres la app en otro ordenador.
+          Vuelve a subirlo y listo.</p></div>`;
+        return;
+      }
+      const url = URL.createObjectURL(archivo);
+      el.src = url;
+      el.addEventListener("loadedmetadata", () => { if (desde > 0) el.currentTime = desde; }, { once: true });
+    });
+  });
+}
+
 function reproductorHtml(v, segundos) {
+  if (v.origen === "local") {
+    return `<div class="video-caja">
+      <video data-local="${escapeAttr(v.id)}" data-desde="${escapeAttr(String(segundos || 0))}" controls playsinline></video>
+    </div>
+    <p class="hint">${escapeHtml(v.archivoNombre || "Archivo de tu ordenador")}${v.archivoTamano ? " · " + tamanoLegible(v.archivoTamano) : ""}
+    · guardado en este navegador</p>`;
+  }
   const emb = videoIncrustado(v.url, segundos);
 
   // Con file:// YouTube da "error 153": se enseña la miniatura y se abre fuera
@@ -4861,13 +4948,23 @@ function scoutingPanelHtml(tipo, nombre) {
     <div class="scout-form" data-form="video" style="display:${est.formulario === "video" ? "" : "none"};">
       <h4>Nuevo video</h4>
       <input type="text" class="scout-video-titulo" placeholder="Titulo (1a parte vs Miralvalle)">
+      <div class="scout-subir">
+        <label class="btn-partido scout-subir-boton" style="background:var(--teal,#1f7a5a);">
+          Subir un video de mi ordenador
+          <input type="file" class="scout-video-archivo" accept="video/*" style="display:none;">
+        </label>
+        <span class="hint scout-archivo-elegido">Ningun archivo elegido</span>
+      </div>
+      <p class="hint" style="margin:2px 0 8px;">O pega un enlace:</p>
       <input type="text" class="scout-video-url" placeholder="Enlace de YouTube, Vimeo, Google Drive o archivo .mp4">
       <input type="text" class="scout-video-min" placeholder="Empezar en el minuto (por ejemplo 12:30) - opcional">
       <input type="text" class="scout-video-etiquetas" placeholder="Etiquetas separadas por comas">
       <textarea class="scout-video-nota" rows="2" placeholder="Comentario (opcional)"></textarea>
       <div class="scout-botones"><button class="btn-partido scout-guardar-video">Guardar video</button>
         <button class="btn-partido scout-cancelar" style="background:var(--ink-soft);">Cancelar</button></div>
-      <p class="hint">Para que un video de Google Drive se vea aqui, tiene que estar compartido con "cualquiera con el enlace".</p>
+      <p class="hint">Para que un video de Google Drive se vea aqui, tiene que estar compartido con "cualquiera con el enlace".
+      Los videos que subes de tu ordenador se guardan <b>solo en este navegador</b>: no viajan a internet, y no se veran
+      si abres la app en otro ordenador o movil.</p>
     </div>`;
 
   // Columna derecha: lo que este abierto
@@ -4886,7 +4983,8 @@ function scoutingPanelHtml(tipo, nombre) {
       ${reproductorHtml(abierto, abierto.segundos || 0)}
       ${(abierto.etiquetas || []).length ? `<div>${abierto.etiquetas.map(e => `<span class="etiqueta">${escapeHtml(e)}</span>`).join("")}</div>` : ""}
       ${abierto.nota ? `<p class="scout-comentario">${escapeHtml(abierto.nota).replace(/\n/g, "<br>")}</p>` : ""}
-      <p class="hint"><a href="${escapeAttr(abierto.url)}" target="_blank" rel="noopener">Abrir el original</a></p>
+      ${abierto.origen === "local" ? "" :
+        `<p class="hint"><a href="${escapeAttr(abierto.url)}" target="_blank" rel="noopener">Abrir el original</a></p>`}
     </div>`;
   } else {
     derecha += `
@@ -4915,6 +5013,7 @@ function wireScouting(contenedor, alGuardar) {
   const tipo = panel.getAttribute("data-tipo"), nombre = panel.getAttribute("data-nombre");
   const est = estadoDe(tipo, nombre);
   const refrescar = (guardar) => { if (guardar !== false) scoutGuardar(); if (alGuardar) alGuardar(); };
+  montarVideosLocales(panel);   // los videos subidos se cargan desde el navegador
 
   const buscar = panel.querySelector(".scout-buscar");
   if (buscar) buscar.addEventListener("input", () => {
@@ -4956,26 +5055,62 @@ function wireScouting(contenedor, alGuardar) {
     refrescar();
   });
 
+  // Archivo elegido desde el ordenador
+  const campoArchivo = panel.querySelector(".scout-video-archivo");
+  const etiquetaArchivo = panel.querySelector(".scout-archivo-elegido");
+  if (campoArchivo) campoArchivo.addEventListener("change", () => {
+    const f = campoArchivo.files && campoArchivo.files[0];
+    if (etiquetaArchivo) {
+      etiquetaArchivo.textContent = f ? `${f.name} (${tamanoLegible(f.size)})` : "Ningun archivo elegido";
+    }
+    // Si no hay titulo, se usa el nombre del archivo
+    const tit = panel.querySelector(".scout-video-titulo");
+    if (f && tit && !tit.value.trim()) tit.value = f.name.replace(/\.[^.]+$/, "");
+  });
+
   const btnVideo = panel.querySelector(".scout-guardar-video");
   if (btnVideo) btnVideo.addEventListener("click", () => {
     const url = panel.querySelector(".scout-video-url").value.trim();
-    if (!url) return;
+    const archivo = campoArchivo && campoArchivo.files ? campoArchivo.files[0] : null;
+    if (!url && !archivo) {
+      alert("Elige un video de tu ordenador o pega un enlace.");
+      return;
+    }
     const id = "v" + Date.now();
-    scoutFicha(tipo, nombre).videos.push({
-      id, fecha: new Date().toISOString(), url,
+    const comun = {
+      id, fecha: new Date().toISOString(),
       titulo: panel.querySelector(".scout-video-titulo").value.trim(),
       nota: panel.querySelector(".scout-video-nota").value.trim(),
       segundos: aSegundos(panel.querySelector(".scout-video-min").value),
       etiquetas: panel.querySelector(".scout-video-etiquetas").value.split(",").map(x => x.trim()).filter(Boolean),
+    };
+
+    const anadir = (extra) => {
+      scoutFicha(tipo, nombre).videos.push(Object.assign({}, comun, extra));
+      est.formulario = ""; est.seleccion = id;
+      refrescar();
+    };
+
+    if (!archivo) { anadir({ url }); return; }
+
+    btnVideo.disabled = true;
+    btnVideo.textContent = "Guardando el video...";
+    videoArchivoGuardar(id, archivo).then(() => {
+      anadir({ url: "", origen: "local", archivoNombre: archivo.name, archivoTamano: archivo.size });
+    }).catch(() => {
+      btnVideo.disabled = false;
+      btnVideo.textContent = "Guardar video";
+      alert("No se ha podido guardar el video en este navegador. Suele ser por falta de espacio: "
+        + "prueba con un archivo mas corto o borra videos antiguos.");
     });
-    est.formulario = ""; est.seleccion = id;
-    refrescar();
   });
 
   panel.querySelectorAll(".scout-borrar").forEach(b => b.addEventListener("click", () => {
     const id = b.getAttribute("data-id"), que = b.getAttribute("data-que");
     const ficha = scoutFicha(tipo, nombre);
     const lista = que === "nota" ? "notas" : "videos";
+    const fuera = ficha[lista].find(x => x.id === id);
+    if (fuera && fuera.origen === "local") videoArchivoBorrar(id);   // tambien el archivo
     ficha[lista] = ficha[lista].filter(x => x.id !== id);
     est.seleccion = null;
     refrescar();
@@ -6681,7 +6816,8 @@ function renderScouting() {
       <div class="copia-seguridad" style="margin:0;border:0;padding:0;">
         <div>
           <b>Copia de seguridad</b>
-          <p class="hint" style="margin:4px 0 0;">Tus notas, videos y jugadas viven en este navegador. Si lo borras o cambias de ordenador, se pierden. Descarga el archivo de vez en cuando.</p>
+          <p class="hint" style="margin:4px 0 0;">Tus notas, videos y jugadas viven en este navegador. Si lo borras o cambias de ordenador, se pierden. Descarga el archivo de vez en cuando.
+          La copia guarda los textos y los enlaces, pero <b>no</b> los archivos de video que subes desde el ordenador: esos son demasiado grandes y los tienes ya en tu disco.</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-partido" id="btnDescargarScout">Descargar copia</button>
@@ -10700,7 +10836,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02c";
+const VERSION_APP = "2026-10-02d";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
