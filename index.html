@@ -6354,20 +6354,59 @@ function trozosEnvio(nombre) {
   // --- Perfiles de las jugadoras mas valoradas, con su foto ---
   // La plantilla ya viene ordenada por valoracion, asi que las primeras son
   // las que hay que vigilar. Asi no depende de que exista el ranking de la FEB.
-  const vigilar = ((typeof plantillaDe === "function") ? plantillaDe(nombre) : []).slice(0, 6);
+  const plantillaRival = (typeof plantillaDe === "function") ? plantillaDe(nombre) : [];
+  const vigilar = plantillaRival.slice(0, 6);
+
+  // Tus notas se guardan con el nombre tal cual lo escribe la FEB en los
+  // rankings ("APELLIDO, NOMBRE"), y la plantilla lo trae al reves
+  // ("NOMBRE APELLIDO"), asi que las buscamos normalizando el nombre.
+  const clave2 = n => String(n || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toUpperCase().replace(/[^A-Z ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+  const notasInforme = (() => {
+    const mapa = {};
+    const origen = (f.informe && f.informe.jugadoras) ? f.informe.jugadoras : {};
+    Object.keys(origen).forEach(k => {
+      const v = (typeof origen[k] === "string") ? { texto: origen[k], posicion: "" } : (origen[k] || {});
+      const texto = (v.texto || "").trim(), posicion = (v.posicion || "").trim();
+      if (!texto && !posicion) return;
+      mapa[clave2(k)] = { texto, posicion, nombre: k };
+    });
+    return mapa;
+  })();
+  const notaDe = n => notasInforme[clave2(n)] || { texto: "", posicion: "" };
+
+  // Si escribiste sobre una jugadora que no entra entre las seis primeras,
+  // la añadimos para que no se pierda lo que pusiste de ella.
+  Object.keys(notasInforme).forEach(k => {
+    if (vigilar.some(x => clave2(x.jugadora) === k)) return;
+    const enPlantilla = plantillaRival.find(x => clave2(x.jugadora) === k);
+    // Si no esta en la plantilla, al menos se lee bien: "APELLIDO, NOMBRE" -> "NOMBRE APELLIDO"
+    const bruto = notasInforme[k].nombre;
+    const bonito = bruto.includes(",")
+      ? bruto.split(",").map(s => s.trim()).reverse().filter(Boolean).join(" ")
+      : bruto;
+    vigilar.push(enPlantilla || { jugadora: bonito, dorsal: "", foto: "" });
+  });
+
   if (vigilar.length) {
     trozos.push({
       id: "__perfiles", titulo: `Jugadoras a vigilar (${vigilar.length})`, porDefecto: true,
       carga: {
         tipo: "jugadoras", titulo: "Jugadoras a vigilar",
-        jugadoras: vigilar.map(f2 => ({
-          nombre: f2.jugadora,
-          dorsal: f2.dorsal ? String(f2.dorsal) : "",
-          foto: (typeof fotoJugadora === "function")
-            ? fotoJugadora(f2.jugadora, nombre, f2.foto || "") : (f2.foto || ""),
-          datos: [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]]
-            .map(([k, et]) => ({ et, v: (f2[k] != null && f2[k] !== "") ? String(f2[k]) : "–" })),
-        })),
+        jugadoras: vigilar.map(f2 => {
+          // Lo que escribes tu de ella en el informe (puesto y comentario)
+          const mio = notaDe(f2.jugadora);
+          return {
+            nombre: f2.jugadora,
+            dorsal: f2.dorsal ? String(f2.dorsal) : "",
+            puesto: (mio.posicion || "").trim(),
+            nota: (mio.texto || "").trim(),
+            foto: (typeof fotoJugadora === "function")
+              ? fotoJugadora(f2.jugadora, nombre, f2.foto || "") : (f2.foto || ""),
+            datos: [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]]
+              .map(([k, et]) => ({ et, v: (f2[k] != null && f2[k] !== "") ? String(f2[k]) : "–" })),
+          };
+        }),
       },
     });
   }
@@ -6395,7 +6434,7 @@ function trozosEnvio(nombre) {
       return {
         titulo: larga,
         mejores: con.slice(0, 3).map(x => ({ j: x.j, v: String(x.t) })),
-        peores: con.slice(-2).reverse().map(x => ({ j: x.j, v: String(x.t) })),
+        peores: con.slice(-3).reverse().map(x => ({ j: x.j, v: String(x.t) })),
       };
     }).filter(Boolean);
     if (bloques.length) trozos.push({
@@ -11387,7 +11426,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02v";
+const VERSION_APP = "2026-10-02x";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */

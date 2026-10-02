@@ -194,7 +194,11 @@
   .sr-leyenda .rt{background:#9aa5b4;}
 
   .sr-jugs{display:flex;flex-direction:column;gap:8px;}
-  .sr-jug{display:flex;gap:11px;align-items:center;background:var(--suave);
+  .sj-puesto{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+             color:var(--orange);margin-top:2px;}
+  .sj-nota{margin-top:6px;font-size:13.5px;white-space:pre-wrap;border-left:2px solid var(--wood-line);
+           padding-left:9px;color:var(--ink);}
+  .sr-jug{display:flex;gap:11px;align-items:flex-start;background:var(--suave);
           border:1.5px solid var(--wood-line);border-radius:12px;padding:9px 11px;}
   .sr-jug img, .sr-jug .sinfoto2{width:46px;height:46px;border-radius:50%;object-fit:cover;
           object-position:top center;flex:none;background:var(--wood-line);
@@ -294,7 +298,7 @@ const CONFIG = {
 };
 const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
 let temporadaElegida = "2026";
-const VERSION = "2026-10-02v";
+const VERSION = "2026-10-02x";
 
 /* ============================================================
    UTILIDADES
@@ -577,11 +581,11 @@ async function cargarNumeros() {
   if (jugadora.ver_numeros === false) {
     caja.innerHTML = `<div class="vacio">Aqui apareceran las cosas que te mande
       el entrenador. Mira las pestañas de <b>Mensajes</b> y <b>Videos</b>.</div>`;
-    const plant = await leerPestana("Plantillas");
-    if (plant && plant.filas.length) {
-      const f = plant.filas.find(x => claveNombre(x.Jugadora) === claveNombre(jugadora.nombre));
-      if (f) pintarCabecera(f.FotoURL || "");
-    }
+    const [plant, rank] = await Promise.all([leerPestana("Plantillas"), leerPestana("Jugadoras")]);
+    const mia2 = claveNombre(jugadora.nombre);
+    let f = (plant && plant.filas.length) ? plant.filas.find(x => claveNombre(x.Jugadora) === mia2) : null;
+    if (!f && rank && rank.filas.length) f = rank.filas.find(x => claveNombre(x.Jugador) === mia2);
+    if (f) pintarCabecera(f.FotoURL || "");
     return;
   }
 
@@ -597,6 +601,15 @@ async function cargarNumeros() {
   if (plantillas && plantillas.filas.length) {
     ficha = plantillas.filas.find(f => claveNombre(f.Jugadora) === mia);
     if (ficha) foto = ficha.FotoURL || "";
+  }
+  // Si no esta en las plantillas, su foto tambien viene en los rankings
+  if (!foto) {
+    for (let k = 1; k < tabs.length && !foto; k++) {
+      const t = tabs[k];
+      if (!t || !t.filas.length) continue;
+      const f = t.filas.find(x => claveNombre(x.Jugador || x.Jugadora) === mia);
+      if (f && f.FotoURL) foto = f.FotoURL;
+    }
   }
   pintarCabecera(foto);
 
@@ -831,8 +844,10 @@ function seccionRivalHtml(sc) {
                    : `<div class="sinfoto2">${esc(ini)}</div>`}
           <div class="sj-info">
             <b>${j.dorsal ? `<span class="dor">${esc(j.dorsal)}</span>` : ""}${esc(j.nombre)}</b>
+            ${j.puesto ? `<div class="sj-puesto">${esc(j.puesto)}</div>` : ""}
             <div class="sj-datos">${(j.datos || []).map(d =>
               `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div>
+            ${j.nota ? `<div class="sj-nota">${esc(j.nota)}</div>` : ""}
           </div>
         </div>`;
       }).join("")}</div></div>`;
