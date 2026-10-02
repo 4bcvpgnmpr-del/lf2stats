@@ -812,6 +812,19 @@ function marcoVideo(url, segundos) {
     text-decoration:none;" href="${esc(e.src)}" target="_blank" rel="noopener">Abrir el video</a></div>`;
 }
 
+function marcoJugada(url) {
+  if (/thehoopsgeek\.com/i.test(String(url || ""))) {
+    return `<div class="fuera" style="background:#fff3e8;">
+      <b style="display:block;margin-bottom:4px;">Jugada en movimiento</b>
+      <a class="boton" style="display:block;width:auto;padding:13px 20px;text-decoration:none;margin:8px 0;"
+         href="${esc(url)}" target="_blank" rel="noopener">▶ Ver la jugada animada</a>
+      <button type="button" style="border:0;background:none;color:var(--ink-soft);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;"
+        onclick="this.outerHTML='<div class=&quot;marco&quot; style=&quot;padding-bottom:75%;&quot;><iframe src=&quot;${esc(url)}&quot; allowfullscreen allow=&quot;autoplay; fullscreen&quot;></iframe></div>'">Verla aquí dentro</button>
+    </div>`;
+  }
+  return marcoVideo(url, 0);
+}
+
 /* Cada apartado se pinta segun lo que sea: tarjetas, tabla, lista o texto.
    Los informes antiguos no llevan "tipo": se tratan como texto. */
 function seccionRivalHtml(sc) {
@@ -894,7 +907,7 @@ function seccionRivalHtml(sc) {
       ${(g.jugadas || []).map(p => `<div class="clip">
         ${(p.imagenes || []).map(im => `<a href="${esc(im)}" target="_blank" rel="noopener"><img src="${esc(im)}" loading="lazy" alt="Pizarra" style="display:block;width:100%;height:auto;background:#fff;"></a>`).join("")}
         <div class="texto"><b>${esc(p.nombre)}</b>${p.descripcion ? `<p>${esc(p.descripcion)}</p>` : ""}</div>
-        ${p.enlace ? marcoVideo(p.enlace, 0) : ""}</div>`).join("")}`).join("")}</div>`;
+        ${p.enlace ? marcoJugada(p.enlace) : ""}</div>`).join("")}`).join("")}</div>`;
   }
 
   if (sc.tipo === "mejores" && (sc.bloques || []).length) {

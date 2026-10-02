@@ -6302,7 +6302,7 @@ function trozosEnvio(nombre) {
 
   const jugadas = (f.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length || j.enlace);
   if (jugadas.length) {
-    // Tope de peso: como mucho 2 pizarras por jugada y nada de imagenes enormes,
+    // Tope de peso: como mucho 4 pizarras por jugada y nada de imagenes enormes,
     // para que no se les quede la pestaña cargando con datos moviles.
     const okImg = (x) => typeof x === "string" && (!x.startsWith("data:") || x.length < 350000);
     const grupos = TIPOS_JUGADA
@@ -6312,8 +6312,8 @@ function trozosEnvio(nombre) {
         jugadas: jugadas.filter(j => (j.tipo || "Otra") === t).map(j => ({
           nombre: j.nombre || "Jugada",
           descripcion: String(j.descripcion || "").trim(),
-          imagenes: imagenesDe(j).filter(okImg).slice(0, 2),
-          enlace: (j.enlace && !esHoopsGeek(j.enlace)) ? j.enlace : "",
+          imagenes: imagenesDe(j).filter(okImg).slice(0, 4),
+          enlace: j.enlace || "",
         })),
       }));
     trozos.push({
