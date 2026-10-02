@@ -783,6 +783,35 @@ async function marcarLeidos() {
 }
 
 /* ---------- Pestana 4: el scouting del rival ---------- */
+/* ---------- Reproductor compartido (Videos y El rival) ---------- */
+function incrustar(url) {
+  const u = String(url || "").trim();
+  let m = u.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/i);
+  if (m) return { tipo: "iframe", src: `https://www.youtube-nocookie.com/embed/${m[1]}` };
+  m = u.match(/vimeo\.com\/(\d+)/i);
+  if (m) return { tipo: "iframe", src: `https://player.vimeo.com/video/${m[1]}` };
+  m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/i);
+  if (m) return { tipo: "iframe", src: `https://drive.google.com/file/d/${m[1]}/preview` };
+  if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(u)) return { tipo: "video", src: u };
+  return { tipo: "fuera", src: u };
+}
+
+function marcoVideo(url, segundos) {
+  const e = incrustar(url);
+  const seg = Number(segundos) || 0;
+  if (e.tipo === "iframe") {
+    const t = seg ? (e.src.includes("vimeo") ? "#t=" + seg + "s" : "?start=" + seg) : "";
+    return `<div class="marco"><iframe src="${esc(e.src + t)}" loading="lazy"
+      allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
+  }
+  if (e.tipo === "video") {
+    return `<div class="marco"><video src="${esc(e.src + (seg ? "#t=" + seg : ""))}"
+      controls playsinline preload="metadata"></video></div>`;
+  }
+  return `<div class="fuera"><a class="boton" style="display:inline-block;width:auto;padding:12px 20px;
+    text-decoration:none;" href="${esc(e.src)}" target="_blank" rel="noopener">Abrir el video</a></div>`;
+}
+
 /* Cada apartado se pinta segun lo que sea: tarjetas, tabla, lista o texto.
    Los informes antiguos no llevan "tipo": se tratan como texto. */
 function seccionRivalHtml(sc) {
@@ -853,6 +882,21 @@ function seccionRivalHtml(sc) {
       }).join("")}</div></div>`;
   }
 
+  if (sc.tipo === "videos" && (sc.videos || []).length) {
+    return `<div class="seccion-rival">${tit}${sc.videos.map(v => `<div class="clip">${marcoVideo(v.url, v.segundos)}
+      <div class="texto"><b>${esc(v.titulo || "Video")}</b>
+      ${v.nota ? `<p>${esc(v.nota)}</p>` : ""}
+      ${(v.etiquetas || []).length ? `<p>${v.etiquetas.map(x => "#" + esc(x)).join(" ")}</p>` : ""}</div></div>`).join("")}</div>`;
+  }
+
+  if (sc.tipo === "jugadas" && (sc.grupos || []).length) {
+    return `<div class="seccion-rival">${tit}${sc.grupos.map(g => `<div class="sr-tit" style="margin-top:12px;color:var(--ink);">${esc(g.tipo)}</div>
+      ${(g.jugadas || []).map(p => `<div class="clip">
+        ${(p.imagenes || []).map(im => `<a href="${esc(im)}" target="_blank" rel="noopener"><img src="${esc(im)}" loading="lazy" alt="Pizarra" style="display:block;width:100%;height:auto;background:#fff;"></a>`).join("")}
+        <div class="texto"><b>${esc(p.nombre)}</b>${p.descripcion ? `<p>${esc(p.descripcion)}</p>` : ""}</div>
+        ${p.enlace ? marcoVideo(p.enlace, 0) : ""}</div>`).join("")}`).join("")}</div>`;
+  }
+
   if (sc.tipo === "mejores" && (sc.bloques || []).length) {
     return `<div class="seccion-rival">${tit}
       ${sc.bloques.map(b => `<div class="sr-mp">
@@ -896,19 +940,6 @@ async function cargarInformes() {
     </div>`).join("");
 }
 
-/* ---------- Pestana 3: clips ---------- */
-function incrustar(url) {
-  const u = String(url || "").trim();
-  let m = u.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/i);
-  if (m) return { tipo: "iframe", src: `https://www.youtube-nocookie.com/embed/${m[1]}` };
-  m = u.match(/vimeo\.com\/(\d+)/i);
-  if (m) return { tipo: "iframe", src: `https://player.vimeo.com/video/${m[1]}` };
-  m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/i);
-  if (m) return { tipo: "iframe", src: `https://drive.google.com/file/d/${m[1]}/preview` };
-  if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(u)) return { tipo: "video", src: u };
-  return { tipo: "fuera", src: u };
-}
-
 async function cargarClips() {
   const caja = $("tab-clips");
   const { data, error } = await sb.from("clips")
@@ -920,24 +951,9 @@ async function cargarClips() {
     caja.innerHTML = `<div class="vacio">Todavia no tienes videos.</div>`;
     return;
   }
-  caja.innerHTML = lista.map(c => {
-    const e = incrustar(c.url);
-    const t = c.segundos ? `?start=${c.segundos}` : "";
-    let marco;
-    if (e.tipo === "iframe") {
-      marco = `<div class="marco"><iframe src="${esc(e.src + t)}" loading="lazy"
-        allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
-    } else if (e.tipo === "video") {
-      marco = `<div class="marco"><video src="${esc(e.src + (c.segundos ? "#t=" + c.segundos : ""))}"
-        controls playsinline preload="metadata"></video></div>`;
-    } else {
-      marco = `<div class="fuera"><a class="boton" style="display:inline-block;width:auto;padding:12px 20px;
-        text-decoration:none;" href="${esc(e.src)}" target="_blank" rel="noopener">Abrir el video</a></div>`;
-    }
-    return `<div class="clip">${marco}
-      <div class="texto"><b>${esc(c.titulo || "Video")}</b>
-      ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}</div></div>`;
-  }).join("");
+  caja.innerHTML = lista.map(c => `<div class="clip">${marcoVideo(c.url, c.segundos)}
+    <div class="texto"><b>${esc(c.titulo || "Video")}</b>
+    ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}</div></div>`).join("");
 }
 
 /* ============================================================

@@ -6256,6 +6256,23 @@ function clienteJugadoras() {
   return sbJug;
 }
 
+/* Foto de una jugadora buscando por nombre normalizado en la plantilla y en todos los rankings */
+function fotoEnRankings(nombreJ, equipo) {
+  try {
+    const norm = n => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase().replace(/[^A-Z ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+    const objJ = norm(nombreJ), objE = normalizarEquipo(equipoOficial(equipo));
+    const fuentes = [jugadoras].concat(Object.keys(rankingExtra || {}).map(k => rankingExtra[k]));
+    for (const fu of fuentes) {
+      if (!fu || !fu.rows) continue;
+      const r = fu.rows.find(r => norm(cellText(r, "Jugador")) === objJ &&
+        normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === objE && r["FotoURL"] && r["FotoURL"].display);
+      if (r) return r["FotoURL"].display;
+    }
+  } catch (e) { /* sin foto */ }
+  return "";
+}
+
 const CAMPOS_ENVIO = [
   { id: "estilo", titulo: "Estilo de juego", porDefecto: true },
   { id: "fortalezas", titulo: "Puntos fuertes", porDefecto: true },
@@ -6283,15 +6300,27 @@ function trozosEnvio(nombre) {
     }).join("\n\n"),
   });
 
-  const jugadas = (f.jugadas || []).filter(j => j.nombre || j.descripcion);
-  if (jugadas.length) trozos.push({
-    id: "__jugadas", titulo: `Jugadas del rival (${jugadas.length})`, porDefecto: false,
-    texto: jugadas.map(j => {
-      const t = j.tipo ? ` (${j.tipo})` : "";
-      const d = String(j.descripcion || "").trim();
-      return `· ${j.nombre || "Jugada"}${t}${d ? "\n  " + d : ""}`;
-    }).join("\n\n"),
-  });
+  const jugadas = (f.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length || j.enlace);
+  if (jugadas.length) {
+    // Tope de peso: como mucho 2 pizarras por jugada y nada de imagenes enormes,
+    // para que no se les quede la pestaña cargando con datos moviles.
+    const okImg = (x) => typeof x === "string" && (!x.startsWith("data:") || x.length < 350000);
+    const grupos = TIPOS_JUGADA
+      .filter(t => jugadas.some(j => (j.tipo || "Otra") === t))
+      .map(t => ({
+        tipo: t,
+        jugadas: jugadas.filter(j => (j.tipo || "Otra") === t).map(j => ({
+          nombre: j.nombre || "Jugada",
+          descripcion: String(j.descripcion || "").trim(),
+          imagenes: imagenesDe(j).filter(okImg).slice(0, 2),
+          enlace: (j.enlace && !esHoopsGeek(j.enlace)) ? j.enlace : "",
+        })),
+      }));
+    trozos.push({
+      id: "__jugadas", titulo: `Jugadas del rival (${jugadas.length})`, porDefecto: false,
+      carga: { tipo: "jugadas", titulo: "Jugadas del rival", grupos },
+    });
+  }
 
   // --- Lo que calcula la app sola: esto suele ser lo mas util para ellas ---
   const m = (typeof mediasClave === "function") ? mediasClave(nombre) : null;
@@ -6402,7 +6431,7 @@ function trozosEnvio(nombre) {
             puesto: (mio.posicion || "").trim(),
             nota: (mio.texto || "").trim(),
             foto: (typeof fotoJugadora === "function")
-              ? fotoJugadora(f2.jugadora, nombre, f2.foto || "") : (f2.foto || ""),
+              ? fotoJugadora(f2.jugadora, nombre, f2.foto || fotoEnRankings(f2.jugadora, nombre)) : (f2.foto || fotoEnRankings(f2.jugadora, nombre)),
             datos: [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]]
               .map(([k, et]) => ({ et, v: (f2[k] != null && f2[k] !== "") ? String(f2[k]) : "–" })),
           };
@@ -6443,15 +6472,18 @@ function trozosEnvio(nombre) {
     });
   }
 
-  const videos = (f.videos || []).filter(v => v.url || v.titulo);
+  const videos = (f.videos || []).filter(v => v.url && v.origen !== "local");
   if (videos.length) trozos.push({
-    id: "__videos", titulo: `Videos (${videos.length})`, porDefecto: false,
-    texto: videos.map(v => {
-      const n = String(v.nota || "").trim();
-      const enlace = v.origen === "local" ? "(archivo de tu ordenador: no se puede compartir)" : (v.url || "");
-      return `· ${v.titulo || "Video"}${n ? "\n  " + n : ""}${enlace ? "\n  " + enlace : ""}`;
-    }).join("\n\n"),
+    id: "__videos", titulo: `Videos del rival (${videos.length})`, porDefecto: false,
+    carga: {
+      tipo: "videos", titulo: "Videos del rival",
+      videos: videos.map(v => ({
+        titulo: v.titulo || "Video", nota: String(v.nota || "").trim(), url: v.url,
+        segundos: v.segundos || 0, etiquetas: v.etiquetas || [],
+      })),
+    },
   });
+  trozos.videosLocales = (f.videos || []).filter(v => v.origen === "local").length;
 
   return trozos;
 }
@@ -6487,6 +6519,7 @@ async function abrirEnvioJugadoras(nombre) {
                  style="width:19px;height:19px;accent-color:var(--orange);">
           <span>${escapeHtml(t.titulo)}</span></label>`).join("")}
        </div>
+       ${trozos.videosLocales ? `<div class="status" style="margin:12px 0 0;">Tienes <b>${trozos.videosLocales}</b> video(s) subido(s) desde tu ordenador: <b>no se pueden mandar</b>. Subelos a YouTube (no listado) o a Google Drive y pega el enlace en la videoteca.</div>` : ""}
        <div style="margin-top:14px;">
          <label class="hint" style="display:block;margin-bottom:4px;">Partido (opcional)</label>
          <input id="envPartido" placeholder="Jornada 3 · fuera"
