@@ -968,6 +968,107 @@
     thead{display:table-header-group;}
     tr{break-inside:avoid;page-break-inside:avoid;}
     img, canvas{max-width:100% !important;}
+    /* ============================================================
+       NADA SE CORTA POR LA MITAD
+       El navegador parte la pagina por donde le toca, asi que hay que
+       decirle que estos bloques son indivisibles. Si no cabe entero,
+       pasa a la pagina siguiente en vez de quedarse cortado.
+       ============================================================ */
+    .chart-wrap, .evo, .evo-grafico, .evoj, .evoj-grafico, .evo-lectura,
+    .evo-abajo > *, .estilo, .estilo-abajo > *, .diag-kpis, .diag-kpi,
+    .diag-resumen, .diag-barras, .diag-barra, .diag-lectura, .diag-aviso,
+    .l-caja, .plan-tarjeta, .plan-objetivo, .carta-wrap, .carta-wrap > *,
+    .zonas-cartas, .zona-carta, .barra-reparto, .reparto, .tarjeta-record,
+    .glosario, .bloque-auto, .tarjeta-diag, .jugadora-informe, .prod-barras,
+    .prod-barra, .tabla-mini, .mini-partido, .kpi-jug, .hero-jug, .evoj-lectura,
+    .stat-big-grid, .stat-big, .cab-jug, .ficha-jug, .cuarto-marcador, .forma-tira{
+      break-inside:avoid; page-break-inside:avoid;
+    }
+
+    /* Fichas de jugadora mas compactas: asi caben tres por hoja en vez de dos
+       y no queda media pagina en blanco. */
+    .jugadora-informe{padding:8px 10px;margin-bottom:7px;}
+    .jugadora-informe .perc-fila, .jugadora-informe .fila-perc{padding:1px 0;}
+    .cab-jug{margin-bottom:6px;gap:9px;}
+    .cab-jug img, .cab-jug .sin-foto{width:46px !important;height:46px !important;box-shadow:none;}
+
+    /* Los graficos nunca se parten y se encogen para caber en la hoja.
+       width/height en auto mantienen la proporcion: si solo se limita el
+       alto, el grafico sale aplastado. */
+    canvas{
+      break-inside:avoid; page-break-inside:avoid;
+      width:auto !important; height:auto !important;
+      max-width:100% !important; max-height:88mm !important;
+      display:block; margin:0 auto;
+    }
+    /* El grafico se copia al informe como imagen. Su caja tenia alto fijo
+       (230px) y la imagen es mas alta: se salia y se montaba encima de la
+       tabla de abajo. Con alto automatico cada cosa ocupa lo suyo. */
+    .evo-grafico, .evoj-grafico, .chart-wrap{ overflow:visible; height:auto !important; }
+    .evo-grafico img, .evoj-grafico img, .chart-wrap img, .inf-bloque img:not(.foto-mini):not(.escudo){
+      display:block;max-width:100% !important;height:auto !important;max-height:88mm;margin:0 auto;
+    }
+    svg.carta{ max-height:150mm; height:auto; }
+
+    /* Nada de formularios en papel: botones, cajas de escribir y avisos de
+       "pega aqui el enlace" no pintan nada en un informe impreso. */
+    textarea, input, button, .btn-partido, .nueva-jugada, .copia-seguridad,
+    .scout-acciones, .scout-barra, .scout-form, .chips-qp, .barra-acciones,
+    .hg-btns, .elige-equipos, .compare-bar{display:none !important;}
+    /* Los desplegables se imprimen como texto, para saber que se esta viendo */
+    select{appearance:none;-webkit-appearance:none;border:0 !important;background:none !important;
+      padding:0 !important;font-weight:700;color:#1b2430;}
+    .texto-print{
+      display:block;white-space:pre-wrap;font-size:10pt;line-height:1.45;
+      padding:6px 9px;margin:2px 0 8px;border:1px solid #d9d2c8;border-left:3px solid var(--orange);
+      border-radius:3px;background:#fdfbf8;break-inside:avoid;
+    }
+    /* Lo que no se ha escrito no se imprime (ni su titulo) */
+    [data-oculto-al-imprimir]{display:none !important;}
+
+    /* ---- Tablas con muchas columnas ----
+       Con cada titulo partido en tres lineas no hay quien las lea: letra mas
+       pequena, titulos de una linea y la columna del nombre mas ancha. */
+    /* Solo se dejan en una linea las celdas cortas (numeros, fechas, siglas).
+       Las largas (nombres de equipo, jornadas) siguen partiendose, que es lo
+       que permite que la tabla quepa a lo ancho del folio en vez de salirse. */
+    table td[data-nw], table th[data-nw]{
+      white-space:nowrap !important;word-break:normal !important;
+    }
+    table[data-ancha], table.plantilla, table.full-players{font-size:7.2pt;}
+    table[data-ancha="mucho"], table.plantilla, table.full-players{font-size:6.6pt;}
+    table[data-ancha] th, table.plantilla th, table.full-players th{
+      font-size:6.4pt;padding:3px 2px !important;letter-spacing:0;
+    }
+    table[data-ancha] td, table.plantilla td, table.full-players td{
+      padding:2px 3px !important;
+    }
+    /* Las celdas largas parten por los espacios, nunca por la mitad de una
+       palabra: "CESUR / DISTRITO / OLIMPICO", no "CESUR DISTRIT / O". */
+    table td:not([data-nw]), table th:not([data-nw]){
+      word-break:normal !important;overflow-wrap:normal !important;hyphens:none;
+    }
+    /* Un titulo largo de columna si puede partirse: asi la tabla estrecha
+       lo suficiente para no salirse del folio. */
+    table th:not([data-nw]){word-break:break-word !important;}
+    #selEquipoScouting{display:none !important;}   /* duplica el titulo */
+    /* Y pase lo que pase, una tabla nunca se sale del papel */
+    table{max-width:100% !important;}
+    .table-scroll{overflow:hidden !important;}
+    table.plantilla .foto-mini, table.full-players .photo-cell img,
+    table.full-players .photo-cell .placeholder{width:13px;height:13px;}
+    table.full-players td:has(> .check){display:none;}   /* la casilla de comparar no se imprime */
+
+    /* Un titulo nunca se queda solo al final de la pagina, ni separado de
+       la frase que lo explica */
+    h2, h3, h4, .diag-sub, .section-title,
+    h2 + p, h3 + p, h4 + p, .diag-sub + p, .section-title + p,
+    h3 + .hint, h4 + .hint, .section-title + .hint{
+      break-after:avoid; page-break-after:avoid;
+    }
+    /* Ni una linea suelta de un parrafo */
+    p, li{ orphans:3; widows:3; }
+
     /* En papel siempre fondo claro, aunque la app este en modo oscuro */
     html[data-tema="oscuro"]{
       --wood:#ffffff; --wood-line:#d8d2c6; --ink:#111111; --ink-soft:#555f6d;
@@ -3761,7 +3862,7 @@ function renderJugadorasCompletas() {
     ? tirosResumen.rows.slice(0, 3).map(r => `${cellText(r, "Jugador")} (${cellText(r, "Equipo")}) TL ${cellText(r, "TLA")}/${cellText(r, "TLI")}`)
     : [];
 
-  let html = `<details class="glosario" style="margin:0 0 12px;">
+  let html = `<details class="glosario no-imprimir" style="margin:0 0 12px;">
       <summary>Diagnostico de tiros</summary>
       <p><b>Origen:</b> ${escapeHtml(origenTiros)} &middot; rellenadas al pintar: ${rellenadasAhora}</p>
       <p><b>Con % de tiros libres:</b> ${conTL} de ${data.rows.length} &middot; <b>con % de triples:</b> ${conT3} de ${data.rows.length}</p>
@@ -10060,8 +10161,14 @@ function clonarParaInforme(origen) {
       const img = document.createElement("img");
       img.src = fuente.toDataURL("image/png");
       img.style.width = "100%";
+      img.style.height = "auto";
+      img.style.display = "block";
       img.style.maxWidth = (fuente.clientWidth || 520) + "px";
       cv.replaceWith(img);
+      // La caja del grafico tenia alto fijo pensado para el lienzo; con la
+      // imagen dentro hay que soltarlo o se desborda sobre lo siguiente.
+      const caja = img.parentElement;
+      if (caja) { caja.style.height = "auto"; caja.style.minHeight = "0"; }
     } catch (e) { cv.remove(); }
   });
   // Los controles no pintan nada en papel: los activos se dejan como texto
@@ -10219,8 +10326,85 @@ function rellenarCabeceraImpresion() {
   if (pieDer) pieDer.textContent = "Generado el " + fecha;
 }
 
+/* Un <textarea> impreso sale como una caja gris con el texto recortado.
+   Antes de imprimir se sustituye por un parrafo normal y luego se devuelve
+   todo a su sitio. Si esta vacio, no se imprime nada. */
+/* Las tablas con muchas columnas salen ilegibles en un folio: el navegador
+   parte cada titulo en tres lineas. Se marcan para que la hoja de estilo de
+   impresion les ponga letra mas pequena y no las parta. */
+function marcarTablasAnchas() {
+  document.querySelectorAll(".view:not([style*='display: none']) table").forEach(t => {
+    const fila = t.querySelector("thead tr") || t.querySelector("tr");
+    if (!fila) return;
+    const n = fila.children.length;
+    if (n >= 20) t.dataset.ancha = "mucho";
+    else if (n >= 11) t.dataset.ancha = "si";
+
+    // Celda corta (un numero, una fecha, unas siglas) = no se parte.
+    // Celda larga (un nombre de equipo) = se parte, para que quepa el folio.
+    t.querySelectorAll("td, th").forEach(c => {
+      const txt = (c.textContent || "").trim();
+      const esCabecera = c.tagName === "TH";
+      const limite = esCabecera ? 9 : 14;        // los titulos ceden antes
+      const corta = (txt.length <= limite && !/\s/.test(txt)) || txt.length <= 6;
+      if (corta) c.dataset.nw = "1";
+    });
+  });
+}
+
+let preparadoParaImprimir = false;
+
+function textosParaImprimir() {
+  if (preparadoParaImprimir) return;      // no se prepara dos veces
+  preparadoParaImprimir = true;
+  marcarTablasAnchas();
+  document.querySelectorAll(".view:not([style*='display: none']) textarea").forEach(ta => {
+    const valor = (ta.value || "").trim();
+    const sig = ta.nextElementSibling;
+    let destino = (sig && sig.classList.contains("texto-print")) ? sig : null;
+    if (!destino) {
+      destino = document.createElement("div");
+      destino.className = "texto-print";
+      destino.dataset.sustituto = "1";
+      ta.parentNode.insertBefore(destino, ta.nextSibling);
+    }
+    destino.textContent = valor;                 // siempre lo ultimo escrito
+    destino.style.whiteSpace = "pre-wrap";
+    if (valor) return;
+
+    // Apartado vacio: se oculta entero, con su titulo y su ayuda
+    destino.dataset.ocultoAlImprimir = "1";
+    let prev = ta.previousElementSibling;
+    let pasos = 0;
+    while (prev && pasos < 3) {
+      const esTitulo = /^H[2-4]$/.test(prev.tagName);
+      const esAyuda = prev.classList && prev.classList.contains("hint");
+      if (!esTitulo && !esAyuda) break;
+      prev.dataset.ocultoAlImprimir = "1";
+      if (esTitulo) break;
+      prev = prev.previousElementSibling;
+      pasos++;
+    }
+  });
+}
+
+function textosRestaurar() {
+  preparadoParaImprimir = false;
+  document.querySelectorAll("table[data-ancha]").forEach(t => { delete t.dataset.ancha; });
+  document.querySelectorAll("[data-nw]").forEach(c => { delete c.dataset.nw; });
+  document.querySelectorAll("[data-sustituto]").forEach(n => n.remove());
+  document.querySelectorAll("[data-oculto-al-imprimir]").forEach(n => {
+    delete n.dataset.ocultoAlImprimir;
+  });
+}
+
+/* Tambien cuando se imprime con Cmd+P / Ctrl+P, no solo con el boton */
+window.addEventListener("beforeprint", () => { try { textosParaImprimir(); } catch (e) { /* nada */ } });
+window.addEventListener("afterprint", () => { try { textosRestaurar(); } catch (e) { /* nada */ } });
+
 function exportarPdfPagina() {
   rellenarCabeceraImpresion();
+  textosParaImprimir();
   // En papel siempre fondo claro, aunque la app este en modo oscuro
   const temaPrevio = document.documentElement.getAttribute("data-tema") || "claro";
   if (temaPrevio === "oscuro") document.documentElement.setAttribute("data-tema", "claro");
@@ -10232,6 +10416,7 @@ function exportarPdfPagina() {
   const restaurar = () => {
     if (restaurado) return;
     restaurado = true;
+    textosRestaurar();
     if (temaPrevio === "oscuro") document.documentElement.setAttribute("data-tema", "oscuro");
     document.querySelectorAll("details[data-abierto-antes]").forEach(d => {
       d.open = d.dataset.abiertoAntes === "1";
@@ -10836,7 +11021,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02d";
+const VERSION_APP = "2026-10-02e";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
