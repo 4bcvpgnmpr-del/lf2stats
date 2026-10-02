@@ -229,9 +229,11 @@
     font:inherit;font-size:13.5px;font-weight:700;color:var(--ink-soft);}
   .subnav button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
   .sr-plant{background:var(--suave);border:1.5px solid var(--wood-line);border-radius:12px;margin-bottom:8px;}
+  .sr-plant-cab{display:flex;gap:10px;align-items:center;padding:9px 11px;}
   .sr-plant>summary{list-style:none;cursor:pointer;display:flex;gap:10px;align-items:center;padding:9px 11px;}
   .sr-plant>summary::-webkit-details-marker{display:none;}
   .sr-plant .cuerpo{padding:0 11px 11px;}
+  .sr-plant .cuerpo .sj-nota{margin:0 0 8px;}
   .sj-todas{margin-top:7px;}
   .sj-todas summary{font-size:12.5px;font-weight:800;color:var(--orange);cursor:pointer;}
   .sj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;margin-top:7px;}
@@ -1087,17 +1089,16 @@ function seccionRivalHtml(sc) {
 
   if (sc.tipo === "plantilla" && (sc.jugadoras || []).length) {
     return `<div class="seccion-rival">${tit}
-      <p style="color:var(--orange);font-weight:800;font-size:13.5px;margin:0 0 8px;">Toca a cada jugadora: dentro están todas sus estadísticas y su mapa de tiro.</p>${sc.jugadoras.map(p => {
+      <p style="color:var(--orange);font-weight:800;font-size:13.5px;margin:0 0 8px;">De cada jugadora: toca «Todas sus estadísticas» o «Mapa de tiro» para verlos.</p>${sc.jugadoras.map(p => {
       const ini = limpiarNombre(p.nombre).replace(/[^A-Z ]/g, "").trim().slice(0, 2);
-      return `<details class="sr-plant"><summary>
+      return `<div class="sr-plant"><div class="sr-plant-cab">
         ${p.foto ? `<img src="${esc(p.foto)}" loading="lazy" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:top center;flex:none;"
               onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'sinfoto2',textContent:'${esc(ini)}'}))">`
                : `<div class="sinfoto2" style="width:40px;height:40px;border-radius:50%;background:var(--wood-line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:none;">${esc(ini)}</div>`}
         <div class="sj-info"><b>${p.dorsal ? `<span class="dor">${esc(p.dorsal)}</span>` : ""}${esc(p.nombre)}</b>
           ${p.puesto ? `<div class="sj-puesto">${esc(p.puesto)}</div>` : ""}
-          <div class="sj-datos">${(p.datos || []).map(d => `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div>
-          <div style="font-size:12px;font-weight:800;color:var(--orange);margin-top:3px;">▸ Toca para ver todas sus estadísticas y su mapa de tiro</div></div></summary>
-        <div class="cuerpo">${p.nota ? `<div class="sj-nota">${esc(p.nota)}</div>` : ""}${extrasJugadoraHtml(p)}</div></details>`;
+          <div class="sj-datos">${(p.datos || []).map(d => `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div></div></div>
+        <div class="cuerpo">${p.nota ? `<div class="sj-nota">${esc(p.nota)}</div>` : ""}${extrasJugadoraHtml(p)}</div></div>`;
     }).join("")}</div>`;
   }
 
