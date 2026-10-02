@@ -6298,53 +6298,62 @@ function trozosEnvio(nombre) {
   const partidos = (typeof partidosDeEquipo === "function")
     ? partidosDeEquipo(nombre).filter(x => x.jugado && x.gano !== null) : [];
   if (m || partidos.length) {
-    const lineas = [];
+    const n = (x) => (x === null || x === undefined || x === "") ? null : String(x).replace(".", ",");
+    const datos = [];
     if (partidos.length) {
       const v = partidos.filter(x => x.gano).length;
-      lineas.push(`Balance: ${v}-${partidos.length - v} en ${partidos.length} partidos`);
-      const ult = partidos.slice(-5).reverse()
-        .map(x => `${x.gano ? "V" : "D"} ${x.pf}-${x.pc} vs ${equipoOficial(x.rival)}`);
-      if (ult.length) lineas.push("Ultimos partidos: " + ult.join(" · "));
+      datos.push({ et: "Balance", v: `${v}-${partidos.length - v}`, pie: `${partidos.length} partidos` });
     }
     if (m) {
-      const n = (x) => (x === null || x === undefined || x === "") ? null : String(x).replace(".", ",");
-      [["Puntos por partido", m.PT], ["Rebotes por partido", m.RT],
-       ["Asistencias por partido", m.AS], ["Robos por partido", m.BR],
-       ["% en tiros de 2", m.T2], ["% en tiros de 3", m.T3]]
-        .forEach(([et, val]) => { if (n(val) !== null) lineas.push(`${et}: ${n(val)}`); });
+      [["Puntos", m.PT, "por partido"], ["Rebotes", m.RT, "por partido"],
+       ["Asistencias", m.AS, "por partido"], ["Robos", m.BR, "por partido"],
+       ["Tiros de 2", m.T2, "% de acierto"], ["Tiros de 3", m.T3, "% de acierto"]]
+        .forEach(([et, val, pie]) => {
+          if (n(val) !== null) datos.push({ et, v: n(val) + (pie.indexOf("%") === 0 ? "%" : ""), pie });
+        });
     }
-    if (lineas.length) trozos.push({
+    if (datos.length) trozos.push({
       id: "__equipo", titulo: "Datos del equipo rival", porDefecto: true,
-      texto: lineas.map(l => "· " + l).join("\n"),
+      carga: { tipo: "datos", titulo: "Datos del equipo rival", datos },
+    });
+    if (partidos.length) trozos.push({
+      id: "__ultimos", titulo: "Ultimos partidos", porDefecto: true,
+      carga: { tipo: "partidos", titulo: "Ultimos partidos",
+        partidos: partidos.slice(-5).reverse().map(x => ({
+          gano: !!x.gano, pf: x.pf, pc: x.pc, rival: equipoOficial(x.rival), casa: !!x.esLocal,
+        })) },
     });
   }
 
   const plantilla = (typeof plantillaDe === "function") ? plantillaDe(nombre) : [];
   if (plantilla.length) {
+    const COLS = [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]];
     trozos.push({
       id: "__plantilla", titulo: `Plantilla del rival (${plantilla.length})`, porDefecto: false,
-      texto: plantilla.map(f2 => {
-        const datos = STATS_FICHA
-          .map(([, corta]) => (f2[corta] !== "" && f2[corta] != null) ? `${corta} ${f2[corta]}` : "")
-          .filter(Boolean).slice(0, 5).join(" · ");
-        return `· ${f2.dorsal ? f2.dorsal + " " : ""}${f2.jugadora}${datos ? "\n  " + datos : ""}`;
-      }).join("\n"),
+      carga: {
+        tipo: "tabla", titulo: "Plantilla del rival",
+        columnas: ["Jugadora"].concat(COLS.map(c => c[1])),
+        filas: plantilla.map(f2 => [
+          (f2.dorsal ? f2.dorsal + " · " : "") + f2.jugadora,
+        ].concat(COLS.map(([corta]) => (f2[corta] === "" || f2[corta] == null) ? "–" : String(f2[corta])))),
+      },
     });
 
-    // Mejores y peores de cada faceta, dentro del propio equipo
     const bloques = STATS_FICHA.map(([, corta, larga]) => {
       const con = plantilla
         .map(f2 => ({ j: f2.jugadora, v: parseSpanishNumber(f2[corta]), t: f2[corta] }))
         .filter(x => x.v !== null && x.t !== "" && x.t !== null)
         .sort((x, y) => y.v - x.v);
-      if (con.length < 2) return "";
-      const mej = con.slice(0, 3).map(x => `${x.j} (${x.t})`).join(", ");
-      const peo = con.slice(-2).reverse().map(x => `${x.j} (${x.t})`).join(", ");
-      return `${larga}\n  Mejores: ${mej}\n  Peores: ${peo}`;
+      if (con.length < 2) return null;
+      return {
+        titulo: larga,
+        mejores: con.slice(0, 3).map(x => ({ j: x.j, v: String(x.t) })),
+        peores: con.slice(-2).reverse().map(x => ({ j: x.j, v: String(x.t) })),
+      };
     }).filter(Boolean);
     if (bloques.length) trozos.push({
       id: "__mejores", titulo: "Mejores y peores del rival", porDefecto: false,
-      texto: bloques.join("\n\n"),
+      carga: { tipo: "mejores", titulo: "Mejores y peores del rival", bloques },
     });
   }
 
@@ -6439,7 +6448,9 @@ async function abrirEnvioJugadoras(nombre) {
       titulo: "Scouting: " + oficial,
       rival: oficial,
       partido: partido || null,
-      secciones: elegidos.map(t => ({ titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto })),
+      secciones: elegidos.map(t => t.carga
+        ? t.carga
+        : { tipo: "texto", titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto }),
     });
     if (error) {
       mandar.disabled = false; mandar.textContent = "Mandar a todas";
@@ -11316,7 +11327,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02s";
+const VERSION_APP = "2026-10-02t";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */

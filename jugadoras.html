@@ -156,6 +156,43 @@
   .seccion-rival .sr-tit{font-size:12px;font-weight:800;text-transform:uppercase;
     letter-spacing:.07em;color:var(--orange);margin-bottom:3px;}
   .seccion-rival p{margin:0;white-space:pre-wrap;font-size:14.5px;}
+
+  .sr-datos{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .sr-dato{background:var(--suave);border:1.5px solid var(--wood-line);border-radius:11px;
+           padding:10px 6px;text-align:center;}
+  .sr-dato .v{font-family:'Archivo Black',sans-serif;font-size:19px;line-height:1.1;}
+  .sr-dato .l{font-size:10.5px;font-weight:800;text-transform:uppercase;
+              letter-spacing:.05em;color:var(--ink-soft);margin-top:3px;}
+  .sr-dato .p{font-size:10px;color:var(--ink-soft);margin-top:1px;}
+
+  .sr-partidos{display:flex;flex-direction:column;gap:6px;}
+  .sr-partido{display:flex;align-items:center;gap:9px;background:var(--suave);
+              border:1.5px solid var(--wood-line);border-radius:10px;padding:8px 11px;font-size:14px;}
+  .sr-partido .riv{flex:1;min-width:0;}
+  .sr-partido b{font-variant-numeric:tabular-nums;}
+  .vd{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
+      justify-content:center;font-size:11.5px;font-weight:800;color:#fff;}
+  .vd.v{background:var(--verde);} .vd.d{background:var(--rojo);}
+
+  .sr-tabla-caja{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .sr-tabla{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .sr-tabla th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);
+               text-align:right;padding:5px 6px;border-bottom:1.5px solid var(--wood-line);white-space:nowrap;}
+  .sr-tabla td{text-align:right;padding:6px;border-bottom:1px solid var(--wood-line);
+               font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .sr-tabla .izq{text-align:left;white-space:normal;}
+  .sr-tabla tbody tr:nth-child(odd) td{background:var(--suave);}
+
+  .sr-mp{border:1.5px solid var(--wood-line);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
+  .sr-mp .mp-tit{font-size:13px;font-weight:800;margin-bottom:6px;}
+  .sr-mp .mp-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sr-mp .eti{display:inline-block;font-size:9.5px;font-weight:800;text-transform:uppercase;
+              letter-spacing:.05em;padding:1px 7px;border-radius:9px;margin-bottom:4px;}
+  .sr-mp .eti.buena{background:var(--verde-suave);color:var(--verde);}
+  .sr-mp .eti.mala{background:var(--rojo-suave);color:var(--rojo);}
+  .sr-mp .mp-fila{display:flex;justify-content:space-between;gap:7px;font-size:12.5px;padding:1px 0;}
+  .sr-mp .mp-fila span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  @media (max-width:420px){ .sr-mp .mp-cols{grid-template-columns:1fr;} }
   .vacio{text-align:center;color:var(--ink-soft);font-size:14px;padding:30px 16px;
          background:var(--white);border:1.5px dashed var(--wood-line);border-radius:14px;}
   .cargando{text-align:center;color:var(--ink-soft);padding:40px 0;font-size:14px;}
@@ -231,7 +268,7 @@ const CONFIG = {
 };
 const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
 let temporadaElegida = "2026";
-const VERSION = "2026-10-02m";
+const VERSION = "2026-10-02t";
 
 /* ============================================================
    UTILIDADES
@@ -707,6 +744,52 @@ async function marcarLeidos() {
 }
 
 /* ---------- Pestana 4: el scouting del rival ---------- */
+/* Cada apartado se pinta segun lo que sea: tarjetas, tabla, lista o texto.
+   Los informes antiguos no llevan "tipo": se tratan como texto. */
+function seccionRivalHtml(sc) {
+  if (!sc) return "";
+  const tit = `<div class="sr-tit">${esc(sc.titulo || "")}</div>`;
+
+  if (sc.tipo === "datos" && (sc.datos || []).length) {
+    return `<div class="seccion-rival">${tit}
+      <div class="sr-datos">${sc.datos.map(d => `<div class="sr-dato">
+        <div class="v">${esc(d.v)}</div><div class="l">${esc(d.et)}</div>
+        ${d.pie ? `<div class="p">${esc(d.pie)}</div>` : ""}</div>`).join("")}</div></div>`;
+  }
+
+  if (sc.tipo === "partidos" && (sc.partidos || []).length) {
+    return `<div class="seccion-rival">${tit}
+      <div class="sr-partidos">${sc.partidos.map(p => `<div class="sr-partido">
+        <span class="vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>
+        <span class="riv">${esc(p.casa ? "vs " : "en ")}${esc(p.rival)}</span>
+        <b>${esc(p.pf)}-${esc(p.pc)}</b></div>`).join("")}</div></div>`;
+  }
+
+  if (sc.tipo === "tabla" && (sc.filas || []).length) {
+    return `<div class="seccion-rival">${tit}
+      <div class="sr-tabla-caja"><table class="sr-tabla">
+        <thead><tr>${(sc.columnas || []).map((c, i) =>
+          `<th${i ? "" : ' class="izq"'}>${esc(c)}</th>`).join("")}</tr></thead>
+        <tbody>${sc.filas.map(f => `<tr>${f.map((v, i) =>
+          `<td${i ? "" : ' class="izq"'}>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table></div></div>`;
+  }
+
+  if (sc.tipo === "mejores" && (sc.bloques || []).length) {
+    return `<div class="seccion-rival">${tit}
+      ${sc.bloques.map(b => `<div class="sr-mp">
+        <div class="mp-tit">${esc(b.titulo)}</div>
+        <div class="mp-cols">
+          <div><span class="eti buena">Mejores</span>
+            ${(b.mejores || []).map(x => `<div class="mp-fila"><span>${esc(x.j)}</span><b>${esc(x.v)}</b></div>`).join("")}</div>
+          <div><span class="eti mala">Peores</span>
+            ${(b.peores || []).map(x => `<div class="mp-fila"><span>${esc(x.j)}</span><b>${esc(x.v)}</b></div>`).join("")}</div>
+        </div></div>`).join("")}</div>`;
+  }
+
+  return `<div class="seccion-rival">${tit}<p>${esc(sc.texto || "")}</p></div>`;
+}
+
 let ultimoInforme = "";
 async function cargarInformes() {
   const caja = $("tab-rival");
@@ -731,11 +814,7 @@ async function cargarInformes() {
     <div class="bloque">
       <h3>${esc(i.titulo)}</h3>
       <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
-      ${(i.secciones || []).map(sc => `
-        <div class="seccion-rival">
-          <div class="sr-tit">${esc(sc.titulo)}</div>
-          <p>${esc(sc.texto)}</p>
-        </div>`).join("")}
+      ${(i.secciones || []).map(seccionRivalHtml).join("")}
     </div>`).join("");
 }
 
