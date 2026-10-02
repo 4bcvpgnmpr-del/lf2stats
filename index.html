@@ -1551,7 +1551,7 @@
       <div class="toolbar">
         <input type="text" id="filterJugadoras" placeholder="Buscar jugadora o equipo...">
         <select id="filterEquipoJugadoras"><option value="">Todos los equipos</option></select>
-        <span class="hint">Pulsa una cabecera para ordenar &middot; marca 2 jugadoras para compararlas &middot; clic en el nombre para ver su perfil</span>
+        <span class="hint" id="hintJugadoras">Pulsa una cabecera para ordenar &middot; marca 2 jugadoras para compararlas &middot; clic en el nombre para ver su perfil</span>
       </div>
       <div id="jugadorasContent" class="status">Cargando datos de jugadoras...</div>
     </div>
@@ -1848,6 +1848,7 @@ function escapeAttr(s) { return escapeHtml(s); }
    ============================================================ */
 let equipos = null;
 let jugadoras = null;
+let plantillas = null;          // plantillas oficiales de la FEB: estan desde el dia 1
 let resultados = null;
 let clasificacion = null;
 let clasificacionFinal = null;
@@ -2168,8 +2169,44 @@ async function loadJugadoras() {
   try {
     jugadoras = await fetchSheetTab("Jugadoras");
   } catch (e) {
-    showError("jugadorasContent", "Jugadoras");
+    jugadoras = null;
   }
+}
+
+/* Plantillas oficiales: la FEB las publica antes de jugar nada, asi que son la
+   unica forma de ver las jugadoras al principio de la temporada. */
+async function loadPlantillas() {
+  try { plantillas = await fetchSheetTab("Plantillas"); }
+  catch (e) { plantillas = null; }
+}
+
+function filasPlantilla() {
+  return (plantillas && plantillas.rows) ? plantillas.rows.filter(r => cellText(r, "Jugadora")) : [];
+}
+
+/* Grupo de cada equipo segun las plantillas. Sirve de repuesto cuando la
+   pestana Equipos esta vacia (temporada sin partidos). */
+function gruposDesdePlantilla() {
+  const mapa = new Map();
+  filasPlantilla().forEach(r => {
+    const eq = cellText(r, "Equipo"), g = cellText(r, "Grupo");
+    if (eq && g) mapa.set(normalizarEquipo(equipoOficial(eq)), g);
+  });
+  return mapa;
+}
+
+/* Ficha de una jugadora en las plantillas (edad, nacionalidad, altura...). */
+function fichaPlantilla(nombre, equipo) {
+  const filas = filasPlantilla();
+  if (!filas.length || !nombre) return null;
+  const limpio = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ").trim().toUpperCase();
+  const buscado = limpio(nombre);
+  const mismoEq = (r) => !equipo || normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) ===
+    normalizarEquipo(equipoOficial(equipo));
+  return filas.find(r => limpio(cellText(r, "Jugadora")) === buscado && mismoEq(r))
+    || filas.find(r => limpio(cellText(r, "Jugadora")) === buscado)
+    || null;
 }
 
 async function loadResultados() {
@@ -2223,11 +2260,11 @@ document.getElementById("filterEquipos").addEventListener("input", () => {
   if (equipos) renderEquiposTable(document.getElementById("filterEquipos").value);
 });
 document.getElementById("filterJugadoras").addEventListener("input", () => {
-  if (jugadoras) renderJugadorasCompletas();
+  renderJugadorasCompletas();
 });
 document.getElementById("filterEquipoJugadoras").addEventListener("change", (ev) => {
   filterEquipoFull = ev.target.value;
-  if (jugadoras) renderJugadorasCompletas();
+  renderJugadorasCompletas();
 });
 document.getElementById("filterFaseResultados").addEventListener("change", (ev) => {
   filterFaseResultados = ev.target.value;
@@ -2407,8 +2444,9 @@ function renderDashboard() {
 
   const { baseType } = groupTotalMediaCols(equipoStatCols());
 
-  const nEquipos = equipos.rows.length;
-  const nJugadoras = jugadoras.rows.length;
+  const nEquipos = equipos.rows.length
+    || new Set(filasPlantilla().map(r => normalizarEquipo(equipoOficial(cellText(r, "Equipo"))))).size;
+  const nJugadoras = jugadoras.rows.length || filasPlantilla().length;
   const maxPart = Math.max(0, ...equipos.rows.map(r => r["Part"] ? r["Part"].numeric || 0 : 0));
 
   let mejorAtaque = null, mejorAtaqueVal = -Infinity;
@@ -2882,11 +2920,71 @@ function comparePlayersInto(rows, chartContainer) {
 /* ============================================================
    PERFIL DE EQUIPO
    ============================================================ */
+/* Ficha de equipo cuando aun no hay estadisticas: escudo, grupo, calendario
+   resumido y la plantilla oficial. Devuelve true si ha podido pintarla. */
+function mostrarEquipoSoloPlantilla(teamName) {
+  const objetivo = normalizarEquipo(equipoOficial(teamName));
+  const filas = filasPlantilla().filter(r =>
+    normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === objetivo);
+  if (!filas.length) return false;
+
+  const grupo = cellText(filas[0], "Grupo");
+  const hay = (col) => filas.some(r => cellText(r, col) !== "");
+  const extras = [["Dorsal", "Dorsal"], ["Puesto", "Puesto"], ["Altura", "Altura"],
+                  ["Edad", "Edad"], ["Nacionalidad", "Nacionalidad"]]
+    .filter(([col]) => hay(col));
+
+  let html = `<div class="hero-jug">
+    <div class="hj-info">
+      <h2>${escudoImgHtml(teamName, 26)} ${escapeHtml(equipoOficial(teamName))}</h2>
+      <div class="hj-datos">
+        ${grupo ? `<div class="hj-dato"><b>${escapeHtml(grupo)}</b><span>Grupo</span></div>` : ""}
+        <div class="hj-dato"><b>${filas.length}</b><span>Jugadoras en plantilla</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="hint">Todavia no hay estadisticas de este equipo: la FEB las publica cuando se juega
+  la primera jornada. Por ahora, esta es su plantilla oficial.</p>
+  <div class="table-scroll"><table class="full-players"><thead><tr>
+    <th></th><th style="text-align:left;">Jugadora</th>
+    ${extras.map(([, e]) => `<th style="text-align:left;">${escapeHtml(e)}</th>`).join("")}
+  </tr></thead><tbody>`;
+
+  filas.sort((a, b) => cellText(a, "Jugadora").localeCompare(cellText(b, "Jugadora"), "es"))
+    .forEach(r => {
+      const nombre = cellText(r, "Jugadora");
+      const url = fotoJugadora(nombre, teamName, cellText(r, "FotoURL"));
+      html += `<tr>
+        <td class="photo-cell">${url
+          ? `<img src="${escapeAttr(url)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder'}))">`
+          : `<div class="placeholder"></div>`}</td>
+        <td class="player-name" style="cursor:default;">${escapeHtml(nombre)}</td>
+        ${extras.map(([col]) => {
+          let v = cellText(r, col);
+          if (col === "Edad" && v) v += " anos";
+          return `<td style="text-align:left;">${v ? escapeHtml(v) : `<span class="nd">-</span>`}</td>`;
+        }).join("")}
+      </tr>`;
+    });
+  html += `</tbody></table></div>`;
+
+  document.getElementById("equipoDetailContent").innerHTML = html;
+  ajustarBotonVolver("equipo-detail");
+  showView("equipo-detail");
+  return true;
+}
+
 function showEquipoDetail(teamName) {
   teamName = equipoOficial(teamName);
   const objetivo = normalizarEquipo(teamName);
-  const row = equipos.rows.find(r => normalizarEquipo(cellText(r, "Equipo")) === objetivo);
-  if (!row) { if (grupoActivo) { setGrupo(""); showEquipoDetail(teamName); } return; }
+  const row = (equipos && equipos.rows)
+    ? equipos.rows.find(r => normalizarEquipo(cellText(r, "Equipo")) === objetivo) : null;
+  if (!row) {
+    // Sin estadisticas todavia: al menos se muestra la plantilla oficial
+    if (mostrarEquipoSoloPlantilla(teamName)) return;
+    if (grupoActivo) { setGrupo(""); showEquipoDetail(teamName); }
+    return;
+  }
   const { baseType } = groupTotalMediaCols(equipoStatCols());
 
   const ataque = ["PT", "T2", "T3", "TC", "TL", "AS"];
@@ -3428,8 +3526,10 @@ function buildJugadorasCompletas() {
 function fillEquipoFilter() {
   const sel = document.getElementById("filterEquipoJugadoras");
   const porNombre = new Map();
-  jugadoras.rows.forEach(r => {
-    const nombre = cellText(r, "Equipo");
+  const base = (jugadoras && jugadoras.rows.length)
+    ? jugadoras.rows.map(r => cellText(r, "Equipo"))
+    : filasPlantilla().map(r => cellText(r, "Equipo"));
+  base.forEach(nombre => {
     if (nombre) porNombre.set(normalizarEquipo(nombre), equipoOficial(nombre));
   });
   const teams = [...new Set(porNombre.values())].sort((a, b) => a.localeCompare(b, "es"));
@@ -3437,11 +3537,95 @@ function fillEquipoFilter() {
     teams.map(t => `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`).join("");
 }
 
+/* ============================================================
+   LISTADO DE JUGADORAS SIN ESTADISTICAS (inicio de temporada)
+   La FEB publica las plantillas antes de jugar: asi la pantalla de
+   Jugadoras no se queda vacia esperando la primera jornada.
+   ============================================================ */
+function renderPlantillaLiga(container) {
+  // Esa ayuda habla de ordenar y comparar: aqui todavia no aplica
+  const hint = document.getElementById("hintJugadoras");
+  if (hint) hint.style.display = "none";
+  let filas = filasPlantilla();
+  const texto = (document.getElementById("filterJugadoras").value || "").trim().toLowerCase();
+
+  if (grupoActivo) filas = filas.filter(r => cellText(r, "Grupo") === grupoActivo);
+  if (filterEquipoFull) {
+    const buscado = normalizarEquipo(equipoOficial(filterEquipoFull));
+    filas = filas.filter(r => normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === buscado);
+  }
+  const total = filas.length;
+  if (texto) {
+    filas = filas.filter(r => cellText(r, "Jugadora").toLowerCase().includes(texto)
+      || cellText(r, "Equipo").toLowerCase().includes(texto)
+      || cellText(r, "Nacionalidad").toLowerCase().includes(texto));
+  }
+
+  // Solo se muestran las columnas que la FEB haya rellenado de verdad
+  const hay = (col) => filas.some(r => cellText(r, col) !== "");
+  const extras = [["Dorsal", "Dorsal"], ["Puesto", "Puesto"], ["Altura", "Altura"],
+                  ["Edad", "Edad"], ["Nacionalidad", "Nacionalidad"], ["Lugar", "Lugar de nacimiento"]]
+    .filter(([col]) => hay(col));
+
+  filas = [...filas].sort((a, b) => {
+    const e = cellText(a, "Equipo").localeCompare(cellText(b, "Equipo"), "es");
+    return e !== 0 ? e : cellText(a, "Jugadora").localeCompare(cellText(b, "Jugadora"), "es");
+  });
+
+  let html = `<p class="hint" style="margin:0 0 10px;">
+    <b>Plantillas oficiales de la FEB.</b> Mostrando ${filas.length} de ${total} jugadoras
+    ${grupoActivo ? "del Grupo " + escapeHtml(grupoActivo) : "de la liga"}.
+    Las estadisticas (puntos, rebotes, tiros...) apareceran solas en cuanto se juegue la primera jornada;
+    hasta entonces la FEB no publica ninguna. Toca un equipo para ver su ficha.</p>`;
+
+  if (!filas.length) {
+    container.className = "status";
+    container.innerHTML = html + `<p>Ninguna jugadora coincide con la busqueda.</p>`;
+    return;
+  }
+
+  html += `<div class="table-scroll"><table class="full-players"><thead><tr>
+    <th></th>
+    <th style="text-align:left;">Jugadora</th>
+    <th style="text-align:left;">Equipo</th>
+    ${extras.map(([, etiq]) => `<th style="text-align:left;">${escapeHtml(etiq)}</th>`).join("")}
+  </tr></thead><tbody>`;
+
+  filas.forEach(r => {
+    const nombre = cellText(r, "Jugadora");
+    const equipo = equipoOficial(cellText(r, "Equipo"));
+    const url = fotoJugadora(nombre, equipo, cellText(r, "FotoURL"));
+    html += `<tr>
+      <td class="photo-cell">${url
+        ? `<img src="${escapeAttr(url)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder'}))">`
+        : `<div class="placeholder"></div>`}</td>
+      <td class="player-name" style="cursor:default;">${escapeHtml(nombre)}</td>
+      <td class="player-team" data-team="${escapeAttr(equipo)}" style="cursor:pointer;">${escudoImgHtml(equipo, 18)}${escapeHtml(equipo)}</td>
+      ${extras.map(([col]) => {
+        let v = cellText(r, col);
+        if (col === "Edad" && v) v += " anos";
+        return `<td style="text-align:left;">${v ? escapeHtml(v) : `<span class="nd">-</span>`}</td>`;
+      }).join("")}
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  container.className = "";
+  container.innerHTML = html;
+  container.querySelectorAll("[data-team]").forEach(el => {
+    el.addEventListener("click", () => showEquipoDetail(el.getAttribute("data-team")));
+  });
+}
+
 function renderJugadorasCompletas() {
   const containerId = "jugadorasContent";
   const container = document.getElementById(containerId);
+  const hintJug = document.getElementById("hintJugadoras");
+  if (hintJug) hintJug.style.display = "";
   const data = jugadoras;
   if (!data || !data.rows.length) {
+    // Todavia no hay estadisticas, pero si plantillas: se muestra el listado
+    if (filasPlantilla().length) { renderPlantillaLiga(container); return; }
     container.className = "status";
     container.textContent = "Sin datos todavia (la temporada puede no haber empezado).";
     return;
@@ -6057,16 +6241,25 @@ function cabeceraJugadoraHtml(playerName, row, url) {
 
   const dato = (etiq, valor) => valor ? `<div class="hj-dato"><b>${escapeHtml(String(valor))}</b><span>${escapeHtml(etiq)}</span></div>` : "";
 
+  // Ficha oficial de la FEB: puesto, altura, edad y nacionalidad
+  const pl = fichaPlantilla(playerName, equipo);
+  const dePlantilla = (col) => pl ? cellText(pl, col) : "";
+  const dorsal = st.dorsal || dePlantilla("Dorsal");
+
   return `<div class="hero-jug">
     <div class="hj-foto">
       ${url ? `<img src="${escapeAttr(url)}" onerror="this.style.display='none'">`
             : `<div class="placeholder">${escapeHtml(playerName.slice(0, 2).toUpperCase())}</div>`}
-      ${st.dorsal ? `<span class="hj-dorsal">${escapeHtml(st.dorsal)}</span>` : ""}
+      ${dorsal ? `<span class="hj-dorsal">${escapeHtml(dorsal)}</span>` : ""}
     </div>
     <div class="hj-info">
       <h2>${escapeHtml(playerName)}</h2>
       <div class="hj-equipo" data-team="${escapeAttr(equipo)}">${escudoImgHtml(equipo, 20)}${escapeHtml(equipo)}</div>
       <div class="hj-datos">
+        ${dato("Puesto", dePlantilla("Puesto"))}
+        ${dato("Altura", dePlantilla("Altura"))}
+        ${dato("Edad", dePlantilla("Edad") ? dePlantilla("Edad") + " anos" : "")}
+        ${dato("Nacionalidad", dePlantilla("Nacionalidad"))}
         ${dato("Partidos", m.PJ !== null ? fmtNum(m.PJ) : "")}
         ${dato("Minutos por partido", m.MIN !== null ? fmtNum(m.MIN) : "")}
         ${dato("Valoracion", m.VAL !== null ? fmtNum(m.VAL) : "")}
@@ -10325,10 +10518,14 @@ function bloqueFourFactors(nombreL, rowsL, nombreV, rowsV) {
    FILTRO POR GRUPO (Toda la liga / Grupo A / Grupo B)
    ============================================================ */
 function grupoDeEquipo(teamName) {
-  if (!datosLiga || !datosLiga.equipos || !teamName) return "";
+  if (!teamName) return "";
   const oficial = normalizarEquipo(equipoOficial(teamName));
-  const r = datosLiga.equipos.rows.find(x => normalizarEquipo(cellText(x, "Equipo")) === oficial);
-  return r && r["Grupo"] ? r["Grupo"].display : "";
+  if (datosLiga && datosLiga.equipos) {
+    const r = datosLiga.equipos.rows.find(x => normalizarEquipo(cellText(x, "Equipo")) === oficial);
+    if (r && r["Grupo"] && r["Grupo"].display) return r["Grupo"].display;
+  }
+  // Repuesto: las plantillas traen el grupo aunque no se haya jugado nada
+  return gruposDesdePlantilla().get(oficial) || "";
 }
 
 // Quita filas repetidas (por si el Sheet trae la misma fila dos veces)
@@ -10399,9 +10596,13 @@ function setGrupo(g) {
 }
 
 function prepararBarraGrupos() {
-  const grupos = datosLiga && datosLiga.equipos
+  let grupos = datosLiga && datosLiga.equipos
     ? [...new Set(datosLiga.equipos.rows.map(r => r["Grupo"] ? r["Grupo"].display : "").filter(Boolean))].sort()
     : [];
+  if (grupos.length < 2) {
+    // Sin estadisticas de equipo todavia: los grupos salen de las plantillas
+    grupos = [...new Set(filasPlantilla().map(r => cellText(r, "Grupo")).filter(Boolean))].sort();
+  }
   const bar = document.getElementById("grupoBar");
   if (grupos.length < 2) { bar.style.display = "none"; return; }
   const box = document.getElementById("grupoButtons");
@@ -10419,7 +10620,7 @@ function renderTodo() {
   renderClasificacion();
   fillComparadorPickers();
   if (equipos) renderEquiposTable(document.getElementById("filterEquipos").value);
-  if (jugadoras && jugadoras.rows.length) {
+  if ((jugadoras && jugadoras.rows.length) || filasPlantilla().length) {
     fillEquipoFilter();
     document.getElementById("filterEquipoJugadoras").value = filterEquipoFull;
     renderJugadorasCompletas();
@@ -10430,7 +10631,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-24";
+const VERSION_APP = "2026-10-02b";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
@@ -10546,7 +10747,8 @@ function prepararSelectorTemporada() {
 console.log("App LF2 - version", VERSION_APP, "· temporada", temporadaActiva);
 prepararSelectorTemporada();
 document.getElementById("lastUpdated").textContent = "Cargando... (v" + VERSION_APP + ")";
-Promise.all([loadEquipos(), loadJugadoras(), loadResultados(), loadRankingExtras(), loadClasificacion()]).then(() => {
+Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
+             loadRankingExtras(), loadClasificacion()]).then(() => {
   const completas = buildJugadorasCompletas();
   if (completas.rows.length) jugadoras = completas;
 
