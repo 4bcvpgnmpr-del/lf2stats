@@ -332,7 +332,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02m";
+const VERSION = "2026-10-02n";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)
@@ -657,15 +657,43 @@ function normEquipo(t) {
     .replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
 
+/* Se coge TODO lo que tengas de ese rival: los siete apartados del informe,
+   las notas de la videoteca y las jugadas guardadas. */
 function fichasScouting() {
   const datos = leerScouting();
   const equipos = (datos && datos.equipos) ? datos.equipos : {};
   return Object.keys(equipos).map(k => {
-    const f = equipos[k];
-    const campos = (f && f.informe && f.informe.campos) ? f.informe.campos : {};
-    const escritos = CAMPOS_SCOUT.filter(c => String(campos[c.id] || "").trim());
-    return { clave: k, nombre: f.nombre || k, campos, escritos };
-  }).filter(f => f.escritos.length)
+    const f = equipos[k] || {};
+    const campos = (f.informe && f.informe.campos) ? f.informe.campos : {};
+    const notas = (f.notas || []).filter(n => String(n.texto || "").trim());
+    const jugadas = (f.jugadas || []).filter(j => j.nombre || j.descripcion);
+
+    const trozos = CAMPOS_SCOUT
+      .filter(c => String(campos[c.id] || "").trim())
+      .map(c => ({ id: c.id, titulo: c.titulo, texto: String(campos[c.id]).trim(), porDefecto: POR_DEFECTO.includes(c.id) }));
+
+    if (notas.length) {
+      trozos.push({
+        id: "__notas", titulo: `Notas (${notas.length})`, porDefecto: false,
+        texto: notas.map(n => {
+          const et = (n.etiquetas || []).length ? ` [${n.etiquetas.join(", ")}]` : "";
+          return `· ${String(n.texto).trim()}${et}`;
+        }).join("\n\n"),
+      });
+    }
+    if (jugadas.length) {
+      trozos.push({
+        id: "__jugadas", titulo: `Jugadas del rival (${jugadas.length})`, porDefecto: false,
+        texto: jugadas.map(j => {
+          const t = j.tipo ? ` (${j.tipo})` : "";
+          const d = String(j.descripcion || "").trim();
+          return `· ${j.nombre || "Jugada"}${t}${d ? "\n  " + d : ""}`;
+        }).join("\n\n"),
+      });
+    }
+
+    return { clave: k, nombre: f.nombre || k, trozos };
+  }).filter(f => f.trozos.length)
     .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"));
 }
 
@@ -677,8 +705,8 @@ function prepararScouting() {
     sel.innerHTML = `<option value="">Nada que mandar desde este aparato</option>`;
     $("scApartados").innerHTML = `<div class="aviso mal" style="margin:4px 0 0;">
       ${hayAlgo
-        ? `Tienes scouting de ${hayAlgo} equipos en este navegador, pero ninguno con los
-           apartados escritos (Estilo de juego, Puntos fuertes...). Rellena alguno en la
+        ? `Hay ${hayAlgo} equipos guardados en este navegador, pero ninguno tiene nada
+           escrito: ni apartados del informe, ni notas, ni jugadas. Escribe algo en la
            pantalla de <b>Scouting</b>, o usa aqui <b>Escribirlo aqui</b>.`
         : `Tus notas de scouting se guardan <b>en el navegador donde las escribes</b>, y en
            este no hay ninguna. Si las escribiste en el ordenador, abre el panel alli, o
@@ -687,7 +715,7 @@ function prepararScouting() {
     return;
   }
   sel.innerHTML = fichas.map(f =>
-    `<option value="${esc(f.clave)}">${esc(f.nombre)} (${f.escritos.length} apartados)</option>`).join("");
+    `<option value="${esc(f.clave)}">${esc(f.nombre)} (${f.trozos.length} apartados)</option>`).join("");
   pintarApartados();
 }
 
@@ -695,8 +723,8 @@ function pintarApartados() {
   const ficha = fichasScouting().find(f => f.clave === $("selRivalScout").value);
   const caja = $("scApartados");
   if (!ficha) { caja.innerHTML = ""; return; }
-  caja.innerHTML = ficha.escritos.map(c => `<label class="sw">
-      <input type="checkbox" data-campo="${esc(c.id)}" ${POR_DEFECTO.includes(c.id) ? "checked" : ""}>
+  caja.innerHTML = ficha.trozos.map(c => `<label class="sw">
+      <input type="checkbox" data-campo="${esc(c.id)}" ${c.porDefecto ? "checked" : ""}>
       <span>${esc(c.titulo)}</span></label>`).join("");
   if (!$("scTitulo").value.trim() || $("scTitulo").dataset.auto === "1") {
     $("scTitulo").value = "Scouting: " + ficha.nombre;
@@ -740,9 +768,9 @@ async function enviarScouting() {
     const elegidos = [...document.querySelectorAll("#scApartados input:checked")]
       .map(i => i.getAttribute("data-campo"));
     if (!elegidos.length) { avisar("avisoScout", "Marca al menos un apartado.", "mal"); return; }
-    secciones = CAMPOS_SCOUT
+    secciones = ficha.trozos
       .filter(c => elegidos.includes(c.id))
-      .map(c => ({ titulo: c.titulo, texto: String(ficha.campos[c.id] || "").trim() }))
+      .map(c => ({ titulo: c.titulo.replace(/\s*\(\d+\)$/, ""), texto: c.texto }))
       .filter(sc => sc.texto);
   }
 
