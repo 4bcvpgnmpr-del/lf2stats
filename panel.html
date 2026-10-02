@@ -78,6 +78,19 @@
     border-radius:20px;cursor:pointer;}
   .pestanas button.activa{background:var(--orange);border-color:var(--orange);color:#fff;}
 
+  .interruptores{display:flex;flex-direction:column;gap:9px;margin-top:4px;}
+  .sw{display:flex;align-items:center;gap:10px;margin:0;font-size:14.5px;
+      text-transform:none;letter-spacing:0;font-weight:600;color:var(--ink);cursor:pointer;}
+  .sw input{width:auto;accent-color:var(--orange);width:19px;height:19px;flex:none;}
+  .feb-fila{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;
+            border:1.5px solid var(--wood-line);margin-bottom:7px;background:var(--suave);}
+  .feb-fila b{font-size:14px;flex:1;min-width:0;font-weight:700;}
+  .feb-fila .dor{font-size:11.5px;color:var(--ink-soft);width:26px;flex:none;}
+  .feb-fila.alta{background:var(--verde-suave);border-color:#cfe6da;}
+  .feb-fila button{font-family:inherit;font-size:12.5px;font-weight:800;padding:6px 12px;
+    border-radius:16px;border:1.5px solid var(--wood-line);background:var(--white);
+    color:var(--ink);cursor:pointer;white-space:nowrap;}
+  .feb-fila.alta button{background:var(--verde);border-color:var(--verde);color:#fff;}
   .item{background:var(--suave);border:1.5px solid var(--wood-line);border-radius:11px;
         padding:12px 14px;margin-bottom:9px;}
   .item .cab{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
@@ -159,14 +172,15 @@
       <div id="avisoNueva"></div>
     </div>
 
-    <!-- Importar de la FEB -->
+    <!-- Plantilla de la FEB: alta y baja de una en una -->
     <div class="caja" id="cajaImportar" hidden>
-      <h2>Traer una plantilla de la FEB</h2>
-      <p class="expl">Crea de golpe las fichas de todas las jugadoras de un equipo,
-        con el nombre ya escrito como lo escribe la FEB. Los correos los pones despues.</p>
+      <h2>Plantilla de la FEB</h2>
+      <p class="expl">Elige un equipo y da de alta a las que quieras, de una en una
+        o todas de golpe. El nombre viene ya escrito como lo escribe la FEB.</p>
       <label>Equipo</label>
       <select id="selEquipoFeb"><option value="">Cargando equipos...</option></select>
-      <button class="boton" id="btnTraer">Traer esa plantilla</button>
+      <div id="listaFeb" style="margin-top:14px;"></div>
+      <button class="boton" id="btnTraer">Dar de alta a todas</button>
       <div id="avisoImportar"></div>
     </div>
 
@@ -182,6 +196,17 @@
           <button class="boton fina gris" id="btnGuardarCorreo" style="white-space:nowrap;">Guardar</button>
         </div>
         <div id="avisoCorreo"></div>
+
+        <label style="margin-top:18px;">Que ve en su app</label>
+        <div class="interruptores">
+          <label class="sw"><input type="checkbox" id="swNumeros">
+            <span>Sus estadisticas de la FEB</span></label>
+          <label class="sw"><input type="checkbox" id="swPercentiles">
+            <span>Su comparacion con la liga</span></label>
+        </div>
+        <p class="expl" style="margin:7px 0 0;">Si apagas los dos, solo vera lo que le
+          mandes tu: mensajes, videos y objetivos.</p>
+        <div id="avisoVer"></div>
 
         <div class="pestanas">
           <button data-p="mensaje" class="activa">Mensaje</button>
@@ -227,6 +252,14 @@
       <div class="caja">
         <h2>Lo que ya le has mandado</h2>
         <div id="historial" class="cargando">Cargando...</div>
+      </div>
+
+      <div class="caja" style="border-color:#f0cdbe;">
+        <h2 style="font-size:15px;">Quitar a esta jugadora</h2>
+        <p class="expl">Se borra su ficha y con ella sus mensajes, videos y objetivos.
+          No se puede deshacer. Si solo quieres que deje de entrar, borra su correo arriba.</p>
+        <button class="boton borrar" id="btnQuitarJugadora" style="margin-top:0;">Quitar del todo</button>
+        <div id="avisoQuitar"></div>
       </div>
     </div>
 
@@ -363,7 +396,10 @@ function elegir(id) {
   $("tituloJugadora").textContent = elegida.nombre;
   $("subJugadora").textContent = elegida.equipo || "";
   $("edCorreo").value = elegida.email || "";
+  $("swNumeros").checked = elegida.ver_numeros !== false;
+  $("swPercentiles").checked = elegida.ver_percentiles !== false;
   avisar("avisoCorreo", "", "ok");
+  avisar("avisoVer", "", "ok");
   cargarJugadoras();
   cargarHistorial();
   $("fichaJugadora").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -377,6 +413,22 @@ async function guardarCorreo() {
   elegida.email = correo;
   avisar("avisoCorreo", "Correo guardado. Ya puede entrar con el.", "ok");
   cargarJugadoras();
+}
+
+async function guardarQueVe() {
+  if (!elegida) return;
+  const cambios = {
+    ver_numeros: $("swNumeros").checked,
+    ver_percentiles: $("swPercentiles").checked,
+  };
+  const { error } = await sb.from("jugadoras").update(cambios).eq("id", elegida.id);
+  if (error) {
+    avisar("avisoVer", "No se ha podido guardar: " + error.message
+      + " (¿has ejecutado el script del paso 2?)", "mal");
+    return;
+  }
+  Object.assign(elegida, cambios);
+  avisar("avisoVer", "Guardado. Lo vera la proxima vez que abra su app.", "ok");
 }
 
 async function guardarNueva() {
@@ -394,18 +446,71 @@ async function guardarNueva() {
   cargarJugadoras();
 }
 
-/* ---------- Traer una plantilla de la FEB ---------- */
+/* ---------- Plantilla de la FEB: alta y baja de una en una ---------- */
+/* Se comparan las palabras ordenadas: "LADO SALGADO, CLAUDIA" y
+   "CLAUDIA LADO SALGADO" son la misma persona. */
+function claveNombre(t) {
+  return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.,]/g, " ").toUpperCase().split(/\s+/).filter(Boolean).sort().join(" ");
+}
+
 async function prepararImportar() {
   const sel = $("selEquipoFeb");
-  if (!plantillasFeb) {
-    plantillasFeb = await leerPestana("Plantillas");
-  }
+  if (!plantillasFeb) plantillasFeb = await leerPestana("Plantillas");
   if (!plantillasFeb || !plantillasFeb.filas.length) {
     sel.innerHTML = `<option value="">No hay plantillas en el Sheet todavia</option>`;
+    $("listaFeb").innerHTML = `<div class="vacio">El Sheet no tiene plantillas de esta temporada.</div>`;
     return;
   }
   const equipos = [...new Set(plantillasFeb.filas.map(f => f.Equipo).filter(Boolean))].sort();
+  const previo = sel.value;
   sel.innerHTML = equipos.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  if (previo && equipos.includes(previo)) sel.value = previo;
+  pintarListaFeb();
+}
+
+function pintarListaFeb() {
+  const equipo = $("selEquipoFeb").value;
+  const caja = $("listaFeb");
+  if (!equipo || !plantillasFeb) { caja.innerHTML = ""; return; }
+  const dadas = new Map(jugadoras.map(j => [claveNombre(j.nombre), j]));
+  const filas = plantillasFeb.filas.filter(f => f.Equipo === equipo && f.Jugadora);
+  if (!filas.length) { caja.innerHTML = `<div class="vacio">Ese equipo no tiene plantilla.</div>`; return; }
+
+  caja.innerHTML = filas.map(f => {
+    const ya = dadas.get(claveNombre(f.Jugadora));
+    return `<div class="feb-fila ${ya ? "alta" : ""}">
+      <span class="dor">${esc(f.Dorsal || "")}</span>
+      <b>${esc(f.Jugadora)}</b>
+      <button data-nombre="${esc(f.Jugadora)}" data-equipo="${esc(f.Equipo)}"
+              data-dorsal="${esc(f.Dorsal || "")}" data-id="${ya ? esc(ya.id) : ""}">
+        ${ya ? "Dada de alta" : "Dar de alta"}</button>
+    </div>`;
+  }).join("");
+
+  caja.querySelectorAll("button").forEach(b => b.addEventListener("click", () => alternarAlta(b)));
+}
+
+async function alternarAlta(boton) {
+  const id = boton.getAttribute("data-id");
+  const nombre = boton.getAttribute("data-nombre");
+  boton.disabled = true;
+
+  if (id) {
+    if (!confirm(`¿Quitar a ${nombre}?\n\nSe borran tambien sus mensajes, videos y objetivos.`)) {
+      boton.disabled = false; return;
+    }
+    const { error } = await sb.from("jugadoras").delete().eq("id", id);
+    if (error) { avisar("avisoImportar", "No se ha podido quitar: " + error.message, "mal"); boton.disabled = false; return; }
+    if (elegida && String(elegida.id) === String(id)) { elegida = null; $("fichaJugadora").hidden = true; }
+  } else {
+    const { error } = await sb.from("jugadoras").insert({
+      nombre, equipo: boton.getAttribute("data-equipo"),
+      dorsal: boton.getAttribute("data-dorsal") || null, email: null });
+    if (error) { avisar("avisoImportar", "No se ha podido dar de alta: " + error.message, "mal"); boton.disabled = false; return; }
+  }
+  await cargarJugadoras();
+  pintarListaFeb();
 }
 
 async function traerPlantilla() {
@@ -432,7 +537,8 @@ async function traerPlantilla() {
   b.disabled = false; b.textContent = "Traer esa plantilla";
   if (error) { avisar("avisoImportar", "No se ha podido: " + error.message, "mal"); return; }
   avisar("avisoImportar", `${nuevas.length} jugadoras creadas. Ahora ponles el correo a las que vayan a entrar.`, "ok");
-  cargarJugadoras();
+  await cargarJugadoras();
+  pintarListaFeb();
 }
 
 /* ============================================================
@@ -475,6 +581,19 @@ async function enviarObjetivo() {
   ["obTexto", "obMetrica", "obNumero"].forEach(i => { $(i).value = ""; });
   avisar("avisoEnvio", "Objetivo puesto.", "ok");
   cargarHistorial();
+}
+
+async function quitarJugadora() {
+  if (!elegida) return;
+  const nombre = elegida.nombre;
+  if (!confirm(`¿Quitar a ${nombre}?\n\nSe borran tambien sus mensajes, videos y objetivos. No se puede deshacer.`)) return;
+  const { error } = await sb.from("jugadoras").delete().eq("id", elegida.id);
+  if (error) { avisar("avisoQuitar", "No se ha podido quitar: " + error.message, "mal"); return; }
+  elegida = null;
+  $("fichaJugadora").hidden = true;
+  await cargarJugadoras();
+  if (!$("cajaImportar").hidden) pintarListaFeb();
+  avisar("avisoImportar", `${nombre} ya no esta.`, "ok");
 }
 
 /* ============================================================
@@ -535,7 +654,11 @@ $("correo").addEventListener("keydown", e => { if (e.key === "Enter") pedirEnlac
 $("btnSalir").addEventListener("click", salir);
 $("btnGuardarNueva").addEventListener("click", guardarNueva);
 $("btnGuardarCorreo").addEventListener("click", guardarCorreo);
+$("btnQuitarJugadora").addEventListener("click", quitarJugadora);
 $("btnTraer").addEventListener("click", traerPlantilla);
+$("selEquipoFeb").addEventListener("change", pintarListaFeb);
+$("swNumeros").addEventListener("change", guardarQueVe);
+$("swPercentiles").addEventListener("change", guardarQueVe);
 $("btnEnviarMensaje").addEventListener("click", enviarMensaje);
 $("btnEnviarClip").addEventListener("click", enviarClip);
 $("btnEnviarObjetivo").addEventListener("click", enviarObjetivo);
