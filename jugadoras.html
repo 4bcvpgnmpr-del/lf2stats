@@ -135,6 +135,12 @@
   .clip .texto b{font-size:14.5px;}
   .clip .texto p{margin:4px 0 0;font-size:13.5px;color:var(--ink-soft);white-space:pre-wrap;}
 
+  .elector{display:flex;flex-direction:column;gap:8px;}
+  .eleg{display:block;width:100%;text-align:left;background:var(--white);
+    border:1.5px solid var(--wood-line);border-radius:12px;padding:13px 15px;
+    font-family:inherit;color:var(--ink);cursor:pointer;}
+  .eleg b{display:block;font-size:15px;}
+  .eleg span{font-size:12.5px;color:var(--ink-soft);}
   .barra-previa{background:#1b2430;color:#fff;font-size:13px;padding:9px 14px;
     display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;}
   .barra-previa b{color:var(--orange);}
@@ -217,7 +223,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",     // "" para 2025/26, "_2026" para 2026/27
 };
-const VERSION = "2026-10-02j";
+const VERSION = "2026-10-02k";
 
 /* ============================================================
    UTILIDADES
@@ -346,12 +352,30 @@ async function cargarPerfil(sesion) {
   // jugadora tal y como lo ve ella. Nadie mas puede: el servidor no le
   // dejaria leer esa ficha.
   const quiere = new URLSearchParams(location.search).get("ver");
-  if (quiere) {
-    const { data: soy } = await sb.rpc("es_entrenador");
-    if (soy === true) {
-      const { data: una } = await sb.from("jugadoras").select("*").eq("id", quiere).limit(1);
-      if (una && una.length) {
-        jugadora = una[0];
+  const { data: soyEntrenador } = await sb.rpc("es_entrenador");
+
+  if (soyEntrenador === true) {
+    const { data: todas } = await sb.from("jugadoras").select("*").order("nombre");
+    const lista = todas || [];
+
+    // ?ver vale con el codigo, con el correo o con parte del nombre
+    let elegida = null;
+    if (quiere) {
+      const q = limpiarNombre(quiere);
+      elegida = lista.find(j => String(j.id) === quiere)
+        || lista.find(j => (j.email || "").toLowerCase() === quiere.toLowerCase())
+        || lista.find(j => limpiarNombre(j.nombre).includes(q));
+    }
+
+    // Sin ?ver (o sin acertar): se le deja elegir
+    if (!elegida) {
+      pintarElectorJugadoras(lista, quiere);
+      return;
+    }
+
+    {
+      {
+        jugadora = elegida;
         modoVistaPrevia = true;
         document.body.insertAdjacentHTML("afterbegin", `<div class="barra-previa">
           Vista previa &middot; asi lo ve <b>${esc(jugadora.nombre)}</b>
@@ -394,6 +418,35 @@ async function cargarPerfil(sesion) {
   // reescribe la pestana entera y se los lleva por delante
   cargarNumeros().then(cargarObjetivos);
   cargarInformes();
+}
+
+/* El entrenador no tiene ficha de jugadora: se le ofrece elegir a cual ver. */
+function pintarElectorJugadoras(lista, buscado) {
+  $("cabecera").innerHTML = `<div style="min-width:0;">
+      <h1>Ver como lo ve una jugadora</h1>
+      <div class="eq">Has entrado como entrenador</div>
+    </div>
+    <button class="salir" id="btnSalir">Salir</button>`;
+  $("btnSalir").addEventListener("click", salir);
+  document.querySelector(".pestanas").hidden = true;
+
+  if (!lista.length) {
+    $("tab-numeros").innerHTML = `<div class="vacio">Todavia no has dado de alta
+      a ninguna jugadora. Hazlo desde tu panel.</div>`;
+    return;
+  }
+  $("tab-numeros").innerHTML = `
+    ${buscado ? `<div class="vacio" style="margin-bottom:12px;">No he encontrado
+      a "${esc(buscado)}". Elige de la lista.</div>` : ""}
+    <p class="expl" style="margin:0 0 12px;">Toca una para ver su perfil exactamente
+      como lo ve ella. Mirar no cuenta como leer: sus mensajes siguen marcados como nuevos.</p>
+    <div class="elector">
+      ${lista.map(j => `<button class="eleg" data-id="${esc(j.id)}">
+        <b>${esc(j.nombre)}</b><span>${esc(j.equipo || "")}</span></button>`).join("")}
+    </div>`;
+  document.querySelectorAll(".eleg").forEach(b => b.addEventListener("click", () => {
+    location.search = "?ver=" + encodeURIComponent(b.getAttribute("data-id"));
+  }));
 }
 
 function pintarCabecera(foto) {
