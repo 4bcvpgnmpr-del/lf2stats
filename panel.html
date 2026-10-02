@@ -332,7 +332,7 @@ const CONFIG = {
   SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
   TEMPORADA: "_2026",
 };
-const VERSION = "2026-10-02n";
+const VERSION = "2026-10-02o";
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t)
@@ -691,17 +691,33 @@ function fichasScouting() {
         }).join("\n\n"),
       });
     }
+    const videos = (f.videos || []).filter(v => v.url || v.titulo);
+    if (videos.length) {
+      trozos.push({
+        id: "__videos", titulo: `Videos (${videos.length})`, porDefecto: false,
+        texto: videos.map(v => {
+          const n = String(v.nota || "").trim();
+          const enlace = v.origen === "local" ? "(archivo de tu ordenador: no se puede compartir)" : (v.url || "");
+          return `· ${v.titulo || "Video"}${n ? "\n  " + n : ""}${enlace ? "\n  " + enlace : ""}`;
+        }).join("\n\n"),
+      });
+    }
 
-    return { clave: k, nombre: f.nombre || k, trozos };
-  }).filter(f => f.trozos.length)
-    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"));
+    return {
+      clave: k, nombre: f.nombre || k, trozos,
+      inventario: {
+        apartados: trozos.filter(t => t.id.indexOf("__") !== 0).length,
+        notas: notas.length, jugadas: jugadas.length, videos: videos.length,
+      },
+    };
+  }).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"));
 }
 
 function prepararScouting() {
   const sel = $("selRivalScout");
   const fichas = fichasScouting();
   if (!fichas.length) {
-    const hayAlgo = Object.keys((leerScouting().equipos) || {}).length;
+    const hayAlgo = 0;
     sel.innerHTML = `<option value="">Nada que mandar desde este aparato</option>`;
     $("scApartados").innerHTML = `<div class="aviso mal" style="margin:4px 0 0;">
       ${hayAlgo
@@ -714,8 +730,13 @@ function prepararScouting() {
       </div>`;
     return;
   }
-  sel.innerHTML = fichas.map(f =>
-    `<option value="${esc(f.clave)}">${esc(f.nombre)} (${f.trozos.length} apartados)</option>`).join("");
+  sel.innerHTML = fichas.map(f => {
+    const i = f.inventario;
+    const resumen = [i.apartados ? i.apartados + " apartados" : "", i.notas ? i.notas + " notas" : "",
+                     i.jugadas ? i.jugadas + " jugadas" : "", i.videos ? i.videos + " videos" : ""]
+      .filter(Boolean).join(", ") || "vacio";
+    return `<option value="${esc(f.clave)}">${esc(f.nombre)} — ${esc(resumen)}</option>`;
+  }).join("");
   pintarApartados();
 }
 
@@ -723,9 +744,16 @@ function pintarApartados() {
   const ficha = fichasScouting().find(f => f.clave === $("selRivalScout").value);
   const caja = $("scApartados");
   if (!ficha) { caja.innerHTML = ""; return; }
-  caja.innerHTML = ficha.trozos.map(c => `<label class="sw">
+  if (!ficha.trozos.length) {
+    caja.innerHTML = `<div class="aviso mal" style="margin:4px 0 0;">
+      De <b>${esc(ficha.nombre)}</b> no tienes nada escrito en este navegador: ni apartados
+      del informe, ni notas, ni jugadas, ni videos. Escribelo en la pantalla de Scouting,
+      o usa <b>Escribirlo aqui</b>.</div>`;
+  } else {
+    caja.innerHTML = ficha.trozos.map(c => `<label class="sw">
       <input type="checkbox" data-campo="${esc(c.id)}" ${c.porDefecto ? "checked" : ""}>
       <span>${esc(c.titulo)}</span></label>`).join("");
+  }
   if (!$("scTitulo").value.trim() || $("scTitulo").dataset.auto === "1") {
     $("scTitulo").value = "Scouting: " + ficha.nombre;
     $("scTitulo").dataset.auto = "1";
