@@ -1,9 +1,9 @@
-/* LF2 Stats - service worker
+/* ScoutFlow - service worker
    Objetivo: que la app se pueda instalar y abrir rapido,
    pero SIN guardar nunca datos viejos de Google Sheets ni de la FEB.
    Estrategia: red primero, y si no hay internet, lo guardado. */
 
-const CACHE = "lf2-stats-2026-10-02h";
+const CACHE = "scoutflow-2026-10-02i";
 
 const BASICOS = [
   "./",

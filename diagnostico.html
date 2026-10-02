@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostico ScoutFlow</title>
+<style>
+  :root{ --fondo:#faf6ee; --linea:#e7ddc9; --tinta:#1b2432; --suave:#4b5768;
+         --naranja:#e0602a; --verde:#1f7a5a; --rojo:#b4470f; --blanco:#fff; }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:24px 16px;background:var(--fondo);color:var(--tinta);
+       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.5;}
+  .caja{max-width:760px;margin:0 auto;}
+  h1{font-size:24px;margin:0 0 4px;}
+  .sub{color:var(--suave);font-size:14px;margin:0 0 20px;}
+  .veredicto{border-radius:14px;padding:16px 18px;margin:0 0 20px;font-size:16px;
+             border:2px solid var(--linea);background:var(--blanco);}
+  .veredicto.ok{border-color:var(--verde);background:#eef7f2;}
+  .veredicto.mal{border-color:var(--rojo);background:#fdf0ec;}
+  .veredicto b{display:block;font-size:18px;margin-bottom:6px;}
+  table{width:100%;border-collapse:collapse;background:var(--blanco);
+        border:1.5px solid var(--linea);border-radius:12px;overflow:hidden;font-size:14px;}
+  th{background:var(--tinta);color:#fff;text-align:left;padding:9px 11px;font-size:12px;
+     text-transform:uppercase;letter-spacing:.05em;}
+  td{padding:9px 11px;border-top:1px solid var(--linea);vertical-align:top;}
+  td.est{font-weight:700;white-space:nowrap;}
+  .bien{color:var(--verde);} .error{color:var(--rojo);} .espera{color:var(--suave);}
+  .info{margin-top:20px;background:var(--blanco);border:1.5px solid var(--linea);
+        border-radius:12px;padding:14px 16px;font-size:13px;color:var(--suave);}
+  .info code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+             background:var(--fondo);padding:1px 5px;border-radius:4px;color:var(--tinta);
+             word-break:break-all;}
+  .nota{margin-top:18px;font-size:13px;color:var(--suave);}
+</style>
+</head>
+<body>
+<div class="caja">
+  <h1>Diagnostico ScoutFlow</h1>
+  <p class="sub">Comprueba si tu navegador puede leer el Google Sheet. No toca nada: solo lee.</p>
+
+  <div class="veredicto" id="veredicto"><b>Comprobando...</b>Espera unos segundos.</div>
+
+  <table>
+    <thead><tr><th>Pestaña del Sheet</th><th>Estado</th><th>Detalle</th></tr></thead>
+    <tbody id="tabla"></tbody>
+  </table>
+
+  <div class="info" id="entorno"></div>
+
+  <p class="nota">Haz una captura de esta pagina entera y mandamela.</p>
+</div>
+
+<script>
+const SHEET_ID = "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94";
+
+// Las pestañas que usa la app. Las marcadas como clave son imprescindibles.
+const PESTANAS = [
+  { nombre: "Resultados",            clave: true  },
+  { nombre: "Equipos",               clave: true  },
+  { nombre: "Clasificacion",         clave: true  },
+  { nombre: "Jugadoras",             clave: true  },
+  { nombre: "Partidos_Estadisticas", clave: false },
+  { nombre: "Quintetos_Partido",     clave: false },
+  { nombre: "Partidos_Cuartos",      clave: false },
+  { nombre: "Tiros",                 clave: false },
+  { nombre: "Rebotes",               clave: false },
+];
+
+let contador = 0;
+function leerPestana(tab, esperaMs) {
+  return new Promise((resolve) => {
+    const cb = "__diagCb_" + (contador++);
+    const inicio = Date.now();
+    let script;
+    const limpiar = () => {
+      clearTimeout(reloj);
+      delete window[cb];
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+    };
+    const reloj = setTimeout(() => {
+      limpiar();
+      resolve({ ok: false, motivo: "Tardo mas de " + (esperaMs / 1000) + " segundos sin responder",
+                ms: Date.now() - inicio });
+    }, esperaMs);
+
+    window[cb] = (json) => {
+      const ms = Date.now() - inicio;
+      limpiar();
+      try {
+        if (!json || !json.table || !json.table.cols) {
+          resolve({ ok: false, motivo: "Respondio, pero la pestaña esta vacia o no existe", ms });
+          return;
+        }
+        const filas = (json.table.rows || []).length;
+        const cols = json.table.cols.map(c => (c.label || "").trim()).filter(Boolean);
+        resolve({ ok: filas > 0, filas, cols, ms,
+                  motivo: filas > 0 ? "" : "La pestaña existe pero no tiene ni una fila" });
+      } catch (e) {
+        resolve({ ok: false, motivo: "Respuesta ilegible: " + e.message, ms });
+      }
+    };
+
+    const tqx = encodeURIComponent("out:json;responseHandler:" + cb);
+    script = document.createElement("script");
+    script.src = "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+                 "/gviz/tq?tqx=" + tqx + "&sheet=" + encodeURIComponent(tab) + "&headers=1";
+    script.onerror = () => {
+      const ms = Date.now() - inicio;
+      limpiar();
+      resolve({ ok: false, ms,
+                motivo: "El navegador NO pudo descargar el archivo (bloqueado o sin conexion)" });
+    };
+    document.body.appendChild(script);
+  });
+}
+
+function fila(p) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = '<td>' + p.nombre + (p.clave ? ' <b>*</b>' : '') +
+                 '</td><td class="est espera">Comprobando...</td><td>-</td>';
+  document.getElementById("tabla").appendChild(tr);
+  return tr;
+}
+
+(async () => {
+  const filas = PESTANAS.map(p => ({ p, tr: fila(p) }));
+  const resultados = [];
+
+  for (const { p, tr } of filas) {
+    const r = await leerPestana(p.nombre, 30000);
+    resultados.push({ p, r });
+    const est = tr.children[1], det = tr.children[2];
+    if (r.ok) {
+      est.className = "est bien"; est.textContent = "OK";
+      det.textContent = r.filas + " filas · " + r.cols.length + " columnas · " + r.ms + " ms";
+    } else {
+      est.className = "est error"; est.textContent = "FALLO";
+      det.textContent = r.motivo + " (" + r.ms + " ms)";
+    }
+  }
+
+  // Veredicto
+  const claves = resultados.filter(x => x.p.clave);
+  const clavesOk = claves.filter(x => x.r.ok).length;
+  const todasFallan = resultados.every(x => !x.r.ok);
+  const v = document.getElementById("veredicto");
+
+  if (clavesOk === claves.length) {
+    v.className = "veredicto ok";
+    v.innerHTML = "<b>La conexion con el Google Sheet funciona</b>" +
+      "Tu navegador lee los datos sin problema. Si la app sigue sin mostrar los resultados, " +
+      "el fallo esta dentro de la app y no en la conexion.";
+  } else if (todasFallan) {
+    v.className = "veredicto mal";
+    v.innerHTML = "<b>Tu navegador no puede llegar al Google Sheet</b>" +
+      "Fallan todas las pestañas. Suele ser una extension que bloquea, un antivirus, " +
+      "la red del trabajo, o que la hoja dejo de ser publica.";
+  } else {
+    v.className = "veredicto mal";
+    v.innerHTML = "<b>Fallan " + (claves.length - clavesOk) + " de " + claves.length +
+      " pestañas imprescindibles</b>Mira abajo cuales: eso dice exactamente que se rompio.";
+  }
+
+  // Entorno
+  const e = document.getElementById("entorno");
+  e.innerHTML = "<b>Datos del entorno</b><br>" +
+    "Fecha: " + new Date().toLocaleString() + "<br>" +
+    "Navegador: <code>" + navigator.userAgent + "</code><br>" +
+    "Conexion: " + (navigator.onLine ? "con internet" : "SIN internet") + "<br>" +
+    "Abierto desde: <code>" + location.href + "</code>";
+})();
+</script>
+</body>
+</html>

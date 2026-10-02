@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resolucion de las fotos · ScoutFlow</title>
+<style>
+  :root{ --fondo:#faf6ee; --linea:#e7ddc9; --tinta:#1b2432; --suave:#4b5768;
+         --naranja:#e0602a; --verde:#1f7a5a; --rojo:#b4470f; --blanco:#fff; }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:24px 16px;background:var(--fondo);color:var(--tinta);
+       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.5;}
+  .caja{max-width:860px;margin:0 auto;}
+  h1{font-size:24px;margin:0 0 4px;}
+  .sub{color:var(--suave);font-size:14px;margin:0 0 20px;}
+  .veredicto{border:2px solid var(--linea);background:var(--blanco);border-radius:14px;
+             padding:16px 18px;margin:0 0 20px;font-size:15px;}
+  .veredicto.ok{border-color:var(--verde);background:#eef7f2;}
+  .veredicto.mal{border-color:var(--rojo);background:#fdf0ec;}
+  .veredicto b{display:block;font-size:17px;margin-bottom:6px;}
+  .fila-url{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .fila-url input{flex:1;min-width:230px;padding:9px 11px;border:1.5px solid var(--linea);
+                  border-radius:8px;font-size:14px;font-family:inherit;}
+  .fila-url button{padding:9px 16px;border:none;border-radius:8px;background:var(--naranja);
+                   color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
+  table{width:100%;border-collapse:collapse;background:var(--blanco);border:1.5px solid var(--linea);
+        border-radius:12px;overflow:hidden;font-size:13.5px;}
+  th{background:var(--tinta);color:#fff;text-align:left;padding:9px 11px;font-size:11.5px;
+     text-transform:uppercase;letter-spacing:.05em;}
+  td{padding:9px 11px;border-top:1px solid var(--linea);vertical-align:middle;}
+  td.med{font-weight:800;white-space:nowrap;}
+  .bien{color:var(--verde);} .mal{color:var(--rojo);} .medio{color:var(--naranja);}
+  .muestra{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:18px;
+           background:var(--blanco);border:1.5px solid var(--linea);border-radius:12px;padding:16px;}
+  .muestra figure{margin:0;text-align:center;}
+  .muestra img{border-radius:50%;object-fit:cover;object-position:top center;
+               background:var(--linea);display:block;margin:0 auto 5px;}
+  .muestra figcaption{font-size:11px;color:var(--suave);}
+  .nota{margin-top:18px;font-size:13px;color:var(--suave);}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--fondo);
+       padding:1px 5px;border-radius:4px;word-break:break-all;}
+</style>
+</head>
+<body>
+<div class="caja">
+  <h1>Resolucion de las fotos</h1>
+  <p class="sub">Mide el tamano real de las fotos que publica la FEB y las ensena a los tamanos que usa la app.</p>
+
+  <div class="fila-url">
+    <input id="url" type="text" value="https://imagenes.feb.es/Foto.aspx?c=2814216">
+    <button type="button" id="medir">Medir esta foto</button>
+  </div>
+
+  <div class="veredicto" id="veredicto"><b>Midiendo...</b>Espera un momento.</div>
+
+  <table>
+    <thead><tr><th>Donde se usa en la app</th><th>Tamano en pantalla</th><th>Hace falta (pantalla Retina)</th><th>Resultado</th></tr></thead>
+    <tbody id="tabla"></tbody>
+  </table>
+
+  <div class="muestra" id="muestra"></div>
+
+  <p class="nota">Haz una captura de esta pagina y mandamela.</p>
+</div>
+
+<script>
+// Donde aparece una foto en la app y a que tamano
+const USOS = [
+  ["Tabla de jugadoras", 34],
+  ["Rankings", 36],
+  ["Ficha de scouting", 64],
+  ["Perfil de la jugadora", 76],
+  ["Comparador", 56],
+  ["Cabecera del perfil grande", 104],
+];
+
+function medir(url) {
+  const veredicto = document.getElementById("veredicto");
+  const tabla = document.getElementById("tabla");
+  const muestra = document.getElementById("muestra");
+  veredicto.className = "veredicto";
+  veredicto.innerHTML = "<b>Midiendo...</b>Espera un momento.";
+  tabla.innerHTML = "";
+  muestra.innerHTML = "";
+
+  const img = new Image();
+  img.onload = () => {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const menor = Math.min(w, h);
+
+    // Una pantalla Retina necesita el doble de pixeles para verse nitida
+    tabla.innerHTML = USOS.map(([donde, px]) => {
+      const necesita = px * 2;
+      const estado = menor >= necesita ? ["bien", "Nitida"]
+        : (menor >= px ? ["medio", "Aceptable, algo blanda"] : ["mal", "Se vera borrosa"]);
+      return `<tr><td>${donde}</td><td>${px} px</td><td>${necesita} px</td>
+        <td class="med ${estado[0]}">${estado[1]}</td></tr>`;
+    }).join("");
+
+    const sinProblema = USOS.filter(([, px]) => menor >= px * 2).length;
+    if (menor >= 208) {
+      veredicto.className = "veredicto ok";
+      veredicto.innerHTML = `<b>La foto mide ${w} x ${h} pixeles</b>
+        Hay resolucion de sobra para todos los sitios donde la app la usa.
+        Si se ve mal, el problema esta en como la pinta la app, no en el origen.`;
+    } else if (menor >= 104) {
+      veredicto.className = "veredicto";
+      veredicto.innerHTML = `<b>La foto mide ${w} x ${h} pixeles</b>
+        Da para ${sinProblema} de ${USOS.length} usos con nitidez total. En los tamanos grandes
+        se vera algo blanda en pantallas Retina, pero es usable.`;
+    } else {
+      veredicto.className = "veredicto mal";
+      veredicto.innerHTML = `<b>La foto mide solo ${w} x ${h} pixeles</b>
+        Es pequena: en los tamanos grandes de la app se vera borrosa y no hay forma de arreglarlo
+        desde el codigo. La unica salida es usar otra foto.`;
+    }
+
+    muestra.innerHTML = USOS.map(([donde, px]) =>
+      `<figure><img src="${url}" style="width:${px}px;height:${px}px;">
+        <figcaption>${px} px<br>${donde}</figcaption></figure>`).join("") +
+      `<figure><img src="${url}" style="width:${Math.min(w, 220)}px;height:auto;border-radius:10px;">
+        <figcaption>Original<br>${w} x ${h}</figcaption></figure>`;
+  };
+
+  img.onerror = () => {
+    veredicto.className = "veredicto mal";
+    veredicto.innerHTML = `<b>No se pudo cargar la imagen</b>
+      Comprueba que la direccion es correcta y que tienes internet.<br><code>${url}</code>`;
+  };
+
+  img.src = url;
+}
+
+document.getElementById("medir").addEventListener("click", () => {
+  const u = document.getElementById("url").value.trim();
+  if (u) medir(u);
+});
+document.getElementById("url").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("medir").click();
+});
+
+medir(document.getElementById("url").value);
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LF2 Stats</title>
+<title>ScoutFlow</title>
 <meta name="description" content="Estadisticas, scouting y analisis de la Liga Femenina 2 de baloncesto.">
 <meta name="theme-color" content="#e0602a">
 <link rel="manifest" href="manifest.json">
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="LF2 Stats">
+<meta name="apple-mobile-web-app-title" content="ScoutFlow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1550,25 +1550,25 @@
 <body>
 
 <div id="impHeader" aria-hidden="true">
-  <div class="ih-izq"><span class="ih-marca">LF2 Stats</span><span class="ih-sub" id="ihSub"></span></div>
+  <div class="ih-izq"><span class="ih-marca">ScoutFlow</span><span class="ih-sub" id="ihSub"></span></div>
   <div class="ih-der" id="ihDer"></div>
 </div>
 <div id="impPie" aria-hidden="true">
-  <span>Fuente: FEB LiveStats · Elaboracion propia con LF2 Stats</span>
+  <span>Fuente: FEB LiveStats · Elaboracion propia con ScoutFlow</span>
   <span id="ipDer">Documento de analisis deportivo</span>
 </div>
 
 <div class="app">
 <div id="barraMovil">
   <button id="btnMenu" aria-label="Abrir el menu">☰</button>
-  <b>LF2 <span>Stats</span></b>
+  <b>Scout<span>Flow</span></b>
   <button id="btnTemaMovil" aria-label="Cambiar el fondo">🌙</button>
 </div>
 <div id="fondoMenu"></div>
 <aside id="barraLateral">
   <div class="marca-app">
     <span class="logo-bola">●</span>
-    <div><b>LF2 <span>Stats</span></b><small id="marcaTemporada">Liga Femenina 2</small></div>
+    <div><b>Scout<span>Flow</span></b><small id="marcaTemporada">Liga Femenina 2</small></div>
   </div>
   <div class="sel-temporada">
     <label for="selTemporada">Temporada</label>
@@ -10258,7 +10258,7 @@ function cabeceraBloqueHtml() {
   const texto = tit && tit.value.trim() ? tit.value.trim() : "Informe tecnico";
   const grupoTxt = grupoActivo ? " · Grupo " + grupoActivo : "";
   return `<div class="inf-cab-bloque">
-    <div class="c-izq"><span class="c-marca">LF2 Stats</span>
+    <div class="c-izq"><span class="c-marca">ScoutFlow</span>
       <span class="c-doc">${escapeHtml(texto + grupoTxt)}</span></div>
     <div class="c-der">Informe tecnico</div>
   </div>`;
@@ -10279,7 +10279,7 @@ function portadaInforme() {
     ? `<div class="ip-pie-dato"><div class="e">${escapeHtml(etiqueta)}</div><div class="v">${escapeHtml(valor)}</div></div>` : "";
 
   return `<div class="inf-portada-pro">
-    <div class="ip-marca"><span class="bola"></span><b>LF2 Stats</b></div>
+    <div class="ip-marca"><span class="bola"></span><b>ScoutFlow</b></div>
     <div class="ip-eyebrow">Informe tecnico de rendimiento</div>
     <div class="ip-titulo">${escapeHtml(tit || "Informe")}</div>
     ${sub ? `<div class="ip-sub">${escapeHtml(sub)}</div>` : ""}
@@ -11041,7 +11041,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02h";
+const VERSION_APP = "2026-10-02i";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
@@ -11154,7 +11154,7 @@ function prepararSelectorTemporada() {
   });
 }
 
-console.log("App LF2 - version", VERSION_APP, "· temporada", temporadaActiva);
+console.log("ScoutFlow - version", VERSION_APP, "· temporada", temporadaActiva);
 prepararSelectorTemporada();
 document.getElementById("lastUpdated").textContent = "Cargando... (v" + VERSION_APP + ")";
 Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
