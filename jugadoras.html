@@ -1086,15 +1086,18 @@ function seccionRivalHtml(sc) {
   }
 
   if (sc.tipo === "plantilla" && (sc.jugadoras || []).length) {
-    return `<div class="seccion-rival">${tit}${sc.jugadoras.map(p => {
+    return `<div class="seccion-rival">${tit}
+      <p style="color:var(--orange);font-weight:800;font-size:13.5px;margin:0 0 8px;">Toca a cada jugadora: dentro están todas sus estadísticas y su mapa de tiro.</p>${sc.jugadoras.map(p => {
       const ini = limpiarNombre(p.nombre).replace(/[^A-Z ]/g, "").trim().slice(0, 2);
       return `<details class="sr-plant"><summary>
         ${p.foto ? `<img src="${esc(p.foto)}" loading="lazy" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:top center;flex:none;"
               onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'sinfoto2',textContent:'${esc(ini)}'}))">`
                : `<div class="sinfoto2" style="width:40px;height:40px;border-radius:50%;background:var(--wood-line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:none;">${esc(ini)}</div>`}
         <div class="sj-info"><b>${p.dorsal ? `<span class="dor">${esc(p.dorsal)}</span>` : ""}${esc(p.nombre)}</b>
-          <div class="sj-datos">${(p.datos || []).map(d => `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div></div></summary>
-        <div class="cuerpo">${extrasJugadoraHtml(p)}</div></details>`;
+          ${p.puesto ? `<div class="sj-puesto">${esc(p.puesto)}</div>` : ""}
+          <div class="sj-datos">${(p.datos || []).map(d => `<span><i>${esc(d.et)}</i>${esc(d.v)}</span>`).join("")}</div>
+          <div style="font-size:12px;font-weight:800;color:var(--orange);margin-top:3px;">▸ Toca para ver todas sus estadísticas y su mapa de tiro</div></div></summary>
+        <div class="cuerpo">${p.nota ? `<div class="sj-nota">${esc(p.nota)}</div>` : ""}${extrasJugadoraHtml(p)}</div></details>`;
     }).join("")}</div>`;
   }
 

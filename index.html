@@ -6012,9 +6012,17 @@ function informeHtml(nombre) {
     ${mejoresPeoresHtml(nombre)}
 
     <h3 class="section-title">Perfiles de jugadoras</h3>
-    <p class="hint" style="margin:-6px 0 6px;">Las mas valoradas del equipo. Escribe como defenderlas.</p>
-    ${destacadas.length ? destacadas.map(r => fichaJugadoraInformeHtml(cellText(r, "Jugador"), nombre, inf)).join("")
-      : `<p class="hint">Proximamente: sin datos de jugadoras de este equipo.</p>`}
+    <p class="hint" style="margin:-6px 0 6px;">Toda la plantilla, de mas a menos valorada. Escribe el puesto y como defenderlas: llega a tus jugadoras tal cual.</p>
+    ${(() => {
+      const todas = plantillaDe(nombre).map(f => f.jugadora);
+      const nombres = todas.length ? todas : destacadas.map(r => cellText(r, "Jugador"));
+      if (!nombres.length) return `<p class="hint">Proximamente: sin datos de jugadoras de este equipo.</p>`;
+      const primeras = nombres.slice(0, 8).map(n => fichaJugadoraInformeHtml(n, nombre, inf)).join("");
+      const resto = nombres.slice(8);
+      return primeras + (resto.length ? `<details class="resto-plantilla" style="margin-top:10px;">
+        <summary style="cursor:pointer;font-weight:800;color:var(--orange);">Resto de la plantilla (${resto.length}) · tambien puedes escribir su puesto y como defenderlas</summary>
+        ${resto.map(n => fichaJugadoraInformeHtml(n, nombre, inf)).join("")}</details>` : "");
+    })()}
 
     <h3 class="section-title">Jugadas del rival</h3>
     <p class="hint" style="margin:-6px 0 6px;">Sus sistemas, con la pizarra o el video si lo tienes.</p>
@@ -6517,8 +6525,6 @@ function trozosEnvio(nombre) {
               ? fotoJugadora(f2.jugadora, nombre, f2.foto || fotoEnRankings(f2.jugadora, nombre)) : (f2.foto || fotoEnRankings(f2.jugadora, nombre)),
             datos: [["PT", "PTS"], ["RT", "REB"], ["AS", "AS"], ["VAL", "VAL"]]
               .map(([k, et]) => ({ et, v: (f2[k] != null && f2[k] !== "") ? String(f2[k]) : "–" })),
-            mapa: mapaTiroParaEnvio(f2.jugadora, nombre),
-            todas: (typeof todasStatsJugadora === "function") ? todasStatsJugadora(f2.jugadora, nombre).map(d => ({ et: d.et, v: d.v })) : [],
           };
         }),
       },
@@ -6540,6 +6546,8 @@ function trozosEnvio(nombre) {
           datos: COLS.map(([corta, et]) => ({ et, v: (f2[corta] != null && f2[corta] !== "") ? String(f2[corta]) : "–" })),
           todas: todasStatsJugadora(f2.jugadora, nombre).map(d => ({ et: d.et, v: d.v })),
           mapa: mapaTiroParaEnvio(f2.jugadora, nombre),
+          puesto: (notaDe(f2.jugadora).posicion || "").trim(),
+          nota: (notaDe(f2.jugadora).texto || "").trim(),
         })),
       },
     });
