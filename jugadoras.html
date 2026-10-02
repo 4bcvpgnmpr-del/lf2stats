@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b2430">
+<title>Mi perfil · LF2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --wood:#fdf8f2; --wood-line:#e4dcd0; --ink:#1b2430; --ink-soft:#5a6472;
+    --white:#ffffff; --suave:#f7f3ec; --orange:#e0602a; --orange-dark:#c44f1e;
+    --verde:#1f7a5a; --verde-suave:#eef7f2; --rojo:#b4470f; --rojo-suave:#fdf0ec;
+    --sombra:rgba(27,36,50,.10);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--wood);color:var(--ink);
+    font-family:'Archivo',system-ui,sans-serif;font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .envoltorio{max-width:620px;margin:0 auto;padding:0 14px 60px;}
+  h1,h2,h3{font-family:'Archivo Black',sans-serif;letter-spacing:-.3px;margin:0;}
+
+  /* ---------- Entrar ---------- */
+  .entrar{min-height:100svh;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:24px 18px;}
+  .marca{display:flex;align-items:center;gap:10px;}
+  .marca .bola{width:34px;height:34px;border-radius:50%;background:var(--orange);flex:none;}
+  .marca b{font-family:'Archivo Black',sans-serif;font-size:21px;}
+  .marca span{color:var(--orange);}
+  .caja{background:var(--white);border:1.5px solid var(--wood-line);border-radius:16px;
+        padding:20px;box-shadow:0 6px 22px var(--sombra);}
+  label{display:block;font-size:12.5px;font-weight:800;text-transform:uppercase;
+        letter-spacing:.08em;color:var(--ink-soft);margin-bottom:6px;}
+  input[type=email]{
+    width:100%;font-family:inherit;font-size:16px;padding:13px 14px;
+    border:1.5px solid var(--wood-line);border-radius:10px;background:var(--suave);color:var(--ink);
+  }
+  input[type=email]:focus{outline:none;border-color:var(--orange);background:var(--white);}
+  .boton{
+    width:100%;margin-top:12px;font-family:inherit;font-size:16px;font-weight:800;
+    padding:14px;border:0;border-radius:10px;background:var(--orange);color:#fff;cursor:pointer;
+  }
+  .boton:active{background:var(--orange-dark);}
+  .boton[disabled]{opacity:.55;cursor:default;}
+  .boton.suave{background:var(--ink);}
+  .aviso{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:14px;}
+  .aviso.ok{background:var(--verde-suave);border:1.5px solid #cfe6da;color:#14543d;}
+  .aviso.mal{background:var(--rojo-suave);border:1.5px solid #f0cdbe;color:#8a3608;}
+  .pie{font-size:12.5px;color:var(--ink-soft);text-align:center;}
+
+  /* ---------- Cabecera ---------- */
+  .cabecera{
+    background:var(--ink);color:#fff;border-radius:0 0 22px 22px;
+    padding:18px 16px 22px;margin:0 -14px 18px;display:flex;gap:14px;align-items:center;
+  }
+  .cabecera img, .cabecera .sinfoto{
+    width:68px;height:68px;border-radius:50%;object-fit:cover;object-position:top center;
+    flex:none;background:#2c3747;box-shadow:0 0 0 3px rgba(255,255,255,.14);
+  }
+  .cabecera .sinfoto{display:flex;align-items:center;justify-content:center;
+    font-family:'Archivo Black',sans-serif;font-size:21px;color:#8995a6;}
+  .cabecera h1{font-size:21px;line-height:1.15;}
+  .cabecera .eq{font-size:13.5px;opacity:.75;margin-top:3px;}
+  .salir{margin-left:auto;background:none;border:1.5px solid rgba(255,255,255,.3);
+    color:#fff;border-radius:20px;padding:6px 12px;font-family:inherit;font-size:12.5px;cursor:pointer;}
+
+  /* ---------- Pestanas ---------- */
+  .pestanas{display:flex;gap:6px;margin-bottom:16px;}
+  .pestanas button{
+    flex:1;font-family:inherit;font-size:13.5px;font-weight:800;padding:11px 6px;
+    border:1.5px solid var(--wood-line);background:var(--white);color:var(--ink-soft);
+    border-radius:11px;cursor:pointer;position:relative;
+  }
+  .pestanas button.activa{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .pestanas .punto{
+    position:absolute;top:6px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--orange);
+  }
+  .pestanas button.activa .punto{background:#fff;}
+
+  [hidden]{display:none !important;}   /* si no, el display:flex gana y se ve todo a la vez */
+
+  /* ---------- Numeros ---------- */
+  .rejilla{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px;}
+  .dato{background:var(--white);border:1.5px solid var(--wood-line);border-radius:13px;
+        padding:12px 8px;text-align:center;}
+  .dato .v{font-family:'Archivo Black',sans-serif;font-size:23px;line-height:1.1;}
+  .dato .l{font-size:10.5px;font-weight:800;text-transform:uppercase;
+           letter-spacing:.06em;color:var(--ink-soft);margin-top:3px;}
+  .bloque{background:var(--white);border:1.5px solid var(--wood-line);border-radius:15px;
+          padding:16px;margin-bottom:14px;}
+  .bloque h3{font-size:15.5px;margin-bottom:4px;}
+  .bloque .expl{font-size:13px;color:var(--ink-soft);margin:0 0 12px;}
+
+  .barra{margin-bottom:13px;}
+  .barra .arriba{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;}
+  .barra .arriba b{font-weight:800;}
+  .barra .pista{height:9px;border-radius:5px;background:var(--suave);position:relative;overflow:hidden;}
+  .barra .relleno{height:100%;border-radius:5px;background:var(--orange);}
+  .barra .relleno.alto{background:var(--verde);}
+  .barra .relleno.bajo{background:var(--rojo);}
+  .barra .pie-barra{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
+
+  /* ---------- Mensajes ---------- */
+  .mensaje{background:var(--white);border:1.5px solid var(--wood-line);
+           border-left:4px solid var(--orange);border-radius:12px;padding:14px;margin-bottom:11px;}
+  .mensaje.nuevo{background:var(--rojo-suave);}
+  .mensaje .cab{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:5px;}
+  .mensaje .cab b{font-size:14.5px;}
+  .mensaje .cab span{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+  .mensaje p{margin:0;white-space:pre-wrap;font-size:14.5px;}
+  .etiqueta-nuevo{background:var(--orange);color:#fff;font-size:10.5px;font-weight:800;
+    border-radius:10px;padding:2px 7px;text-transform:uppercase;letter-spacing:.05em;}
+
+  /* ---------- Objetivos ---------- */
+  .objetivo{display:flex;gap:11px;align-items:flex-start;background:var(--white);
+    border:1.5px solid var(--wood-line);border-radius:12px;padding:13px;margin-bottom:9px;}
+  .objetivo .marca-ob{width:22px;height:22px;border-radius:50%;flex:none;margin-top:1px;
+    border:2px solid var(--wood-line);display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:#fff;}
+  .objetivo.hecho .marca-ob{background:var(--verde);border-color:var(--verde);}
+  .objetivo .txt{font-size:14.5px;}
+  .objetivo .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  /* ---------- Clips ---------- */
+  .clip{background:var(--white);border:1.5px solid var(--wood-line);border-radius:14px;
+        overflow:hidden;margin-bottom:13px;}
+  .clip .marco{position:relative;padding-bottom:56.25%;height:0;background:#000;}
+  .clip .marco iframe, .clip .marco video{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .clip .fuera{padding:22px 16px;text-align:center;background:var(--suave);}
+  .clip .texto{padding:12px 14px;}
+  .clip .texto b{font-size:14.5px;}
+  .clip .texto p{margin:4px 0 0;font-size:13.5px;color:var(--ink-soft);white-space:pre-wrap;}
+
+  .vacio{text-align:center;color:var(--ink-soft);font-size:14px;padding:30px 16px;
+         background:var(--white);border:1.5px dashed var(--wood-line);border-radius:14px;}
+  .cargando{text-align:center;color:var(--ink-soft);padding:40px 0;font-size:14px;}
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-tema="claro"]){
+      --wood:#161b22; --wood-line:#2b3341; --ink:#eef1f5; --ink-soft:#9aa5b4;
+      --white:#1d242e; --suave:#232b36; --verde-suave:#16302a; --rojo-suave:#33211a;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ ENTRAR ============ -->
+<div class="entrar" id="pantallaEntrar">
+  <div class="envoltorio" style="padding:0;">
+    <div class="marca" style="margin-bottom:18px;">
+      <div class="bola"></div><b>LF2 <span>Stats</span></b>
+    </div>
+    <h1 style="font-size:25px;margin-bottom:8px;">Tu perfil</h1>
+    <p style="color:var(--ink-soft);margin:0 0 18px;">
+      Tus estadisticas, los videos que te manda el entrenador y sus mensajes para ti.
+    </p>
+    <div class="caja">
+      <label for="correo">Tu correo</label>
+      <input type="email" id="correo" placeholder="nombre@correo.com"
+             autocomplete="email" inputmode="email" autocapitalize="off">
+      <button class="boton" id="btnEntrar">Enviarme el enlace</button>
+      <div id="avisoEntrar"></div>
+      <p class="pie" style="margin:14px 0 0;">
+        No hay contrasena. Te llega un correo con un enlace: lo abres y ya estas dentro.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PERFIL ============ -->
+<div id="pantallaPerfil" hidden>
+  <div class="envoltorio">
+    <div class="cabecera" id="cabecera"></div>
+
+    <div class="pestanas">
+      <button data-tab="numeros" class="activa">Mis numeros</button>
+      <button data-tab="mensajes">Mensajes<span class="punto" id="puntoMensajes" hidden></span></button>
+      <button data-tab="clips">Videos</button>
+    </div>
+
+    <section id="tab-numeros"></section>
+    <section id="tab-mensajes" hidden></section>
+    <section id="tab-clips" hidden></section>
+
+    <p class="pie" style="margin-top:22px;">
+      Datos de la FEB · <span id="pieVersion"></span>
+    </p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACION  ·  lo unico que hay que tocar
+   ============================================================ */
+const CONFIG = {
+  // Supabase -> Project Settings -> API
+  SUPABASE_URL: "https://tizmzblksovdqqnlxpli.supabase.co",
+  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo",
+
+  // El mismo Google Sheet que usa la app del entrenador
+  SHEET_ID: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94",
+  TEMPORADA: "_2026",     // "" para 2025/26, "_2026" para 2026/27
+};
+const VERSION = "2026-10-02";
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? "" : t)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+function limpiarNombre(t) {
+  return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ").trim().toUpperCase();
+}
+function fechaCorta(iso) {
+  try {
+    return new Date(iso).toLocaleDateString("es-ES",
+      { day: "2-digit", month: "short", year: "numeric" });
+  } catch (e) { return ""; }
+}
+function numero(txt) {
+  if (txt === null || txt === undefined || txt === "") return null;
+  const n = parseFloat(String(txt).replace("%", "").replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+function conComa(n, dec) {
+  if (n === null || n === undefined) return "–";
+  return Number(n).toFixed(dec === undefined ? 1 : dec).replace(".", ",");
+}
+
+/* Lee una pestana del Google Sheet. Igual que en la app del entrenador:
+   JSONP, porque el Sheet no deja leerlo de la forma normal. */
+function leerPestana(nombreTab) {
+  return new Promise((ok) => {
+    const tab = nombreTab + CONFIG.TEMPORADA;
+    const cb = "lf2cb_" + Math.random().toString(36).slice(2);
+    const limpiar = () => {
+      delete window[cb];
+      if (guion.parentNode) guion.parentNode.removeChild(guion);
+      clearTimeout(reloj);
+    };
+    window[cb] = (resp) => {
+      limpiar();
+      const t = resp && resp.table;
+      if (!t || !t.cols) return ok(null);
+      const cols = t.cols.map(c => (c.label || c.id || "").trim());
+      const filas = (t.rows || []).map(r => {
+        const o = {};
+        cols.forEach((c, i) => {
+          const celda = r.c && r.c[i];
+          o[c] = celda ? (celda.f != null ? celda.f : (celda.v != null ? celda.v : "")) : "";
+        });
+        return o;
+      });
+      ok({ cols, filas });
+    };
+    const guion = document.createElement("script");
+    guion.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq`
+      + `?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(tab)}`;
+    guion.onerror = () => { limpiar(); ok(null); };
+    const reloj = setTimeout(() => { limpiar(); ok(null); }, 15000);
+    document.head.appendChild(guion);
+  });
+}
+
+/* ============================================================
+   ENTRAR Y SALIR
+   ============================================================ */
+let sb = null;
+let jugadora = null;
+
+function arrancarSupabase() {
+  if (!window.supabase || !window.supabase.createClient) return null;
+  if (CONFIG.SUPABASE_ANON.indexOf("PEGA_AQUI") === 0) return null;
+  return window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON);
+}
+
+function avisar(donde, texto, tipo) {
+  $(donde).innerHTML = `<div class="aviso ${tipo}">${esc(texto)}</div>`;
+}
+
+async function pedirEnlace() {
+  const correo = $("correo").value.trim();
+  if (!correo || correo.indexOf("@") < 1) {
+    avisar("avisoEntrar", "Escribe tu correo completo.", "mal");
+    return;
+  }
+  if (!sb) {
+    avisar("avisoEntrar", "La app todavia no esta conectada. Avisa al entrenador.", "mal");
+    return;
+  }
+  const btn = $("btnEntrar");
+  btn.disabled = true; btn.textContent = "Enviando...";
+  const { error } = await sb.auth.signInWithOtp({
+    email: correo,
+    options: { emailRedirectTo: location.href.split("#")[0] },
+  });
+  btn.disabled = false; btn.textContent = "Enviarme el enlace";
+  if (error) {
+    avisar("avisoEntrar", "No se ha podido enviar: " + error.message, "mal");
+    return;
+  }
+  avisar("avisoEntrar",
+    "Listo. Mira tu correo y abre el enlace desde este mismo movil. "
+    + "Si no lo ves, revisa la carpeta de spam.", "ok");
+}
+
+async function salir() {
+  if (sb) await sb.auth.signOut();
+  location.reload();
+}
+
+/* ============================================================
+   CARGAR LO SUYO
+   ============================================================ */
+async function cargarPerfil(sesion) {
+  $("pantallaEntrar").hidden = true;
+  $("pantallaPerfil").hidden = false;
+  $("pieVersion").textContent = "v" + VERSION;
+  $("tab-numeros").innerHTML = `<p class="cargando">Cargando tus datos...</p>`;
+
+  const correo = (sesion.user && sesion.user.email) || "";
+
+  // 1) Su ficha. Las reglas del servidor solo le dejan ver la suya.
+  const { data: fichas, error } = await sb.from("jugadoras").select("*").limit(5);
+  if (error) {
+    $("tab-numeros").innerHTML =
+      `<div class="vacio">No se han podido cargar tus datos.<br><br>${esc(error.message)}</div>`;
+    return;
+  }
+  jugadora = (fichas || []).find(f => (f.email || "").toLowerCase() === correo.toLowerCase())
+             || (fichas || [])[0];
+
+  if (!jugadora) {
+    $("cabecera").innerHTML = `<div><h1>Hola</h1><div class="eq">${esc(correo)}</div></div>
+      <button class="salir" id="btnSalir">Salir</button>`;
+    $("btnSalir").addEventListener("click", salir);
+    $("tab-numeros").innerHTML = `<div class="vacio">
+      Tu correo todavia no esta dado de alta.<br><br>
+      Dile al entrenador que anada <b>${esc(correo)}</b> a tu ficha.</div>`;
+    return;
+  }
+
+  pintarCabecera(null);
+  cargarMensajes();
+  cargarClips();
+  cargarNumeros();
+}
+
+function pintarCabecera(foto) {
+  const iniciales = limpiarNombre(jugadora.nombre).slice(0, 2);
+  $("cabecera").innerHTML = `
+    ${foto ? `<img src="${esc(foto)}" alt="" onerror="this.outerHTML='<div class=\\'sinfoto\\'>${esc(iniciales)}</div>'">`
+           : `<div class="sinfoto">${esc(iniciales)}</div>`}
+    <div style="min-width:0;">
+      <h1>${esc(jugadora.nombre)}</h1>
+      <div class="eq">${esc(jugadora.equipo || "")}${jugadora.dorsal ? " · dorsal " + esc(jugadora.dorsal) : ""}</div>
+    </div>
+    <button class="salir" id="btnSalir">Salir</button>`;
+  $("btnSalir").addEventListener("click", salir);
+}
+
+/* ---------- Pestana 1: sus numeros ----------
+   Cada estadistica es una pestana distinta del Sheet (son los rankings de la
+   FEB) y todas tienen la misma forma: Jugador, Equipo, Tot, Part, Med, Grupo. */
+const CATEGORIAS = [
+  { tab: "Jugadoras",                  et: "Puntos",       corta: "PTS",  pct: false },
+  { tab: "Jugadoras_Rebotes_Totales",  et: "Rebotes",      corta: "REB",  pct: false },
+  { tab: "Jugadoras_Asistencias",      et: "Asistencias",  corta: "AS",   pct: false },
+  { tab: "Jugadoras_Valoracion",       et: "Valoracion",   corta: "VAL",  pct: false },
+  { tab: "Jugadoras_Minutos_Jugados",  et: "Minutos",      corta: "MIN",  pct: false },
+  { tab: "Jugadoras_Robos",            et: "Robos",        corta: "ROB",  pct: false },
+  { tab: "Jugadoras_Pct_Tiros_2",      et: "Tiros de 2",   corta: "2P%",  pct: true },
+  { tab: "Jugadoras_Pct_Tiros_3",      et: "Triples",      corta: "3P%",  pct: true },
+  { tab: "Jugadoras_Pct_Tiros_Libres", et: "Tiros libres", corta: "TL%",  pct: true },
+];
+
+/* La FEB escribe "APELLIDO, NOMBRE" en los rankings y "NOMBRE APELLIDO" en las
+   plantillas. Se comparan las palabras ordenadas, asi da igual el orden. */
+function claveNombre(txt) {
+  return limpiarNombre(txt).replace(/[.,]/g, " ")
+    .split(/\s+/).filter(Boolean).sort().join(" ");
+}
+
+async function cargarNumeros() {
+  const caja = $("tab-numeros");
+  const mia = claveNombre(jugadora.nombre);
+
+  const tabs = await Promise.all(
+    [leerPestana("Plantillas")].concat(CATEGORIAS.map(c => leerPestana(c.tab)))
+  );
+  const plantillas = tabs[0];
+
+  // Foto y ficha oficial
+  let foto = "", ficha = null;
+  if (plantillas && plantillas.filas.length) {
+    ficha = plantillas.filas.find(f => claveNombre(f.Jugadora) === mia);
+    if (ficha) foto = ficha.FotoURL || "";
+  }
+  pintarCabecera(foto);
+
+  // Su fila en cada ranking, con su percentil dentro de su grupo
+  const encontrado = [];
+  CATEGORIAS.forEach((c, i) => {
+    const datos = tabs[i + 1];
+    if (!datos || !datos.filas.length) return;
+    const fila = datos.filas.find(f => claveNombre(f.Jugador || f.Jugadora) === mia);
+    if (!fila) return;
+    const valor = numero(fila.Med !== undefined ? fila.Med : fila.Media);
+    if (valor === null) return;
+
+    const grupo = (fila.Grupo || "").trim();
+    const rivales = datos.filas.filter(f => !grupo || (f.Grupo || "").trim() === grupo);
+    const valores = rivales.map(f => numero(f.Med !== undefined ? f.Med : f.Media))
+      .filter(v => v !== null);
+    const pordebajo = valores.filter(v => v < valor).length;
+    const puesto = valores.filter(v => v > valor).length + 1;
+
+    encontrado.push({
+      et: c.et, corta: c.corta, pct: c.pct, valor,
+      partidos: numero(fila.Part),
+      total: numero(fila.Tot),
+      percentil: valores.length >= 8 ? Math.round(pordebajo / valores.length * 100) : null,
+      puesto, cuantas: valores.length, grupo,
+    });
+  });
+
+  if (!encontrado.length) {
+    const hayAlgo = tabs.slice(1).some(t => t && t.filas.length);
+    caja.innerHTML = `<div class="vacio">${hayAlgo
+      ? "Todavia no apareces en las estadisticas de la FEB.<br><br>Puede ser que aun no hayas jugado los minutos minimos que pide."
+      : "La temporada aun no ha empezado.<br><br>En cuanto se juegue la primera jornada veras aqui tus numeros y tu sitio en la liga."}</div>`;
+    return;
+  }
+
+  // Tarjetas con sus medias
+  let html = `<div class="rejilla">`;
+  encontrado.slice(0, 6).forEach(d => {
+    html += `<div class="dato">
+      <div class="v">${conComa(d.valor, d.pct ? 1 : 1)}${d.pct ? "%" : ""}</div>
+      <div class="l">${esc(d.et)}</div></div>`;
+  });
+  html += `</div>`;
+
+  const pj = encontrado.map(d => d.partidos).filter(v => v)[0];
+  const grupo = encontrado.map(d => d.grupo).filter(Boolean)[0];
+  if (pj) {
+    html += `<p class="expl" style="margin:-6px 0 14px;text-align:center;">
+      Medias por partido en ${conComa(pj, 0)} partidos jugados${grupo ? " · grupo " + esc(grupo) : ""}.</p>`;
+  }
+
+  // Barras de percentil
+  let barras = "";
+  encontrado.forEach(d => {
+    if (d.percentil === null) return;
+    const clase = d.percentil >= 70 ? "alto" : (d.percentil <= 30 ? "bajo" : "");
+    barras += `<div class="barra">
+      <div class="arriba"><span>${esc(d.et)}</span>
+        <b>${conComa(d.valor, 1)}${d.pct ? "%" : ""}</b></div>
+      <div class="pista"><div class="relleno ${clase}" style="width:${Math.max(3, d.percentil)}%"></div></div>
+      <div class="pie-barra">Mejor que el ${d.percentil}% · puesto ${d.puesto} de ${d.cuantas}</div>
+    </div>`;
+  });
+  if (barras) {
+    html += `<div class="bloque"><h3>Tu sitio en la liga</h3>
+      <p class="expl">Cuanto mas llena la barra, mejor estas en esa faceta comparada
+      con las demas jugadoras${grupo ? " de tu grupo" : ""}.</p>${barras}</div>`;
+  }
+
+  // Ficha oficial de la FEB
+  if (ficha) {
+    const datos = [["Puesto", ficha.Puesto], ["Altura", ficha.Altura],
+                   ["Edad", ficha.Edad ? ficha.Edad + " anos" : ""],
+                   ["Nacionalidad", ficha.Nacionalidad]].filter(d => d[1]);
+    if (datos.length) {
+      html += `<div class="bloque"><h3>Tu ficha en la FEB</h3>
+        <div class="rejilla" style="margin:10px 0 0;">
+        ${datos.map(d => `<div class="dato"><div class="v" style="font-size:16px;">${esc(d[1])}</div>
+          <div class="l">${esc(d[0])}</div></div>`).join("")}</div></div>`;
+    }
+  }
+
+  caja.innerHTML = html;
+}
+
+/* ---------- Pestana 2: mensajes ---------- */
+async function cargarMensajes() {
+  const caja = $("tab-mensajes");
+  const { data, error } = await sb.from("mensajes")
+    .select("*").eq("jugadora_id", jugadora.id).order("fecha", { ascending: false });
+  if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
+
+  const lista = data || [];
+  const sinLeer = lista.filter(m => !m.leido_el).length;
+  $("puntoMensajes").hidden = sinLeer === 0;
+
+  if (!lista.length) {
+    caja.innerHTML = `<div class="vacio">Todavia no tienes mensajes.</div>`;
+    return;
+  }
+  caja.innerHTML = lista.map(m => `
+    <div class="mensaje ${m.leido_el ? "" : "nuevo"}">
+      <div class="cab">
+        <b>${esc(m.titulo || "Mensaje del entrenador")}</b>
+        <span>${m.leido_el ? "" : `<span class="etiqueta-nuevo">nuevo</span> `}${esc(fechaCorta(m.fecha))}</span>
+      </div>
+      <p>${esc(m.texto)}</p>
+    </div>`).join("");
+
+  // Se marcan como leidos al abrir la pestana, no antes
+}
+
+async function marcarLeidos() {
+  if (!sb || !jugadora) return;
+  const ahora = new Date().toISOString();
+  await sb.from("mensajes").update({ leido_el: ahora })
+    .eq("jugadora_id", jugadora.id).is("leido_el", null);
+  $("puntoMensajes").hidden = true;
+  document.querySelectorAll("#tab-mensajes .mensaje.nuevo").forEach(n => {
+    n.classList.remove("nuevo");
+    const et = n.querySelector(".etiqueta-nuevo");
+    if (et) et.remove();
+  });
+}
+
+/* ---------- Pestana 3: clips ---------- */
+function incrustar(url) {
+  const u = String(url || "").trim();
+  let m = u.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/i);
+  if (m) return { tipo: "iframe", src: `https://www.youtube-nocookie.com/embed/${m[1]}` };
+  m = u.match(/vimeo\.com\/(\d+)/i);
+  if (m) return { tipo: "iframe", src: `https://player.vimeo.com/video/${m[1]}` };
+  m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/i);
+  if (m) return { tipo: "iframe", src: `https://drive.google.com/file/d/${m[1]}/preview` };
+  if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(u)) return { tipo: "video", src: u };
+  return { tipo: "fuera", src: u };
+}
+
+async function cargarClips() {
+  const caja = $("tab-clips");
+  const { data, error } = await sb.from("clips")
+    .select("*").eq("jugadora_id", jugadora.id).order("fecha", { ascending: false });
+  if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
+
+  const lista = data || [];
+  if (!lista.length) {
+    caja.innerHTML = `<div class="vacio">Todavia no tienes videos.</div>`;
+    return;
+  }
+  caja.innerHTML = lista.map(c => {
+    const e = incrustar(c.url);
+    const t = c.segundos ? `?start=${c.segundos}` : "";
+    let marco;
+    if (e.tipo === "iframe") {
+      marco = `<div class="marco"><iframe src="${esc(e.src + t)}" loading="lazy"
+        allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
+    } else if (e.tipo === "video") {
+      marco = `<div class="marco"><video src="${esc(e.src + (c.segundos ? "#t=" + c.segundos : ""))}"
+        controls playsinline preload="metadata"></video></div>`;
+    } else {
+      marco = `<div class="fuera"><a class="boton" style="display:inline-block;width:auto;padding:12px 20px;
+        text-decoration:none;" href="${esc(e.src)}" target="_blank" rel="noopener">Abrir el video</a></div>`;
+    }
+    return `<div class="clip">${marco}
+      <div class="texto"><b>${esc(c.titulo || "Video")}</b>
+      ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}</div></div>`;
+  }).join("");
+}
+
+/* ============================================================
+   PESTANAS
+   ============================================================ */
+document.querySelectorAll(".pestanas button").forEach(b => {
+  b.addEventListener("click", () => {
+    const t = b.getAttribute("data-tab");
+    document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
+    ["numeros", "mensajes", "clips"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
+    if (t === "mensajes") marcarLeidos();
+  });
+});
+$("btnEntrar").addEventListener("click", pedirEnlace);
+$("correo").addEventListener("keydown", (e) => { if (e.key === "Enter") pedirEnlace(); });
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+(async function arrancar() {
+  sb = arrancarSupabase();
+  if (!sb) {
+    avisar("avisoEntrar",
+      "Falta configurar la clave de la app. Si eres el entrenador, pega la clave "
+      + "anon public en el apartado CONFIG del archivo.", "mal");
+    return;
+  }
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) { cargarPerfil(data.session); return; }
+  sb.auth.onAuthStateChange((evento, sesion) => {
+    if (sesion && $("pantallaPerfil").hidden) cargarPerfil(sesion);
+  });
+})();
+</script>
+</body>
+</html>
