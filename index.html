@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 <style>
   :root{
     --wood:#faf6ee;
@@ -5910,6 +5911,7 @@ function informeHtml(nombre) {
     <div class="informe-barra">
       <div><b>Informe de scouting</b><span class="hint"> · se guarda solo al salir de cada casilla</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-partido" id="btnMandarJugadoras" style="background:var(--verde,#1f7a5a);">Enviar a mis jugadoras</button>
         <button class="btn-partido" id="btnImprimirInforme">Imprimir o guardar en PDF</button>
       </div>
     </div>
@@ -6007,6 +6009,13 @@ function estilosImpresionInforme() {
     .jugada .imgs img{object-fit:contain;background:#fff;border:1px solid #d9d2c8;}
     .jugada a{text-decoration:none;}
     .jugada .enlace{font-size:8pt;color:#444;word-break:break-all;}
+    .mp-bloque{border:1px solid #d9d2c8;border-radius:4px;padding:8px 10px;margin-bottom:8px;page-break-inside:avoid;}
+    .mp-bloque .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:5px;}
+    .mp-tit{display:inline-block;font-size:7.5pt;font-weight:700;text-transform:uppercase;
+      letter-spacing:.06em;padding:1px 6px;border-radius:8px;margin-bottom:3px;}
+    .mp-tit.buena{background:#eef7f2;color:#1f7a5a;}
+    .mp-tit.mala{background:#fdf0ec;color:#b4470f;}
+    .mp-bloque .linea{display:flex;justify-content:space-between;gap:8px;font-size:9pt;padding:1px 0;}
     .pie{margin-top:16px;padding-top:6px;border-top:1px solid #d9d2c8;font-size:8pt;color:#777;text-align:center;}
   `;
 }
@@ -6035,6 +6044,26 @@ function htmlImpresionInforme(nombre) {
   // Plantilla
   const filas = plantillaDe(nombre);
   const cols = STATS_FICHA.map(([, corta]) => corta);
+
+  // Mejores y peores de cada faceta, dentro del propio equipo.
+  // Esto salia en pantalla pero se habia quedado fuera del PDF.
+  const mejoresPeores = filas.length < 2 ? "" : (() => {
+    const bloques = STATS_FICHA.map(([, corta, larga]) => {
+      const con = filas
+        .map(f => ({ j: f.jugadora, v: parseSpanishNumber(f[corta]), t: f[corta] }))
+        .filter(x => x.v !== null && x.t !== "" && x.t !== null)
+        .sort((x, y) => y.v - x.v);
+      if (con.length < 2) return "";
+      const linea = (x, clase) => `<div class="linea ${clase}"><span>${esc(x.j)}</span><b>${esc(x.t)}</b></div>`;
+      return `<div class="mp-bloque">
+        <b style="font-size:9.5pt;">${esc(larga)}</b>
+        <div class="cols">
+          <div><span class="mp-tit buena">Mejores</span>${con.slice(0, 3).map(x => linea(x, "buena")).join("")}</div>
+          <div><span class="mp-tit mala">Peores</span>${con.slice(-2).reverse().map(x => linea(x, "mala")).join("")}</div>
+        </div></div>`;
+    }).filter(Boolean).join("");
+    return bloques;
+  })();
   const tablaPlantilla = filas.length ? `<table><thead><tr><th>Jugadora</th><th>PJ</th>
       ${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>
       ${filas.map(f => `<tr><td>${f.dorsal ? esc(f.dorsal) + " · " : ""}${esc(f.jugadora)}</td><td>${esc(f.partidos || "")}</td>
@@ -6097,6 +6126,7 @@ function htmlImpresionInforme(nombre) {
     ${CAMPOS_INFORME.map(c => `<h2>${esc(c.titulo)}</h2><div class="texto">${texto(inf.campos[c.id])}</div>`).join("")}
 
     ${tablaPlantilla ? `<h2>Plantilla completa</h2>${tablaPlantilla}` : ""}
+    ${mejoresPeores ? `<h2>Mejores y peores del equipo</h2>${mejoresPeores}` : ""}
     ${perfiles ? `<h2>Perfiles de jugadoras</h2>${perfiles}` : ""}
     ${jugadas ? `<div class="pagina-nueva"><h2>Jugadas del rival</h2>${jugadas}</div>` : ""}
 
@@ -6198,6 +6228,239 @@ function wireInforme(contenedor) {
 
   const btn = panel.querySelector("#btnImprimirInforme");
   if (btn) btn.addEventListener("click", () => imprimirInforme(nombre));
+
+  const btnMandar = panel.querySelector("#btnMandarJugadoras");
+  if (btnMandar) btnMandar.addEventListener("click", () => abrirEnvioJugadoras(nombre));
+}
+
+/* ============================================================
+   ENVIAR ESTE SCOUTING A LAS JUGADORAS
+   Se manda desde aqui mismo, sin pasar por el panel. Usa la sesion
+   que ya abriste en "Mis jugadoras": es el mismo navegador.
+   ============================================================ */
+const SB_JUG = {
+  url: "https://tizmzblksovdqqnlxpli.supabase.co",
+  anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo",
+};
+let sbJug = null;
+function clienteJugadoras() {
+  if (sbJug) return sbJug;
+  if (!window.supabase || !window.supabase.createClient) return null;
+  sbJug = window.supabase.createClient(SB_JUG.url, SB_JUG.anon);
+  return sbJug;
+}
+
+const CAMPOS_ENVIO = [
+  { id: "estilo", titulo: "Estilo de juego", porDefecto: true },
+  { id: "fortalezas", titulo: "Puntos fuertes", porDefecto: true },
+  { id: "debilidades", titulo: "Puntos debiles", porDefecto: true },
+  { id: "ataque", titulo: "Sistemas de ataque", porDefecto: false },
+  { id: "defensa", titulo: "Defensa", porDefecto: false },
+  { id: "especiales", titulo: "Situaciones especiales", porDefecto: false },
+  { id: "claves", titulo: "Claves del partido", porDefecto: true },
+];
+
+/* Todo lo que hay escrito de ese rival, listo para elegir */
+function trozosEnvio(nombre) {
+  const f = scoutFicha("equipos", nombre);
+  const campos = (f.informe && f.informe.campos) ? f.informe.campos : {};
+  const trozos = CAMPOS_ENVIO
+    .filter(c => String(campos[c.id] || "").trim())
+    .map(c => ({ id: c.id, titulo: c.titulo, texto: String(campos[c.id]).trim(), porDefecto: c.porDefecto }));
+
+  const notas = (f.notas || []).filter(n => String(n.texto || "").trim());
+  if (notas.length) trozos.push({
+    id: "__notas", titulo: `Notas (${notas.length})`, porDefecto: false,
+    texto: notas.map(n => {
+      const et = (n.etiquetas || []).length ? ` [${n.etiquetas.join(", ")}]` : "";
+      return `· ${String(n.texto).trim()}${et}`;
+    }).join("\n\n"),
+  });
+
+  const jugadas = (f.jugadas || []).filter(j => j.nombre || j.descripcion);
+  if (jugadas.length) trozos.push({
+    id: "__jugadas", titulo: `Jugadas del rival (${jugadas.length})`, porDefecto: false,
+    texto: jugadas.map(j => {
+      const t = j.tipo ? ` (${j.tipo})` : "";
+      const d = String(j.descripcion || "").trim();
+      return `· ${j.nombre || "Jugada"}${t}${d ? "\n  " + d : ""}`;
+    }).join("\n\n"),
+  });
+
+  // --- Lo que calcula la app sola: esto suele ser lo mas util para ellas ---
+  const m = (typeof mediasClave === "function") ? mediasClave(nombre) : null;
+  const partidos = (typeof partidosDeEquipo === "function")
+    ? partidosDeEquipo(nombre).filter(x => x.jugado && x.gano !== null) : [];
+  if (m || partidos.length) {
+    const lineas = [];
+    if (partidos.length) {
+      const v = partidos.filter(x => x.gano).length;
+      lineas.push(`Balance: ${v}-${partidos.length - v} en ${partidos.length} partidos`);
+      const ult = partidos.slice(-5).reverse()
+        .map(x => `${x.gano ? "V" : "D"} ${x.pf}-${x.pc} vs ${equipoOficial(x.rival)}`);
+      if (ult.length) lineas.push("Ultimos partidos: " + ult.join(" · "));
+    }
+    if (m) {
+      const n = (x) => (x === null || x === undefined || x === "") ? null : String(x).replace(".", ",");
+      [["Puntos por partido", m.PT], ["Rebotes por partido", m.RT],
+       ["Asistencias por partido", m.AS], ["Robos por partido", m.BR],
+       ["% en tiros de 2", m.T2], ["% en tiros de 3", m.T3]]
+        .forEach(([et, val]) => { if (n(val) !== null) lineas.push(`${et}: ${n(val)}`); });
+    }
+    if (lineas.length) trozos.push({
+      id: "__equipo", titulo: "Datos del equipo rival", porDefecto: true,
+      texto: lineas.map(l => "· " + l).join("\n"),
+    });
+  }
+
+  const plantilla = (typeof plantillaDe === "function") ? plantillaDe(nombre) : [];
+  if (plantilla.length) {
+    trozos.push({
+      id: "__plantilla", titulo: `Plantilla del rival (${plantilla.length})`, porDefecto: false,
+      texto: plantilla.map(f2 => {
+        const datos = STATS_FICHA
+          .map(([, corta]) => (f2[corta] !== "" && f2[corta] != null) ? `${corta} ${f2[corta]}` : "")
+          .filter(Boolean).slice(0, 5).join(" · ");
+        return `· ${f2.dorsal ? f2.dorsal + " " : ""}${f2.jugadora}${datos ? "\n  " + datos : ""}`;
+      }).join("\n"),
+    });
+
+    // Mejores y peores de cada faceta, dentro del propio equipo
+    const bloques = STATS_FICHA.map(([, corta, larga]) => {
+      const con = plantilla
+        .map(f2 => ({ j: f2.jugadora, v: parseSpanishNumber(f2[corta]), t: f2[corta] }))
+        .filter(x => x.v !== null && x.t !== "" && x.t !== null)
+        .sort((x, y) => y.v - x.v);
+      if (con.length < 2) return "";
+      const mej = con.slice(0, 3).map(x => `${x.j} (${x.t})`).join(", ");
+      const peo = con.slice(-2).reverse().map(x => `${x.j} (${x.t})`).join(", ");
+      return `${larga}\n  Mejores: ${mej}\n  Peores: ${peo}`;
+    }).filter(Boolean);
+    if (bloques.length) trozos.push({
+      id: "__mejores", titulo: "Mejores y peores del rival", porDefecto: false,
+      texto: bloques.join("\n\n"),
+    });
+  }
+
+  const videos = (f.videos || []).filter(v => v.url || v.titulo);
+  if (videos.length) trozos.push({
+    id: "__videos", titulo: `Videos (${videos.length})`, porDefecto: false,
+    texto: videos.map(v => {
+      const n = String(v.nota || "").trim();
+      const enlace = v.origen === "local" ? "(archivo de tu ordenador: no se puede compartir)" : (v.url || "");
+      return `· ${v.titulo || "Video"}${n ? "\n  " + n : ""}${enlace ? "\n  " + enlace : ""}`;
+    }).join("\n\n"),
+  });
+
+  return trozos;
+}
+
+function cerrarEnvio() {
+  const v = document.getElementById("capaEnvio");
+  if (v) v.remove();
+}
+
+async function abrirEnvioJugadoras(nombre) {
+  cerrarEnvio();
+  const oficial = equipoOficial(nombre);
+  const trozos = trozosEnvio(nombre);
+
+  const cuerpo = trozos.length
+    ? `<p class="hint" style="margin:0 0 10px;">Marca lo que quieres que lean. Lo demas no se manda.</p>
+       <div style="display:flex;flex-direction:column;gap:9px;">
+       ${trozos.map((t, i) => `<label style="display:flex;gap:10px;align-items:center;font-size:14.5px;cursor:pointer;">
+          <input type="checkbox" data-envio="${i}" ${t.porDefecto ? "checked" : ""}
+                 style="width:19px;height:19px;accent-color:var(--orange);">
+          <span>${escapeHtml(t.titulo)}</span></label>`).join("")}
+       </div>
+       <div style="margin-top:14px;">
+         <label class="hint" style="display:block;margin-bottom:4px;">Partido (opcional)</label>
+         <input id="envPartido" placeholder="Jornada 3 · fuera"
+                style="width:100%;padding:10px;border:1.5px solid var(--wood-line);border-radius:8px;
+                       font-family:inherit;font-size:15px;background:var(--suave);color:var(--ink);">
+       </div>`
+    : `<div class="status" style="margin:0;">De <b>${escapeHtml(oficial)}</b> no hay nada que mandar:
+       ni lo que escribas tu, ni estadisticas de la FEB (la temporada puede no haber empezado).</div>`;
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <div id="capaEnvio" style="position:fixed;inset:0;z-index:10000;background:rgba(27,36,50,.55);
+         display:flex;align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--white);border-radius:16px;max-width:520px;width:100%;
+           max-height:88vh;overflow:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3);">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+          <div style="flex:1;min-width:0;">
+            <h3 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:18px;">Enviar a mis jugadoras</h3>
+            <p class="hint" style="margin:3px 0 0;">${escapeHtml(oficial)}</p>
+          </div>
+          <button id="envCerrar" style="border:0;background:none;font-size:24px;line-height:1;
+                  cursor:pointer;color:var(--ink-soft);">×</button>
+        </div>
+        ${cuerpo}
+        <div id="envAviso"></div>
+        <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;">
+          ${trozos.length ? `<button class="btn-partido" id="envMandar">Mandar a todas</button>` : ""}
+          <button class="btn-partido" id="envCancelar" style="background:var(--ink-soft);">Cerrar</button>
+        </div>
+      </div>
+    </div>`);
+
+  document.getElementById("envCerrar").addEventListener("click", cerrarEnvio);
+  document.getElementById("envCancelar").addEventListener("click", cerrarEnvio);
+  document.getElementById("capaEnvio").addEventListener("click", (e) => {
+    if (e.target.id === "capaEnvio") cerrarEnvio();
+  });
+
+  const mandar = document.getElementById("envMandar");
+  if (!mandar) return;
+
+  mandar.addEventListener("click", async () => {
+    const sb = clienteJugadoras();
+    if (!sb) { avisoEnvio("No se ha podido conectar. Comprueba tu internet.", "error"); return; }
+
+    const { data: ses } = await sb.auth.getSession();
+    if (!ses || !ses.session) {
+      avisoEnvio("Antes tienes que entrar en <b>Mis jugadoras</b> (menu de la izquierda). "
+        + "Se usa la misma sesion.", "error");
+      return;
+    }
+    const elegidos = [...document.querySelectorAll("[data-envio]:checked")]
+      .map(i => trozos[Number(i.getAttribute("data-envio"))]);
+    if (!elegidos.length) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
+
+    mandar.disabled = true; mandar.textContent = "Mandando...";
+    const partido = (document.getElementById("envPartido").value || "").trim();
+    const { error } = await sb.from("informes").insert({
+      titulo: "Scouting: " + oficial,
+      rival: oficial,
+      partido: partido || null,
+      secciones: elegidos.map(t => ({ titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto })),
+    });
+    if (error) {
+      mandar.disabled = false; mandar.textContent = "Mandar a todas";
+      avisoEnvio("No se ha podido mandar: " + escapeHtml(error.message), "error");
+      return;
+    }
+    // de paso se guarda este scouting en la nube, para tenerlo en otros aparatos
+    try {
+      const clave = scoutClave("equipos", nombre);
+      await sb.from("scoutings").upsert({
+        clave, nombre: oficial, datos: scoutFicha("equipos", nombre),
+        actualizado: new Date().toISOString(),
+      });
+    } catch (e) { /* si falla, el envio ya esta hecho */ }
+
+    avisoEnvio("Mandado. Lo veran en la pestaña <b>El rival</b> de su app.", "ok");
+    mandar.remove();
+  });
+}
+
+function avisoEnvio(texto, tipo) {
+  const c = document.getElementById("envAviso");
+  if (!c) return;
+  c.innerHTML = `<div style="margin-top:12px;padding:11px 13px;border-radius:9px;font-size:14px;
+    background:${tipo === "ok" ? "var(--verde-suave,#eef7f2)" : "var(--rojo-suave,#fdf0ec)"};
+    border:1.5px solid ${tipo === "ok" ? "#cfe6da" : "#f0cdbe"};
+    color:${tipo === "ok" ? "#14543d" : "#8a3608"};">${texto}</div>`;
 }
 
 // Pestañas: Informe / Videoteca
@@ -11041,7 +11304,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02i";
+const VERSION_APP = "2026-10-02r";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
