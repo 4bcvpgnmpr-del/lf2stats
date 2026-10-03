@@ -4301,6 +4301,42 @@ function pintarCronicaPartido(hueco, frases, avanzadas) {
   });
 }
 
+/* ============================================================
+   MAPA DE TIRO DEL PARTIDO (los dos equipos, solo los tiros de ese partido)
+   ============================================================ */
+let modoMapaPartido = "zonas";
+async function pintarMapaPartido(hueco, partidoId, nombreL, nombreV) {
+  if (!hueco) return;
+  hueco.innerHTML = `<div class="panel" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Mapa de tiro del partido</h2>
+    <p class="hint">Cargando los tiros...</p></div>`;
+  let dL = null, dV = null;
+  try { [dL, dV] = await Promise.all([cargarTirosEquipo(nombreL), cargarTirosEquipo(nombreV)]); } catch (e) { /* sin tiros */ }
+  const deEquipo = (datos, nombre) => (datos && datos.rows ? datos.rows : []).filter(r =>
+    cellText(r, "PartidoID") === partidoId &&
+    normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === normalizarEquipo(equipoOficial(nombre))
+  ).map(tiroEnMetros).filter(Boolean);
+  const tL = deEquipo(dL, nombreL), tV = deEquipo(dV, nombreV);
+  if (!tL.length && !tV.length) {
+    hueco.innerHTML = `<div class="panel coming-soon" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Mapa de tiro del partido</h2>
+      <p class="hint">Todavia no hay tiros de este partido en la pestaña <b>Tiros</b>. Aparecera tras la proxima actualizacion automatica.</p></div>`;
+    return;
+  }
+  const columna = (nombre, tiros) => `<div style="flex:1;min-width:280px;">
+      <h4 style="margin:0 0 6px;display:flex;align-items:center;gap:6px;">${escudoImgHtml(nombre, 20)}${escapeHtml(nombre)}</h4>
+      ${tiros.length ? `${cartaSvg(tiros, modoMapaPartido)}${resumenCarta(tiros)}${tablaZonas(tiros)}`
+                     : `<p class="hint">Sin tiros registrados de este equipo en el partido.</p>`}</div>`;
+  hueco.innerHTML = `<div class="panel" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Mapa de tiro del partido</h2>
+    <div class="subnav" style="margin:0 0 12px;">
+      <button class="mp-modo ${modoMapaPartido === "zonas" ? "active" : ""}" data-m="zonas">Por zonas</button>
+      <button class="mp-modo ${modoMapaPartido === "puntos" ? "active" : ""}" data-m="puntos">Tiro a tiro</button></div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">${columna(nombreL, tL)}${columna(nombreV, tV)}</div>
+    <p class="hint" style="margin-top:10px;">Solo tiros de campo de este partido (los libres no tienen posicion). Verde, anotado; rojo, fallado.</p></div>`;
+  hueco.querySelectorAll(".mp-modo").forEach(b => b.addEventListener("click", () => {
+    modoMapaPartido = b.getAttribute("data-m");
+    pintarMapaPartido(hueco, partidoId, nombreL, nombreV);
+  }));
+}
+
 async function showPartidoDetail(partidoId) {
   const box = document.getElementById("partidoDetailContent");
   const res = resultados ? resultados.rows.find(r => cellText(r, "PartidoID") === partidoId) : null;
@@ -4351,7 +4387,7 @@ async function showPartidoDetail(partidoId) {
   if (arb) meta.push("Arbitros: " + arb);
 
   box.innerHTML = hero + `<div class="match-meta">${escapeHtml(meta.join(" · "))}</div>`
-    + `<div id="cronicaPartido"></div>`
+    + `<div id="cronicaPartido"></div><div id="mapaTiroPartido"></div>`
     + `<div id="ffPartido">` + bloqueFourFactors(nombreL, rowsL, nombreV, rowsV) + `</div>`
     + `<div id="desglosePartido"></div><div id="rebotesPartido"></div><div id="cuartosPartido"></div><div id="quintetosPartido"></div>`
     + duelHtml(totL, totV)
@@ -4368,6 +4404,8 @@ async function showPartidoDetail(partidoId) {
   try { frasesCronica = frasesPartido(nombreL, rowsL, nombreV, rowsV, res, null); } catch (e) { frasesCronica = []; }
   try { frasesAvz = frasesAvanzadas(nombreL, rowsL, nombreV, rowsV); } catch (e) { frasesAvz = []; }
   pintarCronicaPartido(document.getElementById("cronicaPartido"), frasesCronica, frasesAvz);
+
+  pintarMapaPartido(document.getElementById("mapaTiroPartido"), partidoId, nombreL, nombreV);
 
   // El desglose y los cuartos se cargan aparte y se colocan en su hueco
   cargarAsistidas(partidoId).then((datosAsist) => {
