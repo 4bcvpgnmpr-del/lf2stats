@@ -82,6 +82,29 @@
   .pestanas button.activa .punto{background:#fff;}
 
   [hidden]{display:none !important;}   /* si no, el display:flex gana y se ve todo a la vez */
+  /* ---------- Para imprimir o guardar en PDF ---------- */
+  @media print{
+    @page{ size:A4 portrait; margin:14mm 12mm 16mm; @bottom-center{content:"Pagina " counter(page) " de " counter(pages);font-size:8pt;color:#777;} }
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{background:#fff !important;color:#111;font-size:10.5pt;}
+    .pestanas, .salir, .visor, #visor, button, .punto, #pantallaEntrar{display:none !important;}
+    .cabecera{background:#fff !important;color:#111 !important;border-bottom:3px solid #1b2430;border-radius:0;padding:0 0 8px;margin-bottom:12px;}
+    .cabecera h1, .cabecera .eq{color:#111 !important;}
+    .envoltorio{max-width:none !important;padding:0 !important;}
+    .bloque, .clip, .sr-plant, .seccion-rival, .sj-todas, .item{box-shadow:none !important;border-color:#d9d2c8 !important;}
+    .bloque{break-inside:auto;page-break-inside:auto;margin-bottom:12px;}
+    .bloque > h3, h3{break-after:avoid;page-break-after:avoid;}
+    .sr-plant, .clip, .sj-grid, .sj-mapa, svg.carta, .pizarras-mini, .sj-nota, table tr, .marco{break-inside:avoid;page-break-inside:avoid;}
+    img, svg{max-width:100% !important;height:auto;}
+    .sj-mapa{max-width:95mm !important;}
+    .pizarras-mini img{height:38mm !important;}
+    .marco iframe, .marco video{display:none !important;}
+    .marco{display:none !important;}
+    table{width:100% !important;font-size:8.5pt;}
+    td, th{overflow-wrap:anywhere;}
+    [hidden]{display:none !important;}
+  }
+
 
   /* ---------- Numeros ---------- */
   .rejilla{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px;}
@@ -1466,6 +1489,14 @@ $("correo").addEventListener("keydown", (e) => { if (e.key === "Enter") pedirEnl
     if (sesion && $("pantallaPerfil").hidden) cargarPerfil(sesion);
   });
 })();
+
+/* Al imprimir se abren los desplegables (estadisticas, mapas) para que salgan en el PDF */
+window.addEventListener("beforeprint", () => {
+  document.querySelectorAll("details").forEach(d => { d.dataset.abiertoAntes = d.open ? "1" : "0"; d.open = true; });
+});
+window.addEventListener("afterprint", () => {
+  document.querySelectorAll("details[data-abierto-antes]").forEach(d => { d.open = d.dataset.abiertoAntes === "1"; delete d.dataset.abiertoAntes; });
+});
 </script>
 </body>
 </html>

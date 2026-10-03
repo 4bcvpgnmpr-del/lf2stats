@@ -982,9 +982,15 @@
     .zonas-cartas, .zona-carta, .barra-reparto, .reparto, .tarjeta-record,
     .glosario, .bloque-auto, .tarjeta-diag, .jugadora-informe, .prod-barras,
     .prod-barra, .tabla-mini, .mini-partido, .kpi-jug, .hero-jug, .evoj-lectura,
-    .stat-big-grid, .stat-big, .cab-jug, .ficha-jug, .cuarto-marcador, .forma-tira{
+    .stat-big-grid, .stat-big, .cab-jug, .ficha-jug, .cuarto-marcador, .forma-tira,
+    .stats-liga, .stat-liga, .insignias, .adn, .adn-fila, .impacto-fila, .impacto, .consumo,
+    .caja-radar, .caja-donut, .resumen-jug, .hj-nota, .datos-jug, .carta-wrap, .mi-equipo-cabecera{
       break-inside:avoid; page-break-inside:avoid;
     }
+    .section-block > .section-title, .section-title{break-after:avoid;page-break-after:avoid;}
+    svg{max-width:100% !important;height:auto;}
+    .caja-radar{max-width:90mm;margin:0 auto;}
+    .caja-donut{max-width:55mm;}
 
     /* Fichas de jugadora mas compactas: asi caben tres por hoja en vez de dos
        y no queda media pagina en blanco. */
@@ -6087,6 +6093,25 @@ function estilosImpresionInforme() {
     .mp-tit.mala{background:#fdf0ec;color:#b4470f;}
     .mp-bloque .linea{display:flex;justify-content:space-between;gap:8px;font-size:9pt;padding:1px 0;}
     .pie{margin-top:16px;padding-top:6px;border-top:1px solid #d9d2c8;font-size:8pt;color:#777;text-align:center;}
+    /* --- Prolijo: nada se corta, nada se sale de la hoja --- */
+    @page{ @bottom-center{ content:"Pagina " counter(page) " de " counter(pages); font-size:8pt; color:#777; } }
+    img, svg{max-width:100%;height:auto;}
+    .texto, .linea, .chip, .jugada .enlace, td, th{overflow-wrap:anywhere;word-break:normal;}
+    .datos, .dato, .cols, .chips, .mp-bloque, .jug, .jugada, .mapa-eq, .texto{break-inside:avoid;page-break-inside:avoid;}
+    h2, h3.grupo{break-after:avoid;page-break-after:avoid;}
+    h2 + .datos, h2 + .texto, h2 + table, h2 + .mapa-eq{break-before:avoid;page-break-before:avoid;}
+    table{table-layout:auto;}
+    thead th{white-space:nowrap;}
+    tbody tr{break-inside:avoid;page-break-inside:avoid;}
+    .jug .cuerpo{display:grid;grid-template-columns:1fr 50mm;gap:10px;align-items:start;}
+    .jug .cuerpo.sin-mapa{grid-template-columns:1fr;}
+    .jug .mapa img{display:block;width:50mm;height:auto;border:1px solid #d9d2c8;border-radius:3px;background:#f3e6d2;}
+    .jug .mapa .pie-mapa{font-size:7pt;color:#666;text-align:center;margin-top:2px;}
+    .mapa-eq{display:grid;grid-template-columns:90mm 1fr;gap:12px;align-items:start;margin-bottom:8px;}
+    .mapa-eq img{width:90mm;height:auto;border:1px solid #d9d2c8;border-radius:3px;background:#f3e6d2;}
+    .mapa-eq table{margin:0;}
+    .jug .id{break-after:avoid;page-break-after:avoid;}
+    .chips{margin-bottom:6px;}
   `;
 }
 
@@ -6141,20 +6166,26 @@ function htmlImpresionInforme(nombre) {
       </tbody></table>` : "";
 
   // Perfiles de jugadoras
-  const destacadas = jugadorasDestacadas(nombre, 8).map(r => cellText(r, "Jugador"));
+  const todosNombres = plantillaDe(nombre).map(f => f.jugadora);
+  const destacadas = todosNombres.length ? todosNombres : jugadorasDestacadas(nombre, 8).map(r => cellText(r, "Jugador"));
+  const imgSvg = (svg) => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   const perfiles = destacadas.map(j => {
     const st = estadisticasJugadora(j, nombre);
     const nota = notaJugadora(inf, j);
     const chips = todasStatsJugadora(j, nombre)
       .map(d => `<span class="chip">${esc(d.et)} <b>${esc(d.v)}</b></span>`).join("");
+    const mapaJ = (typeof mapaTiroParaEnvio === "function") ? mapaTiroParaEnvio(j, nombre) : null;
     return `<div class="jug">
       <div class="id">
         ${st.foto ? `<img src="${escapeAttr(st.foto)}" alt="">` : `<img alt="">`}
         <div><div class="nom">${st.dorsal ? esc(st.dorsal) + " · " : ""}${esc(j)}</div>
         <div class="puesto">${nota.posicion ? esc(nota.posicion) : "Puesto sin indicar"}${st.partidos ? " · " + esc(st.partidos) + " partidos" : ""}</div></div>
       </div>
-      <div class="chips">${chips}</div>
-      <div class="texto">${texto(nota.texto)}</div>
+      <div class="cuerpo${mapaJ ? "" : " sin-mapa"}">
+        <div><div class="chips">${chips}</div>
+        <div class="texto">${texto(nota.texto)}</div></div>
+        ${mapaJ ? `<div class="mapa"><img src="${imgSvg(mapaJ.svg)}" alt=""><div class="pie-mapa">Mapa de tiro · ${mapaJ.tiros} tiros · ${String(mapaJ.pct).replace(".", ",")}%</div></div>` : ""}
+      </div>
     </div>`;
   }).join("");
 
@@ -6173,6 +6204,13 @@ function htmlImpresionInforme(nombre) {
         ${j.enlace ? `<div class="enlace">Jugada animada: ${esc(j.enlace)}</div>` : ""}
       </div>`;
     }).join("")}`).join("");
+
+  const mapaEq = (typeof mapaTiroParaEnvio === "function") ? mapaTiroParaEnvio(null, nombre) : null;
+  const bloqueMapaEq = mapaEq ? `<div class="mapa-eq"><img src="${imgSvg(mapaEq.svg)}" alt="">
+    <div><p style="margin:0 0 6px;font-size:9pt;">${mapaEq.tiros} tiros de campo · ${String(mapaEq.pct).replace(".", ",")}% de acierto</p>
+    <table><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>
+    ${mapaEq.zonas.map(z => `<tr><td>${esc(z.zona)}</td><td>${z.a}/${z.i}</td><td>${String(z.pct).replace(".", ",")}%</td><td>${String(z.pps).replace(".", ",")}</td></tr>`).join("")}
+    </tbody></table></div></div>` : "";
 
   const grupo = grupoDeEquipo(nombre);
   const escudo = escudoUrlFor(nombre);
@@ -6196,6 +6234,7 @@ function htmlImpresionInforme(nombre) {
     ${CAMPOS_INFORME.map(c => `<h2>${esc(c.titulo)}</h2><div class="texto">${texto(inf.campos[c.id])}</div>`).join("")}
 
     ${tablaPlantilla ? `<h2>Plantilla completa</h2>${tablaPlantilla}` : ""}
+    ${bloqueMapaEq ? `<h2>Mapa de tiro del equipo</h2>${bloqueMapaEq}` : ""}
     ${mejoresPeores ? `<h2>Mejores y peores del equipo</h2>${mejoresPeores}` : ""}
     ${perfiles ? `<h2>Perfiles de jugadoras</h2>${perfiles}` : ""}
     ${jugadas ? `<div class="pagina-nueva"><h2>Jugadas del rival</h2>${jugadas}</div>` : ""}
@@ -6204,12 +6243,14 @@ function htmlImpresionInforme(nombre) {
     </body></html>`;
 }
 
-function imprimirInforme(nombre) {
+async function imprimirInforme(nombre) {
   const ventana = window.open("", "_blank");
   if (!ventana) {
     alert("El navegador ha bloqueado la ventana del informe. Permite las ventanas emergentes de esta pagina y vuelve a intentarlo.");
     return;
   }
+  ventana.document.write("<p style='font-family:sans-serif;padding:20px;'>Preparando el informe...</p>");
+  try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
   ventana.document.open();
   ventana.document.write(htmlImpresionInforme(nombre));
   ventana.document.close();
