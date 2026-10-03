@@ -4206,21 +4206,96 @@ function frasesPartido(nombreL, rowsL, nombreV, rowsV, res, cuartosD) {
   out.push(ritmo.trim());
   return out;
 }
-function bloqueCronicaPartido(frases) {
+function frasesAvanzadas(nombreL, rowsL, nombreV, rowsV) {
+  const f1 = (v) => String(Math.round(v * 10) / 10).replace(".", ",");
+  const f2 = (v) => String(Math.round(v * 100) / 100).replace(".", ",");
+  const tL = totalesDeEquipoEnPartido(rowsL), tV = totalesDeEquipoEnPartido(rowsV);
+  if (!tL.tc.i && !tV.tc.i) return [];
+  const fL = fourFactors(tL, tV), fV = fourFactors(tV, tL);
+  const mL = mediaTemporadaEquipo(nombreL), mV = mediaTemporadaEquipo(nombreV);
+  const out = [];
+  const sig = (x) => (x > 0 ? "+" : "") + f1(x);
+
+  // 1) Rating y ritmo
+  const netL = (fL.oer || 0) - (fL.der || 0), netV = -netL;
+  const mejorN = netL >= netV ? [nombreL, netL, mL] : [nombreV, netV, mV];
+  let t = `Rating del partido: ${nombreL} ${f1(fL.oer)} de ataque y ${f1(fL.der)} de defensa (neto ${sig(netL)}); ${nombreV} ${f1(fV.oer)} y ${f1(fV.der)} (neto ${sig(netV)}).`;
+  if (mejorN[2] && mejorN[2].net !== null && mejorN[2].net !== undefined) {
+    t += ` ${mejorN[0]} jugo mejor de lo habitual: su neto de temporada es ${sig(mejorN[2].net)}.`.replace("jugo mejor de lo habitual", mejorN[1] > mejorN[2].net ? "jugo por encima de lo habitual" : "jugo por debajo de lo habitual");
+  }
+  out.push(t);
+
+  // 2) Eficiencia de tiro y balon
+  const astto = (t0) => t0.bp ? f2(t0.as / t0.bp) : "-";
+  out.push(`Eficiencia: TS% de ${f1(fL.ts)} para ${nombreL} y ${f1(fV.ts)} para ${nombreV}; eFG% de ${f1(fL.efg)} y ${f1(fV.efg)}. ` +
+    `Relacion asistencias/perdidas de ${astto(tL)} y ${astto(tV)}, con un TOV% de ${f1(fL.tov)} y ${f1(fV.tov)}.`);
+
+  // 3) Rebote
+  out.push(`Rebote: ${nombreL} capturo el ${f1(fL.oreb)}% de sus rebotes ofensivos posibles y el ${f1(fL.dreb)}% de los defensivos; ${nombreV}, el ${f1(fV.oreb)}% y el ${f1(fV.dreb)}%.`);
+
+  // 4) Contra su media de temporada
+  const desv = [];
+  const add = (nom, nomDato, v, m, altoMejor) => {
+    if (v === null || v === undefined || m === null || m === undefined) return;
+    const d = Math.round((v - m) * 10) / 10;
+    desv.push({ nom, nomDato, v, m, d, bueno: altoMejor ? d > 0 : d < 0 });
+  };
+  [[nombreL, fL, mL], [nombreV, fV, mV]].forEach(([n, f, m]) => {
+    if (!m) return;
+    add(n, "eFG%", f.efg, m.efg, true); add(n, "TS%", f.ts, m.ts, true); add(n, "TOV%", f.tov, m.tovPct, false);
+    add(n, "rebote ofensivo", f.oreb, m.pctRo, true); add(n, "rebote defensivo", f.dreb, m.pctRd, true);
+  });
+  if (desv.length) {
+    const ord = [...desv].sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+    const top = ord.filter(x => Math.abs(x.d) >= 2).slice(0, 2);
+    if (top.length) out.push(`Frente a su media de la temporada: ` + top.map(x =>
+      `${x.nom} ${x.bueno ? "mejoro" : "empeoro"} en ${x.nomDato} (${f1(x.v)}% frente a ${f1(x.m)}%)`).join("; ") + ".");
+  }
+
+  // 5) Individuales: mas/menos, eficiencia y uso
+  const n = (r, c) => parseSpanishNumber(cellText(r, c)) || 0;
+  const minDe = (r) => { const m = /^(\d+):([0-5]\d)/.exec(cellText(r, "MIN")); return m ? Number(m[1]) + Number(m[2]) / 60 : n(r, "MIN"); };
+  const jug = (rows) => rows.filter(r => cellText(r, "Jugador") !== "TOTAL" && minDe(r) > 0);
+  const todas = [...jug(rowsL).map(r => ({ r, eq: nombreL, rows: jug(rowsL), t: tL })), ...jug(rowsV).map(r => ({ r, eq: nombreV, rows: jug(rowsV), t: tV }))];
+  const ind = todas.map(x => {
+    const tc = paresTiro(x.r, "TC"), tl = paresTiro(x.r, "TL"), pt = n(x.r, "PT"), bp = n(x.r, "BP"), min = minDe(x.r);
+    const teamMin = x.rows.reduce((a, q) => a + minDe(q), 0);
+    const teamPos = x.t.tc.i + 0.44 * x.t.tl.i + x.t.bp;
+    const usg = (min > 0 && teamPos > 0) ? 100 * (tc.i + 0.44 * tl.i + bp) * (teamMin / 5) / (min * teamPos) : null;
+    const den = 2 * (tc.i + 0.44 * tl.i);
+    return { nom: nombreLegible(cellText(x.r, "Jugador")), eq: x.eq, pt, min, mm: n(x.r, "MAS_MENOS"), usg, ts: den > 0 && tc.i + tl.i >= 4 ? 100 * pt / den : null, tci: tc.i };
+  });
+  const conMM = ind.filter(x => cellText(todas[ind.indexOf(x)].r, "MAS_MENOS") !== "");
+  if (conMM.length >= 4) {
+    const mejor = [...conMM].sort((a, b) => b.mm - a.mm)[0], peor = [...conMM].sort((a, b) => a.mm - b.mm)[0];
+    out.push(`Impacto en pista (+/-): lo mejor fue ${mejor.nom} (${mejor.eq}) con ${mejor.mm > 0 ? "+" : ""}${mejor.mm} en ${Math.round(mejor.min)} minutos, y lo peor ${peor.nom} (${peor.eq}) con ${peor.mm > 0 ? "+" : ""}${peor.mm}.`);
+  }
+  const usoAlto = ind.filter(x => x.usg !== null && x.min >= 10 && x.tci >= 5).sort((a, b) => b.usg - a.usg)[0];
+  const tsAlto = ind.filter(x => x.ts !== null && x.min >= 12).sort((a, b) => b.ts - a.ts)[0];
+  const partes = [];
+  if (usoAlto) partes.push(`${usoAlto.nom} (${usoAlto.eq}) fue la que mas jugo con el balon, con un uso del ${f1(usoAlto.usg)}% de las posesiones mientras estuvo en pista${usoAlto.ts !== null ? ` y un TS% de ${f1(usoAlto.ts)}` : ""}`);
+  if (tsAlto && (!usoAlto || tsAlto.nom !== usoAlto.nom)) partes.push(`la mas eficiente fue ${tsAlto.nom} (${tsAlto.eq}), con un TS% de ${f1(tsAlto.ts)}`);
+  if (partes.length) out.push(`Protagonismo y eficiencia: ${partes.join("; ")}.`);
+  return out;
+}
+
+function bloqueCronicaPartido(frases, avanzadas) {
   if (!frases.length) return "";
   return `<div class="panel" style="margin-top:16px;border-left:5px solid var(--orange,#e0602a);">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <h2 class="section-title" style="margin:0;flex:1;">Resumen del partido</h2>
       <button class="btn-partido no-imprimir" id="copiarCronica" type="button">Copiar resumen</button></div>
     ${frases.map(f => `<p style="margin:10px 0 0;line-height:1.55;">${escapeHtml(f)}</p>`).join("")}
-    <p class="hint" style="margin-top:10px;">Texto generado automaticamente con las estadisticas del partido. Las posesiones son una estimacion.</p></div>`;
+    ${(avanzadas || []).length ? `<h3 style="margin:18px 0 0;font-size:15px;color:var(--orange,#e0602a);">Lectura avanzada</h3>
+      ${avanzadas.map(f => `<p style="margin:8px 0 0;line-height:1.55;">${escapeHtml(f)}</p>`).join("")}` : ""}
+    <p class="hint" style="margin-top:10px;">Texto generado automaticamente con las estadisticas del partido. Las posesiones y el uso son estimaciones.</p></div>`;
 }
-function pintarCronicaPartido(hueco, frases) {
+function pintarCronicaPartido(hueco, frases, avanzadas) {
   if (!hueco) return;
-  hueco.innerHTML = bloqueCronicaPartido(frases);
+  hueco.innerHTML = bloqueCronicaPartido(frases, avanzadas);
   const b = hueco.querySelector("#copiarCronica");
   if (b) b.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(frases.join("\n\n")); b.textContent = "Copiado"; }
+    try { await navigator.clipboard.writeText(frases.concat((avanzadas || []).length ? ["LECTURA AVANZADA"] : [], avanzadas || []).join("\n\n")); b.textContent = "Copiado"; }
     catch (e) { b.textContent = "No se pudo copiar"; }
     setTimeout(() => { b.textContent = "Copiar resumen"; }, 1800);
   });
@@ -4288,8 +4363,11 @@ async function showPartidoDetail(partidoId) {
 
   // Resumen escrito: primero con lo que ya hay, y al llegar los cuartos se completa
   let frasesCronica = [];
+  try { if (!avanzadasCalculo && partidosCache) avanzadasCalculo = calcularAvanzadas(); } catch (e) { /* sin medias */ }
+  let frasesAvz = [];
   try { frasesCronica = frasesPartido(nombreL, rowsL, nombreV, rowsV, res, null); } catch (e) { frasesCronica = []; }
-  pintarCronicaPartido(document.getElementById("cronicaPartido"), frasesCronica);
+  try { frasesAvz = frasesAvanzadas(nombreL, rowsL, nombreV, rowsV); } catch (e) { frasesAvz = []; }
+  pintarCronicaPartido(document.getElementById("cronicaPartido"), frasesCronica, frasesAvz);
 
   // El desglose y los cuartos se cargan aparte y se colocan en su hueco
   cargarAsistidas(partidoId).then((datosAsist) => {
@@ -4307,7 +4385,7 @@ async function showPartidoDetail(partidoId) {
   cargarCuartos().then(() => {
     try {
       const f2 = frasesPartido(nombreL, rowsL, nombreV, rowsV, res, datosCuartos(partidoId, nombreL, nombreV));
-      pintarCronicaPartido(document.getElementById("cronicaPartido"), f2);
+      pintarCronicaPartido(document.getElementById("cronicaPartido"), f2, frasesAvz);
     } catch (e) { /* se queda el resumen sin cuartos */ }
     const hueco = document.getElementById("cuartosPartido");
     if (hueco) {
