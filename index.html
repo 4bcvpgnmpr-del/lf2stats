@@ -958,6 +958,36 @@
     table td, table th{white-space:normal !important;word-break:break-word;padding:4px 5px !important;}
     table.cuartos-pro td, table.cuartos-pro th{white-space:nowrap !important;}
     table.cuartos{font-size:7.5pt;}
+
+    /* ---- PDF de un partido: todo alineado y sin cortes ---- */
+    #view-partido-detail .match-hero{display:grid !important;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;
+      padding:10px 14px !important;margin-bottom:8px !important;border-radius:6px;break-inside:avoid;page-break-inside:avoid;}
+    #view-partido-detail .match-hero .team{min-width:0 !important;gap:4px;font-size:10.5pt;}
+    #view-partido-detail .match-hero .team img{width:42px !important;height:42px !important;}
+    #view-partido-detail .match-hero .score{font-size:26pt !important;text-align:center;}
+    #view-partido-detail .match-meta{margin:0 0 8px !important;font-size:9pt;}
+    #view-partido-detail .panel{margin-top:10px !important;padding:10px 12px !important;border:1px solid #d9d2c8;border-radius:5px;}
+    #view-partido-detail .section-title{font-size:11.5pt;margin:0 0 6px;}
+    /* Four Factors: dos columnas iguales */
+    #view-partido-detail .ff{display:grid !important;grid-template-columns:1fr 1fr !important;gap:12px !important;}
+    #view-partido-detail .ff-col, #view-partido-detail .factor, #view-partido-detail .duel{break-inside:avoid;page-break-inside:avoid;}
+    #view-partido-detail .factor{padding:2px 0 !important;font-size:8.5pt;}
+    #view-partido-detail .duel{grid-template-columns:1fr 80px 1fr !important;font-size:8.5pt;margin:3px 0;}
+    /* Cajas de estadisticas: una linea por jugadora, las columnas alineadas */
+    #view-partido-detail table.box{width:100% !important;table-layout:auto;font-size:6.8pt !important;}
+    #view-partido-detail table.box th, #view-partido-detail table.box td{
+      white-space:nowrap !important;word-break:normal !important;padding:2px 2px !important;text-align:center;}
+    #view-partido-detail table.box td:nth-child(3), #view-partido-detail table.box th:nth-child(3){
+      text-align:left !important;white-space:normal !important;min-width:30mm;}
+    #view-partido-detail table.box td .hint{display:block;font-size:5.8pt;line-height:1;color:#666;}
+    #view-partido-detail table.box tr.total-box td{border-top:1.5px solid #1b2430;}
+    /* Mapas de tiro y resumen: cada columna entera, sin partirse */
+    #view-partido-detail .col-mapa{break-inside:avoid;page-break-inside:avoid;flex:1 1 0 !important;min-width:0 !important;}
+    #view-partido-detail #mapaTiroPartido .panel{break-inside:avoid;page-break-inside:avoid;}
+    #view-partido-detail #mapaTiroPartido svg.carta{max-width:100% !important;max-height:none !important;}
+    #view-partido-detail #mapaTiroPartido .panel > div[style*="flex"]{flex-wrap:nowrap !important;gap:10px !important;}
+    #view-partido-detail #cronicaPartido p{font-size:9.5pt;line-height:1.45;orphans:3;widows:3;}
+    #view-partido-detail #cronicaPartido h3{break-after:avoid;page-break-after:avoid;}
     table.cuartos .c-det, table.cuartos .c-pts{white-space:normal !important;}
     .panel{box-shadow:none !important;border-color:#d8d2c6 !important;}
     /* Solo se mantienen juntas las piezas pequeñas; un panel largo puede partirse */
@@ -4321,7 +4351,7 @@ async function pintarMapaPartido(hueco, partidoId, nombreL, nombreV) {
       <p class="hint">Todavia no hay tiros de este partido en la pestaña <b>Tiros</b>. Aparecera tras la proxima actualizacion automatica.</p></div>`;
     return;
   }
-  const columna = (nombre, tiros) => `<div style="flex:1;min-width:280px;">
+  const columna = (nombre, tiros) => `<div class="col-mapa" style="flex:1;min-width:280px;">
       <h4 style="margin:0 0 6px;display:flex;align-items:center;gap:6px;">${escudoImgHtml(nombre, 20)}${escapeHtml(nombre)}</h4>
       ${tiros.length ? `${cartaSvg(tiros, modoMapaPartido)}${resumenCarta(tiros)}${tablaZonas(tiros)}`
                      : `<p class="hint">Sin tiros registrados de este equipo en el partido.</p>`}</div>`;
