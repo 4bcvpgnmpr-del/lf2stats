@@ -168,6 +168,14 @@
       <div id="avisoOrden"></div>
     </div>
 
+    <!-- Lo que ya has mandado -->
+    <div class="caja">
+      <h2>Lo que has enviado</h2>
+      <p class="expl">Scoutings de rivales y contenido de Mi equipo. Si quitas uno, deja de verse en la app de tus jugadoras.</p>
+      <div id="listaInformes" class="cargando">Cargando...</div>
+      <button class="boton fina gris" id="btnRefrescarInformes" style="margin-top:8px;">Actualizar la lista</button>
+    </div>
+
     <!-- Lista de jugadoras -->
     <div class="caja">
       <h2>Tus jugadoras</h2>
@@ -394,6 +402,7 @@ async function entrar(sesion) {
   cargarJugadoras();
   cargarTemporada();
   cargarOrdenApp();
+  cargarInformes();
 }
 
 /* ============================================================
@@ -670,6 +679,40 @@ async function guardarOrdenApp() {
 }
 
 /* ============================================================
+   LO QUE HAS ENVIADO (con opcion de quitarlo)
+   ============================================================ */
+async function cargarInformes() {
+  const caja = $("listaInformes");
+  const { data, error } = await sb.from("informes").select("*").order("fecha", { ascending: false });
+  caja.className = "";
+  if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
+  if (!data || !data.length) { caja.innerHTML = `<div class="vacio">Todavia no has mandado ninguno.</div>`; return; }
+  caja.innerHTML = data.map(i => `<div class="item">
+    <div class="cab"><b>${esc(i.titulo)}</b><span>${esc(fechaCorta(i.fecha))}</span></div>
+    <p style="font-size:13px;color:var(--ink-soft);">
+      ${i.rival === "__MI_EQUIPO__" ? "Mi equipo" : "Rival"} · ${esc(i.partido || "")}${i.partido ? " · " : ""}${(i.secciones || []).length} apartados</p>
+    <div class="acciones"><button class="boton fina borrar" data-informe="${esc(i.id)}">Quitarlo</button></div>
+  </div>`).join("");
+  caja.querySelectorAll("[data-informe]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("¿Quitar esto? Tus jugadoras dejaran de verlo.")) return;
+    const id = b.getAttribute("data-informe");
+    const inf = data.find(x => String(x.id) === id);
+    const { error: e2 } = await sb.from("informes").delete().eq("id", id);
+    if (e2) { alert("No se ha podido quitar: " + e2.message); return; }
+    // si llevaba PDF subido, se borra tambien el archivo
+    try {
+      const rutas = [];
+      (inf && inf.secciones || []).forEach(sc => (sc.archivos || []).forEach(a => {
+        const m = String(a.url || "").match(/\/object\/public\/playbooks\/(.+)$/);
+        if (m) rutas.push(decodeURIComponent(m[1]));
+      }));
+      if (rutas.length) await sb.storage.from("playbooks").remove(rutas);
+    } catch (e) { /* el envio ya esta quitado */ }
+    cargarInformes();
+  }));
+}
+
+/* ============================================================
    ENVIAR COSAS
    ============================================================ */
 async function enviarMensaje() {
@@ -791,6 +834,7 @@ $("btnVerComoElla").addEventListener("click", () => {
 $("selTemporadaVen").addEventListener("change", guardarTemporada);
 $("btnTraer").addEventListener("click", traerPlantilla);
 $("selEquipoFeb").addEventListener("change", pintarListaFeb);
+$("btnRefrescarInformes").addEventListener("click", cargarInformes);
 $("swNumeros").addEventListener("change", guardarQueVe);
 $("swPercentiles").addEventListener("change", guardarQueVe);
 $("btnEnviarMensaje").addEventListener("click", enviarMensaje);
