@@ -6653,6 +6653,14 @@ async function abrirEnvioJugadoras(nombre, modo) {
     : `<div class="status" style="margin:0;">De <b>${escapeHtml(oficial)}</b> no hay nada que mandar:
        ni lo que escribas tu, ni estadisticas de la FEB (la temporada puede no haber empezado).</div>`;
 
+  const pdfBloque = esEquipo ? `<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--wood-line);border-radius:10px;">
+      <b style="font-size:14.5px;">Playbook en PDF (opcional)</b>
+      <p class="hint" style="margin:3px 0 8px;">Para que lo puedan descargar. Sube el archivo o pega un enlace al PDF.</p>
+      <input type="file" id="envPdf" accept="application/pdf,.pdf" style="width:100%;font-size:14px;margin-bottom:8px;">
+      <input id="envPdfUrl" placeholder="o pega aqui el enlace (Drive, Dropbox...)"
+             style="width:100%;padding:10px;border:1.5px solid var(--wood-line);border-radius:8px;font-family:inherit;font-size:14.5px;background:var(--suave);color:var(--ink);">
+    </div>` : "";
+
   document.body.insertAdjacentHTML("beforeend", `
     <div id="capaEnvio" style="position:fixed;inset:0;z-index:10000;background:rgba(27,36,50,.55);
          display:flex;align-items:center;justify-content:center;padding:16px;">
@@ -6667,9 +6675,10 @@ async function abrirEnvioJugadoras(nombre, modo) {
                   cursor:pointer;color:var(--ink-soft);">×</button>
         </div>
         ${cuerpo}
+        ${pdfBloque}
         <div id="envAviso"></div>
         <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;">
-          ${trozos.length ? `<button class="btn-partido" id="envMandar">Mandar a todas</button>` : ""}
+          ${(trozos.length || esEquipo) ? `<button class="btn-partido" id="envMandar">Mandar a todas</button>` : ""}
           <button class="btn-partido" id="envCancelar" style="background:var(--ink-soft);">Cerrar</button>
         </div>
       </div>
@@ -6696,17 +6705,36 @@ async function abrirEnvioJugadoras(nombre, modo) {
     }
     const elegidos = [...document.querySelectorAll("[data-envio]:checked")]
       .map(i => trozos[Number(i.getAttribute("data-envio"))]);
-    if (!elegidos.length) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
+    const archivoPdf = esEquipo ? (document.getElementById("envPdf").files || [])[0] : null;
+    const enlacePdf = esEquipo ? document.getElementById("envPdfUrl").value.trim() : "";
+    if (!elegidos.length && !archivoPdf && !enlacePdf) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
+    if (archivoPdf && archivoPdf.size > 45 * 1024 * 1024) { avisoEnvio("El PDF pesa mas de 45 MB. Comprimelo o pega un enlace.", "error"); return; }
 
-    mandar.disabled = true; mandar.textContent = "Mandando...";
+    mandar.disabled = true; mandar.textContent = archivoPdf ? "Subiendo el PDF..." : "Mandando...";
+    const seccionesPdf = [];
+    if (archivoPdf) {
+      const limpio = archivoPdf.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_");
+      const ruta = "playbook/" + Date.now() + "_" + limpio;
+      const { error: errSub } = await sb.storage.from("playbooks").upload(ruta, archivoPdf, { contentType: "application/pdf" });
+      if (errSub) {
+        mandar.disabled = false; mandar.textContent = "Mandar a todas";
+        avisoEnvio("No se ha podido subir el PDF: " + escapeHtml(errSub.message)
+          + ". Si es la primera vez, ejecuta una sola vez el script <b>playbook_pdf.sql</b> en Supabase. O pega un enlace al PDF.", "error");
+        return;
+      }
+      const { data: pub } = sb.storage.from("playbooks").getPublicUrl(ruta);
+      seccionesPdf.push({ nombre: archivoPdf.name, url: pub.publicUrl });
+    }
+    if (enlacePdf) seccionesPdf.push({ nombre: "Playbook del equipo (PDF)", url: enlacePdf });
+    mandar.textContent = "Mandando...";
     const partido = (document.getElementById("envPartido").value || "").trim();
     const { error } = await sb.from("informes").insert({
       titulo: esEquipo ? "Mi equipo: " + oficial : "Scouting: " + oficial,
       rival: esEquipo ? "__MI_EQUIPO__" : oficial,
       partido: partido || null,
-      secciones: elegidos.map(t => t.carga
+      secciones: (seccionesPdf.length ? [{ tipo: "pdf", titulo: "Playbook en PDF", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
         ? t.carga
-        : { tipo: "texto", titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto }),
+        : { tipo: "texto", titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto })),
     });
     if (error) {
       mandar.disabled = false; mandar.textContent = "Mandar a todas";
