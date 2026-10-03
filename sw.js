@@ -3,7 +3,7 @@
    pero SIN guardar nunca datos viejos de Google Sheets ni de la FEB.
    Estrategia: red primero, y si no hay internet, lo guardado. */
 
-const CACHE = "scoutflow-2026-10-02zj";
+const CACHE = "scoutflow-2026-10-02zk";
 
 const BASICOS = [
   "./",
@@ -49,7 +49,7 @@ self.addEventListener("fetch", (evento) => {
   if (!peticion.url.startsWith("http")) return;
 
   evento.respondWith(
-    fetch(peticion)
+    fetch(peticion, { cache: "no-cache" })   // pregunta siempre al servidor: asi el ordenador no se queda con paginas viejas
       .then((respuesta) => {
         if (respuesta && respuesta.status === 200 &&
             (respuesta.type === "basic" || respuesta.type === "cors")) {
