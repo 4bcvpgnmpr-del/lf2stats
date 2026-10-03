@@ -302,12 +302,14 @@
       <button data-tab="mensajes">Mensajes<span class="punto" id="puntoMensajes" hidden></span></button>
       <button data-tab="clips">Videos</button>
       <button data-tab="rival">El rival<span class="punto" id="puntoRival" hidden></span></button>
+      <button data-tab="equipo">Mi equipo<span class="punto" id="puntoEquipo" hidden></span></button>
     </div>
 
     <section id="tab-numeros"></section>
     <section id="tab-mensajes" hidden></section>
     <section id="tab-clips" hidden></section>
     <section id="tab-rival" hidden></section>
+    <section id="tab-equipo" hidden></section>
 
     <p class="pie" style="margin-top:22px;">
       Datos de la FEB · <span id="pieVersion"></span>
@@ -1161,32 +1163,45 @@ function seccionRivalHtml(sc) {
   return `<div class="seccion-rival">${tit}<p>${esc(sc.texto || "")}</p></div>`;
 }
 
-let ultimoInforme = "";
+let ultimoInforme = "", ultimoEquipo = "";
+const ES_EQUIPO = (i) => i.rival === "__MI_EQUIPO__";
 async function cargarInformes() {
-  const caja = $("tab-rival");
+  const caja = $("tab-rival"), cajaEq = $("tab-equipo");
   const { data, error } = await sb.from("informes")
     .select("*").order("fecha", { ascending: false });
   if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
-  const lista = data || [];
-  if (!lista.length) {
+  const todos = data || [];
+  const rivales = todos.filter(i => !ES_EQUIPO(i)), propios = todos.filter(ES_EQUIPO);
+  const reciente = (i) => { const t = new Date(i.fecha).getTime(); return !isNaN(t) && Date.now() - t < 7 * 24 * 3600 * 1000; };
+  const visto = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+  if (!rivales.length) {
     caja.innerHTML = `<div class="vacio">Cuando el entrenador mande el scouting
       de un rival, lo veras aqui.</div>`;
-    return;
-  }
-  // Aviso si el ultimo es de los ultimos 7 dias
-  ultimoInforme = lista[0].id;
-  const ultimo = new Date(lista[0].fecha).getTime();
-  if (!isNaN(ultimo) && Date.now() - ultimo < 7 * 24 * 3600 * 1000) {
-    const visto = (() => { try { return localStorage.getItem("lf2_rival_visto"); } catch (e) { return null; } })();
-    if (visto !== lista[0].id) $("puntoRival").hidden = false;
+  } else {
+    ultimoInforme = rivales[0].id;
+    if (reciente(rivales[0]) && visto("lf2_rival_visto") !== rivales[0].id) $("puntoRival").hidden = false;
+    caja.innerHTML = rivales.map(i => `
+      <div class="bloque">
+        <h3>${esc(i.titulo)}</h3>
+        <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
+        ${(i.secciones || []).map(seccionRivalHtml).join("")}
+      </div>`).join("");
   }
 
-  caja.innerHTML = lista.map((i, n) => `
-    <div class="bloque">
-      <h3>${esc(i.titulo)}</h3>
-      <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
-      ${(i.secciones || []).map(seccionRivalHtml).join("")}
-    </div>`).join("");
+  if (!propios.length) {
+    cajaEq.innerHTML = `<div class="vacio">Cuando el entrenador mande el playbook y las
+      estadisticas del equipo, los veras aqui.</div>`;
+  } else {
+    ultimoEquipo = propios[0].id;
+    if (reciente(propios[0]) && visto("lf2_equipo_visto") !== propios[0].id) $("puntoEquipo").hidden = false;
+    cajaEq.innerHTML = propios.map(i => `
+      <div class="bloque">
+        <h3>${esc(i.titulo)}</h3>
+        <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
+        ${(i.secciones || []).map(seccionRivalHtml).join("")}
+      </div>`).join("");
+  }
 }
 
 async function cargarClips() {
@@ -1212,11 +1227,16 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["numeros", "mensajes", "clips", "rival"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
+    ["numeros", "mensajes", "clips", "rival", "equipo"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
     if (t === "rival") {
       $("puntoRival").hidden = true;
       try { localStorage.setItem("lf2_rival_visto", ultimoInforme || ""); }
+      catch (e) { /* nada */ }
+    }
+    if (t === "equipo") {
+      $("puntoEquipo").hidden = true;
+      try { localStorage.setItem("lf2_equipo_visto", ultimoEquipo || ""); }
       catch (e) { /* nada */ }
     }
   });

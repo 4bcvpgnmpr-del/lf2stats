@@ -6598,8 +6598,9 @@ function cerrarEnvio() {
   if (v) v.remove();
 }
 
-async function abrirEnvioJugadoras(nombre) {
+async function abrirEnvioJugadoras(nombre, modo) {
   cerrarEnvio();
+  const esEquipo = modo === "equipo";
   const oficial = equipoOficial(nombre);
 
   // Los tiros (para el mapa de tiro de cada jugadora) se bajan antes de armar el envio
@@ -6617,7 +6618,22 @@ async function abrirEnvioJugadoras(nombre) {
     cerrarEnvio();
   }
 
-  const trozos = trozosEnvio(nombre);
+  let trozos = trozosEnvio(nombre);
+  if (esEquipo) {
+    // Mi equipo: solo lo que sirve para ellas (playbook, estadisticas, mapa, plantilla), con nombres de "mi equipo"
+    const SIN = ["__notas", "__perfiles", "__mejores"];
+    const videosLocales = trozos.videosLocales;
+    trozos = trozos.filter(t => String(t.id).startsWith("__") && !SIN.includes(t.id));
+    trozos.forEach(t => {
+      const ren = (x) => String(x || "").replace(/Jugadas del rival/, "Playbook del equipo")
+        .replace(/Datos del equipo rival/, "Estadisticas del equipo").replace(/del equipo rival/g, "del equipo")
+        .replace(/Plantilla del rival/, "Plantilla").replace(/Videos del rival/, "Videos del equipo");
+      t.titulo = ren(t.titulo);
+      if (t.carga && t.carga.titulo) t.carga.titulo = ren(t.carga.titulo);
+      if (t.id === "__jugadas" || t.id === "__equipo") t.porDefecto = true;
+    });
+    trozos.videosLocales = videosLocales;
+  }
 
   const cuerpo = trozos.length
     ? `<p class="hint" style="margin:0 0 10px;">Marca lo que quieres que lean. Lo demas no se manda.</p>
@@ -6644,7 +6660,7 @@ async function abrirEnvioJugadoras(nombre) {
            max-height:88vh;overflow:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3);">
         <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
           <div style="flex:1;min-width:0;">
-            <h3 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:18px;">Enviar a mis jugadoras</h3>
+            <h3 style="margin:0;font-family:'Archivo Black',sans-serif;font-size:18px;">${esEquipo ? "Enviar mi equipo a mis jugadoras" : "Enviar a mis jugadoras"}</h3>
             <p class="hint" style="margin:3px 0 0;">${escapeHtml(oficial)}</p>
           </div>
           <button id="envCerrar" style="border:0;background:none;font-size:24px;line-height:1;
@@ -6685,8 +6701,8 @@ async function abrirEnvioJugadoras(nombre) {
     mandar.disabled = true; mandar.textContent = "Mandando...";
     const partido = (document.getElementById("envPartido").value || "").trim();
     const { error } = await sb.from("informes").insert({
-      titulo: "Scouting: " + oficial,
-      rival: oficial,
+      titulo: esEquipo ? "Mi equipo: " + oficial : "Scouting: " + oficial,
+      rival: esEquipo ? "__MI_EQUIPO__" : oficial,
       partido: partido || null,
       secciones: elegidos.map(t => t.carga
         ? t.carga
@@ -6698,7 +6714,7 @@ async function abrirEnvioJugadoras(nombre) {
       return;
     }
     // de paso se guarda este scouting en la nube, para tenerlo en otros aparatos
-    try {
+    if (!esEquipo) try {
       const clave = scoutClave("equipos", nombre);
       await sb.from("scoutings").upsert({
         clave, nombre: oficial, datos: scoutFicha("equipos", nombre),
@@ -6706,7 +6722,7 @@ async function abrirEnvioJugadoras(nombre) {
       });
     } catch (e) { /* si falla, el envio ya esta hecho */ }
 
-    avisoEnvio("Mandado. Lo veran en la pestaña <b>El rival</b> de su app.", "ok");
+    avisoEnvio(esEquipo ? "Mandado. Lo veran en la pestaña <b>Mi equipo</b> de su app." : "Mandado. Lo veran en la pestaña <b>El rival</b> de su app.", "ok");
     mandar.remove();
   });
 }
@@ -7840,6 +7856,7 @@ function renderMiEquipo() {
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-partido" id="verPerfilEquipo">Ver perfil completo</button>
         <button class="btn-partido" id="verScoutingEquipo" style="background:var(--teal,#1f7a5a);">Scouting</button>
+        <button class="btn-partido" id="enviarMiEquipo">Enviar a mis jugadoras</button>
         <button class="btn-partido" id="verQuintetosEquipo">Sus quintetos</button>
         <button class="btn-partido" id="cambiarMiEquipo" style="background:var(--ink);">Cambiar de equipo</button>
       </div>
@@ -7863,6 +7880,8 @@ function renderMiEquipo() {
   const cambiar = document.getElementById("cambiarMiEquipo");
   if (cambiar) cambiar.addEventListener("click", () => guardarMiEquipo(""));
 
+  const btnEnviarMi = document.getElementById("enviarMiEquipo");
+  if (btnEnviarMi) btnEnviarMi.addEventListener("click", () => abrirEnvioJugadoras(nombre, "equipo"));
   const btnScoutMi = document.getElementById("verScoutingEquipo");
   if (btnScoutMi) btnScoutMi.addEventListener("click", () => showScouting(nombre));
 
