@@ -386,7 +386,7 @@ function leerPestana(nombreTab, consulta) {
         });
         return o;
       });
-      ok({ cols, filas });
+      ok({ cols, ids: t.cols.map(c => c.id), filas });
     };
     const guion = document.createElement("script");
     guion.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq`
@@ -694,6 +694,174 @@ function mismoNombre(nombreTiro, mio) {
 const tablaZonasHtml = (zonas) => `<table class="sj-zonas"><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>
   ${zonas.map(z => `<tr><td>${esc(z.zona)}</td><td>${esc(z.a)}/${esc(z.i)}</td><td>${conComa(z.pct, 1)}%</td><td>${conComa(z.pps, 2)}</td></tr>`).join("")}</tbody></table>`;
 
+/* ============================================================
+   EVOLUCION POR JORNADA, IMPACTO Y POSESIONES, ADN
+   ============================================================ */
+const nivelPct = (p) => p >= 80 ? "#1f7a5a" : (p <= 30 ? "#c75028" : "#c9a227");
+const num0 = (t) => { const v = numero(t); return v === null ? 0 : v; };
+const minutosDe = (t) => { const m = /^(\d+):([0-5]\d)/.exec(String(t || "")); return m ? Number(m[1]) + Number(m[2]) / 60 : num0(t); };
+const parTiro = (t) => { const m = /(\d+)\s*\/\s*(\d+)/.exec(String(t || "")); return m ? { a: +m[1], i: +m[2] } : { a: 0, i: 0 }; };
+const fechaOrd = (t) => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(String(t || "")); return m ? Number(m[3] + m[2] + m[1]) : 0; };
+
+function pintarImpacto(destino, encontrado, tiros) {
+  const PESOS = [["VAL", 0.30, "Valoración"], ["PTS", 0.15, "Puntos"], ["MIN", 0.12, "Minutos"],
+                 ["REB", 0.10, "Rebotes"], ["AS", 0.10, "Asistencias"]];
+  let suma = 0, peso = 0;
+  const det = [];
+  PESOS.forEach(([c, w, t]) => {
+    const d = encontrado.find(x => x.corta === c);
+    if (d && d.percentil !== null && d.percentil !== undefined) { suma += d.percentil * w; peso += w; det.push([t, d.percentil, w]); }
+  });
+  const valor = peso ? Math.round(suma / peso) : null;
+  let donut = "", lista = "";
+  if (tiros) {
+    const n = (c) => num0(tiros[c]);
+    const pj = n("Partidos");
+    const partes = [["Tiros de 2", n("T2I"), "#c9a227"], ["Tiros de 3", n("T3I"), "#e0a02a"],
+      ["Tiros libres", 0.44 * n("TLI"), "#6b8ee0"], ["Pérdidas", n("Perdidas"), "#e0704c"], ["Asistencias", n("Asistencias"), "#40b084"]];
+    const total = partes.reduce((a, p) => a + p[1], 0);
+    if (total && pj) {
+      const C = 2 * Math.PI * 40; let off = 0;
+      donut = `<svg viewBox="0 0 120 120" style="width:130px;height:130px;flex:none;transform:rotate(-90deg);">${partes.map(p => {
+        const len = p[1] / total * C; const s = `<circle cx="60" cy="60" r="40" fill="none" stroke="${p[2]}" stroke-width="20" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"></circle>`;
+        off += len; return s; }).join("")}</svg>`;
+      lista = `<div style="flex:1;min-width:150px;"><p class="expl" style="margin:0 0 6px;">${conComa(total / pj, 1)} jugadas tuyas por partido</p>
+        ${partes.map(p => `<div style="display:flex;align-items:center;gap:7px;font-size:13.5px;padding:2px 0;">
+          <span style="width:11px;height:11px;border-radius:50%;background:${p[2]};flex:none;"></span><span style="flex:1;">${esc(p[0])}</span>
+          <b>${conComa(p[1] / total * 100, 1)}%</b><span style="color:var(--ink-soft);font-size:12px;">${conComa(p[1] / pj, 1)}/p</span></div>`).join("")}</div>`;
+    }
+  }
+  if (valor === null && !donut) return;
+  const etiqueta = valor === null ? "" : (valor >= 80 ? "Jugadora determinante" : valor >= 65 ? "Jugadora importante" : valor >= 45 ? "Rotación" : "Complemento");
+  destino.innerHTML = `<div class="bloque"><h3>Impacto y posesiones</h3>
+    ${valor !== null ? `<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+      <div style="font-size:42px;font-weight:900;color:${nivelPct(valor)};line-height:1;">${valor}<small style="font-size:15px;color:var(--ink-soft);">/100</small></div>
+      <div><b>Índice de impacto${etiqueta ? " · " + etiqueta : ""}</b>
+      <p class="expl" style="margin:2px 0 0;">Media de tu posición en la liga en ${det.map(d => esc(d[0].toLowerCase())).join(", ")}. Es un cálculo propio, no un dato oficial.</p></div></div>` : ""}
+    ${donut ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">${donut}${lista}</div>
+      <p class="expl" style="margin-top:8px;">Reparto de las jugadas que acaban en tus manos: tiros, pérdidas y asistencias.</p>` : ""}</div>`;
+}
+
+function pintarAdn(destino, encontrado, extrasPct) {
+  const p = (c) => { const d = encontrado.find(x => x.corta === c); return d && d.percentil !== null && d.percentil !== undefined ? d.percentil : null; };
+  const media = (l) => { const v = l.filter(x => x !== null && x !== undefined); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null; };
+  const rasgos = [
+    ["Creación", media([p("AS")]), "Generar juego para las demás"],
+    ["Anotación", media([p("PTS")]), "Producir puntos"],
+    ["Exterior", media([p("3P%")]), "Amenaza desde el triple"],
+    ["Rebote", media([p("REB")]), "Capturar rebotes"],
+    ["Defensa", media([p("ROB"), extrasPct["TAP+"]]), "Presión y protección del aro"],
+    ["Eficiencia", media([p("2P%"), p("3P%"), p("TL%"), p("VAL")]), "Rentabilidad de tus tiros y valoración"],
+  ].filter(r => r[1] !== null);
+  if (rasgos.length < 3) return;
+  const N = rasgos.length, cx = 110, cy = 110, R = 72;
+  const pt = (i, f) => { const a = -Math.PI / 2 + i * 2 * Math.PI / N; return [cx + Math.cos(a) * R * f, cy + Math.sin(a) * R * f]; };
+  const poligono = (f) => rasgos.map((_, i) => pt(i, f).map(v => v.toFixed(1)).join(",")).join(" ");
+  const tuyo = rasgos.map((r, i) => pt(i, r[1] / 100).map(v => v.toFixed(1)).join(",")).join(" ");
+  const radar = `<svg viewBox="0 0 220 220" style="width:100%;max-width:260px;display:block;margin:0 auto;">
+    ${[0.25, 0.5, 0.75, 1].map(f => `<polygon points="${poligono(f)}" fill="none" stroke="#d9c9b0" stroke-width="1"></polygon>`).join("")}
+    ${rasgos.map((_, i) => { const [x, y] = pt(i, 1); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e5d8c4"></line>`; }).join("")}
+    <polygon points="${tuyo}" fill="rgba(224,96,42,.35)" stroke="#e0602a" stroke-width="2.5"></polygon>
+    ${rasgos.map((r, i) => { const [x, y] = pt(i, 1.2); return `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="800" fill="#3a2d20">${esc(r[0])}</text>`; }).join("")}</svg>`;
+  const ord = [...rasgos].sort((a, b) => b[1] - a[1]);
+  const flojo = ord[ord.length - 1];
+  destino.innerHTML = `<div class="bloque"><h3>Tu ADN de jugadora</h3>
+    ${radar}
+    <div style="margin-top:8px;">${rasgos.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--wood-line);">
+      <div style="flex:1;"><b>${esc(r[0])}</b><div style="font-size:11.5px;color:var(--ink-soft);">${esc(r[2])}</div></div>
+      <div style="width:70px;height:7px;background:var(--wood-line);border-radius:4px;overflow:hidden;"><div style="width:${r[1]}%;height:100%;background:${nivelPct(r[1])};"></div></div>
+      <b style="width:28px;text-align:right;color:${nivelPct(r[1])};">${r[1]}</b></div>`).join("")}</div>
+    <p class="expl" style="margin-top:8px;">Destacas en <b>${esc(ord.slice(0, 2).map(r => r[0].toLowerCase()).join(" y "))}</b>${flojo[1] <= 40 ? `; donde más puedes crecer es en <b>${esc(flojo[0].toLowerCase())}</b>` : ""}.
+      Cada rasgo va de 0 a 100: es tu posición frente a las jugadoras de tu grupo.</p></div>`;
+}
+
+async function pintarEvolucion(destino, nombre, equipo) {
+  // 1) cual es la columna del jugador (Google pide letras de columna, no nombres)
+  const cab = await leerPestana("Partidos_Estadisticas", "select * limit 1");
+  if (!cab || !cab.cols) return;
+  const iJ = cab.cols.indexOf("Jugador");
+  if (iJ < 0) return;
+  const palabras = limpiarNombre(nombre).replace(/[.,]/g, " ").split(/\s+/).filter(w => w.length > 2).sort((a, b) => b.length - a.length);
+  if (!palabras.length) return;
+  const clave = palabras[0].toLowerCase().replace(/'/g, "");
+  const [datos, res] = await Promise.all([
+    leerPestana("Partidos_Estadisticas", `select * where lower(${cab.ids[iJ]}) contains '${clave}'`),
+    leerPestana("Resultados"),
+  ]);
+  if (!datos || !datos.filas.length) return;
+  const meta = {};
+  ((res && res.filas) || []).forEach(r => { if (r.PartidoID) meta[String(r.PartidoID).trim()] = r; });
+  const mia = claveNombre(nombre);
+  const vistos = new Set();
+  const ps = datos.filas.filter(f => {
+    const n = f.Jugador; if (!n || n === "TOTAL") return false;
+    if (!(claveNombre(n) === mia || mismoNombre(n, nombre))) return false;
+    const pid = String(f.PartidoID || "").trim(); if (!pid || vistos.has(pid)) return false;
+    vistos.add(pid); return true;
+  }).map(f => {
+    const m = meta[String(f.PartidoID).trim()] || {};
+    const casa = m.Local ? limpiarNombre(m.Local) === limpiarNombre(f.Equipo || equipo) : null;
+    return { fecha: m.Fecha || "", jornada: m.Jornada || "", casa, rival: casa === null ? "" : (casa ? m.Visitante : m.Local),
+      min: minutosDe(f.MIN), pt: num0(f.PT), va: num0(f.VA), reb: num0(f.REB_T), as: num0(f.AS), bp: num0(f.BP), mm: num0(f.MAS_MENOS),
+      tc: parTiro(f.TC), t3: parTiro(f.T3), tl: parTiro(f.TL) };
+  }).sort((a, b) => fechaOrd(a.fecha) - fechaOrd(b.fecha));
+  if (!ps.length) return;
+
+  const med = (f) => ps.reduce((a, x) => a + f(x), 0) / ps.length;
+  const ult = ps.slice(-5);
+  const m5 = ult.reduce((a, x) => a + x.pt, 0) / ult.length, mPt = med(x => x.pt);
+  const dif = Math.round((m5 - mPt) * 10) / 10;
+  const mejor = [...ps].sort((a, b) => b.va - a.va)[0];
+  // grafico: barras de puntos + linea de valoracion
+  const W = 340, H = 150, base = 128, top = 14, ancho = (W - 20) / ps.length;
+  const maxV = Math.max(...ps.map(x => Math.max(x.pt, x.va)), 10);
+  const Y = (v) => base - (Math.max(v, 0) / maxV) * (base - top);
+  const barras = ps.map((x, i) => `<rect x="${(10 + i * ancho + ancho * 0.18).toFixed(1)}" y="${Y(x.pt).toFixed(1)}" width="${(ancho * 0.64).toFixed(1)}" height="${(base - Y(x.pt)).toFixed(1)}" rx="2" fill="#e0602a"></rect>`).join("");
+  const linea = ps.map((x, i) => `${(10 + i * ancho + ancho / 2).toFixed(1)},${Y(x.va).toFixed(1)}`).join(" ");
+  const puntos = ps.map((x, i) => `<circle cx="${(10 + i * ancho + ancho / 2).toFixed(1)}" cy="${Y(x.va).toFixed(1)}" r="2.8" fill="#1f7a5a"></circle>`).join("");
+  const etiq = ps.map((x, i) => (ps.length <= 14 || i % 2 === 0) ? `<text x="${(10 + i * ancho + ancho / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#6b5f50">J${i + 1}</text>` : "").join("");
+  const grafico = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;"><line x1="10" y1="${base}" x2="${W - 10}" y2="${base}" stroke="#d9c9b0"></line>
+    ${barras}<polyline points="${linea}" fill="none" stroke="#1f7a5a" stroke-width="2.2"></polyline>${puntos}${etiq}</svg>`;
+  const kpi = (t, v, s) => `<div style="flex:1;min-width:76px;background:var(--suave);border:1.5px solid var(--wood-line);border-radius:10px;padding:8px;text-align:center;">
+    <b style="font-size:19px;display:block;">${v}</b><span style="font-size:10.5px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);">${t}</span>
+    ${s ? `<div style="font-size:11px;color:var(--ink-soft);">${s}</div>` : ""}</div>`;
+  const filas = [...ps].reverse().slice(0, 10).map(x => `<tr><td style="text-align:left;white-space:nowrap;">${x.casa === null ? "" : (x.casa ? "vs " : "@ ")}${esc(x.rival || x.fecha || "")}</td>
+    <td>${conComa(x.min, 0)}</td><td><b>${conComa(x.pt, 0)}</b></td><td>${x.tc.a}/${x.tc.i}</td><td>${x.t3.a}/${x.t3.i}</td><td>${x.tl.a}/${x.tl.i}</td>
+    <td>${conComa(x.reb, 0)}</td><td>${conComa(x.as, 0)}</td><td>${conComa(x.bp, 0)}</td>
+    <td style="color:${x.mm > 0 ? "#1f7a5a" : x.mm < 0 ? "#c75028" : "inherit"};">${x.mm > 0 ? "+" : ""}${conComa(x.mm, 0)}</td><td>${conComa(x.va, 0)}</td></tr>`).join("");
+  destino.innerHTML = `<div class="bloque"><h3>Tu evolución por jornada</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      ${kpi("Partidos", ps.length, conComa(med(x => x.min), 0) + " min de media")}
+      ${kpi("Puntos", conComa(mPt, 1), "por partido")}
+      ${kpi("Valoración", conComa(med(x => x.va), 1), "por partido")}
+      ${kpi("Últimos 5", conComa(m5, 1), dif > 0 ? "+" + conComa(dif, 1) + " sobre tu media" : (dif < 0 ? conComa(dif, 1) + " sobre tu media" : "igual que tu media"))}</div>
+    ${grafico}
+    <p class="expl" style="margin-top:4px;"><span style="color:#e0602a;font-weight:800;">■</span> Puntos · <span style="color:#1f7a5a;font-weight:800;">●</span> Valoración, partido a partido.
+      ${mejor ? `Tu mejor partido: ${mejor.casa === null ? "" : (mejor.casa ? "vs " : "@ ")}${esc(mejor.rival || mejor.fecha)}, ${conComa(mejor.pt, 0)} puntos y ${conComa(mejor.va, 0)} de valoración.` : ""}</p>
+    <div style="overflow-x:auto;margin-top:8px;"><table class="sj-zonas" style="min-width:420px;"><thead><tr><th style="text-align:left;">Rival</th><th>Min</th><th>PT</th><th>TC</th><th>T3</th><th>TL</th><th>REB</th><th>AS</th><th>BP</th><th>+/-</th><th>VAL</th></tr></thead><tbody>${filas}</tbody></table></div>
+    ${ps.length > 10 ? `<p class="expl">Se muestran los 10 más recientes de ${ps.length}.</p>` : ""}</div>`;
+}
+
+async function pintarAnalisis(caja, nombre, equipo, encontrado, tiros, extras) {
+  caja.insertAdjacentHTML("beforeend", `<div id="anEvo"></div><div id="anImp"></div><div id="anAdn"></div>`);
+  // percentil de sus tapones dentro de su grupo (para el ADN)
+  const extrasPct = {};
+  try {
+    const i = EXTRAS_TABS.findIndex(t => t[1] === "TAP+");
+    const tab = extras[i], mia = claveNombre(nombre);
+    const f = tab && tab.filas ? tab.filas.find(x => claveNombre(x.Jugador || x.Jugadora) === mia) : null;
+    if (f) {
+      const v = numero(f.Med !== undefined ? f.Med : f.Media);
+      const g = (f.Grupo || "").trim();
+      const vals = tab.filas.filter(x => !g || (x.Grupo || "").trim() === g).map(x => numero(x.Med !== undefined ? x.Med : x.Media)).filter(x => x !== null);
+      if (v !== null && vals.length >= 8) extrasPct["TAP+"] = Math.round(vals.filter(x => x < v).length / vals.length * 100);
+    }
+  } catch (e) { /* sin tapones */ }
+  try { pintarImpacto($("anImp"), encontrado, tiros); } catch (e) { /* nada */ }
+  try { pintarAdn($("anAdn"), encontrado, extrasPct); } catch (e) { /* nada */ }
+  try { await pintarEvolucion($("anEvo"), nombre, equipo); } catch (e) { /* nada */ }
+}
+
 async function pintarExtrasNumeros(caja, mia, equipo, encontrado) {
   try {
     const [extras, resumen] = await Promise.all([
@@ -727,6 +895,8 @@ async function pintarExtrasNumeros(caja, mia, equipo, encontrado) {
     if (cajas.length) caja.insertAdjacentHTML("beforeend", `<div class="bloque"><h3>Todas tus estadísticas</h3>
       <div class="sj-grid" style="grid-template-columns:repeat(auto-fill,minmax(92px,1fr));">
       ${cajas.map(c => `<div><b>${esc(c[1])}</b><i>${esc(c[0])}</i></div>`).join("")}</div></div>`);
+
+    await pintarAnalisis(caja, jugadora.nombre, equipo, encontrado, r, extras);
 
     // Mapa de tiro: solo se piden los tiros de su equipo
     if (!equipo) return;
