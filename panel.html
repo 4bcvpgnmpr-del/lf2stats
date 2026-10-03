@@ -156,6 +156,18 @@
       <div id="avisoTemporada"></div>
     </div>
 
+    <!-- Orden de la app de las jugadoras -->
+    <div class="caja">
+      <h2>Que ven primero y en que orden</h2>
+      <p class="expl">Ordena las pestañas de su app con las flechas. La primera que dejes visible es la que se
+        abre al entrar. Puedes ocultar las que no uses.</p>
+      <label>Pestañas</label>
+      <div id="ordenPestanas"></div>
+      <label style="margin-top:12px;">Orden de los apartados dentro de "El rival" y "Mi equipo"</label>
+      <div id="ordenSecciones"></div>
+      <div id="avisoOrden"></div>
+    </div>
+
     <!-- Lista de jugadoras -->
     <div class="caja">
       <h2>Tus jugadoras</h2>
@@ -381,6 +393,7 @@ async function entrar(sesion) {
   }
   cargarJugadoras();
   cargarTemporada();
+  cargarOrdenApp();
 }
 
 /* ============================================================
@@ -588,6 +601,72 @@ async function traerPlantilla() {
   avisar("avisoImportar", `${nuevas.length} jugadoras creadas. Ahora ponles el correo a las que vayan a entrar.`, "ok");
   await cargarJugadoras();
   pintarListaFeb();
+}
+
+/* ============================================================
+   ORDEN DE LA APP DE LAS JUGADORAS (se guarda en la tabla ajustes)
+   ============================================================ */
+const PESTANAS_APP = [
+  { id: "numeros", t: "Mis numeros" }, { id: "mensajes", t: "Mensajes" }, { id: "clips", t: "Videos" },
+  { id: "rival", t: "El rival" }, { id: "equipo", t: "Mi equipo" },
+];
+const SECCIONES_APP = [
+  { id: "pdf", t: "Playbook en PDF" }, { id: "jugadas", t: "Jugadas / playbook" }, { id: "datos", t: "Datos del equipo" },
+  { id: "partidos", t: "Ultimos partidos" }, { id: "estilo", t: "Como juegan" }, { id: "mapa", t: "Mapa de tiro del equipo" },
+  { id: "jugadoras", t: "Jugadoras a vigilar" }, { id: "plantilla", t: "Plantilla" }, { id: "mejores", t: "Mejores y peores" },
+  { id: "videos", t: "Videos" }, { id: "texto", t: "Textos (puntos fuertes, claves...)" },
+];
+let ordenApp = { pestanas: PESTANAS_APP.map(p => p.id), ocultas: [], secciones: SECCIONES_APP.map(p => p.id) };
+
+function completarOrden(lista, base) {
+  const ids = base.map(b => b.id);
+  const ok = (lista || []).filter(i => ids.includes(i));
+  return ok.concat(ids.filter(i => !ok.includes(i)));
+}
+async function cargarOrdenApp() {
+  try {
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", "orden_app").limit(1);
+    if (data && data.length && data[0].valor) {
+      const o = JSON.parse(data[0].valor);
+      ordenApp.pestanas = completarOrden(o.pestanas, PESTANAS_APP);
+      ordenApp.secciones = completarOrden(o.secciones, SECCIONES_APP);
+      ordenApp.ocultas = (o.ocultas || []).filter(i => PESTANAS_APP.some(p => p.id === i));
+    }
+  } catch (e) { /* se queda el orden de partida */ }
+  pintarOrdenApp();
+}
+function pintarOrdenApp() {
+  const fila = (lista, base, clave, conOcultar) => lista.map((id, n) => {
+    const nombre = (base.find(b => b.id === id) || {}).t || id;
+    const oculta = conOcultar && ordenApp.ocultas.includes(id);
+    return `<div class="item" style="display:flex;align-items:center;gap:8px;padding:8px 10px;${oculta ? "opacity:.5;" : ""}">
+      <b style="flex:1;">${esc(nombre)}</b>
+      ${conOcultar ? `<label class="sw" style="margin:0;"><input type="checkbox" data-vis="${esc(id)}" ${oculta ? "" : "checked"}> <span>Visible</span></label>` : ""}
+      <button class="boton fina gris" data-mov="${clave}|${esc(id)}|-1" ${n === 0 ? "disabled" : ""}>↑</button>
+      <button class="boton fina gris" data-mov="${clave}|${esc(id)}|1" ${n === lista.length - 1 ? "disabled" : ""}>↓</button></div>`;
+  }).join("");
+  $("ordenPestanas").innerHTML = fila(ordenApp.pestanas, PESTANAS_APP, "pestanas", true);
+  $("ordenSecciones").innerHTML = fila(ordenApp.secciones, SECCIONES_APP, "secciones", false);
+  document.querySelectorAll("[data-mov]").forEach(b => b.addEventListener("click", () => {
+    const [clave, id, d] = b.getAttribute("data-mov").split("|");
+    const l = ordenApp[clave], i = l.indexOf(id), j = i + Number(d);
+    if (j < 0 || j >= l.length) return;
+    [l[i], l[j]] = [l[j], l[i]];
+    pintarOrdenApp(); guardarOrdenApp();
+  }));
+  document.querySelectorAll("[data-vis]").forEach(c => c.addEventListener("change", () => {
+    const id = c.getAttribute("data-vis");
+    ordenApp.ocultas = ordenApp.ocultas.filter(x => x !== id);
+    if (!c.checked) ordenApp.ocultas.push(id);
+    if (ordenApp.ocultas.length >= PESTANAS_APP.length) { ordenApp.ocultas = []; }
+    pintarOrdenApp(); guardarOrdenApp();
+  }));
+}
+async function guardarOrdenApp() {
+  const { error } = await sb.from("ajustes").upsert({
+    clave: "orden_app", valor: JSON.stringify(ordenApp), actualizado: new Date().toISOString() });
+  if (error) { avisar("avisoOrden", "No se ha podido guardar: " + error.message, "mal"); return; }
+  avisar("avisoOrden", "Guardado. Lo veran asi la proxima vez que abran la app.", "ok");
 }
 
 /* ============================================================

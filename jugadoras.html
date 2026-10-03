@@ -1044,6 +1044,12 @@ function seccionRivalHtml(sc) {
   if (!sc) return "";
   const tit = `<div class="sr-tit">${esc(sc.titulo || "")}</div>`;
 
+  if (sc.tipo === "pdf" && (sc.archivos || []).length) {
+    return `<div class="seccion-rival">${tit}${sc.archivos.map(a => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+      <span style="flex:1;min-width:140px;font-weight:700;">📄 ${esc(a.nombre || "Playbook")}</span>
+      <a class="boton" style="display:inline-block;width:auto;padding:11px 18px;text-decoration:none;" href="${esc(a.url)}" target="_blank" rel="noopener" download>Descargar PDF</a></div>`).join("")}</div>`;
+  }
+
   if (sc.tipo === "datos" && (sc.datos || []).length) {
     return `<div class="seccion-rival">${tit}
       <div class="sr-datos">${sc.datos.map(d => `<div class="sr-dato">
@@ -1165,7 +1171,36 @@ function seccionRivalHtml(sc) {
 
 let ultimoInforme = "", ultimoEquipo = "";
 const ES_EQUIPO = (i) => i.rival === "__MI_EQUIPO__";
+let ordenApp = null;
+async function leerOrdenApp() {
+  try {
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", "orden_app").limit(1);
+    if (data && data.length && data[0].valor) ordenApp = JSON.parse(data[0].valor);
+  } catch (e) { ordenApp = null; }
+}
+const ordenSecciones = (lista) => {
+  const o = (ordenApp && ordenApp.secciones) || [];
+  const pos = (sc) => { const k = o.indexOf(sc.tipo || "texto"); return k < 0 ? 999 : k; };
+  return [...(lista || [])].map((x, n) => [x, n]).sort((a, b) => pos(a[0]) - pos(b[0]) || a[1] - b[1]).map(x => x[0]);
+};
+function aplicarOrdenPestanas() {
+  if (!ordenApp || !ordenApp.pestanas) return;
+  const barra = document.querySelector(".pestanas");
+  if (!barra || barra.hidden) return;
+  const botones = [...barra.querySelectorAll("button[data-tab]")];
+  const ocultas = ordenApp.ocultas || [];
+  ordenApp.pestanas.forEach(id => {
+    const b = botones.find(x => x.getAttribute("data-tab") === id);
+    if (b) barra.appendChild(b);
+  });
+  botones.forEach(b => { b.hidden = ocultas.includes(b.getAttribute("data-tab")); });
+  const primera = [...barra.querySelectorAll("button[data-tab]")].find(b => !b.hidden);
+  if (primera && !primera.classList.contains("activa") && !barra.dataset.ordenado) primera.click();
+  barra.dataset.ordenado = "1";
+}
 async function cargarInformes() {
+  await leerOrdenApp();
+  aplicarOrdenPestanas();
   const caja = $("tab-rival"), cajaEq = $("tab-equipo");
   const { data, error } = await sb.from("informes")
     .select("*").order("fecha", { ascending: false });
@@ -1185,7 +1220,7 @@ async function cargarInformes() {
       <div class="bloque">
         <h3>${esc(i.titulo)}</h3>
         <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
-        ${(i.secciones || []).map(seccionRivalHtml).join("")}
+        ${ordenSecciones(i.secciones).map(seccionRivalHtml).join("")}
       </div>`).join("");
   }
 
@@ -1199,7 +1234,7 @@ async function cargarInformes() {
       <div class="bloque">
         <h3>${esc(i.titulo)}</h3>
         <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
-        ${(i.secciones || []).map(seccionRivalHtml).join("")}
+        ${ordenSecciones(i.secciones).map(seccionRivalHtml).join("")}
       </div>`).join("");
   }
 }
