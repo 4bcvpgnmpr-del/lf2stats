@@ -15,8 +15,8 @@
 <meta name="apple-mobile-web-app-title" content="ScoutFlow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <style>
   :root{
     --wood:#faf6ee;
@@ -11655,7 +11655,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-02x";
+const VERSION_APP = "2026-10-03a";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
@@ -11684,7 +11684,11 @@ const VERSION_APP = "2026-10-02x";
   window.addEventListener("error", function (e) {
     if (!e || !e.message) return;          // los fallos de descarga se ignoran aqui
     const donde = e.lineno ? "linea " + e.lineno : "";
-    mostrarFallo(String(e.message), donde);
+    // "Script error." sin linea es un fallo dentro de una libreria externa (graficos): se da mas pista
+    const txt = (e.message === "Script error." && !e.lineno)
+      ? "Fallo dentro de una libreria externa (probablemente un grafico). Recarga con Cmd+Shift+R; si sigue, dime en que pantalla estabas."
+      : String(e.message);
+    mostrarFallo(txt, donde);
   });
 
   window.addEventListener("unhandledrejection", function (e) {
