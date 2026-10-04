@@ -303,13 +303,37 @@
       Tus estadisticas, los videos que te manda el entrenador y sus mensajes para ti.
     </p>
     <div class="caja">
-      <label for="correo">Tu correo</label>
-      <input type="email" id="correo" placeholder="nombre@correo.com"
-             autocomplete="email" inputmode="email" autocapitalize="off">
-      <button class="boton" id="btnEntrar">Enviarme el enlace</button>
+      <div class="subnav" id="accesoModos" style="margin:0 0 14px;">
+        <button type="button" class="active" data-modo="entrar">Entrar</button>
+        <button type="button" data-modo="crear">Crear mi cuenta</button>
+      </div>
+      <div id="bloqueAcceso">
+        <label for="correo">Tu correo</label>
+        <input type="email" id="correo" placeholder="nombre@correo.com"
+               autocomplete="email" inputmode="email" autocapitalize="off">
+        <label for="clave" style="margin-top:10px;display:block;">Tu contraseña</label>
+        <div style="position:relative;">
+          <input type="password" id="clave" placeholder="Minimo 6 caracteres" autocomplete="current-password" style="padding-right:76px;">
+          <button type="button" id="verClave" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--orange);font:inherit;font-weight:800;font-size:13px;cursor:pointer;">Mostrar</button>
+        </div>
+        <div id="campoClave2" hidden>
+          <label for="clave2" style="margin-top:10px;display:block;">Repite la contraseña</label>
+          <input type="password" id="clave2" autocomplete="new-password">
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:14px;font-weight:600;cursor:pointer;">
+          <input type="checkbox" id="recordar" checked style="width:auto;margin:0;"> Mantener la sesion abierta en este aparato
+        </label>
+        <button class="boton" id="btnEntrar" style="margin-top:8px;">Entrar</button>
+        <button type="button" id="btnOlvide" style="display:block;margin:12px auto 0;border:0;background:none;color:var(--ink-soft);font:inherit;font-size:13.5px;text-decoration:underline;cursor:pointer;">He olvidado mi contraseña</button>
+      </div>
+      <div id="bloqueNueva" hidden>
+        <p style="margin:0 0 10px;font-weight:700;">Elige tu nueva contraseña</p>
+        <input type="password" id="claveNueva" placeholder="Minimo 6 caracteres" autocomplete="new-password">
+        <button class="boton" id="btnGuardarClave" style="margin-top:10px;">Guardar y entrar</button>
+      </div>
       <div id="avisoEntrar"></div>
-      <p class="pie" style="margin:14px 0 0;">
-        No hay contrasena. Te llega un correo con un enlace: lo abres y ya estas dentro.
+      <p class="pie" style="margin:14px 0 0;" id="pieAcceso">
+        Entra con el correo que le diste al entrenador. Si es tu primera vez, pulsa «Crear mi cuenta».
       </p>
     </div>
   </div>
@@ -427,40 +451,103 @@ function leerPestana(nombreTab, consulta) {
 let sb = null;
 let jugadora = null;
 
-function arrancarSupabase() {
+function recordarSesion() { try { return localStorage.getItem("lf2_recordar") !== "0"; } catch (e) { return true; } }
+function arrancarSupabase(persistir) {
   if (!window.supabase || !window.supabase.createClient) return null;
   if (CONFIG.SUPABASE_ANON.indexOf("PEGA_AQUI") === 0) return null;
-  return window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON);
+  const quedarse = persistir === undefined ? recordarSesion() : persistir;
+  let almacen;
+  try { almacen = quedarse ? window.localStorage : window.sessionStorage; } catch (e) { almacen = undefined; }
+  return window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON,
+    { auth: { storage: almacen, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 }
 
 function avisar(donde, texto, tipo) {
   $(donde).innerHTML = `<div class="aviso ${tipo}">${esc(texto)}</div>`;
 }
 
-async function pedirEnlace() {
-  const correo = $("correo").value.trim();
-  if (!correo || correo.indexOf("@") < 1) {
-    avisar("avisoEntrar", "Escribe tu correo completo.", "mal");
-    return;
+let modoAcceso = "entrar";
+function cambiarModoAcceso(m) {
+  modoAcceso = m;
+  document.querySelectorAll("#accesoModos button").forEach(b => b.classList.toggle("active", b.getAttribute("data-modo") === m));
+  $("campoClave2").hidden = m !== "crear";
+  $("btnEntrar").textContent = m === "crear" ? "Crear mi cuenta" : "Entrar";
+  $("clave").setAttribute("autocomplete", m === "crear" ? "new-password" : "current-password");
+  $("btnOlvide").hidden = m === "crear";
+  $("avisoEntrar").innerHTML = "";
+}
+function traducirErrorAcceso(msg) {
+  const m = String(msg || "").toLowerCase();
+  if (m.includes("invalid login")) return "Correo o contraseña incorrectos. Si es tu primera vez, pulsa «Crear mi cuenta»; si ya tenias cuenta pero no contraseña, usa «He olvidado mi contraseña».";
+  if (m.includes("already registered") || m.includes("already been registered")) return "Ya existe una cuenta con ese correo. Pulsa «Entrar», o «He olvidado mi contraseña» si todavia no has puesto una.";
+  if (m.includes("email not confirmed")) return "Tienes que confirmar el correo: abre el enlace que te hemos mandado y vuelve a entrar.";
+  if (m.includes("password") && m.includes("6")) return "La contraseña tiene que tener al menos 6 caracteres.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.";
+  return msg;
+}
+function cambiarAlmacenSesion(quedarse) {
+  try {
+    const antes = recordarSesion();
+    localStorage.setItem("lf2_recordar", quedarse ? "1" : "0");
+    if (antes !== quedarse) {
+      // si no quiere quedarse, se borra la sesion guardada de antes para que no siga abierta
+      if (!quedarse) Object.keys(localStorage).filter(k => /^sb-.*-auth-token$/.test(k)).forEach(k => localStorage.removeItem(k));
+      sb = arrancarSupabase(quedarse);
+      engancharSesion();
+    }
+  } catch (e) { /* se queda como estaba */ }
+}
+async function pedirAcceso() {
+  const correo = $("correo").value.trim().toLowerCase(), clave = $("clave").value;
+  if (!correo || correo.indexOf("@") < 1) { avisar("avisoEntrar", "Escribe tu correo completo.", "mal"); return; }
+  if (!clave) { avisar("avisoEntrar", "Escribe tu contraseña.", "mal"); return; }
+  if (!sb) { avisar("avisoEntrar", "La app todavia no esta conectada. Avisa al entrenador.", "mal"); return; }
+  if (modoAcceso === "crear") {
+    if (clave.length < 6) { avisar("avisoEntrar", "La contraseña tiene que tener al menos 6 caracteres.", "mal"); return; }
+    if (clave !== $("clave2").value) { avisar("avisoEntrar", "Las dos contraseñas no coinciden.", "mal"); return; }
   }
-  if (!sb) {
-    avisar("avisoEntrar", "La app todavia no esta conectada. Avisa al entrenador.", "mal");
-    return;
+  cambiarAlmacenSesion($("recordar").checked);
+  const btn = $("btnEntrar"), texto = btn.textContent;
+  btn.disabled = true; btn.textContent = "Un momento...";
+  let res;
+  try {
+    res = modoAcceso === "crear"
+      ? await sb.auth.signUp({ email: correo, password: clave, options: { emailRedirectTo: location.href.split("#")[0] } })
+      : await sb.auth.signInWithPassword({ email: correo, password: clave });
+  } catch (e) { res = { error: { message: String(e && e.message || e) } }; }
+  btn.disabled = false; btn.textContent = texto;
+  if (res.error) { avisar("avisoEntrar", traducirErrorAcceso(res.error.message), "mal"); return; }
+  const ses = res.data && res.data.session;
+  if (ses) { cargarPerfil(ses); return; }
+  if (modoAcceso === "crear") {
+    const yaExiste = res.data && res.data.user && res.data.user.identities && res.data.user.identities.length === 0;
+    avisar("avisoEntrar", yaExiste
+      ? "Ya existe una cuenta con ese correo. Pulsa «Entrar», o «He olvidado mi contraseña» si todavia no has puesto una."
+      : "Cuenta creada. Te hemos mandado un correo para confirmarla: abre el enlace y vuelve a entrar.", yaExiste ? "mal" : "ok");
   }
-  const btn = $("btnEntrar");
-  btn.disabled = true; btn.textContent = "Enviando...";
-  const { error } = await sb.auth.signInWithOtp({
-    email: correo,
-    options: { emailRedirectTo: location.href.split("#")[0] },
-  });
-  btn.disabled = false; btn.textContent = "Enviarme el enlace";
-  if (error) {
-    avisar("avisoEntrar", "No se ha podido enviar: " + error.message, "mal");
-    return;
-  }
-  avisar("avisoEntrar",
-    "Listo. Mira tu correo y abre el enlace desde este mismo movil. "
-    + "Si no lo ves, revisa la carpeta de spam.", "ok");
+}
+async function olvideClave() {
+  const correo = $("correo").value.trim().toLowerCase();
+  if (!correo || correo.indexOf("@") < 1) { avisar("avisoEntrar", "Escribe primero tu correo arriba.", "mal"); return; }
+  if (!sb) return;
+  const { error } = await sb.auth.resetPasswordForEmail(correo, { redirectTo: location.href.split("#")[0] });
+  if (error) { avisar("avisoEntrar", traducirErrorAcceso(error.message), "mal"); return; }
+  avisar("avisoEntrar", "Listo. Te hemos mandado un correo: abre el enlace desde este mismo aparato y elige tu nueva contraseña. Mira tambien el spam.", "ok");
+}
+function mostrarNuevaClave() {
+  $("pantallaEntrar").hidden = false; $("pantallaPerfil").hidden = true;
+  $("bloqueAcceso").hidden = true; $("accesoModos").hidden = true; $("bloqueNueva").hidden = false;
+  $("pieAcceso").textContent = "";
+}
+async function guardarNuevaClave() {
+  const c = $("claveNueva").value;
+  if (c.length < 6) { avisar("avisoEntrar", "La contraseña tiene que tener al menos 6 caracteres.", "mal"); return; }
+  const { error } = await sb.auth.updateUser({ password: c });
+  if (error) { avisar("avisoEntrar", traducirErrorAcceso(error.message), "mal"); return; }
+  const { data } = await sb.auth.getSession();
+  history.replaceState(null, "", location.href.split("#")[0]);
+  enRecuperacion = false;
+  if (data && data.session) cargarPerfil(data.session); else location.reload();
 }
 
 async function salir() {
@@ -1469,12 +1556,32 @@ document.querySelectorAll(".pestanas button").forEach(b => {
     }
   });
 });
-$("btnEntrar").addEventListener("click", pedirEnlace);
-$("correo").addEventListener("keydown", (e) => { if (e.key === "Enter") pedirEnlace(); });
+$("btnEntrar").addEventListener("click", pedirAcceso);
+$("correo").addEventListener("keydown", (e) => { if (e.key === "Enter") $("clave").focus(); });
+$("clave").addEventListener("keydown", (e) => { if (e.key === "Enter") pedirAcceso(); });
+$("clave2").addEventListener("keydown", (e) => { if (e.key === "Enter") pedirAcceso(); });
+$("btnOlvide").addEventListener("click", olvideClave);
+$("btnGuardarClave").addEventListener("click", guardarNuevaClave);
+$("recordar").checked = recordarSesion();
+$("verClave").addEventListener("click", () => {
+  const ver = $("clave").type === "password";
+  $("clave").type = ver ? "text" : "password"; $("clave2").type = ver ? "text" : "password";
+  $("verClave").textContent = ver ? "Ocultar" : "Mostrar";
+});
+document.querySelectorAll("#accesoModos button").forEach(b => b.addEventListener("click", () => cambiarModoAcceso(b.getAttribute("data-modo"))));
 
 /* ============================================================
    ARRANQUE
    ============================================================ */
+let enRecuperacion = false;
+function engancharSesion() {
+  if (!sb) return;
+  sb.auth.onAuthStateChange((evento, sesion) => {
+    if (evento === "PASSWORD_RECOVERY") { enRecuperacion = true; mostrarNuevaClave(); return; }
+    if (enRecuperacion) return;
+    if (sesion && $("pantallaPerfil").hidden) cargarPerfil(sesion);
+  });
+}
 (async function arrancar() {
   sb = arrancarSupabase();
   if (!sb) {
@@ -1483,11 +1590,10 @@ $("correo").addEventListener("keydown", (e) => { if (e.key === "Enter") pedirEnl
       + "anon public en el apartado CONFIG del archivo.", "mal");
     return;
   }
+  if (/type=recovery/.test(location.hash)) { enRecuperacion = true; mostrarNuevaClave(); engancharSesion(); return; }
   const { data } = await sb.auth.getSession();
   if (data && data.session) { cargarPerfil(data.session); return; }
-  sb.auth.onAuthStateChange((evento, sesion) => {
-    if (sesion && $("pantallaPerfil").hidden) cargarPerfil(sesion);
-  });
+  engancharSesion();
 })();
 
 /* Al imprimir se abren los desplegables (estadisticas, mapas) para que salgan en el PDF */
