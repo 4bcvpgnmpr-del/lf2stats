@@ -54,6 +54,14 @@ SUFIJO_TEMPORADA = "" if SEASON_START == "2025" else f"_{SEASON_START}"
 # Con FEB_FORZAR_ESCRITURA=1 se escribe aunque la descarga venga corta
 FORZAR_ESCRITURA = os.environ.get("FEB_FORZAR_ESCRITURA") == "1"
 
+# Con FEB_RANKINGS_PROPIOS=1 los rankings de jugadoras se calculan siempre con
+# los cuadros de cada partido, aunque la FEB si publique los suyos.
+# Sin esa variable solo se calculan cuando el ranking de la FEB llega vacio
+# (al empezar la temporada suele tardar en publicarlos).
+RANKINGS_PROPIOS = os.environ.get("FEB_RANKINGS_PROPIOS") == "1"
+# Intentos minimos para entrar en los rankings de porcentaje calculados aqui
+MIN_INTENTOS_PCT = int(os.environ.get("FEB_MIN_INTENTOS", "3"))
+
 
 def tab(nombre: str) -> str:
     """Nombre real de la pestaña para la temporada que se esta procesando."""
@@ -308,7 +316,8 @@ def _pagina_actual(soup: BeautifulSoup):
     return None
 
 
-def _clave_jugadora(df: pd.DataFrame) -> pd.Series:
+def _claves_filas_ranking(df: pd.DataFrame) -> pd.Series:
+    """Una clave 'Jugador|Equipo' por fila de un ranking (sirve para quitar repetidas)."""
     cols = [c for c in ("Jugador", "Equipo") if c in df.columns] or list(df.columns)
     return df[cols].astype(str).agg("|".join, axis=1)
 
@@ -327,7 +336,7 @@ def _descargar_todas_las_paginas(session, url: str, html_inicial: str,
         df = parse_ranking_html(html, formula_sep)
         nuevas = 0
         if not df.empty:
-            for k in _clave_jugadora(df):
+            for k in _claves_filas_ranking(df):
                 if k not in vistos:
                     vistos.add(k)
                     nuevas += 1
@@ -380,7 +389,7 @@ def _descargar_todas_las_paginas(session, url: str, html_inicial: str,
     if not frames:
         return pd.DataFrame()
     df_total = pd.concat(frames, ignore_index=True).fillna("")
-    df_total = df_total.loc[~_clave_jugadora(df_total).duplicated()].reset_index(drop=True)
+    df_total = df_total.loc[~_claves_filas_ranking(df_total).duplicated()].reset_index(drop=True)
     print(f"  [paginacion] {etiqueta}: {paginas_leidas} pagina(s), {len(df_total)} jugadoras.", file=sys.stderr)
     return df_total
 
@@ -593,7 +602,7 @@ def quitar_jugadoras_repetidas(df: pd.DataFrame) -> pd.DataFrame:
     """Una fila por jugadora y equipo (tras unificar los nombres puede haber repetidas)."""
     if df is None or df.empty or "Jugador" not in df.columns:
         return df
-    return df.loc[~_clave_jugadora(df).duplicated()].reset_index(drop=True)
+    return df.loc[~_claves_filas_ranking(df).duplicated()].reset_index(drop=True)
 
 
 def _reordenar_ranking(df: pd.DataFrame) -> pd.DataFrame:
@@ -640,7 +649,7 @@ def _ranking_por_grupos(url: str, formula_sep: str, etiqueta: str, cat_value=Non
     if not frames:
         return pd.DataFrame()
     df_total = pd.concat(frames, ignore_index=True).fillna("")
-    df_total = df_total.loc[~_clave_jugadora(df_total).duplicated()].reset_index(drop=True)
+    df_total = df_total.loc[~_claves_filas_ranking(df_total).duplicated()].reset_index(drop=True)
     if len(frames) > 1:
         df_total = _reordenar_ranking(df_total)
     return df_total
@@ -1835,6 +1844,133 @@ def resumen_tiros_jugadoras(partidos_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(salida).sort_values(["Equipo", "Jugador"]).reset_index(drop=True)
 
 
+# ----------------------------- RANKINGS PROPIOS ----------------------------
+# Al empezar la temporada la FEB tarda en publicar los rankings de jugadoras
+# (o los publica vacios). Aqui se calculan con los cuadros de cada partido,
+# con las mismas columnas que usa la app (Jugador, Equipo, Media, Grupo...),
+# para que las estadisticas de las jugadoras se vean desde la primera jornada.
+
+# (pestaña, columna del cuadro, tipo de calculo)
+RANKINGS_PROPIOS_DEF = [
+    ("Jugadoras", "PT", "media"),
+    ("Jugadoras_Rebotes_Totales", "REB_T", "media"),
+    ("Jugadoras_Asistencias", "AS", "media"),
+    ("Jugadoras_Robos", "BR", "media"),
+    ("Jugadoras_Tapones_Favor", "TAP_F", "media"),
+    ("Jugadoras_Tapones_Contra", "TAP_C", "media"),
+    ("Jugadoras_Mates", "MT", "media"),
+    ("Jugadoras_Faltas_Recibidas", "FAL_R", "media"),
+    ("Jugadoras_Faltas_Cometidas", "FAL_C", "media"),
+    ("Jugadoras_Valoracion", "VA", "media"),
+    ("Jugadoras_Minutos_Jugados", "MIN", "minutos"),
+    ("Jugadoras_Pct_Tiros_2", "T2", "pct"),
+    ("Jugadoras_Pct_Tiros_3", "T3", "pct"),
+    ("Jugadoras_Pct_Tiros_Libres", "TL", "pct"),
+]
+
+
+def _a_numero(valor) -> float:
+    try:
+        return float(str(valor).replace(",", ".").strip() or 0)
+    except ValueError:
+        return 0.0
+
+
+def _coma(valor: float, decimales: int = 2) -> str:
+    return f"{round(valor, decimales):.{decimales}f}".replace(".", ",")
+
+
+def _palabras_nombre(nombre: str) -> frozenset:
+    """Palabras del nombre sin tildes ni signos: sirve para comparar
+    'APELLIDO, NOMBRE' con 'NOMBRE APELLIDO' sea cual sea el orden."""
+    txt = re.sub(r"[^A-Z ]", " ", _sin_tildes(nombre or "").upper())
+    return frozenset(p for p in txt.split() if p)
+
+
+def rankings_desde_partidos(partidos_df: pd.DataFrame, equipos_df: pd.DataFrame,
+                            plantillas_df: pd.DataFrame, formula_sep: str = ";") -> dict:
+    """{nombre de pestaña: DataFrame} con un ranking por categoria, calculado
+    con los cuadros de los partidos jugados."""
+    if partidos_df is None or partidos_df.empty or "Jugador" not in partidos_df.columns:
+        return {}
+
+    # Grupo de cada equipo (segun la pestaña Equipos)
+    grupos = {}
+    if equipos_df is not None and not equipos_df.empty and {"Equipo", "Grupo"} <= set(equipos_df.columns):
+        for eq, gr in zip(equipos_df["Equipo"], equipos_df["Grupo"]):
+            grupos[normalizar_equipo(eq)] = str(gr)
+
+    # Foto de cada jugadora (segun las plantillas oficiales)
+    fotos = {}
+    if plantillas_df is not None and not plantillas_df.empty and "FotoURL" in plantillas_df.columns:
+        for _, p in plantillas_df.iterrows():
+            url = str(p.get("FotoURL", "")).strip()
+            if url:
+                fotos[(normalizar_equipo(p.get("Equipo", "")), _palabras_nombre(p.get("Jugadora", "")))] = url
+
+    # Se suman los partidos de cada jugadora
+    acum = {}
+    for _, f in partidos_df.iterrows():
+        jugadora = str(f.get("Jugador", "")).strip()
+        equipo = str(f.get("Equipo", "")).strip()
+        if not jugadora or jugadora == "TOTAL" or not equipo:
+            continue
+        segundos = _minutos_a_segundos(f.get("MIN", ""))
+        if segundos <= 0:
+            continue                      # no jugo ese partido
+        d = acum.setdefault((equipo, jugadora), {"pj": 0, "seg": 0, "t": {}, "tiro": {}})
+        d["pj"] += 1
+        d["seg"] += segundos
+        for col in ("PT", "REB_T", "AS", "BR", "TAP_F", "TAP_C", "MT", "FAL_R", "FAL_C", "VA"):
+            d["t"][col] = d["t"].get(col, 0.0) + _a_numero(f.get(col, 0))
+        for col in ("T2", "T3", "TL"):
+            a, i = _partes_tiro(f.get(col, ""))
+            ya, yi = d["tiro"].get(col, (0, 0))
+            d["tiro"][col] = (ya + a, yi + i)
+
+    if not acum:
+        return {}
+
+    salida = {}
+    for pestana, col, tipo in RANKINGS_PROPIOS_DEF:
+        filas = []
+        for (equipo, jugadora), d in acum.items():
+            if tipo == "media":
+                total = d["t"].get(col, 0.0)
+                valor = total / d["pj"]
+                total_txt = str(int(round(total)))
+                media_txt = _coma(valor, 2)
+            elif tipo == "minutos":
+                valor = d["seg"] / 60 / d["pj"]
+                total_txt = _coma(d["seg"] / 60, 1)
+                media_txt = _coma(valor, 2)
+            else:  # pct
+                a, i = d["tiro"].get(col, (0, 0))
+                if i < MIN_INTENTOS_PCT:
+                    continue
+                valor = a / i * 100
+                total_txt = f"{a}/{i}"
+                media_txt = _coma(valor, 1)
+            url = fotos.get((normalizar_equipo(equipo), _palabras_nombre(jugadora)), "")
+            filas.append({
+                "valor": valor,
+                "Foto": f'=IMAGE("{url}"{formula_sep} 4{formula_sep} 40{formula_sep} 40)' if url else "",
+                "Jugador": jugadora, "Equipo": equipo, "PJ": d["pj"],
+                "Total": total_txt, "Media": media_txt,
+                "Grupo": grupos.get(normalizar_equipo(equipo), ""),
+                "FotoURL": url,
+            })
+        if not filas:
+            continue
+        filas.sort(key=lambda r: r["valor"], reverse=True)
+        for pos, r in enumerate(filas, start=1):
+            r["Pos"] = str(pos)
+            del r["valor"]
+        df = pd.DataFrame(filas)[["Foto", "Pos", "Jugador", "Equipo", "PJ", "Total", "Media", "Grupo", "FotoURL"]]
+        salida[pestana] = df
+    return salida
+
+
 # ----------------------------- QUINTETOS (jugada a jugada) -----------------
 # La API LiveStats de la FEB devuelve en "KeyFacts" el jugada a jugada
 # (PLAYBYPLAY.LINES) con las sustituciones. Con eso se reconstruye que cinco
@@ -1961,9 +2097,11 @@ def eventos_de_keyfacts(datos: dict) -> tuple:
     return equipos, eventos
 
 
-def _clave_jugadora(nombre: str) -> str:
+def _clave_nombre(nombre: str) -> str:
     """Primer apellido + inicial del nombre, sin tildes. Sirve para emparejar
-    el nombre del cuadro estadistico con el del jugada a jugada."""
+    el nombre del cuadro estadistico con el del jugada a jugada.
+    (Antes se llamaba _clave_jugadora, igual que la funcion de los rankings:
+    una pisaba a la otra y los rankings de jugadoras salian vacios.)"""
     txt = _sin_tildes(str(nombre or "")).upper()
     txt = re.sub(r"[^A-Z, ]", " ", txt)
     txt = re.sub(r"\s+", " ", txt).strip()
@@ -2033,10 +2171,10 @@ def quintetos_de_partido(datos: dict, partido_id: str, cuadro: dict = None) -> l
             continue
         por_clave = {}
         for n in todas:
-            por_clave.setdefault(_clave_jugadora(n), []).append(n)
+            por_clave.setdefault(_clave_nombre(n), []).append(n)
         traduccion = {}
         for n in nombres_pbp[e]:
-            candidatas = por_clave.get(_clave_jugadora(n), [])
+            candidatas = por_clave.get(_clave_nombre(n), [])
             if len(candidatas) == 1:
                 traduccion[n] = candidatas[0]
         if traduccion:
@@ -2317,9 +2455,6 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
 
 
 TAB_REBOTES = "Rebotes"
-
-
-
 
 
 def rebotes_por_tipo(datos: dict, partido_id: str) -> list:
@@ -2766,6 +2901,7 @@ def main():
 
     # Plantillas oficiales: estan disponibles desde el primer dia, antes
     # incluso de que se juegue, asi que no dependen de las estadisticas.
+    plantillas_df = pd.DataFrame()
     try:
         plantillas_df = fetch_plantillas()
         if not plantillas_df.empty:
@@ -2782,16 +2918,20 @@ def main():
     nombres_raros = set()
     print(f"  [nombres] {len(canonicos)} equipos de referencia", file=sys.stderr)
 
+    # Pestañas de ranking que ya se han escrito con datos de la FEB
+    rankings_feb = set()
+
     # 2) Ranking de Puntos, TODAS las paginas (con foto)
     ranking_df = fetch_ranking_with_photos(RANKINGS_URL, formula_sep=formula_sep)
     ranking_df, raros = aplicar_canonicos(ranking_df, canonicos)
     nombres_raros |= raros
     ranking_df = quitar_jugadoras_repetidas(ranking_df)
-    if not ranking_df.empty:
+    if not ranking_df.empty and not RANKINGS_PROPIOS:
         write_dataframe(sh, "Jugadoras", ranking_df, has_photos=True)
+        rankings_feb.add("Jugadoras")
         resumen.append(f"Jugadoras: {len(ranking_df)} filas (con foto)")
-    else:
-        resumen.append("Jugadoras: sin tablas todavia")
+    elif ranking_df.empty:
+        resumen.append("Jugadoras: la FEB aun no publica el ranking (se calcula con los partidos)")
 
     # 2b) Resto de categorias, TODAS las paginas
     otras_categorias = fetch_all_ranking_categories(RANKINGS_URL, formula_sep=formula_sep)
@@ -2799,9 +2939,12 @@ def main():
         df, raros = aplicar_canonicos(df, canonicos)
         nombres_raros |= raros
         df = quitar_jugadoras_repetidas(df)
-        tab = f"Jugadoras_{cat_name}"
-        write_dataframe(sh, tab, df, has_photos=True)
-        resumen.append(f"{tab}: {len(df)} filas (con foto)")
+        if df.empty or RANKINGS_PROPIOS:
+            continue
+        nombre_tab = f"Jugadoras_{cat_name}"
+        write_dataframe(sh, nombre_tab, df, has_photos=True)
+        rankings_feb.add(nombre_tab)
+        resumen.append(f"{nombre_tab}: {len(df)} filas (con foto)")
     categorias_faltantes = set(RANKING_CATEGORIES) - set(otras_categorias)
     if categorias_faltantes:
         resumen.append(f"Categorias no disponibles esta vez: {', '.join(sorted(categorias_faltantes))}")
@@ -2831,6 +2974,7 @@ def main():
         resumen.append(f"Clasificacion_Final: {len(clasif_final_df)} filas")
 
     # 4) Estadisticas de cada partido (solo los nuevos)
+    partidos_df = pd.DataFrame()
     try:
         partidos_df, n_nuevos = fetch_estadisticas_partidos(sh, resultados_df)
         partidos_df, raros = aplicar_canonicos(partidos_df, canonicos)
@@ -2847,6 +2991,26 @@ def main():
             resumen.append(f"{TAB_TIROS}: {len(tiros_df)} jugadoras")
     except Exception as exc:  # noqa: BLE001
         resumen.append(f"{TAB_PARTIDOS}: error ({exc})")
+
+    # 4b) Rankings de jugadoras calculados con los partidos: se usan para todas
+    #     las categorias que la FEB no ha publicado todavia (o todas, con
+    #     FEB_RANKINGS_PROPIOS=1). Asi las estadisticas de las jugadoras de la
+    #     temporada nueva se ven desde la primera jornada.
+    try:
+        propios = rankings_desde_partidos(partidos_df, equipos_df, plantillas_df, formula_sep)
+        escritos = 0
+        for nombre_tab, df in propios.items():
+            if nombre_tab in rankings_feb:
+                continue
+            write_dataframe(sh, nombre_tab, df, has_photos=True)
+            escritos += 1
+        if propios:
+            resumen.append(f"Rankings propios: {escritos} pestañas calculadas con los partidos "
+                           f"({len(rankings_feb)} las daba la FEB)")
+        else:
+            resumen.append("Rankings propios: todavia no hay partidos con estadisticas")
+    except Exception as exc:  # noqa: BLE001
+        resumen.append(f"Rankings propios: error ({exc})")
 
     # 5) Quintetos reales (jugada a jugada de la API LiveStats)
     try:
