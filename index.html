@@ -2488,7 +2488,8 @@ function sinPartidosRepetidos(tab) {
   const puntos = (r) => (cellText(r, "Jugado") === "Si" ? 4 : 0) + (cellText(r, "PartidoID") ? 2 : 0) + (cellText(r, "Pts_Local") !== "" ? 1 : 0);
   const mejor = new Map(), orden = [];
   tab.rows.forEach((r, i) => {
-    const clave = quitar(cellText(r, "Local")) + "|" + quitar(cellText(r, "Visitante")) + "|" + quitar(cellText(r, "Fase")) + "|" + quitar(cellText(r, "Jornada"));
+    // mismo local, mismo visitante y misma fecha = el mismo partido (aunque cambie la fase, la jornada o el grupo)
+    const clave = quitar(cellText(r, "Local")) + "|" + quitar(cellText(r, "Visitante")) + "|" + quitar(cellText(r, "Fecha"));
     if (!quitar(cellText(r, "Local")) || !quitar(cellText(r, "Visitante"))) { orden.push(r); return; }
     const antes = mejor.get(clave);
     if (!antes) { mejor.set(clave, r); orden.push(clave); }
