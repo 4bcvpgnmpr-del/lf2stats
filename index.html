@@ -2480,9 +2480,27 @@ function fichaPlantilla(nombre, equipo) {
     || null;
 }
 
+/* Si el Sheet trae el mismo partido dos veces (pasa cuando se actualiza el grupo y se solapan filas),
+   se queda con una sola fila: la que ya tiene resultado o identificador. */
+function sinPartidosRepetidos(tab) {
+  if (!tab || !tab.rows) return tab;
+  const quitar = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const puntos = (r) => (cellText(r, "Jugado") === "Si" ? 4 : 0) + (cellText(r, "PartidoID") ? 2 : 0) + (cellText(r, "Pts_Local") !== "" ? 1 : 0);
+  const mejor = new Map(), orden = [];
+  tab.rows.forEach((r, i) => {
+    const clave = quitar(cellText(r, "Local")) + "|" + quitar(cellText(r, "Visitante")) + "|" + quitar(cellText(r, "Fase")) + "|" + quitar(cellText(r, "Jornada"));
+    if (!quitar(cellText(r, "Local")) || !quitar(cellText(r, "Visitante"))) { orden.push(r); return; }
+    const antes = mejor.get(clave);
+    if (!antes) { mejor.set(clave, r); orden.push(clave); }
+    else if (puntos(r) > puntos(antes)) mejor.set(clave, r);
+  });
+  tab.rows = orden.map(x => typeof x === "string" ? mejor.get(x) : x);
+  return tab;
+}
+
 async function loadResultados() {
   try {
-    resultados = await fetchSheetTab("Resultados");
+    resultados = sinPartidosRepetidos(await fetchSheetTab("Resultados"));
     renderResultados(document.getElementById("filterResultados").value);
   } catch (e) {
     showError("resultadosContent", "Resultados");
