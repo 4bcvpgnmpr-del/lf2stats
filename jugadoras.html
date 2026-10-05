@@ -82,6 +82,66 @@
   .pestanas button.activa .punto{background:#fff;}
 
   [hidden]{display:none !important;}   /* si no, el display:flex gana y se ve todo a la vez */
+
+  /* ---------- Inicio ---------- */
+  .ini-panel{background:var(--white);border:1px solid var(--wood-line);border-radius:16px;box-shadow:0 6px 20px rgba(27,36,50,.06);
+    padding:18px 16px 16px;margin-bottom:14px;position:relative;overflow:hidden;}
+  .ini-panel::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--acento,var(--orange));}
+  .ini-tit{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-family:'Archivo Black',sans-serif;font-size:12px;
+    letter-spacing:1.1px;text-transform:uppercase;color:var(--acento,var(--orange));font-weight:400;}
+  .ini-tit::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--acento,var(--orange));}
+  .ini-hero{background:linear-gradient(135deg,#1b2432,#2a3b55);border-color:#1b2432;color:#fff;--acento:#f6a56c;}
+  .ini-hero::before{background:linear-gradient(90deg,var(--orange),#f0a04b);height:5px;}
+  .ini-eqs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;}
+  .ini-eq{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:0;}
+  .ini-eq b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:12px;line-height:1.2;text-transform:uppercase;}
+  .ini-eq small{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:#9fb0c6;}
+  .ini-esc{width:54px;height:54px;border-radius:50%;background:#fff;padding:4px;object-fit:contain;box-shadow:0 4px 12px rgba(0,0,0,.25);}
+  .ini-esc.letra{display:flex;align-items:center;justify-content:center;font-weight:800;color:#44566c;font-size:15px;}
+  .ini-vs{width:36px;height:36px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;
+    font-family:'Archivo Black',sans-serif;font-size:12px;box-shadow:0 0 0 5px rgba(224,96,42,.25);}
+  .ini-chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:14px 0 4px;}
+  .ini-chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;color:#eef3fa;}
+  .ini-abajo{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid rgba(255,255,255,.14);margin-top:14px;padding-top:12px;}
+  .ini-dias b{display:block;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:38px;line-height:1;color:#f6a56c;}
+  .ini-dias small{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:#9fb0c6;}
+  .ini-dif{text-align:right;font-size:12px;color:#b9c6d8;}
+  .ini-estrellas{font-size:18px;color:#f0c35a;} .ini-estrellas .ap{color:rgba(255,255,255,.22);}
+  .ini-etq{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;margin-top:3px;background:rgba(255,255,255,.14);color:#fff;}
+  .ini-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px;}
+  .ini-kpi{border-radius:12px;padding:11px 4px;text-align:center;background:var(--suave);}
+  .ini-kpi b{display:block;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22px;line-height:1.1;}
+  .ini-kpi span{font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-soft);}
+  .ini-kpi.v{background:#e3f3ec;} .ini-kpi.v b{color:#1f7a5a;}
+  .ini-kpi.d{background:#fbe6e0;} .ini-kpi.d b{color:#c0462a;}
+  .ini-kpi.r{background:linear-gradient(135deg,#1b2432,#2a3b55);} .ini-kpi.r b{color:#fff;} .ini-kpi.r span{color:#b9c6d8;}
+  .ini-kpi.p{background:#fde9dc;} .ini-kpi.p b{color:#b9421a;}
+  .ini-sub{display:flex;align-items:center;gap:8px;margin:16px 0 8px;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+  .ini-sub::after{content:"";flex:1;height:1px;background:var(--wood-line);}
+  .ini-fila{display:flex;align-items:center;gap:9px;border:1px solid var(--wood-line);border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px;}
+  .ini-fila .f{font-weight:700;font-size:12px;min-width:74px;}
+  .ini-fila .r{flex:1;min-width:0;display:flex;align-items:center;gap:6px;font-weight:700;}
+  .ini-fila .r img{width:18px;height:18px;object-fit:contain;}
+  .ini-fila .m{font-family:'Archivo Black',sans-serif;font-size:13px;}
+  .ini-dif-pill{border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:800;}
+  .ini-dif-pill.dificil{background:#fbe6e0;color:#b9421a;} .ini-dif-pill.media{background:#fbf0cf;color:#8a6a10;} .ini-dif-pill.facil{background:#e3f3ec;color:#1f7a5a;}
+  .ini-vd{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none;}
+  .ini-vd.v{background:#1f7a5a;} .ini-vd.d{background:#c0462a;}
+  .ini-rival{display:flex;align-items:center;gap:12px;background:var(--suave);border-radius:12px;padding:10px 12px;margin-bottom:12px;}
+  .ini-rival .esc{width:44px;height:44px;object-fit:contain;flex:none;}
+  .ini-rival .esc.letra{border-radius:50%;background:#e3e8ee;display:flex;align-items:center;justify-content:center;font-weight:800;color:#44566c;font-size:14px;}
+  .ini-mini{width:18px;height:18px;object-fit:contain;flex:none;}
+  .ini-mini.letra{display:none;}
+  .ini-rival b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:14px;}
+  .ini-dos{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:520px){ .ini-dos{grid-template-columns:1fr;} }
+  .ini-dos h4{margin:0 0 8px;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+  .ini-dos .f h4{color:#1f7a5a;} .ini-dos .d h4{color:#c0462a;}
+  .ini-lin{border-radius:10px;padding:8px 10px 8px 30px;margin-bottom:6px;font-size:12.5px;font-weight:700;position:relative;}
+  .ini-lin::before{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:10px;}
+  .ini-lin.b{background:#eaf5f0;} .ini-lin.b::before{content:"▲";color:#1f7a5a;}
+  .ini-lin.m{background:#fbeae5;} .ini-lin.m::before{content:"▼";color:#c0462a;}
+
   /* ---------- Para imprimir o guardar en PDF ---------- */
   @media print{
     @page{ size:A4 portrait; margin:14mm 12mm 16mm; @bottom-center{content:"Pagina " counter(page) " de " counter(pages);font-size:8pt;color:#777;} }
@@ -345,14 +405,16 @@
     <div class="cabecera" id="cabecera"></div>
 
     <div class="pestanas">
-      <button data-tab="numeros" class="activa">Mis numeros</button>
+      <button data-tab="inicio" class="activa">Inicio</button>
+      <button data-tab="numeros">Mis numeros</button>
       <button data-tab="mensajes">Mensajes<span class="punto" id="puntoMensajes" hidden></span></button>
       <button data-tab="clips">Videos</button>
       <button data-tab="rival">El rival<span class="punto" id="puntoRival" hidden></span></button>
       <button data-tab="equipo">Mi equipo<span class="punto" id="puntoEquipo" hidden></span></button>
     </div>
 
-    <section id="tab-numeros"></section>
+    <section id="tab-inicio"></section>
+    <section id="tab-numeros" hidden></section>
     <section id="tab-mensajes" hidden></section>
     <section id="tab-clips" hidden></section>
     <section id="tab-rival" hidden></section>
@@ -611,7 +673,7 @@ async function cargarPerfil(sesion) {
         cargarMensajes();
         cargarClips();
         cargarInformes();
-        aplicarTemporada().then(() => cargarNumeros().then(cargarObjetivos));
+        aplicarTemporada().then(() => { cargarInicio(); return cargarNumeros().then(cargarObjetivos); });
         return;
       }
     }
@@ -642,7 +704,7 @@ async function cargarPerfil(sesion) {
   cargarClips();
   // los objetivos se pintan DESPUES de los numeros: si no, cargarNumeros
   // reescribe la pestana entera y se los lleva por delante
-  aplicarTemporada().then(() => cargarNumeros().then(cargarObjetivos));
+  aplicarTemporada().then(() => { cargarInicio(); return cargarNumeros().then(cargarObjetivos); });
   cargarInformes();
 }
 
@@ -1029,6 +1091,168 @@ async function pintarExtrasNumeros(caja, mia, equipo, encontrado) {
       ult.querySelector("#" + id).innerHTML = pistaSvg(tiros, b.getAttribute("data-m"));
     }));
   } catch (e) { /* los numeros de arriba ya estan; esto es un extra */ }
+}
+
+/* ============================================================
+   INICIO: proximo partido, la temporada y el rival de esta semana
+   (lo mismo que ve el entrenador en su inicio, sin el boton de preparar)
+   ============================================================ */
+const PALABRAS_SUELTAS = new Set(["CB", "BC", "CD", "CLUB", "BALONCESTO", "BASKET", "FEMENINO", "FEM", "SAD", "DE", "DEL", "LA", "EL", "LAS", "LOS"]);
+const normEq = (t) => limpiarNombre(t).replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !PALABRAS_SUELTAS.has(w)).join(" ");
+function fechaDe(txt) {
+  const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(String(txt || ""));
+  return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null;
+}
+const KPIS_INICIO = [
+  ["Pts/P", "PT_Media", true], ["Reb/P", "Rebotes_RT_Media", true], ["RebDef/P", "Rebotes_RD_Media", true],
+  ["RebOf/P", "Rebotes_RO_Media", true], ["AST/P", "AS_Media", true], ["Robos/P", "BR_Media", true],
+  ["Perd/P", "BP_Media", false], ["2P%", "T2_Pct", true], ["3P%", "T3_Pct", true], ["TL%", "TL_Pct", true],
+];
+
+async function cargarInicio() {
+  const caja = $("tab-inicio");
+  caja.innerHTML = `<p class="cargando">Cargando tu inicio...</p>`;
+  let equipo = jugadora.equipo || "";
+  const [res, clas, eqs, plant] = await Promise.all([
+    leerPestana("Resultados"), leerPestana("Clasificacion"), leerPestana("Equipos"),
+    equipo ? Promise.resolve(null) : leerPestana("Plantillas"),
+  ]);
+  if (!equipo && plant && plant.filas.length) {
+    const f = plant.filas.find(x => claveNombre(x.Jugadora) === claveNombre(jugadora.nombre));
+    if (f) equipo = f.Equipo || "";
+  }
+  if (!equipo || !res || !res.filas.length) {
+    caja.innerHTML = `<div class="vacio">Aqui veras el proximo partido de tu equipo y como va la temporada
+      en cuanto haya calendario publicado.</div>`;
+    return;
+  }
+
+  const escudos = {};
+  ((eqs && eqs.filas) || []).forEach(f => { if (f.EscudoURL) escudos[normEq(f.Equipo)] = f.EscudoURL; });
+  const escudo = (nombre, clase) => {
+    const url = escudos[normEq(nombre)];
+    const letras = esc(limpiarNombre(nombre).replace(/[^A-Z ]/g, "").trim().slice(0, 2));
+    return url ? `<img class="${clase}" src="${esc(url)}" alt="" loading="lazy"
+        onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'${clase} letra',textContent:'${letras}'}))">`
+      : `<div class="${clase} letra">${letras}</div>`;
+  };
+
+  const partidosDe = (nombre) => {
+    const obj = normEq(nombre);
+    return res.filas.filter(r => normEq(r.Local) === obj || normEq(r.Visitante) === obj).map(r => {
+      const esLocal = normEq(r.Local) === obj;
+      const pf = numero(esLocal ? r.Pts_Local : r.Pts_Visitante), pc = numero(esLocal ? r.Pts_Visitante : r.Pts_Local);
+      return { esLocal, rival: esLocal ? r.Visitante : r.Local, jugado: r.Jugado === "Si",
+        pf, pc, gano: pf !== null && pc !== null ? pf > pc : null,
+        fecha: r.Fecha || "", hora: r.Hora || "", jornada: r.Jornada || "", fase: r.Fase || "",
+        orden: (fechaDe(r.Fecha) || new Date(8.64e15)).getTime() };
+    }).sort((a, b) => a.orden - b.orden);
+  };
+
+  const partidos = partidosDe(equipo);
+  const jugados = partidos.filter(p => p.jugado && p.gano !== null);
+  const pendientes = partidos.filter(p => !p.jugado);
+  const proximo = pendientes[0] || null;
+  const victorias = jugados.filter(p => p.gano).length, derrotas = jugados.length - victorias;
+  const pctV = jugados.length ? Math.round(victorias / jugados.length * 100) : 0;
+  let racha = 0, tipo = "";
+  for (const p of [...jugados].reverse()) {
+    const t = p.gano ? "V" : "D";
+    if (!tipo) { tipo = t; racha = 1; } else if (t === tipo) racha++; else break;
+  }
+
+  // Dificultad del rival segun su puesto en la clasificacion
+  const dificultad = (rival) => {
+    const filas = (clas && clas.filas) || [];
+    const suyo = filas.find(f => normEq(f.Equipo) === normEq(rival));
+    if (!suyo) return { estrellas: 3, texto: "Media", clase: "media" };
+    const grupo = suyo.Grupo || "";
+    const total = filas.filter(f => !grupo || f.Grupo === grupo).length || 14;
+    const puesto = numero(suyo.Po);
+    if (puesto === null) return { estrellas: 3, texto: "Media", clase: "media" };
+    const parte = puesto / total;
+    if (parte <= 0.25) return { estrellas: 5, texto: "Muy dificil", clase: "dificil", puesto };
+    if (parte <= 0.5) return { estrellas: 4, texto: "Dificil", clase: "dificil", puesto };
+    if (parte <= 0.75) return { estrellas: 3, texto: "Media", clase: "media", puesto };
+    return { estrellas: 2, texto: "Asequible", clase: "facil", puesto };
+  };
+
+  const filaPartido = (p, conResultado) => `<div class="ini-fila">
+    ${conResultado ? `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>` : ""}
+    <span class="f">${esc(p.fecha)}</span>
+    <span class="r">${p.esLocal ? "vs" : "en"} ${escudo(p.rival, "ini-mini")}<span style="overflow:hidden;text-overflow:ellipsis;">${esc(p.rival)}</span></span>
+    ${conResultado ? `<span class="m">${p.pf}-${p.pc}</span>`
+      : `<span class="ini-dif-pill ${dificultad(p.rival).clase}">${esc(dificultad(p.rival).texto)}</span>`}</div>`;
+
+  // ---- Proximo partido ----
+  let html = "";
+  if (proximo) {
+    const f = fechaDe(proximo.fecha), hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const dias = f ? Math.round((f - hoy) / 86400000) : null;
+    const dif = dificultad(proximo.rival);
+    html += `<div class="ini-panel ini-hero"><h3 class="ini-tit">Proximo partido</h3>
+      <div class="ini-eqs">
+        <div class="ini-eq">${escudo(equipo, "ini-esc")}<b>${esc(equipo)}</b><small>${proximo.esLocal ? "Local" : "Visitante"}</small></div>
+        <div class="ini-vs">VS</div>
+        <div class="ini-eq">${escudo(proximo.rival, "ini-esc")}<b>${esc(proximo.rival)}</b><small>${proximo.esLocal ? "Visitante" : "Local"}</small></div>
+      </div>
+      <div class="ini-chips">
+        <span class="ini-chip">📅 ${esc(proximo.fecha)}</span>
+        ${proximo.hora ? `<span class="ini-chip">🕕 ${esc(proximo.hora)}</span>` : ""}
+        <span class="ini-chip">${proximo.esLocal ? "🏠 En casa" : "🚌 Fuera"}</span>
+        ${[proximo.fase, proximo.jornada].filter(Boolean).length ? `<span class="ini-chip">🏀 ${esc([proximo.fase, proximo.jornada].filter(Boolean).join(" · "))}</span>` : ""}
+      </div>
+      <div class="ini-abajo">
+        <div class="ini-dias"><b>${dias === null ? "-" : (dias === 0 ? "Hoy" : (dias < 0 ? "Jugado" : dias))}</b>
+          <small>${dias > 0 ? (dias === 1 ? "dia restante" : "dias restantes") : ""}</small></div>
+        <div class="ini-dif">Dificultad<div class="ini-estrellas">${"★".repeat(dif.estrellas)}<span class="ap">${"★".repeat(5 - dif.estrellas)}</span></div>
+          <span class="ini-etq">${esc(dif.texto)}${dif.puesto ? " · " + dif.puesto + "º" : ""}</span></div>
+      </div></div>`;
+  } else {
+    html += `<div class="ini-panel ini-hero"><h3 class="ini-tit">Proximo partido</h3>
+      <p style="margin:0;color:#b9c6d8;">No queda ningun partido por jugar en el calendario.</p></div>`;
+  }
+
+  // ---- La temporada ----
+  html += `<div class="ini-panel" style="--acento:#3a6ea5;"><h3 class="ini-tit">La temporada</h3>
+    <div class="ini-kpis">
+      <div class="ini-kpi v"><b>${victorias}</b><span>Victorias</span></div>
+      <div class="ini-kpi d"><b>${derrotas}</b><span>Derrotas</span></div>
+      <div class="ini-kpi r"><b>${tipo ? tipo + racha : "-"}</b><span>Racha</span></div>
+      <div class="ini-kpi p"><b>${pctV}%</b><span>Victorias</span></div></div>
+    <h4 class="ini-sub">Proximos partidos</h4>
+    ${pendientes.slice(0, 4).map(p => filaPartido(p, false)).join("") || `<p class="expl">No queda calendario por delante.</p>`}
+    <h4 class="ini-sub">Ultimos resultados</h4>
+    ${jugados.slice(-5).reverse().map(p => filaPartido(p, true)).join("") || `<p class="expl">Aun no hay partidos jugados.</p>`}</div>`;
+
+  // ---- El rival de esta semana ----
+  if (proximo) {
+    const rival = proximo.rival, filasEq = (eqs && eqs.filas) || [];
+    const lista = [];
+    KPIS_INICIO.forEach(([clave, col, altoMejor]) => {
+      const todos = filasEq.map(f => ({ eq: normEq(f.Equipo), v: numero(f[col]) })).filter(x => x.v !== null);
+      const mio = todos.find(x => x.eq === normEq(rival));
+      if (!mio || todos.length < 4) return;
+      const orden = todos.map(x => x.v).sort((a, b) => altoMejor ? b - a : a - b);
+      const puesto = orden.indexOf(mio.v) + 1;
+      lista.push({ clave, valor: mio.v, puesto, total: todos.length, parte: puesto / todos.length });
+    });
+    const txt = (x) => `${x.clave}: ${conComa(x.valor, 1)} · ${x.puesto}º de ${x.total}`;
+    const fuertes = lista.filter(x => x.parte <= 0.3).sort((a, b) => a.parte - b.parte).slice(0, 3);
+    const debiles = lista.filter(x => x.parte >= 0.7).sort((a, b) => b.parte - a.parte).slice(0, 3);
+    const dif = dificultad(rival);
+    const ultimos5 = partidosDe(rival).filter(p => p.jugado && p.gano !== null).slice(-5).reverse();
+    html += `<div class="ini-panel"><h3 class="ini-tit">El rival de esta semana</h3>
+      <div class="ini-rival">${escudo(rival, "esc")}<div><b>${esc(rival)}</b>
+        <div class="expl" style="margin:2px 0 0;">${dif.puesto ? dif.puesto + "º de su grupo · " : ""}Ultimos 5:
+        ${ultimos5.map(p => `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>`).join(" ") || "sin datos"}</div></div></div>
+      <div class="ini-dos">
+        <div class="f"><h4>Donde son fuertes</h4>${fuertes.length ? fuertes.map(x => `<div class="ini-lin b">${esc(txt(x))}</div>`).join("") : `<p class="expl">Sin datos suficientes.</p>`}</div>
+        <div class="d"><h4>Donde flojean</h4>${debiles.length ? debiles.map(x => `<div class="ini-lin m">${esc(txt(x))}</div>`).join("") : `<p class="expl">Sin datos suficientes.</p>`}</div>
+      </div>
+      <p class="expl" style="margin-top:8px;">Sale de su puesto en la liga en cada estadistica. Mas detalle en la pestaña El rival.</p></div>`;
+  }
+  caja.innerHTML = html;
 }
 
 async function cargarNumeros() {
@@ -1542,7 +1766,7 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["numeros", "mensajes", "clips", "rival", "equipo"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
+    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
     if (t === "rival") {
       $("puntoRival").hidden = true;
