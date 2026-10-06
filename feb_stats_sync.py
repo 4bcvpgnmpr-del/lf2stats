@@ -1008,6 +1008,51 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
+# Google limita las peticiones (unas 60 lecturas y 60 escrituras por minuto).
+# Con ~35 pestañas el script las superaba y la ejecucion se caia a mitad.
+# Aqui se reintenta con espera cuando Google dice "demasiadas peticiones",
+# se guarda en memoria la lista de pestañas (una sola lectura) y se deja una
+# pausa entre pestaña y pestaña.
+PAUSA_ENTRE_ESCRITURAS = float(os.environ.get("FEB_PAUSA_SHEETS", "4.0"))
+_HOJAS = {}                 # titulo -> worksheet
+_META = {"datos": None}     # metadatos del Sheet (formatos, bandas...)
+_CON_BANDING = set()        # pestañas a las que se ha puesto banda en esta ejecucion
+
+
+def _gs(fn, *args, **kwargs):
+    """Llama a Google Sheets y, si hay limite de peticiones, espera y reintenta."""
+    for intento in range(1, 9):
+        try:
+            return fn(*args, **kwargs)
+        except gspread.exceptions.APIError as exc:
+            codigo = getattr(getattr(exc, "response", None), "status_code", None)
+            texto = str(exc)
+            if codigo in (429, 500, 502, 503) or "429" in texto or "Quota exceeded" in texto:
+                espera = min(80, 15 * intento)
+                print(f"  [sheets] limite de peticiones de Google; espero {espera}s "
+                      f"(intento {intento}/8)", file=sys.stderr)
+                time.sleep(espera)
+                continue
+            raise
+    return fn(*args, **kwargs)
+
+
+def _hojas(sh, refrescar: bool = False) -> dict:
+    """Pestañas del Sheet, leidas una sola vez."""
+    if refrescar or not _HOJAS:
+        _HOJAS.clear()
+        for ws in _gs(sh.worksheets):
+            _HOJAS[ws.title] = ws
+    return _HOJAS
+
+
+def _hoja(sh, nombre: str):
+    """Busca una pestaña por nombre sin hacer una lectura a Google por cada llamada."""
+    hojas = _hojas(sh)
+    if nombre in hojas:
+        return hojas[nombre]
+    raise gspread.WorksheetNotFound(nombre)
+
 
 def get_gspread_client() -> gspread.Client:
     creds_raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -1026,7 +1071,9 @@ BAND_COLOR = {"red": 0.93, "green": 0.95, "blue": 0.98}
 
 
 def _existing_banding_id(sh: gspread.Spreadsheet, sheet_id: int):
-    meta = sh.fetch_sheet_metadata()
+    if _META["datos"] is None or sheet_id in _CON_BANDING:
+        _META["datos"] = _gs(sh.fetch_sheet_metadata)
+    meta = _META["datos"]
     for s in meta.get("sheets", []):
         if s["properties"]["sheetId"] == sheet_id:
             bandings = s.get("bandedRanges", [])
@@ -1078,6 +1125,7 @@ def style_worksheet(sh: gspread.Spreadsheet, ws: gspread.Worksheet, n_rows: int,
         )
     else:
         requests_list.append({"addBanding": {"bandedRange": banding_props}})
+        _CON_BANDING.add(sheet_id)
 
     if has_photos:
         requests_list.append({
@@ -1095,7 +1143,7 @@ def style_worksheet(sh: gspread.Spreadsheet, ws: gspread.Worksheet, n_rows: int,
             }
         })
 
-    sh.batch_update({"requests": requests_list})
+    _gs(sh.batch_update, {"requests": requests_list})
 
 
 RE_TIEMPO = re.compile(r"^\d{1,4}:[0-5]\d(:[0-5]\d)?$")
@@ -1116,8 +1164,8 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, ha
     # queda a menos de la mitad de lo que ya habia, no se pisa lo bueno.
     if not FORZAR_ESCRITURA:
         try:
-            ws_previa = sh.worksheet(tab_name)
-            filas_antes = max(0, len(ws_previa.get_all_values()) - 1)
+            ws_previa = _hoja(sh, tab_name)
+            filas_antes = max(0, len(_gs(ws_previa.get_all_values)) - 1)
         except Exception:  # noqa: BLE001
             filas_antes = 0
         if filas_antes >= 10 and len(df) < filas_antes * 0.5:
@@ -1128,13 +1176,14 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, ha
     n_filas = len(df) + 1
     n_cols = max(len(df.columns), 1)
     try:
-        ws = sh.worksheet(tab_name)
-        ws.clear()
+        ws = _hoja(sh, tab_name)
+        _gs(ws.clear)
         # Ahora hay muchas mas jugadoras: ampliar la pestaña si se queda corta
         if ws.row_count < n_filas + 5 or ws.col_count < n_cols:
-            ws.resize(rows=max(ws.row_count, n_filas + 5), cols=max(ws.col_count, n_cols))
+            _gs(ws.resize, rows=max(ws.row_count, n_filas + 5), cols=max(ws.col_count, n_cols))
     except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet(title=tab_name, rows=max(n_filas + 10, 20), cols=max(n_cols + 2, 10))
+        ws = _gs(sh.add_worksheet, title=tab_name, rows=max(n_filas + 10, 20), cols=max(n_cols + 2, 10))
+        _HOJAS[tab_name] = ws
 
     values = [list(df.columns.astype(str))] + df.fillna("").astype(str).values.tolist()
     value_input_option = "USER_ENTERED" if has_photos else "RAW"
@@ -1142,21 +1191,23 @@ def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, ha
         # Google convierte "32:35" (minutos) en una hora y devuelve datos falsos
         # ("2:35" o "31:52:00"). Con un apostrofo delante se queda como texto.
         values = [values[0]] + [[_protege_minutos(c) for c in fila] for fila in values[1:]]
-    ws.update(values, value_input_option=value_input_option)
+    _gs(ws.update, values, value_input_option=value_input_option)
 
     try:
         style_worksheet(sh, ws, n_rows=len(df), has_photos=has_photos)
     except Exception as exc:  # noqa: BLE001
         print(f"Aviso: no se pudo aplicar formato a '{tab_name}': {exc}", file=sys.stderr)
+    time.sleep(PAUSA_ENTRE_ESCRITURAS)   # respeta el limite de peticiones de Google
 
 
 def write_log(sh: gspread.Spreadsheet, message: str):
     try:
-        ws = sh.worksheet("Log")
+        ws = _hoja(sh, "Log")
     except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet(title="Log", rows=1000, cols=2)
-        ws.update([["Fecha (UTC)", "Evento"]])
-    ws.append_row([datetime.now(timezone.utc).isoformat(timespec="seconds"), message])
+        ws = _gs(sh.add_worksheet, title="Log", rows=1000, cols=2)
+        _HOJAS["Log"] = ws
+        _gs(ws.update, [["Fecha (UTC)", "Evento"]])
+    _gs(ws.append_row, [datetime.now(timezone.utc).isoformat(timespec="seconds"), message])
 
 
 # ----------------------------- ESCUDOS DE EQUIPO ---------------------------
@@ -1541,8 +1592,8 @@ def parse_partido_html(html: str, partido_id: str) -> pd.DataFrame:
 def _ids_ya_guardados(sh) -> tuple:
     """(ids ya descargados, DataFrame con lo que ya habia en la pestaña)."""
     try:
-        ws = sh.worksheet(tab(TAB_PARTIDOS))
-        valores = ws.get_all_values()
+        ws = _hoja(sh, tab(TAB_PARTIDOS))
+        valores = _gs(ws.get_all_values)
     except gspread.WorksheetNotFound:
         return set(), pd.DataFrame()
     except Exception as exc:  # noqa: BLE001
@@ -1962,6 +2013,8 @@ def rankings_desde_partidos(partidos_df: pd.DataFrame, equipos_df: pd.DataFrame,
             })
         if not filas:
             continue
+        if tipo == "media" and all(r["valor"] == 0 for r in filas):
+            continue                       # nadie ha hecho nada en esa categoria todavia
         filas.sort(key=lambda r: r["valor"], reverse=True)
         for pos, r in enumerate(filas, start=1):
             r["Pos"] = str(pos)
@@ -2655,8 +2708,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame =
         return (vacio, vacio, vacio, vacio, vacio, vacio, vacio, 0)
 
     try:
-        ws = sh.worksheet(tab(TAB_QUINTETOS_PARTIDO))
-        valores = ws.get_all_values()
+        ws = _hoja(sh, tab(TAB_QUINTETOS_PARTIDO))
+        valores = _gs(ws.get_all_values)
         df_viejo = pd.DataFrame(valores[1:], columns=valores[0]) if len(valores) > 1 else pd.DataFrame()
     except Exception:  # noqa: BLE001
         df_viejo = pd.DataFrame()
@@ -2674,8 +2727,8 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame =
 
     def _ids_de_pestana(nombre_tab):
         try:
-            ws = sh.worksheet(tab(nombre_tab))
-            valores = ws.get_all_values()
+            ws = _hoja(sh, tab(nombre_tab))
+            valores = _gs(ws.get_all_values)
             if len(valores) < 2:
                 return set(), pd.DataFrame()
             df = pd.DataFrame(valores[1:], columns=valores[0])
@@ -2915,6 +2968,13 @@ def main():
 
     # Nombres buenos de equipo (los de la pestaña Equipos)
     canonicos = construir_canonicos(equipos_df)
+    if plantillas_df is not None and not plantillas_df.empty and "Equipo" in plantillas_df.columns:
+        # La pestaña Equipos solo trae los equipos que ya han jugado; las plantillas
+        # traen los de los dos grupos desde el primer dia.
+        for nombre in plantillas_df["Equipo"].astype(str).unique():
+            n = normalizar_equipo(nombre)
+            if n:
+                canonicos.setdefault(n, nombre.strip())
     nombres_raros = set()
     print(f"  [nombres] {len(canonicos)} equipos de referencia", file=sys.stderr)
 
@@ -3068,7 +3128,10 @@ def main():
         resumen.append(f"Nombres de equipo sin reconocer: {len(nombres_raros)} (ver registro)")
 
     resumen.append(f"Duracion: {int((time.time() - INICIO_EJECUCION) / 60)} min")
-    write_log(sh, " | ".join(resumen))
+    try:
+        write_log(sh, " | ".join(resumen))
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: no se pudo escribir el registro: {exc}", file=sys.stderr)
     print("Actualizacion completada:")
     for r in resumen:
         print(" -", r)
