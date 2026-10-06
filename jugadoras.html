@@ -1110,6 +1110,19 @@ function mismoEq(a, b) {
   const comunes = B.filter(w => A.has(w) && w.length > 2).length;
   return comunes >= 2 && comunes >= Math.min(A.size, B.length) * 0.66;
 }
+/* Si el Sheet trae el mismo partido dos veces, se queda con una sola fila:
+   la que ya tiene resultado o identificador. Mismo local, visitante y fecha = mismo partido. */
+function sinPartidosRepetidos(filas) {
+  const puntos = (r) => (r.Jugado === "Si" ? 4 : 0) + (r.PartidoID ? 2 : 0) + (r.Pts_Local ? 1 : 0);
+  const mejor = new Map(), orden = [];
+  (filas || []).forEach(r => {
+    if (!normEq(r.Local) || !normEq(r.Visitante)) { orden.push(r); return; }
+    const clave = normEq(r.Local) + "|" + normEq(r.Visitante) + "|" + (r.Fecha || "");
+    if (!mejor.has(clave)) { mejor.set(clave, r); orden.push(clave); }
+    else if (puntos(r) > puntos(mejor.get(clave))) mejor.set(clave, r);
+  });
+  return orden.map(x => typeof x === "string" ? mejor.get(x) : x);
+}
 function fechaDe(txt) {
   const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(String(txt || ""));
   return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null;
@@ -1132,6 +1145,7 @@ async function cargarInicio() {
     const f = plant.filas.find(x => claveNombre(x.Jugadora) === claveNombre(jugadora.nombre));
     if (f) equipo = f.Equipo || "";
   }
+  if (res && res.filas) res.filas = sinPartidosRepetidos(res.filas);
   if (!res || !res.filas.length) {
     caja.innerHTML = `<div class="vacio">Aqui veras el proximo partido de tu equipo y como va la temporada
       en cuanto haya calendario publicado.</div>`;
