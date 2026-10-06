@@ -1793,6 +1793,7 @@
   <button data-view="records">Records</button>
   <button data-view="informes">Informes</button>
   <button data-view="mis-jugadoras">Mis jugadoras</button>
+  <button data-view="pizarra">Pizarra de jugadas</button>
   </nav>
   <div class="pie-lateral">
     <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
@@ -2013,6 +2014,15 @@
   <!-- Area de jugadoras: el panel vive en panel.html y se muestra aqui dentro.
        Se hace asi para que esta app no tenga que cargar el login ni tocar nada
        de lo que ya funciona. -->
+  <section id="view-pizarra" class="view" style="display:none;">
+    <div class="panel no-imprimir" style="padding:0;overflow:hidden;">
+      <iframe id="marcoPizarra" title="Pizarra de jugadas"
+        style="width:100%;height:min(1800px,calc(100svh - 120px));border:0;display:block;"></iframe>
+    </div>
+    <p class="hint" style="margin-top:10px;">Tus jugadas se guardan en este navegador.
+      <a href="pizarra.html" target="_blank" rel="noopener">Abrela en una pestaña aparte</a> si quieres más espacio.</p>
+  </section>
+
   <section id="view-mis-jugadoras" class="view" style="display:none;">
     <div class="panel no-imprimir" style="padding:0;overflow:hidden;">
       <iframe id="marcoPanel" title="Panel de jugadoras"
@@ -2690,7 +2700,7 @@ document.getElementById("filterResultados").addEventListener("input", () => {
 /* ============================================================
    ROUTER
    ============================================================ */
-const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes", "mis-jugadoras"];
+const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes", "mis-jugadoras", "pizarra"];
 
 // Historial de pantallas: al pulsar "Volver" se regresa a la anterior,
 // en el mismo sitio de la pagina donde estabas.
@@ -2722,6 +2732,10 @@ function showView(id, esVuelta) {
     // La version en la direccion evita que el navegador sirva una copia vieja
     if (marco && !marco.getAttribute("src")) marco.setAttribute("src", "panel.html?v=" + VERSION_APP);
   }
+  if (id === "pizarra") {
+    const marcoP = document.getElementById("marcoPizarra");
+    if (marcoP && !marcoP.getAttribute("src")) marcoP.setAttribute("src", "pizarra.html?v=" + VERSION_APP);
+  }
   if (id === "records") cargarRecords();
 }
 
@@ -2741,7 +2755,7 @@ document.querySelectorAll(".back-btn").forEach(btn => {
 
 const NOMBRE_VISTA = { inicio: "Inicio", clasificacion: "Clasificacion", equipos: "Equipos",
   jugadoras: "Jugadoras", rankings: "Rankings", estadisticas: "Estadisticas",
-  comparador: "Comparador", resultados: "Resultados", records: "Records", quintetos: "Quintetos", "mi-equipo": "Mi equipo", scouting: "Scouting", fichajes: "Fichajes",
+  comparador: "Comparador", resultados: "Resultados", records: "Records", quintetos: "Quintetos", "mi-equipo": "Mi equipo", pizarra: "Pizarra de jugadas", scouting: "Scouting", fichajes: "Fichajes",
   "equipo-detail": "el equipo", "jugadora-detail": "la jugadora", "partido-detail": "el partido" };
 
 // Antes de mostrar una ficha, el boton "Volver" se pone con el nombre correcto
