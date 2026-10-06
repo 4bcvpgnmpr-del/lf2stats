@@ -1099,6 +1099,17 @@ async function pintarExtrasNumeros(caja, mia, equipo, encontrado) {
    ============================================================ */
 const PALABRAS_SUELTAS = new Set(["CB", "BC", "CD", "CLUB", "BALONCESTO", "BASKET", "FEMENINO", "FEM", "SAD", "DE", "DEL", "LA", "EL", "LAS", "LOS"]);
 const normEq = (t) => limpiarNombre(t).replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !PALABRAS_SUELTAS.has(w)).join(" ");
+/* Dos nombres de equipo son el mismo aunque uno venga abreviado ("MIRALVALLE" y "HIERROS DIAZ EXTREMADURA MIRALVALLE") */
+function mismoEq(a, b) {
+  const x = normEq(a), y = normEq(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  const [corto, largo] = x.length <= y.length ? [x, y] : [y, x];
+  if (corto.length >= 5 && (` ${largo} `).includes(` ${corto} `)) return true;
+  const A = new Set(x.split(" ")), B = y.split(" ");
+  const comunes = B.filter(w => A.has(w) && w.length > 2).length;
+  return comunes >= 2 && comunes >= Math.min(A.size, B.length) * 0.66;
+}
 function fechaDe(txt) {
   const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(String(txt || ""));
   return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null;
@@ -1121,16 +1132,41 @@ async function cargarInicio() {
     const f = plant.filas.find(x => claveNombre(x.Jugadora) === claveNombre(jugadora.nombre));
     if (f) equipo = f.Equipo || "";
   }
-  if (!equipo || !res || !res.filas.length) {
+  if (!res || !res.filas.length) {
     caja.innerHTML = `<div class="vacio">Aqui veras el proximo partido de tu equipo y como va la temporada
       en cuanto haya calendario publicado.</div>`;
     return;
   }
+  // Nombres de equipo tal y como salen en el calendario
+  const nombresCal = [...new Set(res.filas.flatMap(r => [r.Local, r.Visitante]).filter(Boolean))];
+  const buscarEnCal = (nombre) => {
+    if (!nombre) return "";
+    const exacto = nombresCal.find(n => normEq(n) === normEq(nombre));
+    if (exacto) return exacto;
+    const parecidos = nombresCal.filter(n => mismoEq(n, nombre));
+    return parecidos.length ? parecidos.sort((a, b) => Math.abs(a.length - nombre.length) - Math.abs(b.length - nombre.length))[0] : "";
+  };
+  let equipoCal = buscarEnCal(equipo);
+  if (!equipoCal) {
+    // Ultimo recurso: en que equipo aparece ella en el ranking de jugadoras
+    const rk = await leerPestana("Jugadoras");
+    const f = rk && rk.filas.find(x => claveNombre(x.Jugador) === claveNombre(jugadora.nombre));
+    if (f) equipoCal = buscarEnCal(f.Equipo);
+  }
+  if (!equipoCal) {
+    caja.innerHTML = `<div class="vacio">No encuentro tu equipo${equipo ? ` («${esc(equipo)}»)` : ""} en el calendario.
+      Dile al entrenador que revise el equipo de tu ficha en el panel.</div>`;
+    return;
+  }
+  equipo = equipoCal;
 
   const escudos = {};
-  ((eqs && eqs.filas) || []).forEach(f => { if (f.EscudoURL) escudos[normEq(f.Equipo)] = f.EscudoURL; });
+  const filasEquipos = (eqs && eqs.filas) || [];
+  filasEquipos.forEach(f => { if (f.EscudoURL) escudos[normEq(f.Equipo)] = f.EscudoURL; });
+  const urlEscudo = (nombre) => escudos[normEq(nombre)]
+    || (filasEquipos.find(f => f.EscudoURL && mismoEq(f.Equipo, nombre)) || {}).EscudoURL;
   const escudo = (nombre, clase) => {
-    const url = escudos[normEq(nombre)];
+    const url = urlEscudo(nombre);
     const letras = esc(limpiarNombre(nombre).replace(/[^A-Z ]/g, "").trim().slice(0, 2));
     return url ? `<img class="${clase}" src="${esc(url)}" alt="" loading="lazy"
         onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'${clase} letra',textContent:'${letras}'}))">`
@@ -1138,9 +1174,8 @@ async function cargarInicio() {
   };
 
   const partidosDe = (nombre) => {
-    const obj = normEq(nombre);
-    return res.filas.filter(r => normEq(r.Local) === obj || normEq(r.Visitante) === obj).map(r => {
-      const esLocal = normEq(r.Local) === obj;
+    return res.filas.filter(r => mismoEq(r.Local, nombre) || mismoEq(r.Visitante, nombre)).map(r => {
+      const esLocal = mismoEq(r.Local, nombre);
       const pf = numero(esLocal ? r.Pts_Local : r.Pts_Visitante), pc = numero(esLocal ? r.Pts_Visitante : r.Pts_Local);
       return { esLocal, rival: esLocal ? r.Visitante : r.Local, jugado: r.Jugado === "Si",
         pf, pc, gano: pf !== null && pc !== null ? pf > pc : null,
@@ -1164,7 +1199,7 @@ async function cargarInicio() {
   // Dificultad del rival segun su puesto en la clasificacion
   const dificultad = (rival) => {
     const filas = (clas && clas.filas) || [];
-    const suyo = filas.find(f => normEq(f.Equipo) === normEq(rival));
+    const suyo = filas.find(f => normEq(f.Equipo) === normEq(rival)) || filas.find(f => mismoEq(f.Equipo, rival));
     if (!suyo) return { estrellas: 3, texto: "Media", clase: "media" };
     const grupo = suyo.Grupo || "";
     const total = filas.filter(f => !grupo || f.Grupo === grupo).length || 14;
@@ -1210,7 +1245,7 @@ async function cargarInicio() {
       </div></div>`;
   } else {
     html += `<div class="ini-panel ini-hero"><h3 class="ini-tit">Proximo partido</h3>
-      <p style="margin:0;color:#b9c6d8;">No queda ningun partido por jugar en el calendario.</p></div>`;
+      <p style="margin:0;color:#b9c6d8;">No hay ningun partido por jugar en el calendario de ${esc(equipo)}.</p></div>`;
   }
 
   // ---- La temporada ----
@@ -1230,8 +1265,8 @@ async function cargarInicio() {
     const rival = proximo.rival, filasEq = (eqs && eqs.filas) || [];
     const lista = [];
     KPIS_INICIO.forEach(([clave, col, altoMejor]) => {
-      const todos = filasEq.map(f => ({ eq: normEq(f.Equipo), v: numero(f[col]) })).filter(x => x.v !== null);
-      const mio = todos.find(x => x.eq === normEq(rival));
+      const todos = filasEq.map(f => ({ eq: f.Equipo, v: numero(f[col]) })).filter(x => x.v !== null);
+      const mio = todos.find(x => normEq(x.eq) === normEq(rival)) || todos.find(x => mismoEq(x.eq, rival));
       if (!mio || todos.length < 4) return;
       const orden = todos.map(x => x.v).sort((a, b) => altoMejor ? b - a : a - b);
       const puesto = orden.indexOf(mio.v) + 1;
