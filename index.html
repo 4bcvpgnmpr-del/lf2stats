@@ -7151,15 +7151,15 @@ async function abrirEnvioJugadoras(nombre, modo) {
                        font-family:inherit;font-size:15px;background:var(--suave);color:var(--ink);">
        </div>`
     : `<div class="status" style="margin:0;">De <b>${escapeHtml(oficial)}</b> no hay nada que mandar:
-       ni lo que escribas tu, ni estadisticas de la FEB (la temporada puede no haber empezado).</div>`;
+       ni lo que escribas tu, ni estadisticas de la FEB (la temporada puede no haber empezado). Aun asi puedes mandar solo un PDF del playbook aqui abajo.</div>`;
 
-  const pdfBloque = esEquipo ? `<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--wood-line);border-radius:10px;">
-      <b style="font-size:14.5px;">Playbook en PDF (opcional)</b>
-      <p class="hint" style="margin:3px 0 8px;">Para que lo puedan descargar. Sube el archivo o pega un enlace al PDF.</p>
+  const pdfBloque = `<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--wood-line);border-radius:10px;">
+      <b style="font-size:14.5px;">${esEquipo ? "Playbook en PDF (opcional)" : "Playbook del rival en PDF (opcional)"}</b>
+      <p class="hint" style="margin:3px 0 8px;">Para que lo puedan ver y descargar. Sube el archivo o pega un enlace al PDF.</p>
       <input type="file" id="envPdf" accept="application/pdf,.pdf" style="width:100%;font-size:14px;margin-bottom:8px;">
       <input id="envPdfUrl" placeholder="o pega aqui el enlace (Drive, Dropbox...)"
              style="width:100%;padding:10px;border:1.5px solid var(--wood-line);border-radius:8px;font-family:inherit;font-size:14.5px;background:var(--suave);color:var(--ink);">
-    </div>` : "";
+    </div>`;
 
   document.body.insertAdjacentHTML("beforeend", `
     <div id="capaEnvio" style="position:fixed;inset:0;z-index:10000;background:rgba(27,36,50,.55);
@@ -7178,7 +7178,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
         ${pdfBloque}
         <div id="envAviso"></div>
         <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;">
-          ${(trozos.length || esEquipo) ? `<button class="btn-partido" id="envMandar">Mandar a todas</button>` : ""}
+          <button class="btn-partido" id="envMandar">Mandar a todas</button>
           <button class="btn-partido" id="envCancelar" style="background:var(--ink-soft);">Cerrar</button>
         </div>
       </div>
@@ -7205,8 +7205,8 @@ async function abrirEnvioJugadoras(nombre, modo) {
     }
     const elegidos = [...document.querySelectorAll("[data-envio]:checked")]
       .map(i => trozos[Number(i.getAttribute("data-envio"))]);
-    const archivoPdf = esEquipo ? (document.getElementById("envPdf").files || [])[0] : null;
-    const enlacePdf = esEquipo ? document.getElementById("envPdfUrl").value.trim() : "";
+    const archivoPdf = (document.getElementById("envPdf").files || [])[0] || null;
+    const enlacePdf = document.getElementById("envPdfUrl").value.trim();
     if (!elegidos.length && !archivoPdf && !enlacePdf) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
     if (archivoPdf && archivoPdf.size > 45 * 1024 * 1024) { avisoEnvio("El PDF pesa mas de 45 MB. Comprimelo o pega un enlace.", "error"); return; }
 
@@ -7214,7 +7214,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
     const seccionesPdf = [];
     if (archivoPdf) {
       const limpio = archivoPdf.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_");
-      const ruta = "playbook/" + Date.now() + "_" + limpio;
+      const ruta = (esEquipo ? "playbook/" : "rival/") + Date.now() + "_" + limpio;
       const { error: errSub } = await sb.storage.from("playbooks").upload(ruta, archivoPdf, { contentType: "application/pdf" });
       if (errSub) {
         mandar.disabled = false; mandar.textContent = "Mandar a todas";
@@ -7225,14 +7225,14 @@ async function abrirEnvioJugadoras(nombre, modo) {
       const { data: pub } = sb.storage.from("playbooks").getPublicUrl(ruta);
       seccionesPdf.push({ nombre: archivoPdf.name, url: pub.publicUrl });
     }
-    if (enlacePdf) seccionesPdf.push({ nombre: "Playbook del equipo (PDF)", url: enlacePdf });
+    if (enlacePdf) seccionesPdf.push({ nombre: esEquipo ? "Playbook del equipo (PDF)" : "Playbook del rival (PDF)", url: enlacePdf });
     mandar.textContent = "Mandando...";
     const partido = (document.getElementById("envPartido").value || "").trim();
     const { error } = await sb.from("informes").insert({
       titulo: esEquipo ? "Mi equipo: " + oficial : "Scouting: " + oficial,
       rival: esEquipo ? "__MI_EQUIPO__" : oficial,
       partido: partido || null,
-      secciones: (seccionesPdf.length ? [{ tipo: "pdf", titulo: "Playbook en PDF", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
+      secciones: (seccionesPdf.length ? [{ tipo: "pdf", titulo: esEquipo ? "Playbook en PDF" : "Playbook del rival (PDF)", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
         ? t.carga
         : { tipo: "texto", titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto })),
     });
