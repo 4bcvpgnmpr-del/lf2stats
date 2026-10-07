@@ -17,6 +17,27 @@
     --sombra:rgba(27,36,50,.10);
   }
   *{box-sizing:border-box;}
+  /* ---------- Equipo y accesos ---------- */
+  .sub{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin:20px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .asiento{border-radius:999px;padding:2px 10px;font-family:'Archivo',sans-serif;font-size:11.5px;font-weight:800;letter-spacing:0;text-transform:none;}
+  .asiento.jug{background:#fde9dc;color:#b9421a;} .asiento.ent{background:#dde9f6;color:#2b5a8a;}
+  .asientos{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .asientos .as{flex:1;min-width:120px;border-radius:12px;padding:10px 12px;font-size:12px;font-weight:700;}
+  .asientos .as b{display:block;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:24px;line-height:1.1;}
+  .asientos .as.j{background:#fde9dc;color:#b9421a;} .asientos .as.e{background:#dde9f6;color:#2b5a8a;} .asientos .as.c{background:#e3f3ec;color:#1f7a5a;}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-top:10px;cursor:pointer;}
+  .chk input{width:auto;margin:0;}
+  .acc-fila{display:grid;grid-template-columns:34px minmax(110px,1.2fr) minmax(130px,1.4fr) 26px;gap:8px;align-items:center;border:1px solid var(--wood-line);border-radius:12px;padding:7px 10px;margin-bottom:6px;background:var(--white);}
+  .acc-fila .dor{background:var(--ink);color:#fff;border-radius:8px;text-align:center;font-size:12px;font-weight:800;padding:3px 0;}
+  .acc-fila b{font-size:13px;overflow:hidden;text-overflow:ellipsis;}
+  .acc-fila input{padding:7px 9px;font-size:13.5px;}
+  .acc-fila .ok{color:#1f7a5a;font-weight:800;text-align:center;} .acc-fila .no{color:#c9961a;text-align:center;}
+  .acc-fila.guardado{border-color:#9fd3bd;background:#f2faf6;}
+  @media (max-width:560px){ .acc-fila{grid-template-columns:30px 1fr 22px;} .acc-fila input{grid-column:1 / -1;} }
+  .ent-fila{display:flex;align-items:center;gap:10px;border:1px solid var(--wood-line);border-radius:12px;padding:8px 12px;margin-bottom:6px;background:var(--white);font-size:13.5px;font-weight:700;}
+  .ent-fila span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  details.pegar{margin-top:10px;border:1px dashed var(--wood-line);border-radius:12px;padding:10px 12px;}
+  details.pegar summary{cursor:pointer;font-weight:800;font-size:13px;color:var(--orange);}
   [hidden]{display:none !important;}
   body{margin:0;background:var(--wood);color:var(--ink);
        font-family:'Archivo',system-ui,sans-serif;font-size:15px;line-height:1.5;}
@@ -174,6 +195,43 @@
       <p class="expl">Scoutings de rivales y contenido de Mi equipo. Si quitas uno, deja de verse en la app de tus jugadoras.</p>
       <div id="listaInformes" class="cargando">Cargando...</div>
       <button class="boton fina gris" id="btnRefrescarInformes" style="margin-top:8px;">Actualizar la lista</button>
+    </div>
+
+    <!-- Equipo y accesos (asientos) -->
+    <div class="caja" id="cajaAccesos">
+      <h2>Equipo y accesos</h2>
+      <p class="expl">Trae tu plantilla completa de la FEB, pon el correo de cada jugadora y reparte los asientos.
+        Cada correo es con el que esa persona entra a su app.</p>
+      <div class="asientos" id="asientosResumen"></div>
+
+      <h3 class="sub">1 · Mi plantilla completa</h3>
+      <div class="fila">
+        <div><label style="margin-top:0;">Equipo</label><select id="accEquipo"><option value="">Cargando equipos...</option></select></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="accAjustar" checked> Escribir los nombres como en las estadisticas de la FEB (APELLIDOS, NOMBRE)</label>
+      <button class="boton" id="btnAccTraer" style="margin-top:10px;">Traer mi plantilla completa</button>
+      <div id="avisoAcc"></div>
+
+      <h3 class="sub">2 · Correos de las jugadoras <span class="asiento jug" id="contJug"></span></h3>
+      <div id="accTabla" class="cargando">Cargando...</div>
+      <details class="pegar">
+        <summary>Pegar muchos correos de golpe</summary>
+        <p class="expl" style="margin:8px 0;">Una persona por linea: el nombre y el correo, en cualquier orden.
+          Ej: <i>Claudia Lado, claudia@correo.com</i></p>
+        <textarea id="accPegar" rows="5" placeholder="Claudia Lado, claudia@correo.com&#10;Maria Angulo maria@correo.com"></textarea>
+        <button class="boton fina" id="btnAccPegar" style="margin-top:8px;">Asignar correos</button>
+        <div id="avisoPegar"></div>
+      </details>
+
+      <h3 class="sub">3 · Asientos de entrenador <span class="asiento ent" id="contEnt"></span></h3>
+      <p class="expl" style="margin:0 0 8px;">Quien tenga asiento de entrenador entra a este panel y puede mandar y quitar cosas.
+        Las jugadoras solo ven su app.</p>
+      <div id="entLista" class="cargando">Cargando...</div>
+      <div class="fila" style="margin-top:8px;align-items:flex-end;">
+        <div><label style="margin-top:0;">Correo del entrenador</label><input id="entCorreo" type="email" placeholder="segundo.entrenador@correo.com"></div>
+        <div style="flex:none;"><button class="boton fina" id="btnEntAnadir">Dar asiento</button></div>
+      </div>
+      <div id="avisoEnt"></div>
     </div>
 
     <!-- Lista de jugadoras -->
@@ -403,6 +461,8 @@ async function entrar(sesion) {
   cargarTemporada();
   cargarOrdenApp();
   cargarInformes();
+  prepararAccesos();
+  cargarEntrenadores();
 }
 
 /* ============================================================
@@ -444,7 +504,8 @@ async function cargarJugadoras() {
   jugadoras = data || [];
   if (!jugadoras.length) {
     caja.className = "";
-    caja.innerHTML = `<div class="vacio">Todavia no hay ninguna. Empieza por traer una plantilla de la FEB.</div>`;
+    caja.innerHTML = `<div class="vacio">Todavia no hay ninguna. Empieza por traer tu plantilla completa en «Equipo y accesos».</div>`;
+    pintarAccesos();
     return;
   }
   caja.className = "jugadoras";
@@ -458,6 +519,7 @@ async function cargarJugadoras() {
   }).join("");
   caja.querySelectorAll(".jug").forEach(b =>
     b.addEventListener("click", () => elegir(b.getAttribute("data-id"))));
+  pintarAccesos();
 }
 
 function elegir(id) {
@@ -610,6 +672,181 @@ async function traerPlantilla() {
   avisar("avisoImportar", `${nuevas.length} jugadoras creadas. Ahora ponles el correo a las que vayan a entrar.`, "ok");
   await cargarJugadoras();
   pintarListaFeb();
+}
+
+/* ============================================================
+   EQUIPO Y ACCESOS: plantilla completa, correos y asientos
+   ============================================================ */
+let nombresEstadisticas = null;
+async function mapaNombresEstadisticas() {
+  if (nombresEstadisticas) return nombresEstadisticas;
+  nombresEstadisticas = new Map();
+  try {
+    const t = await leerPestana("Jugadoras");
+    ((t && t.filas) || []).forEach(f => { if (f.Jugador) nombresEstadisticas.set(claveNombre(f.Jugador), f.Jugador); });
+  } catch (e) { /* sin ranking todavia */ }
+  return nombresEstadisticas;
+}
+const correoValido = (c) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c);
+
+async function prepararAccesos() {
+  const sel = $("accEquipo");
+  if (!plantillasFeb) plantillasFeb = await leerPestana("Plantillas");
+  if (!plantillasFeb || !plantillasFeb.filas.length) {
+    sel.innerHTML = `<option value="">No hay plantillas en el Sheet todavia</option>`; return;
+  }
+  const equipos = [...new Set(plantillasFeb.filas.map(f => f.Equipo).filter(Boolean))].sort();
+  const previo = sel.value || localStorage.getItem("lf2_mi_equipo_panel") || "";
+  sel.innerHTML = equipos.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  if (previo && equipos.includes(previo)) sel.value = previo;
+}
+
+function pintarAccesos() {
+  const caja = $("accTabla");
+  if (!caja) return;
+  caja.className = "";
+  const conCorreo = jugadoras.filter(j => j.email).length;
+  $("contJug").textContent = jugadoras.length + (jugadoras.length === 1 ? " jugadora" : " jugadoras");
+  $("asientosResumen").innerHTML = `
+    <div class="as j"><b>${jugadoras.length}</b>asientos de jugadora</div>
+    <div class="as c"><b>${conCorreo}</b>con correo puesto</div>
+    <div class="as e"><b id="resEnt">${entrenadoresCuenta === null ? "–" : entrenadoresCuenta}</b>asientos de entrenador</div>`;
+  if (!jugadoras.length) {
+    caja.innerHTML = `<div class="vacio">Todavia no hay jugadoras. Elige tu equipo arriba y pulsa «Traer mi plantilla completa».</div>`;
+    return;
+  }
+  caja.innerHTML = jugadoras.map(j => `<div class="acc-fila" data-id="${esc(j.id)}">
+      <span class="dor">${esc(j.dorsal || "–")}</span>
+      <b title="${esc(j.nombre)}">${esc(j.nombre)}</b>
+      <input type="email" value="${esc(j.email || "")}" placeholder="correo de ${esc(String(j.nombre).split(",").pop().trim().split(" ")[0] || "ella")}" autocomplete="off" autocapitalize="off">
+      <span class="${j.email ? "ok" : "no"}">${j.email ? "✓" : "○"}</span></div>`).join("");
+  caja.querySelectorAll(".acc-fila input").forEach(inp => inp.addEventListener("change", () => guardarCorreoFila(inp)));
+}
+
+async function guardarCorreoFila(inp) {
+  const fila = inp.closest(".acc-fila"), id = fila.getAttribute("data-id");
+  const correo = inp.value.trim().toLowerCase();
+  if (correo && !correoValido(correo)) { avisar("avisoAcc", "Ese correo no parece correcto: " + correo, "mal"); inp.focus(); return; }
+  const otra = correo && jugadoras.find(j => String(j.id) !== String(id) && (j.email || "").toLowerCase() === correo);
+  if (otra) { avisar("avisoAcc", `El correo ${correo} ya lo tiene ${otra.nombre}.`, "mal"); inp.focus(); return; }
+  const { error } = await sb.from("jugadoras").update({ email: correo || null }).eq("id", id);
+  if (error) { avisar("avisoAcc", "No se ha podido guardar: " + error.message, "mal"); return; }
+  const j = jugadoras.find(x => String(x.id) === String(id)); if (j) j.email = correo || null;
+  inp.value = correo;
+  fila.classList.add("guardado");
+  fila.querySelector("span:last-child").className = correo ? "ok" : "no";
+  fila.querySelector("span:last-child").textContent = correo ? "✓" : "○";
+  $("asientosResumen").querySelector(".as.c b").textContent = jugadoras.filter(x => x.email).length;
+  if (elegida && String(elegida.id) === String(id)) { elegida.email = correo || null; $("edCorreo").value = correo; }
+  setTimeout(() => fila.classList.remove("guardado"), 1600);
+}
+
+async function traerPlantillaCompleta() {
+  const equipo = $("accEquipo").value;
+  if (!equipo || !plantillasFeb) { avisar("avisoAcc", "Elige primero tu equipo.", "mal"); return; }
+  const b = $("btnAccTraer"); b.disabled = true; b.textContent = "Trayendo...";
+  try { localStorage.setItem("lf2_mi_equipo_panel", equipo); } catch (e) { /* nada */ }
+  const nombresEst = await mapaNombresEstadisticas();
+  const ajustar = $("accAjustar").checked;
+  const existentes = new Map(jugadoras.map(j => [claveNombre(j.nombre), j]));
+  const filas = plantillasFeb.filas.filter(f => f.Equipo === equipo && f.Jugadora);
+  const nuevas = [], arreglar = [];
+  filas.forEach(f => {
+    const bueno = (ajustar && nombresEst.get(claveNombre(f.Jugadora))) || f.Jugadora;
+    const ya = existentes.get(claveNombre(f.Jugadora));
+    if (ya) { if (ajustar && ya.nombre !== bueno) arreglar.push({ id: ya.id, nombre: bueno }); }
+    else nuevas.push({ nombre: bueno, equipo: f.Equipo, dorsal: f.Dorsal || null, email: null });
+  });
+  let creadas = 0, renombradas = 0;
+  if (nuevas.length) {
+    const { error } = await sb.from("jugadoras").insert(nuevas);
+    if (error) { avisar("avisoAcc", "No se ha podido crear la plantilla: " + error.message, "mal"); b.disabled = false; b.textContent = "Traer mi plantilla completa"; return; }
+    creadas = nuevas.length;
+  }
+  for (const a of arreglar) {
+    const { error } = await sb.from("jugadoras").update({ nombre: a.nombre }).eq("id", a.id);
+    if (!error) renombradas++;
+  }
+  b.disabled = false; b.textContent = "Traer mi plantilla completa";
+  const partes = [];
+  if (creadas) partes.push(`${creadas} jugadoras creadas`);
+  if (renombradas) partes.push(`${renombradas} nombres corregidos`);
+  avisar("avisoAcc", partes.length ? partes.join(" · ") + ". Ahora pon el correo de cada una." : "Ya estaban todas y con el nombre correcto.", "ok");
+  await cargarJugadoras();
+}
+
+function asignarCorreosPegados() {
+  const texto = $("accPegar").value.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  if (!texto.length) { avisar("avisoPegar", "Pega al menos una linea.", "mal"); return; }
+  const fichas = jugadoras.map(j => ({ j, tokens: new Set(claveNombre(j.nombre).split(" ").filter(t => t.length > 1)) }));
+  const hechos = [], sinNombre = [], dudas = [];
+  const pendientes = [];
+  texto.forEach(linea => {
+    const m = linea.match(/[^\s,;<>]+@[^\s,;<>]+\.[^\s,;<>]+/);
+    if (!m) { sinNombre.push(linea); return; }
+    const correo = m[0].toLowerCase();
+    const palabras = claveNombre(linea.replace(m[0], "")).split(" ").filter(t => t.length > 1);
+    if (!palabras.length) { sinNombre.push(linea); return; }
+    const puntua = fichas.map(f => ({ f, n: palabras.filter(p => f.tokens.has(p)).length })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+    if (!puntua.length) { sinNombre.push(linea); return; }
+    if (puntua.length > 1 && puntua[0].n === puntua[1].n) { dudas.push(linea); return; }
+    pendientes.push({ j: puntua[0].f.j, correo });
+  });
+  if (!pendientes.length) {
+    avisar("avisoPegar", "No he podido relacionar ninguna linea con una jugadora. Revisa los nombres.", "mal"); return;
+  }
+  (async () => {
+    for (const p of pendientes) {
+      if (!correoValido(p.correo)) { sinNombre.push(p.correo); continue; }
+      const { error } = await sb.from("jugadoras").update({ email: p.correo }).eq("id", p.j.id);
+      if (!error) { p.j.email = p.correo; hechos.push(p.j.nombre); }
+    }
+    pintarAccesos();
+    let msg = `${hechos.length} correos asignados.`;
+    if (dudas.length) msg += ` Dudosas (nombre que encaja con varias): ${dudas.join(" | ")}.`;
+    if (sinNombre.length) msg += ` Sin identificar: ${sinNombre.join(" | ")}.`;
+    avisar("avisoPegar", msg, hechos.length ? "ok" : "mal");
+  })();
+}
+
+/* ---------- asientos de entrenador ---------- */
+let entrenadoresCuenta = null, colCorreoEntrenador = "email";
+async function cargarEntrenadores() {
+  const caja = $("entLista");
+  const { data, error } = await sb.from("entrenadores").select("*");
+  caja.className = "";
+  if (error) {
+    caja.innerHTML = `<div class="vacio">No se puede ver la lista de entrenadores (${esc(error.message)}).
+      Ejecuta una vez <b>entrenadores_asientos.sql</b> en Supabase.</div>`;
+    entrenadoresCuenta = null; $("contEnt").textContent = ""; pintarAccesos(); return;
+  }
+  const filas = data || [];
+  if (filas[0]) colCorreoEntrenador = ("email" in filas[0]) ? "email" : (Object.keys(filas[0]).find(k => /mail|correo/i.test(k)) || "email");
+  entrenadoresCuenta = filas.length;
+  $("contEnt").textContent = filas.length + (filas.length === 1 ? " entrenador" : " entrenadores");
+  const yo = ($("quien").textContent || "").toLowerCase();
+  caja.innerHTML = filas.length ? filas.map(f => {
+    const c = String(f[colCorreoEntrenador] || "");
+    return `<div class="ent-fila"><span>${esc(c)}${c.toLowerCase() === yo ? " · tu" : ""}</span>
+      ${c.toLowerCase() === yo ? "" : `<button class="boton borrar fina" data-correo="${esc(c)}">Quitar</button>`}</div>`;
+  }).join("") : `<div class="vacio">No hay ningun entrenador en la lista.</div>`;
+  caja.querySelectorAll("button[data-correo]").forEach(b => b.addEventListener("click", () => quitarEntrenador(b.getAttribute("data-correo"))));
+  pintarAccesos();
+}
+async function anadirEntrenador() {
+  const correo = $("entCorreo").value.trim().toLowerCase();
+  if (!correoValido(correo)) { avisar("avisoEnt", "Escribe un correo completo.", "mal"); return; }
+  const { error } = await sb.from("entrenadores").insert({ [colCorreoEntrenador]: correo });
+  if (error) { avisar("avisoEnt", "No se ha podido dar el asiento: " + error.message + ". Si es un tema de permisos, ejecuta entrenadores_asientos.sql en Supabase.", "mal"); return; }
+  $("entCorreo").value = "";
+  avisar("avisoEnt", `Listo: ${correo} ya puede entrar al panel con ese correo.`, "ok");
+  cargarEntrenadores();
+}
+async function quitarEntrenador(correo) {
+  if (!confirm(`¿Quitar el asiento de entrenador a ${correo}?`)) return;
+  const { error } = await sb.from("entrenadores").delete().eq(colCorreoEntrenador, correo);
+  if (error) { avisar("avisoEnt", "No se ha podido quitar: " + error.message, "mal"); return; }
+  cargarEntrenadores();
 }
 
 /* ============================================================
@@ -835,6 +1072,10 @@ $("selTemporadaVen").addEventListener("change", guardarTemporada);
 $("btnTraer").addEventListener("click", traerPlantilla);
 $("selEquipoFeb").addEventListener("change", pintarListaFeb);
 $("btnRefrescarInformes").addEventListener("click", cargarInformes);
+$("btnAccTraer").addEventListener("click", traerPlantillaCompleta);
+$("btnAccPegar").addEventListener("click", asignarCorreosPegados);
+$("btnEntAnadir").addEventListener("click", anadirEntrenador);
+$("accEquipo").addEventListener("change", () => { try { localStorage.setItem("lf2_mi_equipo_panel", $("accEquipo").value); } catch (e) { /* nada */ } });
 $("swNumeros").addEventListener("change", guardarQueVe);
 $("swPercentiles").addEventListener("change", guardarQueVe);
 $("btnEnviarMensaje").addEventListener("click", enviarMensaje);
