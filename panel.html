@@ -36,6 +36,9 @@
   @media (max-width:560px){ .acc-fila{grid-template-columns:30px 1fr 22px;} .acc-fila input{grid-column:1 / -1;} }
   .ent-fila{display:flex;align-items:center;gap:10px;border:1px solid var(--wood-line);border-radius:12px;padding:8px 12px;margin-bottom:6px;background:var(--white);font-size:13.5px;font-weight:700;}
   .ent-fila span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .eq-fijo{display:flex;align-items:center;gap:12px;background:var(--suave);border:1.5px solid var(--wood-line);border-radius:12px;padding:10px 12px;}
+  .eq-fijo .ico{font-size:22px;} .eq-fijo small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-soft);}
+  .eq-fijo b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:14px;}
   details.pegar{margin-top:10px;border:1px dashed var(--wood-line);border-radius:12px;padding:10px 12px;}
   details.pegar summary{cursor:pointer;font-weight:800;font-size:13px;color:var(--orange);}
   [hidden]{display:none !important;}
@@ -205,8 +208,14 @@
       <div class="asientos" id="asientosResumen"></div>
 
       <h3 class="sub">1 · Mi plantilla completa</h3>
-      <div class="fila">
-        <div><label style="margin-top:0;">Equipo</label><select id="accEquipo"><option value="">Cargando equipos...</option></select></div>
+      <div class="eq-fijo" id="accEquipoVista">
+        <span class="ico">🏀</span>
+        <div style="flex:1;min-width:0;"><small>Tu equipo</small><b id="accEquipoNombre">Buscando...</b></div>
+        <button class="boton fina gris" id="btnAccCambiar" type="button">Cambiar</button>
+      </div>
+      <div id="accEquipoElegir" hidden style="margin-top:8px;">
+        <label style="margin-top:0;">Elige tu equipo</label>
+        <select id="accEquipo"><option value="">Cargando equipos...</option></select>
       </div>
       <label class="chk"><input type="checkbox" id="accAjustar" checked> Escribir los nombres como en las estadisticas de la FEB (APELLIDOS, NOMBRE)</label>
       <button class="boton" id="btnAccTraer" style="margin-top:10px;">Traer mi plantilla completa</button>
@@ -689,16 +698,53 @@ async function mapaNombresEstadisticas() {
 }
 const correoValido = (c) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c);
 
+/* Mi equipo = el que el entrenador eligio en la web (se guarda en el navegador y, para otros aparatos, en la tabla ajustes) */
+const normEquipoPanel = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
+  .replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !["CB", "BC", "CD", "CLUB", "BALONCESTO", "BASKET", "FEMENINO", "FEM", "SAD", "DE", "DEL", "LA", "EL", "LAS", "LOS"].includes(w)).join(" ");
+function equipoDePlantillas(nombre) {
+  if (!nombre || !plantillasFeb) return "";
+  const lista = [...new Set(plantillasFeb.filas.map(f => f.Equipo).filter(Boolean))];
+  const n = normEquipoPanel(nombre);
+  return lista.find(e => normEquipoPanel(e) === n)
+    || lista.find(e => { const m = normEquipoPanel(e); return n.length >= 5 && m.length >= 5 && (` ${m} `.includes(` ${n} `) || ` ${n} `.includes(` ${m} `)); }) || "";
+}
+async function miEquipoGuardado() {
+  let nombre = "";
+  try { nombre = localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { /* nada */ }
+  if (!nombre) {
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", "mi_equipo").limit(1);
+    if (data && data.length) nombre = data[0].valor || "";
+  } else {
+    // se guarda tambien en la nube para tenerlo en otros aparatos
+    sb.from("ajustes").upsert({ clave: "mi_equipo", valor: nombre, actualizado: new Date().toISOString() }).then(() => {}, () => {});
+  }
+  return nombre;
+}
+async function resolverMiEquipo() {
+  const nombre = await miEquipoGuardado();
+  const enPlantillas = equipoDePlantillas(nombre);
+  const sel = $("accEquipo");
+  if (enPlantillas) {
+    sel.value = enPlantillas;
+    $("accEquipoNombre").textContent = enPlantillas;
+    $("accEquipoElegir").hidden = true;
+    return enPlantillas;
+  }
+  // No hay equipo elegido (o no esta en las plantillas): se pide una sola vez
+  $("accEquipoNombre").textContent = nombre ? nombre + " (no sale en las plantillas del Sheet)" : "Todavia no has elegido tu equipo";
+  $("accEquipoElegir").hidden = false;
+  return sel.value || "";
+}
 async function prepararAccesos() {
   const sel = $("accEquipo");
   if (!plantillasFeb) plantillasFeb = await leerPestana("Plantillas");
   if (!plantillasFeb || !plantillasFeb.filas.length) {
-    sel.innerHTML = `<option value="">No hay plantillas en el Sheet todavia</option>`; return;
+    sel.innerHTML = `<option value="">No hay plantillas en el Sheet todavia</option>`;
+    $("accEquipoNombre").textContent = "No hay plantillas en el Sheet todavia"; return;
   }
   const equipos = [...new Set(plantillasFeb.filas.map(f => f.Equipo).filter(Boolean))].sort();
-  const previo = sel.value || localStorage.getItem("lf2_mi_equipo_panel") || "";
-  sel.innerHTML = equipos.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
-  if (previo && equipos.includes(previo)) sel.value = previo;
+  sel.innerHTML = `<option value="">Elige tu equipo...</option>` + equipos.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  await resolverMiEquipo();
 }
 
 function pintarAccesos() {
@@ -742,10 +788,9 @@ async function guardarCorreoFila(inp) {
 }
 
 async function traerPlantillaCompleta() {
-  const equipo = $("accEquipo").value;
+  const equipo = (!$("accEquipoElegir").hidden && $("accEquipo").value) ? $("accEquipo").value : await resolverMiEquipo();
   if (!equipo || !plantillasFeb) { avisar("avisoAcc", "Elige primero tu equipo.", "mal"); return; }
   const b = $("btnAccTraer"); b.disabled = true; b.textContent = "Trayendo...";
-  try { localStorage.setItem("lf2_mi_equipo_panel", equipo); } catch (e) { /* nada */ }
   const nombresEst = await mapaNombresEstadisticas();
   const ajustar = $("accAjustar").checked;
   const existentes = new Map(jugadoras.map(j => [claveNombre(j.nombre), j]));
@@ -1075,7 +1120,15 @@ $("btnRefrescarInformes").addEventListener("click", cargarInformes);
 $("btnAccTraer").addEventListener("click", traerPlantillaCompleta);
 $("btnAccPegar").addEventListener("click", asignarCorreosPegados);
 $("btnEntAnadir").addEventListener("click", anadirEntrenador);
-$("accEquipo").addEventListener("change", () => { try { localStorage.setItem("lf2_mi_equipo_panel", $("accEquipo").value); } catch (e) { /* nada */ } });
+$("btnAccCambiar").addEventListener("click", () => { $("accEquipoElegir").hidden = !$("accEquipoElegir").hidden; });
+$("accEquipo").addEventListener("change", async () => {
+  const e = $("accEquipo").value;
+  if (!e) return;
+  $("accEquipoNombre").textContent = e;
+  try { localStorage.setItem("lf2_mi_equipo", e); } catch (x) { /* nada */ }
+  sb.from("ajustes").upsert({ clave: "mi_equipo", valor: e, actualizado: new Date().toISOString() }).then(() => {}, () => {});
+  $("accEquipoElegir").hidden = true;
+});
 $("swNumeros").addEventListener("change", guardarQueVe);
 $("swPercentiles").addEventListener("change", guardarQueVe);
 $("btnEnviarMensaje").addEventListener("click", enviarMensaje);
