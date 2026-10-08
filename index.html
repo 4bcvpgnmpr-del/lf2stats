@@ -1676,6 +1676,7 @@
     padding:6px 14px;font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;cursor:pointer;
   }
   .pie-lateral button:hover{border-color:var(--orange);}
+  .pie-lateral button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
   #grupoBar{max-width:1400px;margin:14px auto 0;padding:0 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   #grupoBar .lbl{font-weight:700;font-size:13.5px;color:var(--ink-soft);}
   #grupoBar button{
@@ -1810,10 +1811,10 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
   <button data-view="resultados">Resultados</button>
   <button data-view="records">Records</button>
   <button data-view="informes">Informes</button>
-  <button data-view="mis-jugadoras">Mis jugadoras</button>
   <button data-view="pizarra">Pizarra de jugadas</button>
   </nav>
   <div class="pie-lateral">
+    <button id="btnPanelApp" data-view="mis-jugadoras" title="Panel de control: jugadoras, accesos, lo que ven y lo que les envias">⚙️ Panel</button>
     <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
     <button id="btnPdfPagina" title="Guardar esta pantalla como PDF">📄 Exportar PDF</button>
     <div class="hint" id="lastUpdated"></div>
@@ -2752,7 +2753,7 @@ function showView(id, esVuelta) {
     const el = document.getElementById(`view-${v}`);
     if (el) el.style.display = (v === id) ? "block" : "none";
   });
-  document.querySelectorAll("#mainNav button").forEach(b => {
+  document.querySelectorAll("#mainNav button, #btnPanelApp").forEach(b => {
     b.classList.toggle("active", b.getAttribute("data-view") === id);
   });
   vistaActual = id;
@@ -2782,7 +2783,7 @@ function volverAtras(porDefecto) {
   window.scrollTo({ top: anterior ? anterior.scroll : 0, behavior: "instant" });
 }
 
-document.querySelectorAll("#mainNav button").forEach(btn => {
+document.querySelectorAll("#mainNav button, #btnPanelApp").forEach(btn => {
   btn.addEventListener("click", () => showView(btn.getAttribute("data-view")));
 });
 document.querySelectorAll(".back-btn").forEach(btn => {
@@ -2791,7 +2792,7 @@ document.querySelectorAll(".back-btn").forEach(btn => {
 
 const NOMBRE_VISTA = { inicio: "Inicio", clasificacion: "Clasificacion", equipos: "Equipos",
   jugadoras: "Jugadoras", rankings: "Rankings", estadisticas: "Estadisticas",
-  comparador: "Comparador", resultados: "Resultados", records: "Records", quintetos: "Quintetos", "mi-equipo": "Mi equipo", pizarra: "Pizarra de jugadas", scouting: "Scouting", fichajes: "Fichajes",
+  comparador: "Comparador", resultados: "Resultados", records: "Records", quintetos: "Quintetos", "mi-equipo": "Mi equipo", "mis-jugadoras": "Panel", pizarra: "Pizarra de jugadas", scouting: "Scouting", fichajes: "Fichajes",
   "equipo-detail": "el equipo", "jugadora-detail": "la jugadora", "partido-detail": "el partido" };
 
 // Antes de mostrar una ficha, el boton "Volver" se pone con el nombre correcto
@@ -6965,7 +6966,8 @@ async function verificarAcceso() {
 
 function aplicarRolAyudante() {
   const ocultar = () => {
-    document.querySelectorAll("#mainNav button").forEach(b => {
+    const bp = document.getElementById("btnPanelApp"); if (bp) bp.style.display = "none";
+    document.querySelectorAll("#mainNav button, #btnPanelApp").forEach(b => {
       if (!VISTAS_AYUDANTE.includes(b.getAttribute("data-view"))) b.style.display = "none";
     });
     document.querySelectorAll("button, a.btn, .btn").forEach(b => {
@@ -6983,7 +6985,7 @@ document.addEventListener("DOMContentLoaded", () => { verificarAcceso(); });
 /* ============================================================
    ENVIAR ESTE SCOUTING A LAS JUGADORAS
    Se manda desde aqui mismo, sin pasar por el panel. Usa la sesion
-   que ya abriste en "Mis jugadoras": es el mismo navegador.
+   que ya abriste en "Panel": es el mismo navegador.
    ============================================================ */
 const SB_JUG = {
   url: "https://tizmzblksovdqqnlxpli.supabase.co",
@@ -7377,7 +7379,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
 
     const { data: ses } = await sb.auth.getSession();
     if (!ses || !ses.session) {
-      avisoEnvio("Antes tienes que entrar en <b>Mis jugadoras</b> (menu de la izquierda). "
+      avisoEnvio("Antes tienes que entrar en <b>Panel</b> (abajo del menu de la izquierda). "
         + "Se usa la misma sesion.", "error");
       return;
     }
@@ -12373,7 +12375,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("btnMenu");
   if (btn) btn.addEventListener("click", () => barra.classList.contains("abierta") ? cerrar() : abrir());
   if (fondo) fondo.addEventListener("click", cerrar);
-  document.querySelectorAll("#mainNav button").forEach(b => b.addEventListener("click", cerrar));
+  document.querySelectorAll("#mainNav button, #btnPanelApp").forEach(b => b.addEventListener("click", cerrar));
   const temaMovil = document.getElementById("btnTemaMovil");
   if (temaMovil) temaMovil.addEventListener("click", () => {
     const actual = document.documentElement.getAttribute("data-tema") === "oscuro" ? "claro" : "oscuro";
