@@ -90,6 +90,18 @@
   .acciones button svg{display:block;max-width:100%;}
   .acciones.sec{margin-top:8px;grid-template-columns:repeat(3,1fr);}
   .acciones.sec button{flex-direction:row;padding:9px 4px;font-size:12px;}
+  .lnfila{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;font-weight:600;}
+  .lnfila select{flex:1;min-width:0;}
+  .muestra{width:30px;height:26px;padding:0;border-radius:7px;border:1.5px solid #b9a07c;background:#23262d;flex:none;}
+  .paleta-col{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:0 0 10px;padding:8px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;}
+  .paleta-col button{height:24px;padding:0;border-radius:6px;border:1.5px solid rgba(0,0,0,.18);}
+  .paleta-col .libre{height:24px;border-radius:6px;border:1.5px dashed #888;display:flex;align-items:center;justify-content:center;font-weight:800;position:relative;overflow:hidden;cursor:pointer;}
+  .paleta-col .libre input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  button.rojo{background:#e8403a;color:#fff;width:100%;}
+  #menuCtx{position:fixed;z-index:200;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:6px;min-width:190px;display:none;}
+  #menuCtx button{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);padding:9px 12px;font-size:13px;border-radius:8px;}
+  #menuCtx button:hover{background:var(--suave);}
+  #menuCtx button.pel{color:#d12b3a;}
   .objs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
   .objs button{height:46px;padding:0;background:var(--white);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;}
   .objs button.on{background:#fde7da;border-color:var(--orange);}
@@ -238,11 +250,15 @@
         </div>
         <div class="col-herr herr">
           <div class="bloque" id="panelLinea" style="display:none;">
-            <h3>Línea seleccionada</h3>
-            <p class="aviso-herr" style="margin:0 0 8px;">Arrastra los puntos azules para cambiar su forma.</p>
-            <label>Acción</label>
-            <select id="lnTipo"><option value="bote">Bote</option><option value="pase">Pase</option><option value="corte">Corte</option><option value="pantalla">Pantalla</option><option value="tiro">Tiro</option><option value="mueve">Mover</option><option value="entrega">Mano a mano</option></select>
-            <div class="fila" style="margin-top:8px;"><button class="gris" id="lnForma">Hacerla curva</button><button class="gris" id="lnBorrar" style="color:#c0392b;">🗑 Eliminar</button></div>
+            <h3 id="lnTitulo">Línea</h3>
+            <div class="lnfila">
+              <span>Color</span><button id="lnColor" class="muestra" title="Color"></button>
+              <span>Acción</span><select id="lnTipo"><option value="bote">Bote</option><option value="pase">Pase</option><option value="corte">Corte</option><option value="pantalla">Pantalla</option><option value="tiro">Tiro</option><option value="mueve">Mover</option><option value="entrega">Mano a mano</option></select>
+            </div>
+            <div id="lnPaleta" class="paleta-col" style="display:none;"></div>
+            <div class="lnfila"><span>Forma</span><select id="lnForma"><option value="recta">━ Recta</option><option value="curva">⤴ Curva</option><option value="zigzag">⟋ Zig zag</option><option value="curvazig">∿ Zig zag curvo</option></select></div>
+            <p class="aviso-herr" style="margin:6px 0 8px;">Arrastra los puntos azules para cambiar su forma. Botón derecho para más opciones.</p>
+            <button class="rojo" id="lnBorrar">🗑 Eliminar</button>
           </div>
           <div id="panelHerr">
           <div class="bloque">
@@ -363,6 +379,7 @@
 
 <div id="hojaImp"></div>
 <div id="aviso"></div>
+<div id="menuCtx"></div>
 <script>
 /* ============================================================
    ENTRENADOR: biblioteca de jugadas + pizarra
@@ -426,7 +443,7 @@ function normalizar(j) {
 }
 
 /* ---------- estado ---------- */
-let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1, selLinea = -1, selPaso = -1, arrastreH = null;
+let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1, selLinea = -1, selPaso = -1, arrastreH = null, RESALTE = null, colorNuevo = "", portaLinea = null;
 let hist = [], rehacer = [];
 const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } return JSON.stringify({ jugada, paso }); };
 function snap() { hist.push(instantanea()); if (hist.length > 80) hist.shift(); rehacer = []; botonesHistorial(); }
@@ -506,10 +523,21 @@ function recortarFinal(p, d) {
 }
 const trazoD = (p) => p.map((q, i) => (i ? "L" : "M") + (q[0] * S).toFixed(1) + " " + (q[1] * S).toFixed(1)).join(" ");
 
+const curvaDe = (l) => (l.forma === "zigzag" ? l.pts.slice() : suavizar(l.pts));
+const FORMAS = { recta: "Recta", curva: "Curva", zigzag: "Zig zag", curvazig: "Zig zag curvo" };
+const formaDe = (l) => l.forma || (l.pts.length > 2 ? "curva" : "recta");
+function ptsForma(A, B, forma) {
+  const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+  if (forma === "curva") return [A, [A[0] + dx / 2 + nx * L * 0.22, A[1] + dy / 2 + ny * L * 0.22], B];
+  if (forma === "zigzag") return [A, [A[0] + dx / 2 + nx * L * 0.2, A[1] + dy / 2 + ny * L * 0.2], B];
+  if (forma === "curvazig") return [A, [A[0] + dx * 0.3 + nx * L * 0.2, A[1] + dy * 0.3 + ny * L * 0.2], [A[0] + dx * 0.7 - nx * L * 0.2, A[1] + dy * 0.7 - ny * L * 0.2], B];
+  return [A, B];
+}
 function lineaSvg(l, opac) {
   if (!l.pts || l.pts.length < 2) return "";
-  const col = COLOR[l.t] || TINTA;
-  let base = remuestrear(suavizar(l.pts), 0.07);
+  const col = l.color || COLOR[l.t] || TINTA;
+  let base = remuestrear(curvaDe(l), 0.07);
+  if (l.de && largoDe(base) > 1.6) base = recortarFinal(base.slice().reverse(), 0.52).reverse();
   if (base.length < 2) return "";
   const fin = base[base.length - 1];
   let k = base.length - 2;
@@ -518,7 +546,7 @@ function lineaSvg(l, opac) {
   const px = fin[0] * S, py = fin[1] * S, nx = -sa, ny = ca, f = (v) => v.toFixed(1);
   const barra = (cx, cy, mitad, grosor) => `<line x1="${f(cx - nx * mitad)}" y1="${f(cy - ny * mitad)}" x2="${f(cx + nx * mitad)}" y2="${f(cy + ny * mitad)}" stroke="${col}" stroke-width="${grosor}" stroke-linecap="round"/>`;
   const flecha = (L, W) => `<path d="M ${f(px)} ${f(py)} L ${f(px - ca * L + nx * W)} ${f(py - sa * L + ny * W)} L ${f(px - ca * L * 0.72)} ${f(py - sa * L * 0.72)} L ${f(px - ca * L - nx * W)} ${f(py - sa * L - ny * W)} Z" fill="${col}" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
-  const sw = 2.7; let cuerpo = "", remate = "", dash = "";
+  const sw = 2.1; let cuerpo = "", remate = "", dash = "";
   const LA = 0.4; // largo de punta en metros
   if (l.t === "bote") {
     const corto = largoDe(base) > LA + 0.3 ? recortarFinal(base, LA * 0.7) : base, onda = [];
@@ -526,24 +554,25 @@ function lineaSvg(l, opac) {
     for (let i = 0; i < corto.length; i++) {
       if (i) s += Math.hypot(corto[i][0] - corto[i - 1][0], corto[i][1] - corto[i - 1][1]);
       const a = corto[Math.max(0, i - 1)], b = corto[Math.min(corto.length - 1, i + 1)], d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-      const amp = 0.12 * Math.min(1, s / 0.35), w = Math.sin(s / 0.42 * 2 * Math.PI) * amp;
+      const amp = 0.1 * Math.min(1, s / 0.35), w = Math.sin(s / 0.42 * 2 * Math.PI) * amp;
       onda.push([corto[i][0] - (b[1] - a[1]) / d * w, corto[i][1] + (b[0] - a[0]) / d * w]);
     }
-    cuerpo = onda; remate = flecha(12, 6);
-  } else if (l.t === "pantalla") { cuerpo = base; remate = barra(px, py, 16, 5); }
-  else if (l.t === "entrega") { cuerpo = base; remate = barra(px - ca * 4, py - sa * 4, 14, 4) + barra(px + ca * 6, py + sa * 6, 14, 4); }
+    cuerpo = onda; remate = flecha(10, 5);
+  } else if (l.t === "pantalla") { cuerpo = base; remate = barra(px, py, 15, 3.4); }
+  else if (l.t === "entrega") { cuerpo = base; remate = barra(px - ca * 4, py - sa * 4, 13, 3) + barra(px + ca * 6, py + sa * 6, 13, 3); }
   else if (l.t === "tiro") {
     cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="9 8"';
     const cx = px - ca * 24, cy = py - sa * 24;
-    remate = `<circle cx="${f(cx)}" cy="${f(cy)}" r="8" fill="#e9cfa8" stroke="${col}" stroke-width="2.8"/><line x1="${f(cx - 8)}" y1="${f(cy)}" x2="${f(cx + 8)}" y2="${f(cy)}" stroke="${col}" stroke-width="2.4"/><line x1="${f(cx)}" y1="${f(cy - 8)}" x2="${f(cx)}" y2="${f(cy + 8)}" stroke="${col}" stroke-width="2.4"/>` + flecha(12, 6);
-  } else if (l.t === "pase") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="9 7"'; remate = flecha(12, 6); }
-  else if (l.t === "mueve") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="0.1 8.5"'; remate = flecha(12, 6); }
-  else { cuerpo = recortarFinal(base, LA * 0.7); remate = flecha(12, 6); }
-  const cap = l.t === "mueve" ? "round" : "butt", grosor = l.t === "mueve" ? 3.6 : sw;
+    remate = `<circle cx="${f(cx)}" cy="${f(cy)}" r="8" fill="#e9cfa8" stroke="${col}" stroke-width="2.8"/><line x1="${f(cx - 8)}" y1="${f(cy)}" x2="${f(cx + 8)}" y2="${f(cy)}" stroke="${col}" stroke-width="2.4"/><line x1="${f(cx)}" y1="${f(cy - 8)}" x2="${f(cx)}" y2="${f(cy + 8)}" stroke="${col}" stroke-width="2.4"/>` + flecha(10, 5);
+  } else if (l.t === "pase") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="8 6"'; remate = flecha(10, 5); }
+  else if (l.t === "mueve") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="0.1 8.5"'; remate = flecha(10, 5); }
+  else { cuerpo = recortarFinal(base, LA * 0.7); remate = flecha(10, 5); }
+  const cap = l.t === "mueve" ? "round" : "butt", grosor = l.t === "mueve" ? 3 : sw;
   return `<g opacity="${opac}" data-linea="1"><path d="${trazoD(cuerpo)}" fill="none" stroke="${col}" stroke-width="${grosor}" stroke-linecap="${cap}" stroke-linejoin="round"${dash}/>${remate}</g>`;
 }
 
 /* --- objetos sueltos (conos, texto, formas) --- */
+const COLORES = ["#23262d", "#9b00e6", "#3b44a8", "#1a82e0", "#00c070", "#00897b", "#f5a900", "#ff6a00", "#e8173f", "#eeeeee", "#9aa5b4", "#ffffff"];
 const OBJETOS = { cono: "Cono", texto: "Texto", rect: "Rectángulo", circulo: "Círculo", triangulo: "Triángulo", rombo: "Rombo", barra: "Línea", aro: "Aro" };
 function objetoSvg(o, i, interactivo) {
   const x = o.x * S, y = o.y * S, f = (v) => v.toFixed(1), dat = interactivo ? ` data-o="${i}"` : "";
@@ -563,7 +592,7 @@ const objetosSvg = (objs, interactivo) => (objs || []).map((o, i) => objetoSvg(o
 
 function fichaSvg(k, p, interactivo) {
   const x = (p.x * S).toFixed(1), y = (p.y * S).toFixed(1), n = etiquetaFicha(k), datos = interactivo ? `data-j="${k}" style="cursor:grab"` : "";
-  const cx = p.x * S, cy = p.y * S, hit = `<circle cx="${x}" cy="${y}" r="19" fill="transparent"/>`;
+  const cx = p.x * S, cy = p.y * S, hit = (interactivo && k === RESALTE ? `<circle cx="${x}" cy="${y}" r="22" fill="rgba(255,255,255,.62)"/>` : "") + `<circle cx="${x}" cy="${y}" r="19" fill="transparent"/>`;
   if (k[0] === "d") return `<g ${datos}>${hit}<g stroke="#d9304f" stroke-width="3.8" stroke-linecap="round"><line x1="${(cx - 10).toFixed(1)}" y1="${(cy - 10).toFixed(1)}" x2="${(cx + 10).toFixed(1)}" y2="${(cy + 10).toFixed(1)}"/><line x1="${(cx + 10).toFixed(1)}" y1="${(cy - 10).toFixed(1)}" x2="${(cx - 10).toFixed(1)}" y2="${(cy + 10).toFixed(1)}"/></g>
     <text x="${(cx + 12).toFixed(1)}" y="${(cy + 14).toFixed(1)}" font-family="Arial" font-weight="800" font-size="13" fill="#d9304f">${n}</text></g>`;
   const marco = k[0] === "s" ? `<rect x="${(cx - 15).toFixed(1)}" y="${(cy - 15).toFixed(1)}" width="30" height="30" rx="5" fill="none" stroke="${TINTA}" stroke-width="2.2"/>` : "";
@@ -596,7 +625,7 @@ const CACHE_TRAY = new WeakMap();
 /* recorrido real de una linea: curva suave y muestreada a paso fijo (velocidad constante) */
 function trayectoria(l) {
   let t = CACHE_TRAY.get(l.pts);
-  if (!t) { t = remuestrear(suavizar(l.pts), 0.05); CACHE_TRAY.set(l.pts, t); }
+  if (!t) { t = remuestrear(curvaDe(l), 0.05); CACHE_TRAY.set(l.pts, t); }
   return t;
 }
 /* la parte de una linea ya recorrida (0..1) */
@@ -787,6 +816,7 @@ function pintar() {
   if (!jugada.pasos[paso]) paso = 0;
   const act = jugada.pasos[paso];
   if (selPaso !== paso || selLinea >= act.lineas.length) selLinea = -1;
+  { const ls = selLinea >= 0 ? act.lineas[selLinea] : null; RESALTE = ls && ls.a && (ls.t === "pase" || ls.t === "entrega") ? ls.a : null; }
   $("pista").innerHTML = pistaEdicion();
   pintarPanelLinea();
   if (trazo && trazo.pts.length > 1) $("pista").querySelector("svg").insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
@@ -880,8 +910,9 @@ function pintarPanelLinea() {
   const caja = $("panelLinea"), l = selLinea >= 0 && selPaso === paso ? jugada.pasos[paso].lineas[selLinea] : null;
   if (!l) { caja.style.display = "none"; return; }
   caja.style.display = "";
-  $("lnTipo").value = l.t;
-  $("lnForma").textContent = l.pts.length > 2 ? "↗ Hacerla recta" : "⤴ Hacerla curva";
+  $("lnTipo").value = l.t; $("lnForma").value = formaDe(l);
+  $("lnTitulo").textContent = (NOMBRE_ACCION[l.t] || "Línea").toUpperCase();
+  $("lnColor").style.background = l.color || TINTA;
 }
 function alPulsar(ev) {
   if (ev.button > 0) return;
@@ -920,10 +951,15 @@ function alPulsar(ev) {
 function alMover(ev) {
   if (!arrastre && !trazo && arrastreObj < 0 && !arrastreH) return;
   const p = aMetros(ev);
-  if (arrastreH) { moverExtremo(jugada.pasos[paso].lineas[selLinea], arrastreH.orig, arrastreH.i, p); $("pista").innerHTML = pistaEdicion(); return; }
+  if (arrastreH) {
+    const l = jugada.pasos[paso].lineas[selLinea]; moverExtremo(l, arrastreH.orig, arrastreH.i, p);
+    RESALTE = fichaCerca(p, 1.0); $("pista").innerHTML = pistaEdicion(); return;
+  }
   if (arrastreObj >= 0) { jugada.pasos[paso].objs[arrastreObj].x = p.x; jugada.pasos[paso].objs[arrastreObj].y = p.y; $("pista").innerHTML = pistaEdicion(); }
   else if (arrastre) { jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y }; $("pista").innerHTML = pistaEdicion(); }
   else if (trazo) {
+    const nr = fichaCerca(p, 1.0);
+    if (nr !== RESALTE) { RESALTE = nr; $("pista").innerHTML = pistaEdicion(); }
     const u = trazo.pts[trazo.pts.length - 1];
     if (Math.hypot(p.x - u[0], p.y - u[1]) > 0.18) trazo.pts.push([p.x, p.y]);
     const svg = $("pista").querySelector("svg"), viejo = svg.querySelector("[data-trazo]"); if (viejo) viejo.remove();
@@ -940,6 +976,7 @@ function simplificar(p, tol) {
   return simplificar(p.slice(0, mi + 1), tol).slice(0, -1).concat(simplificar(p.slice(mi), tol));
 }
 function alSoltar() {
+  RESALTE = null;
   if (arrastreH) {
     const act = jugada.pasos[paso], l = act.lineas[selLinea], i = arrastreH.i, n = l.pts.length; arrastreH = null;
     if (l) {
@@ -959,7 +996,7 @@ function alSoltar() {
       const rectas = ["pase", "entrega", "pantalla", "tiro"].includes(trazo.t);
       let pts = rectas ? [trazo.pts[0], trazo.pts[trazo.pts.length - 1]] : simplificar(trazo.pts, 0.22);
       if (!rectas && pts.length === 3) { const a = pts[0], b = pts[2], m = pts[1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; if (Math.abs((m[0] - a[0]) * dy - (m[1] - a[1]) * dx) / L < 0.3) pts = [a, b]; }
-      const linea = { t: trazo.t, de: trazo.de, pts, despues: false };
+      const linea = { t: trazo.t, de: trazo.de, pts, despues: false }; if (colorNuevo) linea.color = colorNuevo;
       if (trazo.t === "pase" || trazo.t === "entrega") {
         const r = receptoraDe(linea, jugada.pasos[paso].pos);
         if (r) { linea.a = r; const q = jugada.pasos[paso].pos[r], a = pts[0]; const d = Math.hypot(q.x - a[0], q.y - a[1]); if (d > 1.1) { const k = (d - 0.62) / d; linea.pts = [a, [a[0] + (q.x - a[0]) * k, a[1] + (q.y - a[1]) * k]]; } }
@@ -1279,13 +1316,34 @@ if (VISOR) {
   pista.addEventListener("pointerdown", alPulsar); pista.addEventListener("pointermove", alMover);
   pista.addEventListener("pointerup", alSoltar); pista.addEventListener("pointercancel", alSoltar);
   pintarHerramientas();
-  $("lnTipo").addEventListener("change", () => { const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap(); l.t = $("lnTipo").value; if (l.t === "pase" || l.t === "entrega") { delete l.a; const r = receptoraDe(l, jugada.pasos[paso].pos); if (r) l.a = r; } pintar(); });
-  $("lnForma").addEventListener("click", () => {
-    const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap();
-    if (l.pts.length > 2) l.pts = [l.pts[0], l.pts[l.pts.length - 1]];
-    else { const a = l.pts[0], b = l.pts[1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; l.pts = [a, [a[0] + dx / 2 - dy / L * L * 0.22, a[1] + dy / 2 + dx / L * L * 0.22], b]; }
-    pintar();
+  const menu = $("menuCtx"), cerrarMenu = () => { menu.style.display = "none"; };
+  document.addEventListener("pointerdown", (e) => { if (!menu.contains(e.target)) cerrarMenu(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenu(); });
+  $("pista").addEventListener("contextmenu", (ev) => {
+    if (tabActual !== "Draw") return;
+    ev.preventDefault();
+    const p = aMetros(ev), act = jugada.pasos[paso], li = lineaCerca(p, 0.6);
+    const op = [];
+    if (li >= 0) {
+      seleccionarLinea(li);
+      op.push(["✂️ Cortar", () => { portaLinea = clonar(act.lineas[li]); snap(); act.lineas.splice(li, 1); selLinea = -1; pintar(); }],
+        ["⧉ Copiar", () => { portaLinea = clonar(act.lineas[li]); aviso("Línea copiada"); }],
+        ["⇋ Reflejar", () => { const l = act.lineas[li]; snap(); const x0 = l.pts[0][0]; l.pts = l.pts.map(q => [Math.max(0, Math.min(ANCHO, 2 * x0 - q[0])), q[1]]); pintar(); }]);
+    }
+    if (portaLinea) op.push(["📋 Pegar aquí", () => { const l = clonar(portaLinea), dx = p.x - l.pts[0][0], dy = p.y - l.pts[0][1]; l.pts = l.pts.map(q => [Math.max(0, Math.min(ANCHO, q[0] + dx)), Math.max(0, Math.min(FONDO, q[1] + dy))]); l.de = ""; delete l.a; snap(); act.lineas.push(l); selLinea = act.lineas.length - 1; selPaso = paso; pintar(); }]);
+    if (li >= 0) op.push(["🗑 Eliminar", () => { snap(); act.lineas.splice(li, 1); selLinea = -1; pintar(); }, "pel"]);
+    if (!op.length) { cerrarMenu(); return; }
+    menu.innerHTML = ""; op.forEach(([t, f, c]) => { const b = document.createElement("button"); b.textContent = t; if (c) b.className = c; b.addEventListener("click", () => { cerrarMenu(); f(); }); menu.appendChild(b); });
+    menu.style.display = "block";
+    menu.style.left = Math.min(ev.clientX, innerWidth - 210) + "px"; menu.style.top = Math.min(ev.clientY, innerHeight - menu.offsetHeight - 10) + "px";
   });
+  $("lnTipo").addEventListener("change", () => { const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap(); l.t = $("lnTipo").value; if (l.t === "pase" || l.t === "entrega") { delete l.a; const r = receptoraDe(l, jugada.pasos[paso].pos); if (r) l.a = r; } pintar(); });
+  $("lnForma").addEventListener("change", () => { const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap(); const f = $("lnForma").value; l.forma = f; l.pts = ptsForma(l.pts[0], l.pts[l.pts.length - 1], f); pintar(); });
+  $("lnColor").addEventListener("click", () => { const q = $("lnPaleta"); q.style.display = q.style.display === "none" ? "" : "none"; });
+  $("lnPaleta").innerHTML = COLORES.map(c => `<button data-c="${c}" style="background:${c}" title="${c}"></button>`).join("") + '<label class="libre" title="Otro color">+<input type="color" id="lnLibre" value="#23262d"></label>';
+  const poner = (c) => { colorNuevo = c === TINTA ? "" : c; const l = jugada.pasos[paso].lineas[selLinea]; if (l) { snap(); if (colorNuevo) l.color = colorNuevo; else delete l.color; } pintar(); };
+  $("lnPaleta").querySelectorAll("button").forEach(b => b.addEventListener("click", () => poner(b.dataset.c)));
+  $("lnLibre").addEventListener("input", () => poner($("lnLibre").value));
   $("lnBorrar").addEventListener("click", () => { if (selLinea < 0) return; snap(); jugada.pasos[paso].lineas.splice(selLinea, 1); selLinea = -1; pintar(); });
   document.querySelectorAll(".col-herr button[data-t]").forEach(b => b.addEventListener("click", () => {
     herramienta = b.dataset.t;
