@@ -1764,7 +1764,6 @@ html.modo-partido .back-btn, html.modo-partido #avisoFallo, html.modo-partido .n
 html.modo-partido .app{display:block !important;}
 html.modo-partido .contenido{padding:0 !important;}
 html.modo-partido main{padding:8px !important;}
-html.modo-partido #cronicaPartido, html.modo-partido #quintetosPartido{display:none !important;}
 html.modo-partido .team{pointer-events:none;}
 html.modo-partido body{background:transparent;}
 body.rol-ayudante #btnPdfPagina{display:inline-block;}
@@ -2082,7 +2081,18 @@ const TEMPORADAS = [
 /* Modo "solo partido": la app de las jugadoras abre index.html?partido=ID dentro de un marco */
 const PARAMS_URL = new URLSearchParams(location.search);
 const MODO_PARTIDO = PARAMS_URL.get("partido") || "";
-if (MODO_PARTIDO) document.documentElement.classList.add("modo-partido");
+if (MODO_PARTIDO) {
+  document.documentElement.classList.add("modo-partido");
+  // La entrenadora decide desde el panel que bloques ve la jugadora
+  const ID_BLOQUE = { cronica: "cronicaPartido", mapa: "mapaTiroPartido", factores: "ffPartido", desglose: "desglosePartido",
+    rebotes: "rebotesPartido", cuartos: "cuartosPartido", quintetos: "quintetosPartido", duelos: "duelosPartido", cuadros: "cuadrosPartido" };
+  const oc = "cronica,quintetos".split(",").map(x => ID_BLOQUE[x]).filter(Boolean);
+  if (oc.length) {
+    const st = document.createElement("style");
+    st.textContent = oc.map(i => "html.modo-partido #" + i).join(",") + "{display:none !important;}";
+    document.head.appendChild(st);
+  }
+}
 
 let temporadaActiva = TEMPORADAS[0].id;
 try {
@@ -4640,9 +4650,9 @@ async function showPartidoDetail(partidoId) {
     + `<div id="cronicaPartido"></div><div id="mapaTiroPartido"></div>`
     + `<div id="ffPartido">` + bloqueFourFactors(nombreL, rowsL, nombreV, rowsV) + `</div>`
     + `<div id="desglosePartido"></div><div id="rebotesPartido"></div><div id="cuartosPartido"></div><div id="quintetosPartido"></div>`
-    + duelHtml(totL, totV)
-    + `<div class="panel" style="margin-top:16px;">${boxTableHtml(nombreL, rowsL)}</div>`
-    + `<div class="panel" style="margin-top:16px;">${boxTableHtml(nombreV, rowsV)}</div>`
+    + `<div id="duelosPartido">` + duelHtml(totL, totV) + `</div>`
+    + `<div id="cuadrosPartido"><div class="panel" style="margin-top:16px;">${boxTableHtml(nombreL, rowsL)}</div>`
+    + `<div class="panel" style="margin-top:16px;">${boxTableHtml(nombreV, rowsV)}</div></div>`
     + `<p class="hint" style="margin-top:12px;">★ = titular · MIN minutos · PT puntos · T2/T3/TC/TL tiros (anotados/intentados y %) · RO/RD/RT rebotes · AS asistencias · BR robos · BP perdidas · TF/TC (tap.) tapones a favor/en contra · MT mates · FC/FR faltas cometidas/recibidas · VAL valoracion</p>`;
   wireTeams();
   wireRankClicks(box);

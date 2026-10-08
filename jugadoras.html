@@ -1203,6 +1203,7 @@ async function cargarDespues(equipo, jugados, escudo) {
 }
 function pintarPartidoDespues(p, equipo, escudo) {
   const cuerpo = $("despCuerpo"); if (!cuerpo) return;
+
   // El mismo detalle de partido que ve el entrenador en "Resultados", dentro de un marco
   const temp = (typeof temporadaElegida !== "undefined" && temporadaElegida) ? temporadaElegida : "2026";
   const url = "index.html?partido=" + encodeURIComponent(p.id) + "&temp=" + encodeURIComponent(temp) + "&v=" + VERSION;
