@@ -3,7 +3,7 @@
    pero SIN guardar nunca datos viejos de Google Sheets ni de la FEB.
    Estrategia: red primero, y si no hay internet, lo guardado. */
 
-const CACHE = "scoutflow-2026-10-09g";
+const CACHE = "scoutflow-2026-10-09h";
 
 const BASICOS = [
   "./",

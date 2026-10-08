@@ -2770,6 +2770,9 @@ function showView(id, esVuelta) {
     if (marco && !marco.getAttribute("src")) marco.setAttribute("src", "panel.html?v=" + VERSION_APP);
   }
   if (id === "pizarra") {
+    // El Entrenador es una app propia (con su menu lateral), dentro de la misma cuenta
+    location.href = "entrenador.html?v=" + VERSION_APP;
+    return;
     const marcoP = document.getElementById("marcoPizarra");
     if (marcoP && !marcoP.getAttribute("src")) marcoP.setAttribute("src", "pizarra.html?v=" + VERSION_APP);
   }

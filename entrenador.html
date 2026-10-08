@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entrenador · ScoutFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<style>
+  :root{--ink:#1b2432;--soft:#5b6779;--orange:#e0602a;--line:#e5d8c4;--bg:#f8f4ee;--white:#fff;--teal:#2f6f5e;--suave:#f4efe6;--side:#1b2432;--rojo:#e8403a;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:'Archivo',system-ui,sans-serif;color:var(--ink);background:var(--bg);font-size:14.5px;}
+  button{font-family:inherit;font-weight:700;font-size:13px;border:0;border-radius:10px;padding:9px 14px;cursor:pointer;background:var(--ink);color:#fff;}
+  button:disabled{opacity:.45;cursor:default;}
+  button.naranja{background:var(--orange);} button.verde{background:var(--teal);} button.rojo{background:var(--rojo);}
+  button.gris{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
+  input,select,textarea{font-family:inherit;font-size:14px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);width:100%;}
+  textarea{min-height:90px;resize:vertical;}
+  label{display:block;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--soft);margin:12px 0 5px;}
+  h2,h3{font-family:'Archivo Black',sans-serif;font-weight:400;margin:0;}
+
+  #app{display:grid;grid-template-columns:250px minmax(0,1fr);height:100vh;}
+  aside{background:var(--side);color:#dfe5ee;display:flex;flex-direction:column;overflow:auto;}
+  .marca{padding:18px 18px 10px;font-family:'Archivo Black',sans-serif;font-size:18px;color:#fff;}
+  .marca small{display:block;font-family:'Archivo',sans-serif;font-weight:600;font-size:11px;color:#8fa0b6;margin-top:2px;letter-spacing:.4px;}
+  .grupo{padding:10px 10px 0;}
+  .grupo h4{margin:8px 10px 6px;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#7e8da3;font-weight:800;}
+  .grupo button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;background:transparent;color:#dfe5ee;padding:10px 12px;border-radius:10px;font-weight:600;font-size:14px;}
+  .grupo button:hover{background:rgba(255,255,255,.07);}
+  .grupo button.on{background:var(--orange);color:#fff;}
+  .grupo button .n{margin-left:auto;font-size:11px;opacity:.7;font-weight:700;}
+  .pie{margin-top:auto;padding:14px;}
+  .pie a{display:block;text-align:center;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.25);}
+  .pie a:hover{background:rgba(255,255,255,.08);}
+  main{overflow:auto;padding:22px 26px 60px;min-width:0;}
+  .cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .cab h2{font-size:24px;}
+  .miga{font-size:13px;color:var(--soft);font-weight:700;}
+  .miga a{color:var(--orange);cursor:pointer;text-decoration:none;}
+  .cab .esp{flex:1;}
+  .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .barra input[type=search]{max-width:300px;}
+  .aviso-sql{background:#fff3e0;border:1.5px solid #f0b979;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-weight:600;}
+  .tabla{background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;}
+  .tabla .fila{display:grid;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--line);}
+  .tabla .fila:first-child{border-top:0;}
+  .tabla .fila.cabt{background:var(--suave);font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--soft);cursor:default;}
+  .tabla .fila:not(.cabt){cursor:pointer;} .tabla .fila:not(.cabt):hover{background:#fffaf2;}
+  .c-jug{grid-template-columns:minmax(0,2.2fr) 1fr 70px 70px 150px 40px;}
+  .c-eje{grid-template-columns:minmax(0,2.2fr) 1.2fr 80px 150px 40px;}
+  .c-pla{grid-template-columns:minmax(0,2.2fr) 110px 90px 90px 150px 40px;}
+  .c-pb{grid-template-columns:minmax(0,2.2fr) 90px 1fr 100px 70px 150px 40px;}
+  .nom{display:flex;align-items:center;gap:10px;font-weight:700;min-width:0;}
+  .nom span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ico{font-size:20px;flex:none;}
+  .peq{color:var(--soft);font-size:13px;}
+  .mas{background:transparent;color:var(--soft);font-size:20px;padding:2px 8px;line-height:1;}
+  .mas:hover{background:var(--suave);}
+  .vacio{padding:34px 16px;text-align:center;color:var(--soft);font-weight:600;}
+  @media (max-width:900px){
+    #app{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);height:100vh;}
+    aside{flex-direction:row;overflow-x:auto;overflow-y:hidden;align-items:center;}
+    .marca{display:none;} .grupo{display:flex;padding:8px 6px;gap:4px;} .grupo h4{display:none;}
+    .grupo button{white-space:nowrap;padding:9px 12px;} .pie{margin:0;padding:8px;} .pie a{white-space:nowrap;padding:9px 12px;}
+    main{padding:16px 14px 60px;}
+    .c-jug,.c-eje,.c-pla,.c-pb{grid-template-columns:minmax(0,1fr) 40px;}
+    .c-jug>:nth-child(n+2):not(:last-child),.c-eje>:nth-child(n+2):not(:last-child),.c-pla>:nth-child(n+2):not(:last-child),.c-pb>:nth-child(n+2):not(:last-child){display:none;}
+  }
+
+  /* menu contextual y ventanas */
+  #menuPop{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:6px;min-width:180px;display:none;}
+  #menuPop button{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);padding:9px 12px;font-size:13px;border-radius:8px;}
+  #menuPop button:hover{background:var(--suave);} #menuPop button.pel{color:#d12b3a;}
+  .velo{position:fixed;inset:0;background:rgba(15,23,35,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:14px;}
+  .velo.ver{display:flex;}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:94vh;overflow:auto;padding:18px;}
+  .modal.ancho{max-width:760px;}
+  .modal h3{font-size:18px;margin-bottom:6px;}
+  .modal .pie-m{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:12px;} @media (max-width:560px){.dos{grid-template-columns:1fr;}}
+  .lista-sel{border:1.5px solid var(--line);border-radius:12px;max-height:300px;overflow:auto;margin-top:6px;}
+  .lista-sel label.it{display:flex;gap:10px;align-items:center;margin:0;padding:9px 12px;border-top:1px solid var(--line);text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;}
+  .lista-sel label.it:first-child{border-top:0;}
+  .lista-sel input[type=checkbox]{width:auto;}
+  #editorMarco,#visorMarco{position:fixed;inset:0;z-index:250;background:var(--bg);display:none;flex-direction:column;}
+  #editorMarco.ver,#visorMarco.ver{display:flex;}
+  #editorMarco iframe,#visorMarco iframe{flex:1;border:0;width:100%;}
+  #visorMarco .cabv{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--ink);color:#fff;font-weight:700;}
+  #aviso{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1b2432;color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;z-index:400;opacity:0;pointer-events:none;transition:opacity .2s;}
+  #aviso.ver{opacity:1;}
+
+  /* tarjetas (jugadas de un playbook, archivos) */
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+  .tarj{background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+  .tarj .vista{background:var(--suave);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;}
+  .tarj .vista img,.tarj .vista video{width:100%;height:100%;object-fit:cover;}
+  .tarj .vista audio{width:92%;}
+  .tarj .cu{padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+  .tarj .cu b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tarj .acc{display:flex;gap:6px;flex-wrap:wrap;}
+  .tarj .acc button{padding:6px 10px;font-size:12px;}
+  #soltar{border:2.5px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--soft);font-weight:700;margin-bottom:16px;background:#fff;}
+  #soltar.sobre{border-color:var(--orange);background:#fff4ec;}
+
+  /* plan */
+  .ejp{display:grid;grid-template-columns:34px minmax(0,1.6fr) 86px minmax(0,1.4fr) auto;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);background:#fff;}
+  .ejp:first-child{border-top:0;}
+  .ejp .nn{font-family:'Archivo Black',sans-serif;color:var(--orange);font-size:17px;}
+  .ejp .h{font-size:12px;color:var(--soft);font-weight:700;}
+  @media (max-width:800px){.ejp{grid-template-columns:30px 1fr auto;} .ejp>:nth-child(3),.ejp>:nth-child(4){grid-column:2/4;}}
+  .totales{display:flex;gap:18px;flex-wrap:wrap;font-weight:800;margin:12px 0;}
+  .totales span b{color:var(--orange);}
+
+  #hojaImp{display:none;}
+  @media print{
+    #app,#menuPop,.velo,#editorMarco,#visorMarco,#aviso{display:none !important;}
+    body{background:#fff;}
+    #hojaImp{display:block;padding:10mm;font-size:12pt;}
+    #hojaImp h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22pt;margin:0 0 4px;}
+    #hojaImp table{width:100%;border-collapse:collapse;margin-top:10px;}
+    #hojaImp td,#hojaImp th{border:1px solid #888;padding:6px 8px;text-align:left;vertical-align:top;font-size:11pt;}
+    #hojaImp th{background:#eee;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="marca">🏀 Entrenador<small>ScoutFlow · pizarra y planificación</small></div>
+    <div class="grupo"><h4>Jugadas</h4>
+      <button data-s="jugadas">🏀 Jugadas<span class="n" id="n-jugadas"></span></button>
+      <button data-s="playbooks">📘 Playbooks<span class="n" id="n-playbooks"></span></button>
+    </div>
+    <div class="grupo"><h4>Planificación</h4>
+      <button data-s="ejercicios">🎯 Ejercicios<span class="n" id="n-ejercicios"></span></button>
+      <button data-s="planes">📋 Planes de entrenamiento<span class="n" id="n-planes"></span></button>
+    </div>
+    <div class="grupo"><h4>Archivos</h4>
+      <button data-s="video">🎬 Vídeos<span class="n" id="n-video"></span></button>
+      <button data-s="imagen">🖼️ Imágenes<span class="n" id="n-imagen"></span></button>
+      <button data-s="audio">🎧 Audio<span class="n" id="n-audio"></span></button>
+    </div>
+    <div class="pie"><a href="index.html">← Volver a estadísticas</a></div>
+  </aside>
+  <main id="main"><p class="vacio">Cargando…</p></main>
+</div>
+
+<div id="menuPop"></div>
+<div id="aviso"></div>
+
+<!-- ventana generica (formularios) -->
+<div class="velo" id="velo"><div class="modal" id="modal"></div></div>
+
+<!-- editor de jugadas (pizarra) y visor -->
+<div id="editorMarco"><iframe id="marcoEd" title="Editor de jugadas"></iframe></div>
+<div id="visorMarco"><div class="cabv"><span id="tituloVisor">Jugada</span><button class="gris" id="cerrarVisor">Cerrar ✕</button></div><iframe id="marcoVisor" title="Jugada"></iframe></div>
+
+<div id="hojaImp"></div>
+
+<script>
+const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
+const VERSION = "2026-10-09";
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const clonar = (o) => JSON.parse(JSON.stringify(o));
+const idNuevo = (p) => (p || "x") + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+const fechaTxt = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) + " " + d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }); };
+const solofecha = (f) => { if (!f) return "—"; const d = new Date(f + "T12:00:00"); return isNaN(d) ? f : d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }); };
+const tamTxt = (b) => !b ? "" : b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB";
+let temporal;
+function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporal); temporal = setTimeout(() => a.classList.remove("ver"), 2600); }
+
+const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : null;
+const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [] };
+let puedeEscribir = true, faltaSql = "", seccion = "jugadas", carpeta = "", busqueda = "", vistaDetalle = null;
+const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
+const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+
+/* ------------ datos ------------ */
+async function leer(tabla, orden) {
+  const { data, error } = await nube.from(tabla).select("*").order(orden || "actualizada", { ascending: false });
+  if (error) { if (!faltaSql) faltaSql = tabla + ": " + error.message; return []; }
+  return data || [];
+}
+async function cargarTodo() {
+  faltaSql = "";
+  const [j, pb, ej, pl, ar, ca] = await Promise.all([leer("jugadas"), leer("playbooks"), leer("ejercicios"), leer("planes"), leer("archivos", "creada"), leer("carpetas", "creada")]);
+  D.jugadas = j; D.playbooks = pb; D.ejercicios = ej; D.planes = pl; D.archivos = ar; D.carpetas = ca;
+  contadores();
+}
+function contadores() {
+  const c = { jugadas: D.jugadas.length, playbooks: D.playbooks.length, ejercicios: D.ejercicios.length, planes: D.planes.length, video: D.archivos.filter(a => a.tipo === "video").length, imagen: D.archivos.filter(a => a.tipo === "imagen").length, audio: D.archivos.filter(a => a.tipo === "audio").length };
+  Object.keys(c).forEach(k => { const e = $("n-" + k); if (e) e.textContent = c[k] || ""; });
+}
+async function guardarFila(tabla, fila) {
+  const { error } = await nube.from(tabla).upsert(Object.assign({}, fila, tabla === "archivos" || tabla === "carpetas" ? {} : { actualizada: new Date().toISOString() }));
+  if (error) { aviso("No se pudo guardar: " + error.message); return false; }
+  return true;
+}
+async function borrarFila(tabla, id) { const { error } = await nube.from(tabla).delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } return true; }
+
+/* ------------ navegacion ------------ */
+function ir(s, c) { seccion = s; carpeta = c || ""; busqueda = ""; vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
+function pintar() {
+  document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
+  const m = $("main"); m.scrollTop = 0;
+  const aviso0 = faltaSql ? `<div class="aviso-sql">⚠️ Falta preparar la base de datos: ejecuta <b>${/jugadas/.test(faltaSql) && !/playbooks|ejercicios|planes|archivos|carpetas/.test(faltaSql) ? "jugadas.sql" : "entrenador.sql"}</b> en Supabase › SQL Editor. <span class="peq">(${esc(faltaSql)})</span></div>` : "";
+  m.innerHTML = aviso0 + '<div id="vista"></div>';
+  const v = $("vista");
+  if (vistaDetalle && vistaDetalle.tipo === "playbook") return pintarPlaybook(v);
+  if (vistaDetalle && vistaDetalle.tipo === "plan") return pintarPlan(v);
+  if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
+  if (seccion === "playbooks") return pintarPlaybooks(v);
+  return pintarArchivos(v, seccion);
+}
+
+/* ------------ menu emergente y ventana ------------ */
+const menu = $("menuPop");
+function abrirMenu(ev, opciones) {
+  ev.stopPropagation();
+  menu.innerHTML = ""; opciones.forEach(([t, f, c]) => { const b = document.createElement("button"); b.textContent = t; if (c) b.className = c; b.addEventListener("click", () => { menu.style.display = "none"; f(); }); menu.appendChild(b); });
+  menu.style.display = "block";
+  const r = ev.currentTarget.getBoundingClientRect();
+  menu.style.left = Math.max(8, Math.min(r.right - 190, innerWidth - 200)) + "px";
+  menu.style.top = Math.min(r.bottom + 4, innerHeight - menu.offsetHeight - 8) + "px";
+}
+document.addEventListener("click", () => { menu.style.display = "none"; });
+function ventana(html, ancho) { const m = $("modal"); m.className = "modal" + (ancho ? " ancho" : ""); m.innerHTML = html; $("velo").classList.add("ver"); return m; }
+function cerrarVentana() { $("velo").classList.remove("ver"); $("modal").innerHTML = ""; }
+$("velo").addEventListener("mousedown", (e) => { if (e.target === $("velo")) cerrarVentana(); });
+function preguntar(titulo, etiqueta, valor, ok) {
+  const m = ventana(`<h3>${esc(titulo)}</h3><label>${esc(etiqueta)}</label><input id="pgv" value="${esc(valor || "")}"><div class="pie-m"><button class="gris" id="pgc">Cancelar</button><button class="naranja" id="pga">Aceptar</button></div>`);
+  const i = $("pgv"); i.focus(); i.select();
+  const aceptar = () => { const v = i.value.trim(); if (!v) return; cerrarVentana(); ok(v); };
+  $("pga").onclick = aceptar; $("pgc").onclick = cerrarVentana; i.addEventListener("keydown", (e) => { if (e.key === "Enter") aceptar(); });
+}
+const botonNuevo = (txt, id) => puedeEscribir ? `<button class="naranja" id="${id}">${txt}</button>` : "";
+
+/* ------------ carpetas genericas: jugadas, ejercicios, planes ------------ */
+const TABLA_DE = { jugadas: "jugadas", ejercicios: "ejercicios", planes: "planes" };
+const ICONO = { jugadas: "🏀", ejercicios: "🎯", planes: "📋" };
+const SINGULAR = { jugadas: "jugada", ejercicios: "ejercicio", planes: "plan" };
+function carpetasDe(tipo) {
+  const set = new Map();
+  D.carpetas.filter(c => c.tipo === tipo).forEach(c => set.set(c.nombre, { nombre: c.nombre, n: 0, ult: c.creada }));
+  D[tipo].forEach(x => { if (x.carpeta) { const e = set.get(x.carpeta) || { nombre: x.carpeta, n: 0, ult: "" }; e.n++; if (!e.ult || x.actualizada > e.ult) e.ult = x.actualizada; set.set(x.carpeta, e); } });
+  return [...set.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+function pintarCarpetas(v, tipo) {
+  const q = busqueda.toLowerCase(), buscando = !!q;
+  const items = D[tipo].filter(x => (buscando || (x.carpeta || "") === carpeta) && (!q || (x.nombre + " " + (x.carpeta || "") + " " + ((x.data && (x.data.categoria || x.data.descripcion)) || x.tipo || "")).toLowerCase().includes(q)));
+  const cars = (carpeta || buscando) ? [] : carpetasDe(tipo);
+  const cab = { jugadas: ["Título", "Tipo", "Fases", "Jugadoras", "Última edición"], ejercicios: ["Título", "Categoría", "Duración", "Última edición"], planes: ["Título", "Fecha", "Duración", "Ejercicios", "Última edición"] }[tipo];
+  const clase = { jugadas: "c-jug", ejercicios: "c-eje", planes: "c-pla" }[tipo];
+  const celdas = (x) => {
+    if (tipo === "jugadas") return [x.tipo || "—", ((x.data && x.data.pasos) || []).length, x.compartida ? "📤 Sí" : "—"];
+    if (tipo === "ejercicios") return [(x.data && x.data.categoria) || "—", ((x.data && x.data.minutos) || 0) ? x.data.minutos + " min" : "—"];
+    const ej = (x.data && x.data.ejercicios) || [], min = ej.reduce((a, e) => a + (Number(e.min) || 0), 0);
+    return [solofecha(x.fecha), min + " min", ej.length];
+  };
+  const fila = (cols, extra) => `<div class="fila ${clase}${extra || ""}">${cols.join("")}</div>`;
+  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a> › 📁 ${esc(carpeta)}</span>` : ""}<span class="esp"></span>${puedeEscribir ? `<button class="gris" id="bNC">＋ Nueva carpeta</button>` : ""}${botonNuevo("＋ " + (tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan"), "bNuevo")}</div>
+    <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>`;
+  let filas = fila(cab.map((t, i) => `<div>${t}</div>`).concat(["<div></div>"]), " cabt");
+  cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.nombre)}"><div class="nom"><span class="ico">📁</span><span class="t">${esc(c.nombre)}</span></div>${tipo === "jugadas" ? '<div class="peq">Carpeta</div><div class="peq">' + c.n + '</div><div></div>' : tipo === "ejercicios" ? '<div class="peq">Carpeta</div><div class="peq">' + c.n + ' ej.</div>' : '<div class="peq">Carpeta</div><div class="peq">' + c.n + '</div><div></div><div></div>'}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
+  items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}" data-id="${esc(x.id)}"><div class="nom"><span class="ico">${ICONO[tipo]}</span><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span></div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
+  if (!cars.length && !items.length) filas += `<div class="vacio">${buscando ? "Nada coincide con la búsqueda." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + ". Empieza con «＋ Nueva " + SINGULAR[tipo] + "»."}</div>`;
+  v.innerHTML = h + `<div class="tabla">${filas}</div>`;
+  const raiz = v.querySelector('[data-a="raiz"]'); if (raiz) raiz.onclick = () => { carpeta = ""; pintar(); };
+  $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; pintarCarpetas(v, tipo); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
+  if ($("bNC")) $("bNC").onclick = () => preguntar("Nueva carpeta", "Nombre", "", async (n) => { if (!await guardarFila("carpetas", { tipo, nombre: n })) return; await cargarTodo(); pintar(); });
+  if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
+  v.querySelectorAll(".fila[data-car]").forEach(el => {
+    el.addEventListener("click", () => { carpeta = el.dataset.car; pintar(); });
+    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📂 Abrir", () => { carpeta = el.dataset.car; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, el.dataset.car)], ["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, el.dataset.car), "pel"]]); });
+  });
+  v.querySelectorAll(".fila[data-id]").forEach(el => {
+    const x = D[tipo].find(y => y.id === el.dataset.id);
+    el.addEventListener("click", () => abrirElemento(tipo, x));
+    const b = el.querySelector("[data-mi]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, opcionesElemento(tipo, x)); });
+  });
+}
+function opcionesElemento(tipo, x) {
+  const o = [["✏️ " + (tipo === "jugadas" ? "Editar en la pizarra" : "Abrir"), () => abrirElemento(tipo, x)]];
+  if (tipo === "jugadas") o.push(["▶ Ver animada", () => verJugada(x)], [x.compartida ? "🙈 Ocultar a las jugadoras" : "📤 Mostrar a las jugadoras", () => alternarComp(x)]);
+  o.push(["📁 Mover a carpeta…", () => moverACarpeta(tipo, x)], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
+  return o;
+}
+async function renombrarCarpeta(tipo, nombre) {
+  preguntar("Renombrar carpeta", "Nombre", nombre, async (n) => {
+    if (n === nombre) return;
+    await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", nombre);
+    await guardarFila("carpetas", { tipo, nombre: n });
+    for (const x of D[tipo].filter(y => y.carpeta === nombre)) { if (tipo === "jugadas") { const d = clonar(x.data); d.carpeta = n; await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: n }).eq("id", x.id); }
+    await cargarTodo(); pintar();
+  });
+}
+async function borrarCarpeta(tipo, nombre) {
+  const dentro = D[tipo].filter(y => y.carpeta === nombre);
+  if (!confirm("¿Eliminar la carpeta «" + nombre + "»?" + (dentro.length ? " Los " + dentro.length + " elementos que contiene NO se borran: pasan a la raíz." : ""))) return;
+  await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", nombre);
+  for (const x of dentro) { if (tipo === "jugadas") { const d = clonar(x.data); d.carpeta = ""; await nube.from("jugadas").update({ carpeta: "", data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: "" }).eq("id", x.id); }
+  await cargarTodo(); pintar();
+}
+function moverACarpeta(tipo, x) {
+  const cs = carpetasDe(tipo).map(c => c.nombre);
+  const m = ventana(`<h3>Mover «${esc(x.nombre)}»</h3><label>Carpeta (vacío = raíz)</label><input id="mvc" list="dlc" value="${esc(x.carpeta || "")}"><datalist id="dlc">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist><div class="pie-m"><button class="gris" id="mc1">Cancelar</button><button class="naranja" id="mc2">Mover</button></div>`);
+  $("mc1").onclick = cerrarVentana;
+  $("mc2").onclick = async () => {
+    const n = $("mvc").value.trim(); cerrarVentana();
+    if (tipo === "jugadas") { const d = clonar(x.data); d.carpeta = n; await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: n }).eq("id", x.id);
+    if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) await guardarFila("carpetas", { tipo, nombre: n });
+    await cargarTodo(); pintar();
+  };
+}
+async function duplicar(tipo, x) {
+  const c = clonar(x); c.id = idNuevo(tipo[0]); c.nombre = (c.nombre || "") + " (copia)"; if (tipo === "jugadas") { c.compartida = false; c.data.id = c.id; c.data.nombre = c.nombre; c.data.compartida = false; }
+  if (await guardarFila(TABLA_DE[tipo], c)) { aviso("Duplicado"); await cargarTodo(); pintar(); }
+}
+async function borrarElemento(tipo, x) { if (!confirm("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
+async function alternarComp(x) { const c = clonar(x); c.compartida = !c.compartida; c.data.compartida = c.compartida; if (await guardarFila("jugadas", c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); await cargarTodo(); pintar(); } }
+function nuevoElemento(tipo) {
+  if (tipo === "jugadas") return abrirEditor("");
+  if (tipo === "ejercicios") return formEjercicio(null);
+  vistaDetalle = { tipo: "plan", plan: { id: idNuevo("p"), nombre: "", carpeta: carpeta || "", fecha: new Date().toISOString().slice(0, 10), data: { ejercicios: [], notas: "", inicio: "18:00" }, nuevo: true } }; pintar();
+}
+function abrirElemento(tipo, x) {
+  if (tipo === "jugadas") return abrirEditor(x.id);
+  if (tipo === "ejercicios") return formEjercicio(x);
+  const p = clonar(x); p.data = p.data || {}; p.data.ejercicios = p.data.ejercicios || []; vistaDetalle = { tipo: "plan", plan: p }; pintar();
+}
+
+/* ------------ editor de jugadas (pizarra) y visor ------------ */
+function abrirEditor(id) {
+  const u = "pizarra.html?editor=1" + (id ? "&id=" + encodeURIComponent(id) : "&carpeta=" + encodeURIComponent(carpeta)) + "&v=" + VERSION;
+  $("marcoEd").src = u; $("editorMarco").classList.add("ver");
+}
+async function cerrarEditorMarco() { $("editorMarco").classList.remove("ver"); $("marcoEd").src = "about:blank"; await cargarTodo(); pintar(); }
+function verJugada(x) {
+  $("tituloVisor").textContent = x.nombre || "Jugada";
+  const marco = $("marcoVisor"); window.__enviarJugada = () => { try { marco.contentWindow.postMessage({ jugada: Object.assign({}, x.data, { nombre: x.nombre }) }, "*"); } catch (e) { /* nada */ } };
+  marco.onload = () => setTimeout(window.__enviarJugada, 250);
+  marco.src = "pizarra.html?visor=1&v=" + VERSION; $("visorMarco").classList.add("ver");
+}
+$("cerrarVisor").onclick = () => { $("visorMarco").classList.remove("ver"); $("marcoVisor").onload = null; $("marcoVisor").src = "about:blank"; window.__enviarJugada = null; };
+window.addEventListener("message", (ev) => {
+  const d = ev.data || {};
+  if (d.visorListo && window.__enviarJugada) window.__enviarJugada();
+  if (d.scoutflowEntrenador === "cerrar") cerrarEditorMarco();
+  if (d.scoutflowEntrenador === "guardado") { /* se recarga al cerrar */ }
+});
+
+/* ------------ playbooks ------------ */
+function pintarPlaybooks(v) {
+  const q = busqueda.toLowerCase(), lista = D.playbooks.filter(p => !q || (p.nombre + " " + (p.equipo || "") + " " + (p.temporada || "")).toLowerCase().includes(q));
+  let filas = `<div class="fila c-pb cabt"><div>Título</div><div>Jugadas</div><div>Equipo</div><div>Temporada</div><div>Jugadoras</div><div>Última edición</div><div></div></div>`;
+  lista.forEach(p => { const n = ((p.data && p.data.jugadas) || []).length; filas += `<div class="fila c-pb" data-id="${esc(p.id)}"><div class="nom"><span class="ico">📘</span><span class="t">${esc(p.nombre || "(sin nombre)")}</span></div><div class="peq">${n}</div><div class="peq">${esc(p.equipo || "—")}</div><div class="peq">${esc(p.temporada || "—")}</div><div class="peq">${p.compartido ? "📤 Sí" : "—"}</div><div class="peq">${fechaTxt(p.actualizada)}</div><div>${puedeEscribir ? '<button class="mas">⋮</button>' : ""}</div></div>`; });
+  if (!lista.length) filas += `<div class="vacio">${q ? "Nada coincide con la búsqueda." : "Todavía no hay playbooks. Un playbook es una colección de jugadas (por ejemplo, «Ataque a zona» o «Saques de fondo»)."}</div>`;
+  v.innerHTML = `<div class="cab"><h2>Playbooks</h2><span class="esp"></span>${botonNuevo("＋ Nuevo playbook", "bNuevo")}</div><div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div><div class="tabla">${filas}</div>`;
+  $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; pintarPlaybooks(v); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
+  if ($("bNuevo")) $("bNuevo").onclick = () => formPlaybook(null);
+  v.querySelectorAll(".fila[data-id]").forEach(el => {
+    const p = D.playbooks.find(y => y.id === el.dataset.id);
+    el.addEventListener("click", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); });
+    const b = el.querySelector(".mas"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📘 Abrir", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }], ["✏️ Editar datos", () => formPlaybook(p)], ["⧉ Duplicar", async () => { const c = clonar(p); c.id = idNuevo("b"); c.nombre += " (copia)"; c.compartido = false; if (await guardarFila("playbooks", c)) { await cargarTodo(); pintar(); } }], ["🗑 Eliminar", async () => { if (confirm("¿Borrar el playbook «" + p.nombre + "»? Las jugadas no se borran.") && await borrarFila("playbooks", p.id)) { await cargarTodo(); pintar(); } }, "pel"]]); });
+  });
+}
+function pintarPlaybook(v) {
+  const p = D.playbooks.find(y => y.id === vistaDetalle.id); if (!p) { vistaDetalle = null; return pintar(); }
+  const ids = (p.data && p.data.jugadas) || [], js = ids.map(i => D.jugadas.find(j => j.id === i)).filter(Boolean);
+  v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span>${puedeEscribir ? '<button class="gris" id="editPb">✏️ Editar</button>' : ""}</div>
+    <p class="peq" style="margin:-6px 0 14px;">${esc(p.equipo || "")} ${p.temporada ? "· " + esc(p.temporada) : ""} · ${js.length} jugadas · ${p.compartido ? "📤 visible para las jugadoras" : "solo para ti"}</p>
+    ${(p.data && p.data.notas) ? `<p style="white-space:pre-wrap;margin:0 0 14px;">${esc(p.data.notas)}</p>` : ""}
+    <div class="tabla">${js.length ? js.map((j, i) => `<div class="fila c-eje" data-j="${esc(j.id)}" style="grid-template-columns:34px minmax(0,1fr) 120px 110px;"><div class="peq">${i + 1}</div><div class="nom"><span class="ico">🏀</span><span class="t">${esc(j.nombre)}</span></div><div class="peq">${esc(j.tipo || "")}</div><div><button class="gris" data-v="1">▶ Ver</button></div></div>`).join("") : '<div class="vacio">Este playbook no tiene jugadas todavía. Pulsa «Editar» para añadirlas.</div>'}</div>`;
+  $("volverPb").onclick = () => { vistaDetalle = null; pintar(); };
+  if ($("editPb")) $("editPb").onclick = () => formPlaybook(p);
+  v.querySelectorAll("[data-j]").forEach(el => el.addEventListener("click", () => verJugada(D.jugadas.find(j => j.id === el.dataset.j))));
+}
+function formPlaybook(p) {
+  const nuevo = !p; p = p ? clonar(p) : { id: idNuevo("b"), nombre: "", equipo: "", temporada: "", compartido: false, data: { jugadas: [], notas: "" } };
+  p.data = p.data || {}; p.data.jugadas = p.data.jugadas || [];
+  let sel = p.data.jugadas.slice(), filtro = "";
+  const m = ventana(`<h3>${nuevo ? "Nuevo playbook" : "Editar playbook"}</h3>
+    <label>Título</label><input id="pbN" value="${esc(p.nombre)}" placeholder="Ej: Ataque a zona">
+    <div class="dos"><div><label>Equipo</label><input id="pbE" value="${esc(p.equipo || "")}"></div><div><label>Temporada</label><input id="pbT" value="${esc(p.temporada || "")}" placeholder="2026/27"></div></div>
+    <label>Notas</label><textarea id="pbNo" style="min-height:60px;">${esc(p.data.notas || "")}</textarea>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible para las jugadoras</label>
+    <label>Jugadas del playbook (<span id="pbCnt">0</span>)</label><input type="search" id="pbQ" placeholder="Buscar jugada…"><div class="lista-sel" id="pbL"></div>
+    <div class="pie-m"><button class="gris" id="pbX">Cancelar</button><button class="naranja" id="pbG">Guardar</button></div>`, true);
+  const pintarSel = () => {
+    $("pbCnt").textContent = sel.length;
+    const q = filtro.toLowerCase(), orden = sel.map(i => D.jugadas.find(j => j.id === i)).filter(Boolean), resto = D.jugadas.filter(j => !sel.includes(j.id) && (!q || (j.nombre + " " + (j.tipo || "")).toLowerCase().includes(q)));
+    { const A = orden.map((j, i) => `<label class="it"><input type="checkbox" checked data-id="${esc(j.id)}"><span style="flex:1;">${i + 1}. ${esc(j.nombre)}</span><span class="peq">${esc(j.tipo || "")}</span><button type="button" class="gris" data-up="${esc(j.id)}" style="padding:3px 8px;">↑</button><button type="button" class="gris" data-dn="${esc(j.id)}" style="padding:3px 8px;">↓</button></label>`).join(""); const B = resto.map(j => `<label class="it"><input type="checkbox" data-id="${esc(j.id)}"><span style="flex:1;">${esc(j.nombre)}</span><span class="peq">${esc(j.tipo || "")}</span></label>`).join(""); $("pbL").innerHTML = (A + B) || '<div class="vacio">No hay jugadas guardadas.</div>'; }
+    $("pbL").querySelectorAll("input[type=checkbox]").forEach(c => c.addEventListener("change", () => { const id = c.dataset.id; sel = c.checked ? sel.concat([id]) : sel.filter(x => x !== id); pintarSel(); }));
+    $("pbL").querySelectorAll("[data-up]").forEach(b => b.addEventListener("click", (e) => { e.preventDefault(); const i = sel.indexOf(b.dataset.up); if (i > 0) { [sel[i - 1], sel[i]] = [sel[i], sel[i - 1]]; pintarSel(); } }));
+    $("pbL").querySelectorAll("[data-dn]").forEach(b => b.addEventListener("click", (e) => { e.preventDefault(); const i = sel.indexOf(b.dataset.dn); if (i < sel.length - 1) { [sel[i + 1], sel[i]] = [sel[i], sel[i + 1]]; pintarSel(); } }));
+  };
+  pintarSel(); $("pbQ").addEventListener("input", (e) => { filtro = e.target.value; pintarSel(); });
+  $("pbX").onclick = cerrarVentana;
+  $("pbG").onclick = async () => {
+    p.nombre = $("pbN").value.trim(); if (!p.nombre) { aviso("Ponle un título."); return; }
+    p.equipo = $("pbE").value.trim(); p.temporada = $("pbT").value.trim(); p.compartido = $("pbC").checked; p.data.notas = $("pbNo").value; p.data.jugadas = sel;
+    if (await guardarFila("playbooks", p)) { cerrarVentana(); aviso("Playbook guardado ✓"); await cargarTodo(); if (vistaDetalle && vistaDetalle.tipo === "playbook") vistaDetalle.id = p.id; pintar(); }
+  };
+}
+
+/* ------------ ejercicios ------------ */
+function formEjercicio(x) {
+  const nuevo = !x; x = x ? clonar(x) : { id: idNuevo("e"), nombre: "", carpeta: carpeta || "", data: {} };
+  const d = x.data = x.data || {};
+  const cs = carpetasDe("ejercicios").map(c => c.nombre), vids = D.archivos.filter(a => a.tipo === "video" || a.tipo === "imagen");
+  const m = ventana(`<h3>${nuevo ? "Nuevo ejercicio" : "Ejercicio"}</h3>
+    <label>Título</label><input id="ejN" value="${esc(x.nombre)}" placeholder="Ej: 3 contra 2 en transición">
+    <div class="dos"><div><label>Carpeta</label><input id="ejC" list="dlej" value="${esc(x.carpeta || "")}" placeholder="Sin carpeta"><datalist id="dlej">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
+      <div><label>Categoría</label><select id="ejK">${CATEGORIAS.map(c => `<option ${c === (d.categoria || "Otro") ? "selected" : ""}>${c}</option>`).join("")}</select></div></div>
+    <div class="dos"><div><label>Duración (minutos)</label><input type="number" id="ejM" min="0" step="1" value="${esc(d.minutos || "")}"></div><div><label>Material</label><input id="ejMat" value="${esc(d.materiales || "")}" placeholder="Balones, conos, petos…"></div></div>
+    <label>Descripción / cómo se hace</label><textarea id="ejD">${esc(d.descripcion || "")}</textarea>
+    <div class="dos"><div><label>Jugada vinculada</label><select id="ejJ"><option value="">— ninguna —</option>${D.jugadas.map(j => `<option value="${esc(j.id)}" ${j.id === d.jugadaId ? "selected" : ""}>${esc(j.nombre)}</option>`).join("")}</select></div>
+      <div><label>Vídeo o enlace</label><input id="ejV" value="${esc(d.video || "")}" placeholder="https://…"></div></div>
+    ${vids.length ? `<label>…o elegir de mis archivos</label><select id="ejA"><option value="">— elegir —</option>${vids.map(a => `<option value="${esc(pubUrl(a))}">${a.tipo === "video" ? "🎬" : "🖼️"} ${esc(a.nombre)}</option>`).join("")}</select>` : ""}
+    <div class="pie-m">${nuevo || !puedeEscribir ? "" : '<button class="rojo" id="ejB" style="margin-right:auto;">🗑 Borrar</button>'}<button class="gris" id="ejX">${puedeEscribir ? "Cancelar" : "Cerrar"}</button>${puedeEscribir ? '<button class="naranja" id="ejG">Guardar</button>' : ""}</div>`, true);
+  if ($("ejA")) $("ejA").onchange = () => { if ($("ejA").value) $("ejV").value = $("ejA").value; };
+  $("ejX").onclick = cerrarVentana;
+  if ($("ejB")) $("ejB").onclick = async () => { if (confirm("¿Borrar «" + x.nombre + "»?") && await borrarFila("ejercicios", x.id)) { cerrarVentana(); await cargarTodo(); pintar(); } };
+  if ($("ejG")) $("ejG").onclick = async () => {
+    x.nombre = $("ejN").value.trim(); if (!x.nombre) { aviso("Ponle un título."); return; }
+    x.carpeta = $("ejC").value.trim(); d.categoria = $("ejK").value; d.minutos = Number($("ejM").value) || 0; d.materiales = $("ejMat").value.trim(); d.descripcion = $("ejD").value; d.jugadaId = $("ejJ").value; d.video = $("ejV").value.trim();
+    if (await guardarFila("ejercicios", x)) { if (x.carpeta && !D.carpetas.some(c => c.tipo === "ejercicios" && c.nombre === x.carpeta)) await guardarFila("carpetas", { tipo: "ejercicios", nombre: x.carpeta }); cerrarVentana(); aviso("Ejercicio guardado ✓"); await cargarTodo(); pintar(); }
+  };
+}
+
+/* ------------ planes de entrenamiento ------------ */
+function pintarPlan(v) {
+  const p = vistaDetalle.plan, d = p.data, lista = d.ejercicios;
+  const hm = (min) => { const [h, m] = (d.inicio || "18:00").split(":").map(Number); const t = h * 60 + m + min; return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+  const total = lista.reduce((a, e) => a + (Number(e.min) || 0), 0);
+  let acum = 0;
+  const filas = lista.map((e, i) => { const ej = D.ejercicios.find(y => y.id === e.id), ini = hm(acum); acum += Number(e.min) || 0;
+    return `<div class="ejp" data-i="${i}"><div class="nn">${i + 1}</div><div><b>${esc(ej ? ej.nombre : "(ejercicio borrado)")}</b><div class="h">${esc(ej && ej.data && ej.data.categoria || "")} · ${ini}–${hm(acum)}</div></div><div><input type="number" min="0" data-f="min" value="${esc(e.min)}" ${puedeEscribir ? "" : "disabled"}></div><div><input data-f="notas" placeholder="Notas" value="${esc(e.notas || "")}" ${puedeEscribir ? "" : "disabled"}></div><div style="display:flex;gap:4px;">${puedeEscribir ? `<button class="gris" data-m="up">↑</button><button class="gris" data-m="dn">↓</button><button class="gris" data-m="x">✕</button>` : ""}</div></div>`; }).join("");
+  v.innerHTML = `<div class="cab"><h2>📋 ${p.nuevo ? "Nuevo plan" : esc(p.nombre || "Plan")}</h2><span class="miga"><a id="volverPl">← Planes</a></span><span class="esp"></span><button class="gris" id="plPrint">🖨️ Imprimir / PDF</button>${puedeEscribir ? '<button class="naranja" id="plG">Guardar</button>' : ""}</div>
+    <div class="dos" style="margin-bottom:6px;"><div><label style="margin-top:0;">Nombre del plan</label><input id="plN" value="${esc(p.nombre)}" placeholder="Ej: Entrenamiento martes"></div>
+      <div class="dos" style="grid-template-columns:1fr 1fr 1fr;"><div><label style="margin-top:0;">Fecha</label><input type="date" id="plF" value="${esc(p.fecha || "")}"></div><div><label style="margin-top:0;">Hora de inicio</label><input type="time" id="plH" value="${esc(d.inicio || "18:00")}"></div><div><label style="margin-top:0;">Carpeta</label><input id="plC" list="dlpl" value="${esc(p.carpeta || "")}"><datalist id="dlpl">${carpetasDe("planes").map(c => `<option value="${esc(c.nombre)}">`).join("")}</datalist></div></div></div>
+    <label>Objetivo / notas generales</label><textarea id="plNo" style="min-height:60px;">${esc(d.notas || "")}</textarea>
+    <div class="totales"><span>Duración total: <b>${total} min</b></span><span>Ejercicios: <b>${lista.length}</b></span><span>Termina a las: <b>${hm(total)}</b></span></div>
+    <div class="tabla" id="plLista">${filas || '<div class="vacio">Añade ejercicios de tu biblioteca para montar la sesión.</div>'}</div>
+    ${puedeEscribir ? '<div style="margin-top:12px;"><button class="verde" id="plAdd">＋ Añadir ejercicio</button></div>' : ""}`;
+  const volcar = () => { p.nombre = $("plN").value.trim(); p.fecha = $("plF").value || null; p.carpeta = $("plC").value.trim(); d.inicio = $("plH").value || "18:00"; d.notas = $("plNo").value; };
+  ["plN", "plF", "plC", "plNo"].forEach(id => $(id).addEventListener("input", volcar));
+  $("plH").addEventListener("change", () => { volcar(); pintar(); });
+  $("volverPl").onclick = () => { vistaDetalle = null; pintar(); };
+  v.querySelectorAll(".ejp").forEach(el => {
+    const i = Number(el.dataset.i);
+    el.querySelectorAll("[data-f]").forEach(inp => inp.addEventListener(inp.dataset.f === "min" ? "change" : "input", () => { lista[i][inp.dataset.f] = inp.dataset.f === "min" ? (Number(inp.value) || 0) : inp.value; if (inp.dataset.f === "min") { volcar(); pintar(); } }));
+    el.querySelectorAll("[data-m]").forEach(b => b.addEventListener("click", () => { volcar(); if (b.dataset.m === "x") lista.splice(i, 1); else if (b.dataset.m === "up" && i > 0) [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; else if (b.dataset.m === "dn" && i < lista.length - 1) [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; pintar(); }));
+  });
+  if ($("plAdd")) $("plAdd").onclick = () => { volcar(); elegirEjercicio((id) => { const ej = D.ejercicios.find(y => y.id === id); lista.push({ id, min: (ej && ej.data && ej.data.minutos) || 10, notas: "" }); pintar(); }); };
+  if ($("plG")) $("plG").onclick = async () => { volcar(); if (!p.nombre) { aviso("Ponle un nombre al plan."); return; } const fila = { id: p.id, nombre: p.nombre, carpeta: p.carpeta, fecha: p.fecha, data: d }; if (await guardarFila("planes", fila)) { aviso("Plan guardado ✓"); p.nuevo = false; if (p.carpeta && !D.carpetas.some(c => c.tipo === "planes" && c.nombre === p.carpeta)) await guardarFila("carpetas", { tipo: "planes", nombre: p.carpeta }); await cargarTodo(); pintarPlan(v); } };
+  $("plPrint").onclick = () => { volcar(); imprimirPlan(p, hm); };
+}
+function elegirEjercicio(ok) {
+  let q = "";
+  const m = ventana(`<h3>Añadir ejercicio</h3><input type="search" id="elQ" placeholder="Buscar en tu biblioteca…"><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
+  const pin = () => { const l = D.ejercicios.filter(e => !q || (e.nombre + " " + (e.carpeta || "") + " " + ((e.data && e.data.categoria) || "")).toLowerCase().includes(q)); $("elL").innerHTML = l.length ? l.map(e => `<label class="it" data-id="${esc(e.id)}"><span style="flex:1;">🎯 ${esc(e.nombre)}</span><span class="peq">${esc((e.data && e.data.categoria) || "")} ${e.data && e.data.minutos ? "· " + e.data.minutos + " min" : ""}</span></label>`).join("") : '<div class="vacio">Aún no tienes ejercicios. Crea alguno en «Ejercicios».</div>'; $("elL").querySelectorAll("[data-id]").forEach(el => el.addEventListener("click", () => { cerrarVentana(); ok(el.dataset.id); })); };
+  pin(); $("elQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase(); pin(); }); $("elX").onclick = cerrarVentana;
+}
+function imprimirPlan(p, hm) {
+  const d = p.data; let acum = 0;
+  const filas = d.ejercicios.map((e, i) => { const ej = D.ejercicios.find(y => y.id === e.id), ini = hm(acum); acum += Number(e.min) || 0; const dd = (ej && ej.data) || {};
+    return `<tr><td>${i + 1}</td><td>${ini}–${hm(acum)}<br>${e.min || 0} min</td><td><b>${esc(ej ? ej.nombre : "")}</b><br>${esc(dd.categoria || "")}${dd.materiales ? "<br><i>Material: " + esc(dd.materiales) + "</i>" : ""}</td><td>${esc(dd.descripcion || "").replace(/\n/g, "<br>")}${e.notas ? "<br><b>Notas:</b> " + esc(e.notas) : ""}</td></tr>`; }).join("");
+  $("hojaImp").innerHTML = `<h1>${esc(p.nombre || "Plan de entrenamiento")}</h1><div>${solofecha(p.fecha)} · ${acum} min · ${d.ejercicios.length} ejercicios</div>${d.notas ? `<p>${esc(d.notas).replace(/\n/g, "<br>")}</p>` : ""}<table><tr><th>#</th><th>Horario</th><th>Ejercicio</th><th>Descripción</th></tr>${filas}</table>`;
+  window.print();
+}
+
+/* ------------ archivos: videos, imagenes, audio ------------ */
+const pubUrl = (a) => nube.storage.from("entrenador").getPublicUrl(a.ruta).data.publicUrl;
+const ACEPTA = { video: "video/*", imagen: "image/*", audio: "audio/*" }, ICO_AR = { video: "🎬", imagen: "🖼️", audio: "🎧" };
+function pintarArchivos(v, tipo) {
+  const q = busqueda.toLowerCase(), lista = D.archivos.filter(a => a.tipo === tipo && (!q || a.nombre.toLowerCase().includes(q)));
+  v.innerHTML = `<div class="cab"><h2>${SECCIONES[tipo]}</h2><span class="esp"></span>${puedeEscribir ? `<button class="naranja" id="bSubir">⬆ Subir ${tipo === "audio" ? "audios" : tipo === "video" ? "vídeos" : "imágenes"}</button>` : ""}</div>
+    ${puedeEscribir ? `<div id="soltar">Arrastra aquí tus archivos o pulsa «Subir». <span class="peq">(máx. 50 MB por archivo)</span></div><input type="file" id="fArch" accept="${ACEPTA[tipo]}" multiple style="display:none;">` : ""}
+    <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>
+    <div class="rejilla">${lista.map(a => { const u = pubUrl(a), vista = tipo === "imagen" ? `<img src="${esc(u)}" loading="lazy" alt="">` : tipo === "video" ? `<video src="${esc(u)}#t=0.5" preload="metadata" controls></video>` : `<audio src="${esc(u)}" controls preload="none"></audio>`;
+      return `<div class="tarj" data-id="${esc(a.id)}"><div class="vista">${vista}</div><div class="cu"><b title="${esc(a.nombre)}">${esc(a.nombre)}</b><span class="peq">${tamTxt(a.tamano)} · ${fechaTxt(a.creada)}</span><div class="acc"><button class="gris" data-a="copiar">🔗 Copiar enlace</button><button class="gris" data-a="abrir">↗ Abrir</button>${puedeEscribir ? '<button class="gris" data-a="ren">✏️</button><button class="gris" data-a="del" style="color:#c0392b;">🗑</button>' : ""}</div></div></div>`; }).join("") || `<p class="vacio" style="grid-column:1/-1;">${q ? "Nada coincide con la búsqueda." : "Aún no has subido nada aquí."}</p>`}</div>`;
+  $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; pintarArchivos(v, tipo); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
+  if (puedeEscribir) {
+    const fi = $("fArch"), zona = $("soltar");
+    $("bSubir").onclick = () => fi.click(); zona.onclick = () => fi.click();
+    fi.onchange = () => subir([...fi.files], tipo);
+    ["dragover", "dragenter"].forEach(ev => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add("sobre"); }));
+    ["dragleave", "drop"].forEach(ev => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove("sobre"); }));
+    zona.addEventListener("drop", (e) => subir([...e.dataTransfer.files].filter(f => f.type.startsWith(tipo === "imagen" ? "image/" : tipo + "/")), tipo));
+  }
+  v.querySelectorAll(".tarj").forEach(el => {
+    const a = D.archivos.find(y => y.id === el.dataset.id);
+    el.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", async () => {
+      if (b.dataset.a === "copiar") { try { await navigator.clipboard.writeText(pubUrl(a)); aviso("Enlace copiado ✓"); } catch (e) { prompt("Copia el enlace:", pubUrl(a)); } }
+      else if (b.dataset.a === "abrir") window.open(pubUrl(a), "_blank", "noopener");
+      else if (b.dataset.a === "ren") preguntar("Renombrar", "Nombre", a.nombre, async (n) => { if (await guardarFila("archivos", Object.assign({}, a, { nombre: n }))) { await cargarTodo(); pintar(); } });
+      else if (b.dataset.a === "del" && confirm("¿Borrar «" + a.nombre + "»? Los enlaces que lo usen dejarán de funcionar.")) { await nube.storage.from("entrenador").remove([a.ruta]); if (await borrarFila("archivos", a.id)) { await cargarTodo(); pintar(); } }
+    }));
+  });
+}
+async function subir(files, tipo) {
+  if (!files.length) return;
+  let ok = 0;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (f.size > 50 * 1024 * 1024) { aviso("«" + f.name + "» pesa más de 50 MB: no se sube."); continue; }
+    aviso("Subiendo " + (i + 1) + " de " + files.length + "…");
+    const id = idNuevo("a"), limpio = f.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_"), ruta = tipo + "/" + id + "-" + limpio;
+    const { error } = await nube.storage.from("entrenador").upload(ruta, f, { contentType: f.type || undefined, upsert: false });
+    if (error) { aviso("Error al subir «" + f.name + "»: " + error.message); continue; }
+    if (await guardarFila("archivos", { id, nombre: f.name, tipo, ruta, mime: f.type, tamano: f.size })) ok++;
+  }
+  if (ok) aviso(ok + " archivo(s) subido(s) ✓");
+  await cargarTodo(); pintar();
+}
+
+/* ------------ arranque ------------ */
+function pantalla(msg, enlace) { $("main").innerHTML = `<div class="vacio" style="padding-top:60px;font-size:16px;">${msg}${enlace ? `<p><a href="index.html" style="color:var(--orange);font-weight:800;">${enlace}</a></p>` : ""}</div>`; }
+async function iniciar() {
+  document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => ir(b.dataset.s)));
+  if (!nube) { pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
+  const { data } = await nube.auth.getSession();
+  if (!data || !data.session) { pantalla("Entra con tu cuenta en la app de estadísticas para usar el Entrenador.", "← Ir a la app"); return; }
+  try {
+    const r = await nube.rpc("es_entrenador");
+    if (r && r.data === false) { pantalla("Esta sección es solo para entrenadores."); return; }
+  } catch (e) { /* si falla la comprobacion, las reglas de la base de datos protegen igualmente */ }
+  try { const r = await nube.rpc("puede_escribir"); if (r && !r.error && r.data === false) puedeEscribir = false; } catch (e) { /* sin roles: se puede escribir */ }
+  await cargarTodo();
+  const h = (location.hash || "").replace("#", ""); if (SECCIONES[h]) seccion = h;
+  if (!puedeEscribir) aviso("Modo lectura: solo el propietario puede editar.");
+  pintar();
+}
+iniciar();
+</script>
+</body>
+</html>

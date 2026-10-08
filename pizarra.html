@@ -153,6 +153,8 @@
   .rejilla-salida .mini{background:#f3e6d2;border-radius:6px;overflow:hidden;} .rejilla-salida .mini svg{display:block;width:100%;height:auto;}
   .rejilla-salida ul{margin:8px 0 0;padding-left:18px;font-size:13px;} .rejilla-salida li{margin:2px 0;}
   /* ventanas */
+  body.editor .menu-ent,body.editor #enlaceVolver{display:none !important;}
+  body.editor header{margin-bottom:6px;}
   #modalPlant{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
   #modalPlant.ver{display:flex;}
   #modalPlant .caja{background:var(--white);border-radius:16px;width:100%;max-width:760px;max-height:94vh;overflow:auto;padding:16px;}
@@ -190,6 +192,7 @@
   <header>
     <h1>🏀 Entrenador</h1>
     <a href="index.html" id="enlaceVolver">← Volver a la app</a>
+    <button class="gris" id="btnCerrarEd" style="display:none;">← Volver a Jugadas</button>
   </header>
   <div class="menu-ent">
     <button id="verBib" class="on">📚 Mis jugadas</button>
@@ -220,6 +223,7 @@
     <div class="datos-ed">
       <div><label style="margin-top:0;">Nombre de la jugada</label><input id="nombre" placeholder="Ej: Cinco abierto, bloqueo directo"></div>
       <div style="max-width:200px;"><label style="margin-top:0;">Tipo</label><select id="tipo"></select></div>
+      <div style="max-width:200px;"><label style="margin-top:0;">Carpeta</label><input id="carpetaJ" list="listaCarpetas" placeholder="Sin carpeta"><datalist id="listaCarpetas"></datalist></div>
       <div class="chk">
         <label><input type="checkbox" id="chkFav">⭐ Favorita</label>
         <label><input type="checkbox" id="chkComp">📤 Visible para las jugadoras</label>
@@ -421,7 +425,9 @@ const COLOR = { corte: TINTA, bote: TINTA, pase: TINTA, pantalla: TINTA, tiro: T
 const NOMBRE_ACCION = { corte: "Corte", bote: "Bote", pase: "Pase", pantalla: "Pantalla", tiro: "Tiro", mueve: "Movimiento", entrega: "Mano a mano" };
 const MOVEDORAS = ["corte", "bote", "pantalla", "mueve", "entrega"];
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
-const VISOR = new URLSearchParams(location.search).get("visor") === "1";
+const PARAMS = new URLSearchParams(location.search);
+const VISOR = PARAMS.get("visor") === "1";
+const EDITOR = PARAMS.get("editor") === "1", ID_ED = PARAMS.get("id") || "", CARPETA_ED = PARAMS.get("carpeta") || "";
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const clonar = (o) => JSON.parse(JSON.stringify(o));
@@ -1283,9 +1289,9 @@ function pintarPestana() {
 function refrescarTodo() { cargarCampos(); pintarPestana(); }
 
 /* ---------- campos generales ---------- */
-function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; }
-function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; }
-function guardarBorrador() { try { localStorage.setItem(BORRADOR, JSON.stringify({ jugada, paso })); } catch (e) { /* nada */ } }
+function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.carpeta = $("carpetaJ").value.trim(); jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; }
+function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("carpetaJ").value = jugada.carpeta || ""; $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; }
+function guardarBorrador() { if (EDITOR) return; try { localStorage.setItem(BORRADOR, JSON.stringify({ jugada, paso })); } catch (e) { /* nada */ } }
 
 /* ============================================================
    VISOR (vista grande de la biblioteca y vista de las jugadoras)
@@ -1379,10 +1385,17 @@ async function borrarJugada(id) {
   else escribirLocal(leerLocal().filter(x => x.id !== id));
   return true;
 }
+let instGuardada = "";
+const instJugada = () => { try { volcarCampos(); } catch (e) { /* nada */ } const c = clonar(jugada); delete c.actualizada; return JSON.stringify(c); };
+const marcaGuardado = () => { instGuardada = instJugada(); };
+function cerrarEditor() {
+  if (instJugada() !== instGuardada && !confirm("Hay cambios sin guardar en esta jugada. ¿Salir igualmente?")) return;
+  if (window.parent !== window) { try { parent.postMessage({ scoutflowEntrenador: "cerrar" }, "*"); } catch (e) { /* nada */ } } else location.href = "entrenador.html";
+}
 async function guardar() {
   volcarCampos();
   if (!jugada.nombre) { aviso("Ponle un nombre a la jugada."); $("nombre").focus(); return; }
-  if (await guardarJugada(jugada)) { aviso(jugada.compartida ? "Guardada ✓ · visible para las jugadoras" : "Guardada en tus jugadas ✓"); await recargarBib(); }
+  if (await guardarJugada(jugada)) { aviso(jugada.compartida ? "Guardada ✓ · visible para las jugadoras" : "Guardada en tus jugadas ✓"); marcaGuardado(); if (EDITOR) { try { parent.postMessage({ scoutflowEntrenador: "guardado", id: jugada.id }, "*"); } catch (e) { /* nada */ } } await recargarBib(); }
 }
 function pintarLista() {
   const q = $("buscar").value.trim().toLowerCase(), ft = $("filtroTipo").value;
@@ -1508,7 +1521,7 @@ if (VISOR) {
     $("rejillaPlant").querySelectorAll(".plant").forEach(el => { el.addEventListener("click", () => { plantElegida = el.dataset.id; pintarPlantillas(); }); el.addEventListener("dblclick", () => $("plantEmpezar").click()); });
   };
   $("btnNuevaBib").addEventListener("click", () => { pintarPlantillas(); $("modalPlant").classList.add("ver"); }, true);
-  $("plantCancelar").addEventListener("click", () => $("modalPlant").classList.remove("ver"));
+  $("plantCancelar").addEventListener("click", () => { $("modalPlant").classList.remove("ver"); if (EDITOR && !ID_ED && instJugada() === instGuardada) cerrarEditor(); });
   $("plantEmpezar").addEventListener("click", () => { $("modalPlant").classList.remove("ver"); if (nuevaJugada(plantElegida)) { selLinea = -1; selFicha = null; mostrarVista("ed"); irPestana("Draw"); } });
   const menu = $("menuCtx"), cerrarMenu = () => { menu.style.display = "none"; };
   document.addEventListener("pointerdown", (e) => { if (!menu.contains(e.target)) cerrarMenu(); });
@@ -1571,7 +1584,7 @@ if (VISOR) {
     if (e.key === "y") { e.preventDefault(); rehacerCambio(); }
   });
   $("tabsEd").querySelectorAll("button").forEach(b => b.addEventListener("click", () => irPestana(b.dataset.p)));
-  ["nombre", "tipo", "notas"].forEach(id => $(id).addEventListener("input", () => { volcarCampos(); guardarBorrador(); }));
+  ["nombre", "tipo", "notas", "carpetaJ"].forEach(id => $(id).addEventListener("input", () => { volcarCampos(); guardarBorrador(); }));
   ["nombre", "notas"].forEach(id => $(id).addEventListener("focus", snap));
   ["chkFav", "chkComp"].forEach(id => $(id).addEventListener("change", () => { snap(); volcarCampos(); guardarBorrador(); }));
   $("btnAddVid").addEventListener("click", anadirVideo);
@@ -1580,7 +1593,7 @@ if (VISOR) {
     volcarCampos();
     const hay = jugada.pasos.length > 1 || jugada.pasos[0].lineas.length;
     if (hay && !confirm("Se empieza una jugada nueva. Lo que no hayas guardado se pierde. ¿Seguir?")) return false;
-    jugada = jugadaNueva(form || $("formacion").value); paso = 0; hist = []; rehacer = []; cargarCampos(); return true;
+    jugada = jugadaNueva(form || $("formacion").value); if (EDITOR) jugada.carpeta = CARPETA_ED; paso = 0; hist = []; rehacer = []; cargarCampos(); marcaGuardado(); return true;
   };
   $("verBib").addEventListener("click", () => mostrarVista("bib"));
   $("verEd").addEventListener("click", () => { mostrarVista("ed"); });
@@ -1595,12 +1608,28 @@ if (VISOR) {
   $("filtroFav").addEventListener("click", () => { soloFav = !soloFav; $("filtroFav").classList.toggle("on", soloFav); pintarLista(); });
   if (window.parent !== window) { const e = $("enlaceVolver"); if (e) e.style.display = "none"; }
 
-  try {
+  if (!EDITOR) try {
     const b = JSON.parse(localStorage.getItem(BORRADOR) || "null");
     if (b && b.jugada && b.jugada.pasos && b.jugada.pasos.length) { jugada = normalizar(b.jugada); paso = Math.min(b.paso || 0, jugada.pasos.length - 1); }
   } catch (e) { /* borrador roto: se empieza de cero */ }
   cargarCampos();
-  iniciarNube().then(recargarBib);
+  if (EDITOR) {
+    document.body.classList.add("editor");
+    $("btnCerrarEd").style.display = ""; $("btnCerrarEd").addEventListener("click", cerrarEditor);
+    window.addEventListener("beforeunload", (e) => { if (instJugada() !== instGuardada) { e.preventDefault(); e.returnValue = ""; } });
+    iniciarNube().then(recargarBib).then(() => {
+      $("listaCarpetas").innerHTML = [...new Set(BIB.map(x => x.carpeta).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join("");
+      if (ID_ED) {
+        const x = BIB.find(y => y.id === ID_ED);
+        if (x) { jugada = normalizar(clonar(x)); paso = 0; hist = []; rehacer = []; cargarCampos(); marcaGuardado(); }
+        else aviso("No se encontró la jugada.");
+        mostrarVista("ed"); irPestana("Draw");
+      } else {
+        jugada = jugadaNueva("cinco"); jugada.carpeta = CARPETA_ED; cargarCampos(); marcaGuardado();
+        mostrarVista("ed"); irPestana("Draw"); $("btnNuevaBib").click();
+      }
+    });
+  } else iniciarNube().then(recargarBib);
   pintarLista(); botonesHistorial();
 }
 </script>
