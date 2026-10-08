@@ -237,6 +237,13 @@
           <p class="hint" id="ayuda"></p>
         </div>
         <div class="col-herr herr">
+          <div class="bloque" id="panelLinea" style="display:none;">
+            <h3>Línea seleccionada</h3>
+            <p class="aviso-herr" style="margin:0 0 8px;">Arrastra los puntos azules para cambiar su forma.</p>
+            <label>Acción</label>
+            <select id="lnTipo"><option value="bote">Bote</option><option value="pase">Pase</option><option value="corte">Corte</option><option value="pantalla">Pantalla</option><option value="tiro">Tiro</option><option value="mueve">Mover</option><option value="entrega">Mano a mano</option></select>
+            <div class="fila" style="margin-top:8px;"><button class="gris" id="lnForma">Hacerla curva</button><button class="gris" id="lnBorrar" style="color:#c0392b;">🗑 Eliminar</button></div>
+          </div>
           <div id="panelHerr">
           <div class="bloque">
             <h3>Añadir acciones</h3>
@@ -419,7 +426,7 @@ function normalizar(j) {
 }
 
 /* ---------- estado ---------- */
-let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1;
+let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1, selLinea = -1, selPaso = -1, arrastreH = null;
 let hist = [], rehacer = [];
 const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } return JSON.stringify({ jugada, paso }); };
 function snap() { hist.push(instantanea()); if (hist.length > 80) hist.shift(); rehacer = []; botonesHistorial(); }
@@ -779,10 +786,12 @@ function pintarHerramientas() {
 function pintar() {
   if (!jugada.pasos[paso]) paso = 0;
   const act = jugada.pasos[paso];
-  $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true });
+  if (selPaso !== paso || selLinea >= act.lineas.length) selLinea = -1;
+  $("pista").innerHTML = pistaEdicion();
+  pintarPanelLinea();
   if (trazo && trazo.pts.length > 1) $("pista").querySelector("svg").insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
   $("fases").innerHTML = jugada.pasos.map((_, i) => `<div class="fase ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}</div>`).join("");
-  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); pintar(); }));
+  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); selLinea = -1; pintar(); }));
   $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
   $("btnDeshacer").disabled = !act.lineas.length;
   $("leyenda").innerHTML = textoLista(act.texto);
@@ -827,14 +836,66 @@ function alternarDefensa() {
   }
   pintar();
 }
+/* ---- seleccion y edicion de una linea (puntos azules) ---- */
+function lineaCerca(p, max) {
+  let mejor = -1, dm = max;
+  jugada.pasos[paso].lineas.forEach((l, i) => { trayectoria(l).forEach(q => { const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < dm) { dm = d; mejor = i; } }); });
+  return mejor;
+}
+function handleCerca(l, p) {
+  let mejor = -1, dm = 0.55;
+  l.pts.forEach((q, i) => { const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d <= dm) { dm = d; mejor = i; } });
+  return mejor;
+}
+function seleccionarLinea(i) {
+  selLinea = i; selPaso = paso;
+  const l = jugada.pasos[paso].lineas[i];
+  if (l && l.pts.length > 6) { snap(); l.pts = simplificar(l.pts, 0.22); }
+  pintar();
+}
+function manejadoresSvg() {
+  const l = selLinea >= 0 && selPaso === paso ? jugada.pasos[paso].lineas[selLinea] : null;
+  if (!l) return "";
+  return l.pts.map((q, i) => { const fin = i === 0 || i === l.pts.length - 1;
+    return `<circle cx="${(q[0] * S).toFixed(1)}" cy="${(q[1] * S).toFixed(1)}" r="${fin ? 7 : 5.5}" fill="${fin ? "#1a73e8" : "#fff"}" stroke="${fin ? "#fff" : "#1a73e8"}" stroke-width="2.2" pointer-events="none"/>`; }).join("");
+}
+function pistaEdicion() {
+  return svgPaso(jugada, paso, { todas: true, interactivo: true }).replace(/<\/svg>$/, manejadoresSvg() + "</svg>");
+}
+/* mueve un extremo y deforma el resto de la linea con ella (semejanza respecto a la cuerda) */
+function moverExtremo(l, orig, i, p) {
+  const n = orig.length, A = orig[0], B = orig[n - 1];
+  if (i > 0 && i < n - 1) { l.pts[i] = [p.x, p.y]; return; }
+  const A2 = i === 0 ? [p.x, p.y] : A, B2 = i === n - 1 ? [p.x, p.y] : B;
+  const dx = B[0] - A[0], dy = B[1] - A[1], d2 = dx * dx + dy * dy;
+  l.pts = orig.map((q, k) => {
+    if (k === 0) return A2; if (k === n - 1) return B2;
+    if (d2 < 1e-6) return q;
+    const zx = ((q[0] - A[0]) * dx + (q[1] - A[1]) * dy) / d2, zy = ((q[1] - A[1]) * dx - (q[0] - A[0]) * dy) / d2;
+    const ex = B2[0] - A2[0], ey = B2[1] - A2[1];
+    return [A2[0] + zx * ex - zy * ey, A2[1] + zx * ey + zy * ex];
+  });
+}
+function pintarPanelLinea() {
+  const caja = $("panelLinea"), l = selLinea >= 0 && selPaso === paso ? jugada.pasos[paso].lineas[selLinea] : null;
+  if (!l) { caja.style.display = "none"; return; }
+  caja.style.display = "";
+  $("lnTipo").value = l.t;
+  $("lnForma").textContent = l.pts.length > 2 ? "↗ Hacerla recta" : "⤴ Hacerla curva";
+}
 function alPulsar(ev) {
   if (ev.button > 0) return;
   ev.preventDefault();
   const p = aMetros(ev), act = jugada.pasos[paso];
+  if (selLinea >= 0 && selPaso === paso && act.lineas[selLinea]) {
+    const h = handleCerca(act.lineas[selLinea], p);
+    if (h >= 0) { snap(); arrastreH = { i: h, orig: clonar(act.lineas[selLinea].pts) }; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } return; }
+  }
   if (herramienta === "mover") {
     const k = fichaCerca(p, 0.9), oi = k ? -1 : objetoCerca(p, 1.0);
     if (k) { snap(); arrastre = k; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
     else if (oi >= 0) { snap(); arrastreObj = oi; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
+    else { const li = lineaCerca(p, 0.55); if (li >= 0) seleccionarLinea(li); else if (selLinea >= 0) { selLinea = -1; pintar(); } }
   } else if (herramienta === "balon") {
     const k = fichaCerca(p, 1.1, true);
     if (k) { snap(); act.balon = k; pintar(); }
@@ -843,12 +904,13 @@ function alPulsar(ev) {
     act.lineas.forEach((l, i) => l.pts.forEach(q => { const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < dm) { dm = d; mejor = i; } }));
     const oi = objetoCerca(p, 0.9);
     if (oi >= 0 && (mejor < 0 || Math.hypot(act.objs[oi].x - p.x, act.objs[oi].y - p.y) < dm)) { snap(); act.objs.splice(oi, 1); pintar(); }
-    else if (mejor >= 0) { snap(); act.lineas.splice(mejor, 1); pintar(); }
+    else if (mejor >= 0) { snap(); act.lineas.splice(mejor, 1); selLinea = -1; pintar(); }
   } else if (herramienta.indexOf("obj-") === 0) {
     const tipo = herramienta.slice(4); let txt = "";
     if (tipo === "texto") { try { txt = window.prompt("Texto:", "") || ""; } catch (e) { txt = "Texto"; } if (!txt) return; }
     snap(); act.objs = act.objs || []; act.objs.push({ t: tipo, x: p.x, y: p.y, txt }); pintar();
   } else {
+    if (selLinea >= 0) { selLinea = -1; pintar(); }
     const k = fichaCerca(p, 1.0);
     const origen = k ? act.pos[k] : p;
     trazo = { t: herramienta, de: k || "", pts: [[origen.x, origen.y]] };
@@ -856,10 +918,11 @@ function alPulsar(ev) {
   }
 }
 function alMover(ev) {
-  if (!arrastre && !trazo && arrastreObj < 0) return;
+  if (!arrastre && !trazo && arrastreObj < 0 && !arrastreH) return;
   const p = aMetros(ev);
-  if (arrastreObj >= 0) { jugada.pasos[paso].objs[arrastreObj].x = p.x; jugada.pasos[paso].objs[arrastreObj].y = p.y; $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true }); }
-  else if (arrastre) { jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y }; $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true }); }
+  if (arrastreH) { moverExtremo(jugada.pasos[paso].lineas[selLinea], arrastreH.orig, arrastreH.i, p); $("pista").innerHTML = pistaEdicion(); return; }
+  if (arrastreObj >= 0) { jugada.pasos[paso].objs[arrastreObj].x = p.x; jugada.pasos[paso].objs[arrastreObj].y = p.y; $("pista").innerHTML = pistaEdicion(); }
+  else if (arrastre) { jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y }; $("pista").innerHTML = pistaEdicion(); }
   else if (trazo) {
     const u = trazo.pts[trazo.pts.length - 1];
     if (Math.hypot(p.x - u[0], p.y - u[1]) > 0.18) trazo.pts.push([p.x, p.y]);
@@ -877,6 +940,17 @@ function simplificar(p, tol) {
   return simplificar(p.slice(0, mi + 1), tol).slice(0, -1).concat(simplificar(p.slice(mi), tol));
 }
 function alSoltar() {
+  if (arrastreH) {
+    const act = jugada.pasos[paso], l = act.lineas[selLinea], i = arrastreH.i, n = l.pts.length; arrastreH = null;
+    if (l) {
+      if (i === 0) { const k = fichaCerca({ x: l.pts[0][0], y: l.pts[0][1] }, 1.0); if (k) { l.de = k; l.pts[0] = [act.pos[k].x, act.pos[k].y]; } }
+      if (i === n - 1) {
+        if (l.t === "pase" || l.t === "entrega") { delete l.a; const r = receptoraDe(l, act.pos); if (r) l.a = r; }
+        else if (l.t === "tiro" && Math.hypot(l.pts[n - 1][0] - ARO.x, l.pts[n - 1][1] - ARO.y) < 1.2) l.pts[n - 1] = [ARO.x, ARO.y];
+      }
+    }
+    pintar(); return;
+  }
   if (arrastreObj >= 0) { arrastreObj = -1; pintar(); return; }
   if (arrastre) { arrastre = null; pintar(); return; }
   if (trazo) {
@@ -892,7 +966,7 @@ function alSoltar() {
       } else if (trazo.t === "tiro") {
         const f = pts[1]; if (Math.hypot(f[0] - ARO.x, f[1] - ARO.y) < 2.2) linea.pts = [pts[0], [ARO.x, ARO.y]];
       }
-      snap(); jugada.pasos[paso].lineas.push(linea);
+      snap(); jugada.pasos[paso].lineas.push(linea); selLinea = jugada.pasos[paso].lineas.length - 1; selPaso = paso;
     }
     trazo = null; pintar();
   }
@@ -1205,6 +1279,14 @@ if (VISOR) {
   pista.addEventListener("pointerdown", alPulsar); pista.addEventListener("pointermove", alMover);
   pista.addEventListener("pointerup", alSoltar); pista.addEventListener("pointercancel", alSoltar);
   pintarHerramientas();
+  $("lnTipo").addEventListener("change", () => { const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap(); l.t = $("lnTipo").value; if (l.t === "pase" || l.t === "entrega") { delete l.a; const r = receptoraDe(l, jugada.pasos[paso].pos); if (r) l.a = r; } pintar(); });
+  $("lnForma").addEventListener("click", () => {
+    const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap();
+    if (l.pts.length > 2) l.pts = [l.pts[0], l.pts[l.pts.length - 1]];
+    else { const a = l.pts[0], b = l.pts[1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; l.pts = [a, [a[0] + dx / 2 - dy / L * L * 0.22, a[1] + dy / 2 + dx / L * L * 0.22], b]; }
+    pintar();
+  });
+  $("lnBorrar").addEventListener("click", () => { if (selLinea < 0) return; snap(); jugada.pasos[paso].lineas.splice(selLinea, 1); selLinea = -1; pintar(); });
   document.querySelectorAll(".col-herr button[data-t]").forEach(b => b.addEventListener("click", () => {
     herramienta = b.dataset.t;
     document.querySelectorAll(".col-herr button[data-t]").forEach(x => x.classList.toggle("on", x === b));
