@@ -1185,21 +1185,20 @@ const nombreBonito = (n) => {
 };
 async function cargarDespues(equipo, jugados, escudo) {
   const caja = $("tab-despues"); if (!caja) return;
-  const lista = (jugados || []).filter(p => p.id).slice(-8).reverse();
+  const lista = (jugados || []).filter(p => p.id);
   if (!lista.length) {
     caja.innerHTML = `<div class="vacio">Cuando se juegue el primer partido, aqui veras como fue y las estadisticas.</div>`;
     return;
   }
-  caja.innerHTML = `<div class="ini-chips" id="despSel" style="justify-content:flex-start;margin:0 0 12px;"></div><div id="despCuerpo"><p class="cargando">Cargando el partido...</p></div>`;
-  const sel = $("despSel");
-  sel.innerHTML = lista.map((p, i) => `<button class="desp-chip${i === 0 ? " activa" : ""}" data-i="${i}">
-    ${p.jornada ? "J" + esc(String(p.jornada).replace(/\D/g, "") || p.jornada) + " · " : ""}${p.esLocal ? "vs" : "@"} ${esc(nombreBonito(p.rival))} ${p.pf}-${p.pc}</button>`).join("");
-  const mostrar = (i) => {
-    sel.querySelectorAll(".desp-chip").forEach(b => b.classList.toggle("activa", b.getAttribute("data-i") === String(i)));
-    pintarPartidoDespues(lista[i], equipo, escudo);
-  };
-  sel.querySelectorAll(".desp-chip").forEach(b => b.addEventListener("click", () => mostrar(Number(b.getAttribute("data-i")))));
-  mostrar(0);
+  // El entrenador elige desde su panel que partido ven; si no elige, el ultimo jugado
+  let elegido = "";
+  try {
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", "partido_despues").limit(1);
+    if (data && data.length && data[0].valor) elegido = String(data[0].valor).trim();
+  } catch (e) { /* automatico */ }
+  const p = lista.find(x => x.id === elegido) || lista[lista.length - 1];
+  caja.innerHTML = `<div id="despCuerpo"><p class="cargando">Cargando el partido...</p></div>`;
+  pintarPartidoDespues(p, equipo, escudo);
 }
 function pintarPartidoDespues(p, equipo, escudo) {
   const cuerpo = $("despCuerpo"); if (!cuerpo) return;

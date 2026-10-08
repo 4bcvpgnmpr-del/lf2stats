@@ -189,6 +189,9 @@
       <div id="ordenPestanas"></div>
       <label style="margin-top:12px;">Orden de los apartados dentro de "El rival" y "Mi equipo"</label>
       <div id="ordenSecciones"></div>
+      <label style="margin-top:12px;">Partido que ven en "Después del partido"</label>
+      <select id="selPartidoDespues"><option value="">El último partido jugado (automático)</option></select>
+      <div id="avisoPartido"></div>
       <div id="avisoOrden"></div>
     </div>
 
@@ -476,7 +479,7 @@ async function entrar(sesion) {
       Anadelo a la tabla <b>entrenadores</b> en Supabase.</div>`;
   }
   cargarJugadoras();
-  cargarTemporada();
+  cargarTemporada().then(cargarSelectorPartido);
   cargarOrdenApp();
   cargarInformes();
   prepararAccesos();
@@ -497,6 +500,35 @@ async function cargarTemporada() {
     `<option value="${esc(t.id)}">${esc(t.etiqueta)}</option>`).join("");
   const { data } = await sb.from("ajustes").select("*").eq("clave", "temporada").limit(1);
   if (data && data.length) sel.value = data[0].valor || "2026";
+}
+
+/* Partido que ven las jugadoras en "Despues del partido" (uno solo, el que elijas) */
+async function cargarSelectorPartido() {
+  const sel = $("selPartidoDespues");
+  if (!sel) return;
+  try {
+    const nombre = await miEquipoGuardado();
+    const tv = $("selTemporadaVen").value || "2026";
+    const tab = "Resultados" + (tv === "2025" ? "" : "_" + tv);
+    const antes = CONFIG.TEMPORADA; CONFIG.TEMPORADA = (tv === "2025") ? "" : "_" + tv;
+    const res = await leerPestana("Resultados");
+    CONFIG.TEMPORADA = antes;
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", "partido_despues").limit(1);
+    const actual = data && data.length ? String(data[0].valor || "") : "";
+    const filas = ((res && res.filas) || []).filter(r => r.PartidoID && r.Jugado === "Si" && nombre && (mismoEquipo(r.Local, nombre) || mismoEquipo(r.Visitante, nombre)));
+    const fechaOrd = (t) => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(String(t || "")); return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0; };
+    filas.sort((a, b) => fechaOrd(b.Fecha) - fechaOrd(a.Fecha));
+    const vistos = new Set();
+    const unicas = filas.filter(r => { const k = r.Local + "|" + r.Visitante + "|" + r.Fecha; if (vistos.has(k)) return false; vistos.add(k); return true; });
+    sel.innerHTML = `<option value="">El último partido jugado (automático)</option>` + unicas.map(r =>
+      `<option value="${esc(String(r.PartidoID).trim())}">${r.Jornada ? "J" + esc(String(r.Jornada).replace(/\D/g, "") || r.Jornada) + " · " : ""}${esc(r.Local)} ${esc(r.Pts_Local)} - ${esc(r.Pts_Visitante)} ${esc(r.Visitante)} (${esc(r.Fecha)})</option>`).join("");
+    sel.value = actual;
+    if (sel.value !== actual) sel.value = "";
+    sel.onchange = async () => {
+      const { error } = await sb.from("ajustes").upsert({ clave: "partido_despues", valor: sel.value, actualizado: new Date().toISOString() });
+      avisar("avisoPartido", error ? "No se ha podido guardar: " + error.message : (sel.value ? "Guardado. Verán este partido." : "Guardado. Verán siempre el último partido jugado."), error ? "mal" : "ok");
+    };
+  } catch (e) { /* si falla, se queda el automatico */ }
 }
 
 async function guardarTemporada() {
