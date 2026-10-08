@@ -6898,6 +6898,10 @@ async function verificarAcceso() {
   const { data: soy, error } = await sb.rpc("es_entrenador");
   if (error || soy !== true) { mostrarPuerta("Tu correo (" + user.email + ") no tiene asiento de entrenador.", "mal"); return; }
   ROL_APP = await resolverRolApp(sb, user);
+  const ERES_PROPIETARIO = ROL_APP === "propietario";
+  let simulando = false;
+  try { simulando = ERES_PROPIETARIO && sessionStorage.getItem("sf_ver_como_ayudante") === "1"; } catch (e) {}
+  if (simulando) ROL_APP = "ayudante";
   document.body.classList.toggle("rol-ayudante", ROL_APP === "ayudante");
   const pie = document.querySelector(".pie-lateral");
   if (pie && !document.getElementById("cuentaApp")) {
@@ -6906,6 +6910,17 @@ async function verificarAcceso() {
     d.innerHTML = `${escapeHtml(user.email)} · ${ROL_APP === "ayudante" ? "ayudante" : "propietario"} · <a href="#" id="cuentaSalir">Salir</a>`;
     pie.appendChild(d);
     document.getElementById("cuentaSalir").onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
+  }
+  if (ERES_PROPIETARIO && pie && !document.getElementById("btnVerComo")) {
+    const b = document.createElement("button");
+    b.id = "btnVerComo";
+    b.textContent = simulando ? "↩ Volver a ver todo (propietario)" : "👁 Ver como ayudante";
+    b.title = "Comprueba qué ven los demás entrenadores";
+    b.onclick = () => {
+      try { if (simulando) sessionStorage.removeItem("sf_ver_como_ayudante"); else sessionStorage.setItem("sf_ver_como_ayudante", "1"); } catch (e) {}
+      location.reload();
+    };
+    pie.insertBefore(b, pie.firstChild);
   }
   if (ROL_APP === "ayudante") aplicarRolAyudante();
   document.documentElement.classList.remove("sin-acceso");
