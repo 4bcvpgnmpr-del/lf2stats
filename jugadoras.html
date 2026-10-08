@@ -656,6 +656,35 @@ async function cargarPerfil(sesion) {
         || lista.find(j => limpiarNombre(j.nombre).includes(q));
     }
 
+    // Entrenadores que no son el propietario: ven Inicio, El rival y Mi equipo
+    // (sin ficha de jugadora y sin elegir a nadie)
+    if (!elegida) {
+      let esPropietario = true, miEquipo = "";
+      try {
+        const { data: aj } = await sb.from("ajustes").select("clave,valor").in("clave", ["propietario", "mi_equipo"]);
+        (aj || []).forEach(a => {
+          if (a.clave === "propietario" && a.valor) esPropietario = String(a.valor).toLowerCase() === correo.toLowerCase();
+          if (a.clave === "mi_equipo" && a.valor) miEquipo = String(a.valor);
+        });
+      } catch (e) { esPropietario = true; }
+      if (!esPropietario) {
+        try { if (!miEquipo) miEquipo = localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { /* nada */ }
+        jugadora = { id: null, nombre: "Entrenador", equipo: miEquipo };
+        $("cabecera").innerHTML = `<div style="min-width:0;"><h1>Hola, entrenador</h1>
+          <div class="eq">${esc(correo)}${miEquipo ? " · " + esc(miEquipo) : ""}</div></div>
+          <button class="salir" id="btnSalir">Salir</button>`;
+        $("btnSalir").addEventListener("click", salir);
+        ["numeros", "mensajes", "clips"].forEach(t => {
+          const b = document.querySelector('.pestanas button[data-tab="' + t + '"]');
+          if (b) b.remove();
+          const c = $("tab-" + t); if (c) c.remove();
+        });
+        aplicarTemporada().then(() => cargarInicio());
+        cargarInformes();
+        return;
+      }
+    }
+
     // Sin ?ver (o sin acertar): se le deja elegir
     if (!elegida) {
       pintarElectorJugadoras(lista, quiere);
@@ -1228,6 +1257,7 @@ async function cargarInicio() {
   };
 
   const puestoDe = (rival) => { const d = dificultad(rival); return d.puesto || null; };
+  const balanceDe = (rival) => { const j = partidosDe(rival).filter(p => p.jugado && p.gano !== null); const v = j.filter(p => p.gano).length; return j.length ? v + "V-" + (j.length - v) + "D" : ""; };
   const filaPartido = (p, conResultado) => `<div class="ini-fila">
     ${conResultado ? `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>` : ""}
     <span class="f">${esc(p.fecha)}</span>
@@ -1251,7 +1281,7 @@ async function cargarInicio() {
         ${proximo.hora ? `<span class="ini-chip">🕕 ${esc(proximo.hora)}</span>` : ""}
         <span class="ini-chip">${proximo.esLocal ? "🏠 En casa" : "🚌 Fuera"}</span>
         ${[proximo.fase, proximo.jornada].filter(Boolean).length ? `<span class="ini-chip">🏀 ${esc([proximo.fase, proximo.jornada].filter(Boolean).join(" · "))}</span>` : ""}
-        ${puestoDe(proximo.rival) ? `<span class="ini-chip">🏆 ${puestoDe(proximo.rival)}º en su grupo</span>` : ""}
+        ${puestoDe(proximo.rival) ? `<span class="ini-chip">🏆 Posición en la tabla: ${puestoDe(proximo.rival)}º${balanceDe(proximo.rival) ? " · " + balanceDe(proximo.rival) : ""}</span>` : ""}
       </div>
       <div class="ini-abajo">
         <div class="ini-dias"><b>${dias === null ? "-" : (dias === 0 ? "Hoy" : (dias < 0 ? "Jugado" : dias))}</b>
@@ -1293,7 +1323,7 @@ async function cargarInicio() {
     const ultimos5 = partidosDe(rival).filter(p => p.jugado && p.gano !== null).slice(-5).reverse();
     html += `<div class="ini-panel"><h3 class="ini-tit">El rival de esta semana</h3>
       <div class="ini-rival">${escudo(rival, "esc")}<div><b>${esc(rival)}</b>
-        <div class="expl" style="margin:2px 0 0;">${puestoDe(rival) ? puestoDe(rival) + "º de su grupo · " : ""}Ultimos 5:
+        <div class="expl" style="margin:2px 0 0;">${puestoDe(rival) ? "Posición en la tabla: " + puestoDe(rival) + "º" + (balanceDe(rival) ? " · " + balanceDe(rival) : "") + " · " : ""}Ultimos 5:
         ${ultimos5.map(p => `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>`).join(" ") || "sin datos"}</div></div></div>
       <div class="ini-dos">
         <div class="f"><h4>Donde son fuertes</h4>${fuertes.length ? fuertes.map(x => `<div class="ini-lin b">${esc(txt(x))}</div>`).join("") : `<p class="expl">Sin datos suficientes.</p>`}</div>
@@ -1815,7 +1845,7 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo"].forEach(n => { $("tab-" + n).hidden = (n !== t); });
+    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
     if (t === "rival") {
       $("puntoRival").hidden = true;
