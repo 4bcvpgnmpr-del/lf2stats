@@ -422,6 +422,7 @@
       <button data-tab="rival">El rival<span class="punto" id="puntoRival" hidden></span></button>
       <button data-tab="equipo">Mi equipo<span class="punto" id="puntoEquipo" hidden></span></button>
       <button data-tab="despues">Después del partido</button>
+      <button data-tab="jugadas">Jugadas</button>
     </div>
 
     <section id="tab-inicio"></section>
@@ -431,6 +432,13 @@
     <section id="tab-rival" hidden></section>
     <section id="tab-equipo" hidden></section>
     <section id="tab-despues" hidden></section>
+    <section id="tab-jugadas" hidden></section>
+    <div id="visorJugada" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(15,23,35,.8);padding:10px;">
+      <div style="background:#fff;border-radius:16px;height:100%;max-width:900px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:8px 10px;text-align:right;"><button id="cerrarVisorJugada" style="font:inherit;font-weight:800;border:1.5px solid var(--wood-line);background:var(--white);border-radius:10px;padding:8px 14px;cursor:pointer;">Cerrar ✕</button></div>
+        <iframe id="marcoJugada" title="Jugada" style="flex:1;border:0;width:100%;"></iframe>
+      </div>
+    </div>
 
     <p class="pie" style="margin-top:22px;">
       Datos de la FEB · <span id="pieVersion"></span>
@@ -685,7 +693,7 @@ async function cargarPerfil(sesion) {
           <div class="eq">${esc(correo)}${miEquipo ? " · " + esc(miEquipo) : ""}</div></div>
           <button class="salir" id="btnSalir">Salir</button>`;
         $("btnSalir").addEventListener("click", salir);
-        ["numeros", "mensajes", "clips", "despues"].forEach(t => {
+        ["numeros", "mensajes", "clips", "despues", "jugadas"].forEach(t => {
           const b = document.querySelector('.pestanas button[data-tab="' + t + '"]');
           if (b) b.remove();
           const c = $("tab-" + t); if (c) c.remove();
@@ -1837,7 +1845,36 @@ function aplicarOrdenPestanas() {
   if (primera && !primera.classList.contains("activa") && !barra.dataset.ordenado) primera.click();
   barra.dataset.ordenado = "1";
 }
+let JUGADAS_EQ = [];
+async function cargarJugadasEquipo() {
+  const caja = $("tab-jugadas"); if (!caja) return;
+  caja.innerHTML = `<p class="cargando">Cargando las jugadas...</p>`;
+  const { data, error } = await sb.from("jugadas").select("id,nombre,tipo,data,actualizada").eq("compartida", true).order("actualizada", { ascending: false });
+  if (error) { caja.innerHTML = `<div class="vacio">Todavia no hay jugadas.</div>`; return; }
+  JUGADAS_EQ = data || [];
+  if (!JUGADAS_EQ.length) { caja.innerHTML = `<div class="vacio">Cuando el entrenador comparta una jugada, la veras aqui, animada.</div>`; return; }
+  const tipos = [...new Set(JUGADAS_EQ.map(j => j.tipo || "Otra"))];
+  caja.innerHTML = tipos.map(t => `<div class="bloque"><h3>${esc(t)}</h3>${JUGADAS_EQ.filter(j => (j.tipo || "Otra") === t).map(j => {
+    const n = (j.data && j.data.pasos) ? j.data.pasos.length : 0;
+    return `<button class="fila-jugada" data-id="${esc(j.id)}" style="display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--wood-line);background:var(--white);border-radius:12px;padding:11px 12px;margin-bottom:8px;font:inherit;cursor:pointer;">
+      <span style="font-size:20px;">▶️</span><span style="flex:1;min-width:0;"><b style="display:block;">${esc(j.nombre)}</b><small style="color:var(--ink-soft);">${n} ${n === 1 ? "paso" : "pasos"}</small></span></button>`;
+  }).join("")}</div>`).join("");
+  caja.querySelectorAll(".fila-jugada").forEach(b => b.addEventListener("click", () => abrirJugadaEquipo(b.getAttribute("data-id"))));
+}
+function abrirJugadaEquipo(id) {
+  const j = JUGADAS_EQ.find(x => String(x.id) === String(id)); if (!j) return;
+  const marco = $("marcoJugada");
+  $("visorJugada").style.display = "block";
+  const enviar = () => { try { marco.contentWindow.postMessage({ jugada: Object.assign({}, j.data, { nombre: j.nombre }) }, "*"); } catch (e) { /* nada */ } };
+  window.__enviarJugada = enviar;
+  marco.onload = enviar;
+  marco.src = "pizarra.html?visor=1&v=" + VERSION;
+}
+window.addEventListener("message", (ev) => { if (ev.data && ev.data.visorListo && window.__enviarJugada) window.__enviarJugada(); });
+$("cerrarVisorJugada").addEventListener("click", () => { $("visorJugada").style.display = "none"; $("marcoJugada").onload = null; $("marcoJugada").src = "about:blank"; window.__enviarJugada = null; });
+
 async function cargarInformes() {
+  cargarJugadasEquipo();
   await leerOrdenApp();
   aplicarOrdenPestanas();
   const caja = $("tab-rival"), cajaEq = $("tab-equipo");
@@ -1901,7 +1938,7 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo", "despues"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
+    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo", "despues", "jugadas"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
     if (t === "rival") {
       $("puntoRival").hidden = true;

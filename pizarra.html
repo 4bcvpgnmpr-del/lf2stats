@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pizarra de jugadas · ScoutFlow</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <style>
   :root{--ink:#1b2432;--soft:#5b6779;--orange:#e0602a;--line:#e5d8c4;--bg:#f8f4ee;--white:#fff;--teal:#2f6f5e;--suave:#f4efe6;}
   *{box-sizing:border-box;}
@@ -44,6 +45,37 @@
   .hint{font-size:12.5px;color:var(--soft);line-height:1.45;margin:6px 0 0;}
   #aviso{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-weight:700;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;}
   #aviso.ver{opacity:1;}
+  .menu-ent{display:flex;gap:6px;margin:0 0 14px;}
+  .menu-ent button{flex:1;background:var(--white);color:var(--soft);border:1.5px solid var(--line);padding:11px 8px;font-size:14px;}
+  .menu-ent button.on{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .estado-nube{font-size:12.5px;font-weight:700;color:var(--soft);margin:0 0 10px;}
+  .estado-nube.ok{color:var(--teal);} .estado-nube.mal{color:#b3261e;}
+  .banda{background:#fff7e6;border:1.5px solid #f0c987;border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13px;}
+  .barra-bib{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .barra-bib input{flex:2;min-width:160px;} .barra-bib select{flex:1;min-width:120px;}
+  .chip-fav{flex:none;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
+  .chip-fav.on{background:#f5c542;border-color:#e0a800;}
+  .cuadricula{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+  .tarjeta{background:var(--white);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(27,36,50,.06);display:flex;flex-direction:column;}
+  .tarjeta .mini{background:#f3e6d2;cursor:pointer;position:relative;}
+  .tarjeta .mini svg{display:block;width:100%;height:auto;}
+  .tarjeta .mini .play{position:absolute;right:8px;bottom:8px;background:rgba(27,36,50,.85);color:#fff;border-radius:999px;font-size:12px;font-weight:800;padding:4px 10px;}
+  .tarjeta .cuerpo{padding:10px 11px 11px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .tarjeta b.n{font-size:14px;line-height:1.25;}
+  .tarjeta .sub{font-size:11.5px;color:var(--soft);}
+  .tarjeta .ins{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;}
+  .tarjeta .ins button{flex:1;padding:7px 8px;font-size:12px;min-width:44px;}
+  .insignia{display:inline-block;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:var(--suave);border:1px solid var(--line);margin-right:4px;}
+  .insignia.comp{background:#e3f3ec;border-color:#9bd3bb;color:#1f6b4f;}
+  .leyenda{min-height:38px;margin:8px 0 0;padding:8px 11px;border-radius:10px;background:var(--suave);border:1.5px solid var(--line);font-size:14px;font-weight:700;}
+  .leyenda:empty{display:none;}
+  #modalVer{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
+  #modalVer.ver{display:flex;}
+  #modalVer .caja{background:var(--white);border-radius:16px;width:100%;max-width:900px;max-height:96vh;overflow:auto;padding:14px;}
+  #modalVer h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 8px;}
+  #visor{display:none;}
+  body.visor .wrap{display:none !important;} body.visor #visor{display:block;padding:12px;}
+  body.visor{background:var(--white);}
   #hojaImp{display:none;}
   @media print{
     @page{size:A4 portrait;margin:12mm;}
@@ -63,12 +95,36 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>🏀 Pizarra de jugadas</h1>
-    <a href="index.html">← Volver a la app</a>
+    <h1>🏀 Entrenador</h1>
+    <a href="index.html" id="enlaceVolver">← Volver a la app</a>
   </header>
+  <div class="menu-ent">
+    <button id="verBib" class="on">📚 Mis jugadas</button>
+    <button id="verEd">✏️ Pizarra</button>
+  </div>
 
+  <!-- ================= BIBLIOTECA ================= -->
+  <div id="vistaBib">
+    <p class="estado-nube" id="estadoNube"></p>
+    <div id="bandaSubir"></div>
+    <div class="barra-bib">
+      <input id="buscar" placeholder="Buscar por nombre, tipo o notas...">
+      <select id="filtroTipo"></select>
+      <button class="chip-fav" id="filtroFav">⭐ Favoritas</button>
+      <button class="naranja" id="btnNuevaBib">＋ Nueva jugada</button>
+    </div>
+    <div class="cuadricula" id="lista"></div>
+    <p class="hint" id="resumenBib"></p>
+    <div class="fila" style="margin-top:12px;">
+      <button class="gris" id="btnExportar">⬇️ Copia de seguridad</button>
+      <button class="gris" id="btnImportar">⬆️ Importar</button>
+    </div>
+    <input type="file" id="fileImportar" accept="application/json,.json" style="display:none;">
+  </div>
+
+  <!-- ================= EDITOR ================= -->
+  <div id="vistaEd" style="display:none;">
   <div class="grid">
-    <!-- ================= EDITOR ================= -->
     <div>
       <div class="card">
         <h2>Diseña la jugada</h2>
@@ -85,15 +141,21 @@
           <button data-t="bote">〰️ Bote</button>
           <button data-t="pase">⤏ Pase</button>
           <button data-t="pantalla">⊥ Pantalla</button>
+          <button data-t="tiro">🎯 Tiro</button>
           <button data-t="balon">🏀 Balón</button>
           <button data-t="borrar">🗑️ Borrar</button>
         </div>
         <div id="pista"></div>
+        <div class="leyenda" id="leyenda"></div>
         <p class="hint" id="ayuda"></p>
+
+        <label>Qué pasa en este paso (lo verán las jugadoras al reproducir)</label>
+        <input id="textoPaso" placeholder="Ej: El 4 sube a poner bloqueo directo al 1">
 
         <div class="pasos" id="pasos"></div>
         <div class="fila">
           <button class="naranja" id="btnNuevoPaso">＋ Nuevo paso</button>
+          <button class="gris" id="btnDupPaso">⧉ Duplicar paso</button>
           <button class="gris" id="btnQuitarPaso">Quitar este paso</button>
           <button class="gris" id="btnDeshacer">↩ Deshacer línea</button>
           <button class="verde" id="btnPlay">▶ Reproducir</button>
@@ -106,6 +168,11 @@
         <label>Notas de la jugada</label>
         <textarea id="notas" placeholder="Qué busca la jugada, lecturas, pistas para las jugadoras..."></textarea>
 
+        <div class="fila" style="margin-top:10px;align-items:center;">
+          <label style="margin:0;flex:none;"><input type="checkbox" id="chkFav" style="width:auto;margin-right:6px;">⭐ Favorita</label>
+          <label style="margin:0;flex:none;"><input type="checkbox" id="chkComp" style="width:auto;margin-right:6px;">📤 Visible para las jugadoras</label>
+        </div>
+
         <div class="fila" style="margin-top:12px;">
           <button class="naranja" id="btnGuardar">💾 Guardar en mis jugadas</button>
           <button class="gris" id="btnNueva">Nueva jugada</button>
@@ -117,28 +184,45 @@
       </div>
     </div>
 
-    <!-- ================= BIBLIOTECA ================= -->
     <div>
-      <div class="card">
-        <h2>Mis jugadas (<span id="nJugadas">0</span>)</h2>
-        <input id="buscar" placeholder="Buscar por nombre o tipo...">
-        <div class="lista" id="lista" style="margin-top:10px;"></div>
-        <div class="fila" style="margin-top:8px;">
-          <button class="gris" id="btnExportar">⬇️ Copia de seguridad</button>
-          <button class="gris" id="btnImportar">⬆️ Importar</button>
-        </div>
-        <input type="file" id="fileImportar" accept="application/json,.json" style="display:none;">
-        <p class="hint">Las jugadas se guardan en este navegador. Descarga una copia de seguridad de vez en cuando para no perderlas y poder pasarlas a otro aparato.</p>
-      </div>
       <div class="card">
         <h2>Cómo se dibuja</h2>
         <p class="hint" style="margin:0;"><b>1.</b> Mueve a las jugadoras donde empieza la jugada.<br>
-        <b>2.</b> Elige <b>Corte</b>, <b>Bote</b>, <b>Pase</b> o <b>Pantalla</b> y dibuja con el dedo o el ratón <b>desde la jugadora</b>.<br>
-        <b>3.</b> Pulsa <b>Nuevo paso</b>: cada jugadora aparece donde terminó su línea y el balón donde llegó el pase.<br>
-        <b>4.</b> Repite y pulsa <b>Reproducir</b> para ver la jugada en movimiento.</p>
+        <b>2.</b> Elige <b>Corte</b>, <b>Bote</b>, <b>Pase</b>, <b>Pantalla</b> o <b>Tiro</b> y dibuja con el dedo o el ratón <b>desde la jugadora</b>.<br>
+        <b>3.</b> Escribe qué pasa en ese paso y pulsa <b>Nuevo paso</b>: cada jugadora aparece donde terminó su línea y el balón donde llegó el pase.<br>
+        <b>4.</b> Repite y pulsa <b>Reproducir</b> para ver la jugada en movimiento.<br>
+        <b>5.</b> Marca <b>Visible para las jugadoras</b> y guarda: les aparece animada en su app.</p>
       </div>
     </div>
   </div>
+  </div>
+</div>
+
+<!-- Ver una jugada en grande, animada -->
+<div id="modalVer"><div class="caja">
+  <h3 id="mvTitulo"></h3>
+  <div id="mvPista" style="background:#f3e6d2;border-radius:12px;border:1.5px solid var(--line);"></div>
+  <div class="leyenda" id="mvLeyenda"></div>
+  <div class="fila" style="margin-top:10px;">
+    <button class="verde" id="mvPlay">▶ Reproducir</button>
+    <button class="gris" id="mvPrev">◀ Paso</button>
+    <button class="gris" id="mvNext">Paso ▶</button>
+    <button class="gris" id="mvCerrar">Cerrar</button>
+  </div>
+  <p class="hint" id="mvNotas" style="white-space:pre-wrap;"></p>
+</div></div>
+
+<!-- Vista para las jugadoras (dentro de su app) -->
+<div id="visor">
+  <h3 id="vsTitulo" style="font-family:'Archivo Black',sans-serif;font-weight:400;font-size:18px;margin:0 0 8px;"></h3>
+  <div id="vsPista" style="background:#f3e6d2;border-radius:12px;border:1.5px solid var(--line);"></div>
+  <div class="leyenda" id="vsLeyenda"></div>
+  <div class="fila" style="margin-top:10px;">
+    <button class="verde" id="vsPlay">▶ Reproducir</button>
+    <button class="gris" id="vsPrev">◀ Paso</button>
+    <button class="gris" id="vsNext">Paso ▶</button>
+  </div>
+  <p class="hint" id="vsNotas" style="white-space:pre-wrap;"></p>
 </div>
 
 <div id="hojaImp"></div>
@@ -152,7 +236,9 @@
 const TIPOS = ["Ataque", "Saque de fondo", "Saque de banda", "Contra zona", "Presion", "Ultimos segundos", "Otra"];
 const CLAVE = "scoutflow_pizarra_jugadas_v1", BORRADOR = "scoutflow_pizarra_borrador_v1";
 const S = 33, ANCHO = 15, FONDO = 14, ARO = { x: 7.5, y: 1.575 };
-const COLOR = { corte: "#e0602a", bote: "#1f7a5a", pase: "#1b2432", pantalla: "#7a5aa6" };
+const COLOR = { corte: "#e0602a", bote: "#1f7a5a", pase: "#1b2432", pantalla: "#7a5aa6", tiro: "#c0392b" };
+const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
+const VISOR = new URLSearchParams(location.search).get("visor") === "1";
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -173,8 +259,8 @@ function posicionesIniciales(clave) {
   return pos;
 }
 function jugadaNueva(formacion) {
-  return { id: "j" + Date.now().toString(36), nombre: "", tipo: "Ataque", notas: "", formacion: formacion || "cinco", defensa: false,
-    pasos: [{ pos: posicionesIniciales(formacion || "cinco"), balon: "o1", lineas: [] }] };
+  return { id: "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), nombre: "", tipo: "Ataque", notas: "", formacion: formacion || "cinco", defensa: false, favorita: false, compartida: false,
+    pasos: [{ pos: posicionesIniciales(formacion || "cinco"), balon: "o1", lineas: [], texto: "" }] };
 }
 const clonar = (o) => JSON.parse(JSON.stringify(o));
 
@@ -228,7 +314,7 @@ function lineaSvg(l, opac) {
   } else {
     remate = `<polygon points="${px.toFixed(1)},${py.toFixed(1)} ${(px + Math.cos(a1) * L).toFixed(1)},${(py + Math.sin(a1) * L).toFixed(1)} ${(px + Math.cos(a2) * L).toFixed(1)},${(py + Math.sin(a2) * L).toFixed(1)}" fill="${col}"/>`;
   }
-  return `<g opacity="${opac}" data-linea="1"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"${l.t === "pase" ? ' stroke-dasharray="9 7"' : ""}/>${remate}</g>`;
+  return `<g opacity="${opac}" data-linea="1"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"${l.t === "pase" ? ' stroke-dasharray="9 7"' : (l.t === "tiro" ? ' stroke-dasharray="2 7"' : "")}/>${remate}</g>`;
 }
 function jugadoresSvg(pos, balonPos, defensa, interactivo) {
   let s = "";
@@ -253,7 +339,7 @@ function svgPaso(j, i, opciones) {
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.22); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}" width="${opciones.ancho || ""}">${pistaFondo()}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), j.defensa, opciones.interactivo)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), j.defensa, opciones.interactivo)}</svg>`;
 }
 
 /* ---------- editor ---------- */
@@ -271,12 +357,16 @@ function pintar() {
   $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
   $("btnDeshacer").disabled = !jugada.pasos[paso].lineas.length;
   $("chkDef").checked = !!jugada.defensa;
+  $("textoPaso").value = jugada.pasos[paso].texto || "";
+  $("leyenda").textContent = jugada.pasos[paso].texto || "";
+  $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida;
   const ayuda = {
     mover: "Arrastra a una jugadora para colocarla.",
     corte: "Dibuja desde una jugadora hasta donde quieres que corte.",
     bote: "Dibuja desde la jugadora que tiene el balón: avanza botando.",
     pase: "Dibuja desde quien pasa hasta quien recibe.",
     pantalla: "Dibuja desde la jugadora que bloquea hasta donde pone el bloqueo.",
+    tiro: "Dibuja desde la jugadora que tira hasta el aro.",
     balon: "Toca a la jugadora que tiene el balón en este paso.",
     borrar: "Toca una línea para borrarla.",
   };
@@ -362,7 +452,12 @@ function nuevoPaso() {
       if (rec) balon = rec;
     }
   });
-  jugada.pasos.splice(paso + 1, 0, { pos, balon, lineas: [] });
+  jugada.pasos.splice(paso + 1, 0, { pos, balon, lineas: [], texto: "" });
+  paso++; pintar();
+}
+function duplicarPaso() {
+  const act = jugada.pasos[paso];
+  jugada.pasos.splice(paso + 1, 0, clonar(act));
   paso++; pintar();
 }
 function quitarPaso() {
@@ -370,72 +465,185 @@ function quitarPaso() {
   jugada.pasos.splice(paso, 1); paso = Math.max(0, paso - 1); pintar();
 }
 
-/* ---------- reproducir ---------- */
-function reproducir() {
-  if (animando || jugada.pasos.length < 2) { if (jugada.pasos.length < 2) aviso("Añade al menos un segundo paso para verla en movimiento."); return; }
-  animando = true; $("btnPlay").textContent = "■ Parar";
-  const dur = Number($("vel").value), caja = $("pista");
+/* ---------- animacion (la usan el editor, la vista grande y la de las jugadoras) ---------- */
+function fotogramaAnim(j, caja, i, t) {
+  const a = j.pasos[i], b = j.pasos[i + 1];
+  const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const pos = {};
+  Object.keys(a.pos).forEach(k => { const q = b.pos[k] || a.pos[k]; pos[k] = { x: a.pos[k].x + (q.x - a.pos[k].x) * e, y: a.pos[k].y + (q.y - a.pos[k].y) * e }; });
+  let bp;
+  if (a.balon !== b.balon) { const o = posBalon(a.pos, a.balon), d = posBalon(b.pos, b.balon); bp = { x: o.x + (d.x - o.x) * e, y: o.y + (d.y - o.y) * e }; }
+  else bp = posBalon(pos, a.balon);
+  let lineas = ""; a.lineas.forEach(l => { lineas += lineaSvg(l, 0.35 * (1 - e) + 0.15); });
+  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}" style="display:block;width:100%;height:auto;">${pistaFondo()}${lineas}${jugadoresSvg(pos, bp, j.defensa, false)}</svg>`;
+}
+/* Devuelve una funcion para parar. enPaso(i) avisa de que paso se esta ensenando; alAcabar() al terminar o parar. */
+function animarJugada(j, caja, dur, enPaso, alAcabar) {
   let i = 0, ini = null, cancelar = false;
-  $("btnPlay").onclick = () => { cancelar = true; };
-  const quadro = (t) => {
-    const a = jugada.pasos[i], b = jugada.pasos[i + 1];
-    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    const pos = {};
-    Object.keys(a.pos).forEach(k => { const q = b.pos[k] || a.pos[k]; pos[k] = { x: a.pos[k].x + (q.x - a.pos[k].x) * e, y: a.pos[k].y + (q.y - a.pos[k].y) * e }; });
-    let bp;
-    const pase = a.balon !== b.balon;
-    if (pase) { const o = posBalon(a.pos, a.balon), d = posBalon(b.pos, b.balon); bp = { x: o.x + (d.x - o.x) * e, y: o.y + (d.y - o.y) * e }; }
-    else bp = posBalon(pos, a.balon);
-    let lineas = ""; a.lineas.forEach(l => { lineas += lineaSvg(l, 0.35 * (1 - e) + 0.15); });
-    caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${pistaFondo()}${lineas}${jugadoresSvg(pos, bp, jugada.defensa, false)}</svg>`;
-  };
-  const fin = () => { animando = false; $("btnPlay").textContent = "▶ Reproducir"; $("btnPlay").onclick = reproducir; pintar(); };
-  const paso_ = (ts) => {
+  const fin = () => { if (alAcabar) alAcabar(); };
+  if (enPaso) enPaso(0);
+  const marco = (ts) => {
     if (cancelar) { fin(); return; }
     if (ini === null) ini = ts;
     const t = Math.min(1, (ts - ini) / dur);
-    quadro(t);
+    fotogramaAnim(j, caja, i, t);
     if (t >= 1) {
       i++; ini = null;
-      if (i >= jugada.pasos.length - 1) { setTimeout(fin, 700); return; }
-      setTimeout(() => requestAnimationFrame(paso_), 250); return;
+      if (i >= j.pasos.length - 1) { if (enPaso) enPaso(j.pasos.length - 1); setTimeout(fin, 900); return; }
+      if (enPaso) enPaso(i);
+      setTimeout(() => requestAnimationFrame(marco), 350); return;
     }
-    requestAnimationFrame(paso_);
+    requestAnimationFrame(marco);
   };
-  requestAnimationFrame(paso_);
+  requestAnimationFrame(marco);
+  return () => { cancelar = true; };
+}
+function reproducir() {
+  if (animando) return;
+  if (jugada.pasos.length < 2) { aviso("Añade al menos un segundo paso para verla en movimiento."); return; }
+  animando = true; $("btnPlay").textContent = "■ Parar";
+  const parar = animarJugada(jugada, $("pista"), Number($("vel").value),
+    (i) => { $("leyenda").textContent = jugada.pasos[i].texto || ""; },
+    () => { animando = false; $("btnPlay").textContent = "▶ Reproducir"; $("btnPlay").onclick = reproducir; pintar(); });
+  $("btnPlay").onclick = parar;
 }
 
-/* ---------- biblioteca ---------- */
-const leer = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || "[]"); } catch (e) { return []; } };
-const escribir = (l) => { try { localStorage.setItem(CLAVE, JSON.stringify(l)); } catch (e) { aviso("No se pudo guardar: el navegador no deja escribir."); } };
+/* ---------- visor generico: pasos a mano y reproducir (vista grande y vista de las jugadoras) ---------- */
+function crearVisor(ids, vel) {
+  const v = { j: null, i: 0, parar: null };
+  const pista = $(ids.pista), ley = $(ids.leyenda), play = $(ids.play);
+  const pintarPaso = () => {
+    pista.innerHTML = svgPaso(v.j, v.i, { todas: true });
+    ley.textContent = v.j.pasos[v.i].texto || "";
+  };
+  const detener = () => { if (v.parar) { v.parar(); v.parar = null; } };
+  v.abrir = (j) => {
+    detener(); v.j = j; v.i = 0; play.textContent = "▶ Reproducir";
+    $(ids.titulo).textContent = j.nombre || "Jugada";
+    $(ids.notas).textContent = j.notas || "";
+    pintarPaso();
+  };
+  v.cerrar = detener;
+  $(ids.prev).addEventListener("click", () => { detener(); play.textContent = "▶ Reproducir"; if (v.j) { v.i = Math.max(0, v.i - 1); pintarPaso(); } });
+  $(ids.next).addEventListener("click", () => { detener(); play.textContent = "▶ Reproducir"; if (v.j) { v.i = Math.min(v.j.pasos.length - 1, v.i + 1); pintarPaso(); } });
+  play.addEventListener("click", () => {
+    if (!v.j) return;
+    if (v.parar) { detener(); play.textContent = "▶ Reproducir"; pintarPaso(); return; }
+    if (v.j.pasos.length < 2) return;
+    play.textContent = "■ Parar";
+    v.parar = animarJugada(v.j, pista, vel || 1000, (k) => { v.i = k; ley.textContent = v.j.pasos[k].texto || ""; },
+      () => { v.parar = null; play.textContent = "▶ Reproducir"; v.i = v.j.pasos.length - 1; pintarPaso(); });
+  });
+  return v;
+}
+
+/* ---------- biblioteca (en la nube si hay sesion; si no, en este navegador) ---------- */
+let BIB = [], nube = null, modoNube = false, motivoLocal = "";
+const leerLocal = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || "[]"); } catch (e) { return []; } };
+const escribirLocal = (l) => { try { localStorage.setItem(CLAVE, JSON.stringify(l)); } catch (e) { aviso("No se pudo guardar: el navegador no deja escribir."); } };
+const filaNube = (j) => ({ id: j.id, nombre: j.nombre || "", tipo: j.tipo || "", carpeta: j.carpeta || "", favorita: !!j.favorita, compartida: !!j.compartida,
+  data: j, actualizada: new Date().toISOString() });
+const deFila = (r) => Object.assign({}, r.data, { id: r.id, favorita: !!r.favorita, compartida: !!r.compartida, actualizada: r.actualizada });
+
+async function iniciarNube() {
+  motivoLocal = "";
+  try {
+    if (!window.supabase) { motivoLocal = "no se pudo cargar la nube"; return; }
+    nube = window.supabase.createClient(SB.url, SB.anon);
+    const { data } = await nube.auth.getSession();
+    if (!data || !data.session) { motivoLocal = "no has entrado con tu cuenta"; return; }
+    const { error } = await nube.from("jugadas").select("id").limit(1);
+    if (error) { motivoLocal = "falta ejecutar jugadas.sql en Supabase (" + error.message + ")"; return; }
+    modoNube = true;
+  } catch (e) { motivoLocal = "error al conectar"; }
+}
+async function recargarBib() {
+  if (modoNube) {
+    const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false });
+    if (error) { modoNube = false; motivoLocal = error.message; }
+    else BIB = (data || []).map(deFila);
+  }
+  if (!modoNube) BIB = leerLocal();
+  pintarEstado(); pintarLista();
+}
+function pintarEstado() {
+  const e = $("estadoNube");
+  e.className = "estado-nube " + (modoNube ? "ok" : "mal");
+  e.textContent = modoNube ? "☁️ Tus jugadas se guardan en la nube: las ves desde cualquier aparato."
+    : "💾 Solo se guardan en este navegador (" + (motivoLocal || "sin conexión a la nube") + ").";
+  const locales = leerLocal();
+  $("bandaSubir").innerHTML = (modoNube && locales.length)
+    ? `<div class="banda">Tienes <b>${locales.length}</b> jugada(s) guardadas solo en este navegador. <button class="naranja" id="btnSubirLocales" style="margin-left:8px;padding:7px 12px;">Subirlas a la nube</button></div>` : "";
+  const b = $("btnSubirLocales");
+  if (b) b.addEventListener("click", async () => {
+    b.disabled = true;
+    const filas = locales.map(filaNube);
+    const { error } = await nube.from("jugadas").upsert(filas);
+    if (error) { aviso("No se pudieron subir: " + error.message); b.disabled = false; return; }
+    escribirLocal([]); aviso("Subidas ✓"); recargarBib();
+  });
+}
+async function guardarJugada(j) {
+  j.actualizada = new Date().toISOString();
+  if (modoNube) {
+    const { error } = await nube.from("jugadas").upsert(filaNube(j));
+    if (error) { aviso("No se pudo guardar: " + error.message); return false; }
+  } else {
+    const l = leerLocal(), i = l.findIndex(x => x.id === j.id);
+    if (i >= 0) l[i] = clonar(j); else l.unshift(clonar(j));
+    escribirLocal(l);
+  }
+  return true;
+}
+async function borrarJugada(id) {
+  if (modoNube) { const { error } = await nube.from("jugadas").delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } }
+  else escribirLocal(leerLocal().filter(x => x.id !== id));
+  return true;
+}
+function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; }
+function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; }
 function guardarBorrador() { try { localStorage.setItem(BORRADOR, JSON.stringify({ jugada, paso })); } catch (e) { /* nada */ } }
-function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.notas = $("notas").value; }
-function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; }
-function guardar() {
+async function guardar() {
   volcarCampos();
   if (!jugada.nombre) { aviso("Ponle un nombre a la jugada."); $("nombre").focus(); return; }
-  const l = leer(), i = l.findIndex(x => x.id === jugada.id);
-  jugada.actualizada = new Date().toISOString();
-  if (i >= 0) l[i] = clonar(jugada); else l.unshift(clonar(jugada));
-  escribir(l); pintarLista(); aviso("Guardada en tus jugadas ✓");
+  if (await guardarJugada(jugada)) { aviso(jugada.compartida ? "Guardada ✓ · visible para las jugadoras" : "Guardada en tus jugadas ✓"); await recargarBib(); }
 }
+let soloFav = false;
 function pintarLista() {
-  const l = leer(), q = $("buscar").value.trim().toLowerCase();
-  $("nJugadas").textContent = l.length;
-  const ver = l.filter(x => !q || (x.nombre + " " + x.tipo).toLowerCase().includes(q));
-  $("lista").innerHTML = ver.length ? ver.map(x => `<div class="item" data-id="${esc(x.id)}">
-      <div style="width:64px;flex:none;border-radius:8px;overflow:hidden;border:1px solid #e5d8c4;">${svgPaso(x, 0, {})}</div>
-      <div class="t"><b>${esc(x.nombre)}</b><small>${esc(x.tipo)} · ${x.pasos.length} ${x.pasos.length === 1 ? "paso" : "pasos"}</small></div>
-      <button class="gris" data-a="abrir">Abrir</button><button class="gris" data-a="dup">⧉</button><button class="gris" data-a="borrar">🗑️</button></div>`).join("")
-    : `<p class="hint">${l.length ? "Ninguna coincide con la búsqueda." : "Todavía no has guardado ninguna jugada. Dibuja la primera y pulsa «Guardar»."}</p>`;
-  $("lista").querySelectorAll(".item").forEach(el => el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => accionLista(el.dataset.id, b.dataset.a))));
+  const q = $("buscar").value.trim().toLowerCase(), ft = $("filtroTipo").value;
+  const ver = BIB.filter(x => (!q || (x.nombre + " " + x.tipo + " " + (x.notas || "")).toLowerCase().includes(q)) && (!ft || x.tipo === ft) && (!soloFav || x.favorita));
+  $("resumenBib").textContent = BIB.length ? ver.length + " de " + BIB.length + " jugadas" : "";
+  $("lista").innerHTML = ver.length ? ver.map(x => `<div class="tarjeta" data-id="${esc(x.id)}">
+      <div class="mini" data-a="ver">${svgPaso(x, 0, {})}<span class="play">▶ Ver</span></div>
+      <div class="cuerpo">
+        <b class="n">${x.favorita ? "⭐ " : ""}${esc(x.nombre)}</b>
+        <div class="sub">${esc(x.tipo)} · ${x.pasos.length} ${x.pasos.length === 1 ? "paso" : "pasos"}${x.compartida ? ' · <span class="insignia comp">📤 Jugadoras</span>' : ""}</div>
+        <div class="ins"><button class="gris" data-a="abrir">✏️ Editar</button><button class="gris" data-a="fav" title="Favorita">${x.favorita ? "★" : "☆"}</button>
+          <button class="gris" data-a="comp" title="Mostrar u ocultar a las jugadoras">📤</button><button class="gris" data-a="dup" title="Duplicar">⧉</button><button class="gris" data-a="borrar" title="Borrar">🗑️</button></div>
+      </div></div>`).join("")
+    : `<p class="hint" style="grid-column:1/-1;">${BIB.length ? "Ninguna coincide con la búsqueda." : "Todavía no has guardado ninguna jugada. Pulsa «Nueva jugada», dibuja la primera y guárdala."}</p>`;
+  $("lista").querySelectorAll(".tarjeta").forEach(el => el.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => accionLista(el.dataset.id, b.dataset.a))));
 }
-function accionLista(id, a) {
-  const l = leer(), i = l.findIndex(x => x.id === id); if (i < 0) return;
-  if (a === "abrir") { jugada = clonar(l[i]); paso = 0; cargarCampos(); pintar(); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  if (a === "dup") { const c = clonar(l[i]); c.id = "j" + Date.now().toString(36); c.nombre += " (copia)"; l.splice(i + 1, 0, c); escribir(l); pintarLista(); aviso("Duplicada"); }
-  if (a === "borrar" && confirm("¿Borrar «" + l[i].nombre + "»? No se puede deshacer.")) { l.splice(i, 1); escribir(l); pintarLista(); }
+async function accionLista(id, a) {
+  const x = BIB.find(y => y.id === id); if (!x) return;
+  if (a === "ver") { abrirModal(x); return; }
+  if (a === "abrir") { jugada = clonar(x); paso = 0; cargarCampos(); mostrarVista("ed"); pintar(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  if (a === "fav") { const c = clonar(x); c.favorita = !c.favorita; if (await guardarJugada(c)) recargarBib(); return; }
+  if (a === "comp") { const c = clonar(x); c.compartida = !c.compartida; if (await guardarJugada(c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); recargarBib(); } return; }
+  if (a === "dup") { const c = clonar(x); c.id = "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); c.nombre += " (copia)"; c.compartida = false; if (await guardarJugada(c)) { aviso("Duplicada"); recargarBib(); } return; }
+  if (a === "borrar" && confirm("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) { if (await borrarJugada(id)) recargarBib(); }
 }
+
+/* ---------- vistas ---------- */
+function mostrarVista(v) {
+  $("vistaBib").style.display = v === "bib" ? "block" : "none";
+  $("vistaEd").style.display = v === "ed" ? "block" : "none";
+  $("verBib").classList.toggle("on", v === "bib"); $("verEd").classList.toggle("on", v === "ed");
+  if (v === "ed") pintar();
+}
+let visorGrande = null;
+function abrirModal(j) { $("modalVer").classList.add("ver"); visorGrande.abrir(j); }
+function cerrarModal() { visorGrande.cerrar(); $("modalVer").classList.remove("ver"); }
 
 /* ---------- exportar ---------- */
 function descargar(nombre, blob) {
@@ -457,65 +665,89 @@ function png() {
 function imprimir() {
   volcarCampos();
   $("hojaImp").innerHTML = `<h1>${esc(jugada.nombre || "Jugada")}</h1><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "paso" : "pasos"}</div>
-    <div class="pasosImp">${jugada.pasos.map((_, i) => `<div class="pasoImp"><b>Paso ${i + 1}</b>${svgPaso(jugada, i, { todas: true })}</div>`).join("")}</div>
+    <div class="pasosImp">${jugada.pasos.map((p, i) => `<div class="pasoImp"><b>Paso ${i + 1}</b>${svgPaso(jugada, i, { todas: true })}${p.texto ? `<div style="font-size:9.5pt;margin-top:1.5mm;">${esc(p.texto)}</div>` : ""}</div>`).join("")}</div>
     ${jugada.notas ? `<div class="notas"><b>Notas</b><br>${esc(jugada.notas)}</div>` : ""}`;
   setTimeout(() => window.print(), 150);
 }
 function copiaSeguridad() {
-  const l = leer(); if (!l.length) { aviso("No hay jugadas que guardar todavía."); return; }
-  descargar("mis_jugadas_" + new Date().toISOString().slice(0, 10) + ".json", new Blob([JSON.stringify({ version: 1, jugadas: l }, null, 1)], { type: "application/json" }));
+  if (!BIB.length) { aviso("No hay jugadas que guardar todavía."); return; }
+  descargar("mis_jugadas_" + new Date().toISOString().slice(0, 10) + ".json", new Blob([JSON.stringify({ version: 2, jugadas: BIB }, null, 1)], { type: "application/json" }));
 }
 function importar(archivo) {
   const r = new FileReader();
-  r.onload = () => {
+  r.onload = async () => {
     try {
       const d = JSON.parse(r.result), nuevas = (d.jugadas || (Array.isArray(d) ? d : [])).filter(x => x && x.pasos && x.pasos.length);
-      const l = leer(); let n = 0;
-      nuevas.forEach(x => { if (!l.some(y => y.id === x.id)) { l.push(x); n++; } });
-      escribir(l); pintarLista(); aviso(n + " jugada(s) importada(s)");
+      let n = 0;
+      for (const x of nuevas) { if (!BIB.some(y => y.id === x.id)) { if (await guardarJugada(x)) n++; } }
+      await recargarBib(); aviso(n + " jugada(s) importada(s)");
     } catch (e) { aviso("El archivo no es una copia de seguridad válida."); }
   };
   r.readAsText(archivo);
 }
 let temporizador;
-function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporizador); temporizador = setTimeout(() => a.classList.remove("ver"), 2400); }
+function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporizador); temporizador = setTimeout(() => a.classList.remove("ver"), 2600); }
 
 /* ---------- arranque ---------- */
-$("tipo").innerHTML = TIPOS.map(t => `<option>${t}</option>`).join("");
-$("tools").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-  herramienta = b.dataset.t;
-  $("tools").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
-  pintar();
-}));
-$("btnNuevoPaso").addEventListener("click", nuevoPaso);
-$("btnQuitarPaso").addEventListener("click", quitarPaso);
-$("btnDeshacer").addEventListener("click", () => { jugada.pasos[paso].lineas.pop(); pintar(); });
-$("btnPlay").onclick = reproducir;
-$("chkDef").addEventListener("change", () => { jugada.defensa = $("chkDef").checked; pintar(); });
-$("formacion").addEventListener("change", () => {
-  const f = $("formacion").value, hay = jugada.pasos.length > 1 || jugada.pasos[0].lineas.length;
-  if (hay && !confirm("Cambiar la formación borra los pasos y las líneas de esta jugada. ¿Seguir?")) { $("formacion").value = jugada.formacion; return; }
-  jugada.formacion = f; jugada.pasos = [{ pos: posicionesIniciales(f), balon: "o1", lineas: [] }]; paso = 0; pintar();
-});
-["nombre", "tipo", "notas"].forEach(id => $(id).addEventListener("input", () => { volcarCampos(); guardarBorrador(); }));
-$("btnGuardar").addEventListener("click", guardar);
-$("btnNueva").addEventListener("click", () => {
-  volcarCampos();
-  if ((jugada.pasos.length > 1 || jugada.pasos[0].lineas.length) && !confirm("Se empieza una jugada nueva. Lo que no hayas guardado se pierde. ¿Seguir?")) return;
-  jugada = jugadaNueva($("formacion").value); paso = 0; cargarCampos(); pintar();
-});
-$("btnPng").addEventListener("click", png);
-$("btnImprimir").addEventListener("click", imprimir);
-$("btnExportar").addEventListener("click", copiaSeguridad);
-$("btnImportar").addEventListener("click", () => $("fileImportar").click());
-$("fileImportar").addEventListener("change", (e) => { if (e.target.files[0]) importar(e.target.files[0]); e.target.value = ""; });
-$("buscar").addEventListener("input", pintarLista);
+if (VISOR) {
+  document.body.classList.add("visor");
+  const v = crearVisor({ pista: "vsPista", leyenda: "vsLeyenda", play: "vsPlay", prev: "vsPrev", next: "vsNext", titulo: "vsTitulo", notas: "vsNotas" }, 1000);
+  window.addEventListener("message", (ev) => { if (ev.data && ev.data.jugada && ev.data.jugada.pasos) { v.abrir(ev.data.jugada); setTimeout(() => { try { parent.postMessage({ visorAltura: document.documentElement.scrollHeight }, "*"); } catch (e) { /* nada */ } }, 100); } });
+  try { parent.postMessage({ visorListo: true }, "*"); } catch (e) { /* nada */ }
+} else {
+  visorGrande = crearVisor({ pista: "mvPista", leyenda: "mvLeyenda", play: "mvPlay", prev: "mvPrev", next: "mvNext", titulo: "mvTitulo", notas: "mvNotas" }, 1000);
+  $("mvCerrar").addEventListener("click", cerrarModal);
+  $("modalVer").addEventListener("click", (e) => { if (e.target === $("modalVer")) cerrarModal(); });
+  $("tipo").innerHTML = TIPOS.map(t => `<option>${t}</option>`).join("");
+  $("filtroTipo").innerHTML = `<option value="">Todos los tipos</option>` + TIPOS.map(t => `<option>${t}</option>`).join("");
+  $("tools").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    herramienta = b.dataset.t;
+    $("tools").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    pintar();
+  }));
+  $("btnNuevoPaso").addEventListener("click", nuevoPaso);
+  $("btnDupPaso").addEventListener("click", duplicarPaso);
+  $("btnQuitarPaso").addEventListener("click", quitarPaso);
+  $("btnDeshacer").addEventListener("click", () => { jugada.pasos[paso].lineas.pop(); pintar(); });
+  $("btnPlay").onclick = reproducir;
+  $("chkDef").addEventListener("change", () => { jugada.defensa = $("chkDef").checked; pintar(); });
+  $("formacion").addEventListener("change", () => {
+    const f = $("formacion").value, hay = jugada.pasos.length > 1 || jugada.pasos[0].lineas.length;
+    if (hay && !confirm("Cambiar la formación borra los pasos y las líneas de esta jugada. ¿Seguir?")) { $("formacion").value = jugada.formacion; return; }
+    jugada.formacion = f; jugada.pasos = [{ pos: posicionesIniciales(f), balon: "o1", lineas: [], texto: "" }]; paso = 0; pintar();
+  });
+  ["nombre", "tipo", "notas"].forEach(id => $(id).addEventListener("input", () => { volcarCampos(); guardarBorrador(); }));
+  ["chkFav", "chkComp"].forEach(id => $(id).addEventListener("change", () => { volcarCampos(); guardarBorrador(); }));
+  $("textoPaso").addEventListener("input", () => { jugada.pasos[paso].texto = $("textoPaso").value; $("leyenda").textContent = $("textoPaso").value; guardarBorrador(); });
+  $("btnGuardar").addEventListener("click", guardar);
+  const nuevaJugada = () => {
+    volcarCampos();
+    if ((jugada.pasos.length > 1 || jugada.pasos[0].lineas.length) && !confirm("Se empieza una jugada nueva. Lo que no hayas guardado se pierde. ¿Seguir?")) return false;
+    jugada = jugadaNueva($("formacion").value); paso = 0; cargarCampos(); return true;
+  };
+  $("btnNueva").addEventListener("click", () => { if (nuevaJugada()) pintar(); });
+  $("btnNuevaBib").addEventListener("click", () => { if (nuevaJugada()) { mostrarVista("ed"); } else mostrarVista("ed"); });
+  $("verBib").addEventListener("click", () => mostrarVista("bib"));
+  $("verEd").addEventListener("click", () => mostrarVista("ed"));
+  $("btnPng").addEventListener("click", png);
+  $("btnImprimir").addEventListener("click", imprimir);
+  $("btnExportar").addEventListener("click", copiaSeguridad);
+  $("btnImportar").addEventListener("click", () => $("fileImportar").click());
+  $("fileImportar").addEventListener("change", (e) => { if (e.target.files[0]) importar(e.target.files[0]); e.target.value = ""; });
+  $("buscar").addEventListener("input", pintarLista);
+  $("filtroTipo").addEventListener("change", pintarLista);
+  $("filtroFav").addEventListener("click", () => { soloFav = !soloFav; $("filtroFav").classList.toggle("on", soloFav); pintarLista(); });
+  // dentro de la app el enlace de volver no hace falta
+  if (window.parent !== window) { const e = $("enlaceVolver"); if (e) e.style.display = "none"; }
 
-try {
-  const b = JSON.parse(localStorage.getItem(BORRADOR) || "null");
-  if (b && b.jugada && b.jugada.pasos && b.jugada.pasos.length) { jugada = b.jugada; paso = Math.min(b.paso || 0, jugada.pasos.length - 1); }
-} catch (e) { /* borrador roto: se empieza de cero */ }
-cargarCampos(); pintar(); pintarLista();
+  try {
+    const b = JSON.parse(localStorage.getItem(BORRADOR) || "null");
+    if (b && b.jugada && b.jugada.pasos && b.jugada.pasos.length) { jugada = b.jugada; paso = Math.min(b.paso || 0, jugada.pasos.length - 1); }
+  } catch (e) { /* borrador roto: se empieza de cero */ }
+  cargarCampos();
+  iniciarNube().then(recargarBib);
+  pintarLista();
+}
 </script>
 </body>
 </html>
