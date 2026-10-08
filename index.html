@@ -1759,6 +1759,13 @@
 #puertaAcceso .msg{font-size:13px;min-height:16px;} #puertaAcceso .msg.mal{color:#b3261e;} #puertaAcceso .msg.ok{color:#1b7a3a;}
 #puertaAcceso [hidden]{display:none !important;}
 html.sin-acceso body > *:not(#puertaAcceso){visibility:hidden;}
+html.modo-partido #barraLateral, html.modo-partido #barraMovil, html.modo-partido #fondoMenu, html.modo-partido #grupoBar,
+html.modo-partido .back-btn, html.modo-partido #avisoFallo, html.modo-partido .no-imprimir{display:none !important;}
+html.modo-partido .app{display:block !important;}
+html.modo-partido .contenido{padding:0 !important;}
+html.modo-partido main{padding:8px !important;}
+html.modo-partido .team{pointer-events:none;}
+html.modo-partido body{background:transparent;}
 body.rol-ayudante #btnPdfPagina{display:inline-block;}
 </style>
 </head>
@@ -2071,11 +2078,17 @@ const TEMPORADAS = [
   { id: "2025", etiqueta: "2025/26", sufijo: "" },
 ];
 
+/* Modo "solo partido": la app de las jugadoras abre index.html?partido=ID dentro de un marco */
+const PARAMS_URL = new URLSearchParams(location.search);
+const MODO_PARTIDO = PARAMS_URL.get("partido") || "";
+if (MODO_PARTIDO) document.documentElement.classList.add("modo-partido");
+
 let temporadaActiva = TEMPORADAS[0].id;
 try {
   const guardada = localStorage.getItem("lf2_temporada");
   if (guardada && TEMPORADAS.some(t => t.id === guardada)) temporadaActiva = guardada;
 } catch (e) { /* sin guardar, se usa la mas reciente */ }
+if (MODO_PARTIDO && TEMPORADAS.some(t => t.id === PARAMS_URL.get("temp"))) temporadaActiva = PARAMS_URL.get("temp");
 
 function datosTemporada() {
   return TEMPORADAS.find(t => t.id === temporadaActiva) || TEMPORADAS[0];
@@ -6890,8 +6903,20 @@ async function resolverRolApp(sb, user) {
 }
 
 async function verificarAcceso() {
+  // Dentro de la app de las jugadoras solo se ve un partido: no pide entrar como entrenador
+  if (MODO_PARTIDO) { document.documentElement.classList.remove("sin-acceso"); return; }
   const sb = clienteJugadoras();
   if (!sb) { mostrarPuerta("No se pudo cargar el acceso. Recarga la pagina.", "mal"); return; }
+  // Si llega desde el enlace de "Olvide mi contraseña", se pide la nueva
+  if (/type=recovery/.test(location.hash + location.search)) {
+    await new Promise(r => setTimeout(r, 800));
+    const nueva = window.prompt("Escribe tu nueva contraseña (mínimo 6 caracteres):");
+    if (nueva && nueva.length >= 6) {
+      const { error: e2 } = await sb.auth.updateUser({ password: nueva });
+      window.alert(e2 ? "No se ha podido cambiar: " + e2.message : "Contraseña cambiada. Ya puedes entrar con ella.");
+      if (!e2) { location.replace(location.href.split("#")[0].split("?")[0]); return; }
+    }
+  }
   const { data: ses } = await sb.auth.getSession();
   const user = ses && ses.session && ses.session.user;
   if (!user) { mostrarPuerta(""); return; }
@@ -12385,6 +12410,7 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
   document.getElementById("lastUpdated").textContent =
     "Datos cargados " + new Date().toLocaleString("es-ES") + " · v" + VERSION_APP;
 
+
   // Si la temporada elegida aun no tiene nada, se dice claramente en vez de
   // dejar la app entera en blanco sin explicacion.
   const hayEquipos = equipos && equipos.rows && equipos.rows.length;
@@ -12416,6 +12442,16 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
   datosLiga = { equipos, jugadoras, rankingExtra: { ...rankingExtra } };
   prepararBarraGrupos();
   renderTodo();
+
+  if (MODO_PARTIDO) {
+    showPartidoDetail(MODO_PARTIDO);
+    // le dice a la app de las jugadoras cuanto mide, para que no haya doble barra de desplazamiento
+    const avisar = () => { try { parent.postMessage({ scoutflowAltura: document.documentElement.scrollHeight, partido: MODO_PARTIDO }, "*"); } catch (e) { /* nada */ } };
+    avisar();
+    new MutationObserver(avisar).observe(document.body, { childList: true, subtree: true, attributes: false });
+    window.addEventListener("resize", avisar);
+    setInterval(avisar, 1500);
+  }
 
   // Los cuadros de partido completan los tiros que faltan en los rankings
   asegurarPartidosParaInforme(() => {

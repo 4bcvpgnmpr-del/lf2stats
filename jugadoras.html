@@ -69,9 +69,9 @@
     color:#fff;border-radius:20px;padding:6px 12px;font-family:inherit;font-size:12.5px;cursor:pointer;}
 
   /* ---------- Pestanas ---------- */
-  .pestanas{display:flex;gap:6px;margin-bottom:16px;}
+  .pestanas{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .pestanas button{
-    flex:1;font-family:inherit;font-size:13.5px;font-weight:800;padding:11px 6px;
+    flex:1 0 auto;white-space:nowrap;font-family:inherit;font-size:13.5px;font-weight:800;padding:11px 10px;
     border:1.5px solid var(--wood-line);background:var(--white);color:var(--ink-soft);
     border-radius:11px;cursor:pointer;position:relative;
   }
@@ -118,6 +118,15 @@
   .ini-kpi.p{background:#fde9dc;} .ini-kpi.p b{color:#b9421a;}
   .ini-sub{display:flex;align-items:center;gap:8px;margin:16px 0 8px;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:11px;letter-spacing:1px;text-transform:uppercase;}
   .ini-sub::after{content:"";flex:1;height:1px;background:var(--wood-line);}
+  .desp-chip{font-family:inherit;font-size:12px;font-weight:800;padding:7px 11px;border:1.5px solid var(--wood-line);background:var(--white);color:var(--ink-soft);border-radius:999px;cursor:pointer;}
+  .desp-chip.activa{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .desp-dests{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .desp-dest{background:var(--suave);border:1.5px solid var(--wood-line);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:2px;}
+  .desp-dest span{font-size:11px;font-weight:800;color:var(--ink-soft);} .desp-dest b{font-size:13.5px;} .desp-dest em{font-style:normal;font-weight:800;color:var(--orange);font-size:13px;}
+  .desp-duelo{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;margin:7px 0;font-size:13px;}
+  .desp-duelo > b:last-child{text-align:right;} .desp-duelo b.g{color:#1f7a5a;} .desp-duelo b.r{color:#b3261e;}
+  .desp-duelo .c{text-align:center;font-size:11px;font-weight:800;color:var(--ink-soft);}
+  .desp-duelo .barra{display:flex;gap:3px;height:7px;margin-top:3px;} .desp-duelo .barra i{display:block;background:#d9c9b0;border-radius:4px;} .desp-duelo .barra i.g{background:#1f7a5a;} .desp-duelo .barra i.r{background:#b3261e;}
   .ini-fila{display:flex;align-items:center;gap:9px;border:1px solid var(--wood-line);border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px;}
   .ini-fila .f{font-weight:700;font-size:12px;min-width:74px;}
   .ini-fila .r{flex:1;min-width:0;display:flex;align-items:center;gap:6px;font-weight:700;}
@@ -412,6 +421,7 @@
       <button data-tab="clips">Videos</button>
       <button data-tab="rival">El rival<span class="punto" id="puntoRival" hidden></span></button>
       <button data-tab="equipo">Mi equipo<span class="punto" id="puntoEquipo" hidden></span></button>
+      <button data-tab="despues">Después del partido</button>
     </div>
 
     <section id="tab-inicio"></section>
@@ -420,6 +430,7 @@
     <section id="tab-clips" hidden></section>
     <section id="tab-rival" hidden></section>
     <section id="tab-equipo" hidden></section>
+    <section id="tab-despues" hidden></section>
 
     <p class="pie" style="margin-top:22px;">
       Datos de la FEB · <span id="pieVersion"></span>
@@ -674,7 +685,7 @@ async function cargarPerfil(sesion) {
           <div class="eq">${esc(correo)}${miEquipo ? " · " + esc(miEquipo) : ""}</div></div>
           <button class="salir" id="btnSalir">Salir</button>`;
         $("btnSalir").addEventListener("click", salir);
-        ["numeros", "mensajes", "clips"].forEach(t => {
+        ["numeros", "mensajes", "clips", "despues"].forEach(t => {
           const b = document.querySelector('.pestanas button[data-tab="' + t + '"]');
           if (b) b.remove();
           const c = $("tab-" + t); if (c) c.remove();
@@ -1163,6 +1174,50 @@ const KPIS_INICIO = [
   ["Perd/P", "BP_Media", false], ["2P%", "T2_Pct", true], ["3P%", "T3_Pct", true], ["TL%", "TL_Pct", true],
 ];
 
+
+/* ============================================================
+   DESPUES DEL PARTIDO: estadisticas del ultimo partido jugado
+   ============================================================ */
+const nombreBonito = (n) => {
+  let t = String(n || "").trim();
+  if (t.includes(",")) { const q = t.split(","); t = (q.slice(1).join(" ").trim() + " " + q[0].trim()).trim(); }
+  return t.toLowerCase().replace(/(^|[\s'-])([a-zñáéíóúü])/g, (m, a, b) => a + b.toUpperCase());
+};
+async function cargarDespues(equipo, jugados, escudo) {
+  const caja = $("tab-despues"); if (!caja) return;
+  const lista = (jugados || []).filter(p => p.id).slice(-8).reverse();
+  if (!lista.length) {
+    caja.innerHTML = `<div class="vacio">Cuando se juegue el primer partido, aqui veras como fue y las estadisticas.</div>`;
+    return;
+  }
+  caja.innerHTML = `<div class="ini-chips" id="despSel" style="justify-content:flex-start;margin:0 0 12px;"></div><div id="despCuerpo"><p class="cargando">Cargando el partido...</p></div>`;
+  const sel = $("despSel");
+  sel.innerHTML = lista.map((p, i) => `<button class="desp-chip${i === 0 ? " activa" : ""}" data-i="${i}">
+    ${p.jornada ? "J" + esc(String(p.jornada).replace(/\D/g, "") || p.jornada) + " · " : ""}${p.esLocal ? "vs" : "@"} ${esc(nombreBonito(p.rival))} ${p.pf}-${p.pc}</button>`).join("");
+  const mostrar = (i) => {
+    sel.querySelectorAll(".desp-chip").forEach(b => b.classList.toggle("activa", b.getAttribute("data-i") === String(i)));
+    pintarPartidoDespues(lista[i], equipo, escudo);
+  };
+  sel.querySelectorAll(".desp-chip").forEach(b => b.addEventListener("click", () => mostrar(Number(b.getAttribute("data-i")))));
+  mostrar(0);
+}
+function pintarPartidoDespues(p, equipo, escudo) {
+  const cuerpo = $("despCuerpo"); if (!cuerpo) return;
+  // El mismo detalle de partido que ve el entrenador en "Resultados", dentro de un marco
+  const temp = (typeof temporadaElegida !== "undefined" && temporadaElegida) ? temporadaElegida : "2026";
+  const url = "index.html?partido=" + encodeURIComponent(p.id) + "&temp=" + encodeURIComponent(temp) + "&v=" + VERSION;
+  cuerpo.innerHTML = `<p class="cargando" id="despCargando">Cargando el partido...</p>
+    <iframe id="marcoDespues" src="${esc(url)}" title="Partido" style="width:100%;border:0;min-height:600px;display:block;background:transparent;"></iframe>`;
+  const marco = $("marcoDespues");
+  marco.addEventListener("load", () => { const c = $("despCargando"); if (c) c.remove(); });
+}
+window.addEventListener("message", (ev) => {
+  const d = ev.data;
+  if (!d || typeof d.scoutflowAltura !== "number") return;
+  const marco = $("marcoDespues");
+  if (marco && marco.contentWindow === ev.source) marco.style.height = Math.max(400, d.scoutflowAltura + 10) + "px";
+});
+
 async function cargarInicio() {
   const caja = $("tab-inicio");
   caja.innerHTML = `<p class="cargando">Cargando tu inicio...</p>`;
@@ -1221,7 +1276,7 @@ async function cargarInicio() {
     return res.filas.filter(r => mismoEq(r.Local, nombre) || mismoEq(r.Visitante, nombre)).map(r => {
       const esLocal = mismoEq(r.Local, nombre);
       const pf = numero(esLocal ? r.Pts_Local : r.Pts_Visitante), pc = numero(esLocal ? r.Pts_Visitante : r.Pts_Local);
-      return { esLocal, rival: esLocal ? r.Visitante : r.Local, jugado: r.Jugado === "Si",
+      return { id: String(r.PartidoID || "").trim(), esLocal, rival: esLocal ? r.Visitante : r.Local, jugado: r.Jugado === "Si",
         pf, pc, gano: pf !== null && pc !== null ? pf > pc : null,
         fecha: r.Fecha || "", hora: r.Hora || "", jornada: r.Jornada || "", fase: r.Fase || "",
         orden: (fechaDe(r.Fecha) || new Date(8.64e15)).getTime() };
@@ -1230,6 +1285,7 @@ async function cargarInicio() {
 
   const partidos = partidosDe(equipo);
   const jugados = partidos.filter(p => p.jugado && p.gano !== null);
+  cargarDespues(equipo, jugados, escudo);
   const pendientes = partidos.filter(p => !p.jugado);
   const proximo = pendientes[0] || null;
   const victorias = jugados.filter(p => p.gano).length, derrotas = jugados.length - victorias;
@@ -1845,7 +1901,7 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
+    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo", "despues"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
     if (t === "rival") {
       $("puntoRival").hidden = true;
