@@ -64,7 +64,7 @@
   .barra-ed .tabs button.on{background:var(--teal);color:#fff;}
   .barra-ed .ic{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);padding:9px 12px;}
   .panel-ed{display:none;} .panel-ed.on{display:block;}
-  .dib{display:grid;grid-template-columns:150px minmax(0,1fr) 270px;gap:14px;align-items:start;}
+  .dib{display:grid;grid-template-columns:150px minmax(0,1fr) 300px;gap:14px;align-items:start;}
   @media (max-width:1000px){.dib{grid-template-columns:minmax(0,1fr);} .dib .col-pasos{order:2;} .dib .col-pista{order:1;} .dib .col-herr{order:3;}}
   .col-pasos .acc{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;}
   .col-pasos .acc button{padding:8px 4px;font-size:12px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
@@ -83,6 +83,18 @@
   .acciones button.on{background:var(--orange);}
   .acciones button.suave{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
   .acciones button.suave.on{background:var(--orange);color:#fff;border-color:var(--orange);}
+
+  .col-herr{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto;}
+  .acciones{grid-template-columns:repeat(3,1fr);}
+  .acciones button{flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px 7px;font-size:11.5px;text-align:center;border-radius:11px;line-height:1.1;}
+  .acciones button svg{display:block;max-width:100%;}
+  .acciones.sec{margin-top:8px;grid-template-columns:repeat(3,1fr);}
+  .acciones.sec button{flex-direction:row;padding:9px 4px;font-size:12px;}
+  .objs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+  .objs button{height:46px;padding:0;background:var(--white);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .objs button.on{background:#fde7da;border-color:var(--orange);}
+  .caja-pista{background:#e6c9a0;}
+  @media (max-width:1000px){.col-herr{position:static;max-height:none;overflow:visible;}}
   .paleta{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px;}
   .paleta button{padding:0;height:36px;background:var(--white);color:var(--ink);border:1.5px solid #b9a07c;font-size:13px;font-family:Arial,sans-serif;}
   .paleta button.c{border-radius:50%;} .paleta button.q{border-radius:6px;}
@@ -225,21 +237,13 @@
           <p class="hint" id="ayuda"></p>
         </div>
         <div class="col-herr herr">
+          <div id="panelHerr">
           <div class="bloque">
-            <h3>Acciones</h3>
-            <div class="acciones" id="tools">
-              <button data-t="mover" class="suave on">✋ Colocar</button>
-              <button data-t="bote">〰️ Bote</button>
-              <button data-t="pase">⤏ Pase</button>
-              <button data-t="corte">➡️ Corte</button>
-              <button data-t="pantalla">⊥ Pantalla</button>
-              <button data-t="tiro">🎯 Tiro</button>
-              <button data-t="mueve">⋯➤ Mover</button>
-              <button data-t="entrega">✚ Mano a mano</button>
-              <button data-t="balon" class="suave">🏀 Balón</button>
-              <button data-t="borrar" class="suave">🗑 Borrar línea</button>
-            </div>
+            <h3>Añadir acciones</h3>
+            <div class="acciones" id="tools"></div>
+            <div class="acciones sec" id="toolsSec"></div>
             <div class="fila" style="margin-top:8px;"><button class="gris" id="btnDeshacer">↩ Quitar la última línea</button></div>
+          </div>
           </div>
           <div class="bloque">
             <h3>Jugadoras</h3>
@@ -253,6 +257,10 @@
             <label>Formación de salida</label>
             <select id="formacion"><option value="cinco">5 fuera</option><option value="cuatro">4 fuera 1 dentro</option><option value="altobajo">Alto-bajo</option></select>
             <p class="aviso-herr">Toca una ficha para ponerla en la pista; tócala otra vez para quitarla.</p>
+          </div>
+          <div class="bloque">
+            <h3>Añadir objetos</h3>
+            <div class="objs" id="toolsObj"></div>
           </div>
           <div class="bloque" style="border:0;">
             <div class="fila">
@@ -357,7 +365,8 @@
 const TIPOS = ["Ataque", "Saque de fondo", "Saque de banda", "Contra zona", "Presion", "Ultimos segundos", "Otra"];
 const CLAVE = "scoutflow_pizarra_jugadas_v1", BORRADOR = "scoutflow_pizarra_borrador_v2";
 const S = 33, ANCHO = 15, FONDO = 14, ARO = { x: 7.5, y: 1.575 };
-const COLOR = { corte: "#e0602a", bote: "#1f7a5a", pase: "#1b2432", pantalla: "#7a5aa6", tiro: "#c0392b", mueve: "#6b7686", entrega: "#2a6fb0" };
+const TINTA = "#23262d";
+const COLOR = { corte: TINTA, bote: TINTA, pase: TINTA, pantalla: TINTA, tiro: TINTA, mueve: TINTA, entrega: TINTA };
 const NOMBRE_ACCION = { corte: "Corte", bote: "Bote", pase: "Pase", pantalla: "Pantalla", tiro: "Tiro", mueve: "Movimiento", entrega: "Mano a mano" };
 const MOVEDORAS = ["corte", "bote", "pantalla", "mueve", "entrega"];
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
@@ -393,15 +402,15 @@ function posicionPorDefecto(k, pos) {
 }
 function jugadaNueva(formacion) {
   return { v: 3, id: idNuevo(), nombre: "", tipo: "Ataque", notas: "", formacion: formacion || "cinco", favorita: false, compartida: false, videos: [],
-    pasos: [{ pos: posicionesIniciales(formacion || "cinco"), balon: "o1", lineas: [], texto: "" }] };
+    pasos: [{ pos: posicionesIniciales(formacion || "cinco"), balon: "o1", lineas: [], texto: "", objs: [] }] };
 }
 /* Pone al dia jugadas guardadas con versiones anteriores */
 function normalizar(j) {
   if (!j || !j.pasos) return j;
-  if (j.v >= 3) { j.videos = j.videos || []; return j; }
+  if (j.v >= 3) { j.videos = j.videos || []; j.pasos.forEach(p => { p.objs = p.objs || []; }); return j; }
   j.videos = j.videos || [];
   j.pasos.forEach(p => {
-    p.texto = p.texto || ""; p.lineas = p.lineas || [];
+    p.texto = p.texto || ""; p.lineas = p.lineas || []; p.objs = p.objs || [];
     if (!j.defensa) Object.keys(p.pos).forEach(k => { if (k[0] === "d") delete p.pos[k]; });
     p.lineas.forEach(l => { if (l.t === "pase" && !l.a) { /* se resuelve al animar */ } });
   });
@@ -410,7 +419,7 @@ function normalizar(j) {
 }
 
 /* ---------- estado ---------- */
-let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null;
+let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1;
 let hist = [], rehacer = [];
 const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } return JSON.stringify({ jugada, paso }); };
 function snap() { hist.push(instantanea()); if (hist.length > 80) hist.shift(); rehacer = []; botonesHistorial(); }
@@ -419,71 +428,148 @@ function deshacerCambio() { if (!hist.length) return; rehacer.push(instantanea()
 function rehacerCambio() { if (!rehacer.length) return; hist.push(instantanea()); const e = JSON.parse(rehacer.pop()); jugada = e.jugada; paso = Math.min(e.paso, jugada.pasos.length - 1); refrescarTodo(); }
 
 /* ---------- dibujo (devuelve SVG como texto; sirve para editor, miniaturas, PNG, impresion y animacion) ---------- */
+let MADERA = "";
+function maderaSvg() {
+  if (MADERA) return MADERA;
+  let sem = 20261008; const rnd = () => (sem = (sem * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const tonos = ["#e9cfa8", "#e4c79c", "#edd3ae", "#dfbf93", "#e7ca9f", "#dcba8c", "#ebd0a9", "#e1c296"];
+  const W = ANCHO * S + 20, H = FONDO * S + 20;
+  let x = -10, o = `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#e6c9a0"/>`;
+  while (x < W - 10) {
+    const w = 11 + rnd() * 16; let y = -10;
+    while (y < H - 10) {
+      const h = 45 + rnd() * 150;
+      o += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w + 0.6).toFixed(1)}" height="${(h + 0.6).toFixed(1)}" fill="${tonos[Math.floor(rnd() * tonos.length)]}"/>`;
+      y += h;
+    }
+    x += w;
+  }
+  o += `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#b98a55" opacity=".05"/>`;
+  return (MADERA = o);
+}
 function pistaFondo() {
   const m = (v) => (v * S).toFixed(1), A = ARO;
   const yEsq = A.y + Math.sqrt(6.75 * 6.75 - Math.pow(A.x - 0.9, 2));
-  return `<rect x="-10" y="-10" width="${ANCHO * S + 20}" height="${FONDO * S + 20}" fill="#f3e6d2"/>
-  <g fill="none" stroke="#b9a07c" stroke-width="2.4" stroke-linejoin="round">
+  const marcas = [1.75, 2.6, 3.5, 4.4].map(y => `<line x1="${m(5.05 - 0.28)}" y1="${m(y)}" x2="${m(5.05)}" y2="${m(y)}"/><line x1="${m(9.95)}" y1="${m(y)}" x2="${m(9.95 + 0.28)}" y2="${m(y)}"/>`).join("");
+  return `${maderaSvg()}
+  <g fill="none" stroke="#fff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="butt">
     <rect x="0" y="0" width="${m(ANCHO)}" height="${m(FONDO)}"/>
     <path d="M ${m(0.9)} 0 L ${m(0.9)} ${m(yEsq)} A ${m(6.75)} ${m(6.75)} 0 0 0 ${m(ANCHO - 0.9)} ${m(yEsq)} L ${m(ANCHO - 0.9)} 0"/>
-    <rect x="${m(5.05)}" y="0" width="${m(4.9)}" height="${m(5.8)}" fill="rgba(224,96,42,.07)"/>
-    <circle cx="${m(7.5)}" cy="${m(5.8)}" r="${m(1.8)}"/>
+    <rect x="${m(5.05)}" y="0" width="${m(4.9)}" height="${m(5.8)}"/>
+    <path d="M ${m(5.7)} ${m(5.8)} A ${m(1.8)} ${m(1.8)} 0 0 1 ${m(9.3)} ${m(5.8)}"/>
+    <path d="M ${m(5.7)} ${m(5.8)} A ${m(1.8)} ${m(1.8)} 0 0 0 ${m(9.3)} ${m(5.8)}" stroke-dasharray="8 7"/>
     <path d="M ${m(A.x - 1.25)} ${m(A.y)} A ${m(1.25)} ${m(1.25)} 0 0 0 ${m(A.x + 1.25)} ${m(A.y)}"/>
     <path d="M ${m(5.7)} ${m(FONDO)} A ${m(1.8)} ${m(1.8)} 0 0 1 ${m(9.3)} ${m(FONDO)}"/>
-    <line x1="${m(6.6)}" y1="${m(1.2)}" x2="${m(8.4)}" y2="${m(1.2)}" stroke="#8a6a4f" stroke-width="5" stroke-linecap="round"/>
-    <circle cx="${m(A.x)}" cy="${m(A.y)}" r="${m(0.225)}" stroke="#c0562a" stroke-width="3.2"/>
+    <g stroke-width="3">${marcas}</g>
+    <line x1="${m(6.6)}" y1="${m(1.2)}" x2="${m(8.4)}" y2="${m(1.2)}" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="${m(A.x)}" cy="${m(A.y)}" r="${m(0.225)}" stroke-width="3.4"/>
   </g>`;
 }
 
-function puntosLinea(l) {
-  if (l.t !== "bote") return l.pts;
-  // zigzag a lo largo del recorrido
-  const out = [l.pts[0]]; let acum = 0, lado = 1;
-  for (let i = 1; i < l.pts.length; i++) {
-    const [x0, y0] = l.pts[i - 1], [x1, y1] = l.pts[i], d = Math.hypot(x1 - x0, y1 - y0);
-    if (!d) continue;
-    acum += d;
-    if (acum >= 0.32) {
-      acum = 0; const nx = -(y1 - y0) / d, ny = (x1 - x0) / d;
-      out.push([x1 + nx * 0.16 * lado, y1 + ny * 0.16 * lado]); lado *= -1;
+/* --- trazado de lineas: suavizado, onda de bote, flechas --- */
+function suavizar(p) {
+  if (p.length < 3) return p.slice();
+  const out = [], n = p.length;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = p[Math.max(0, i - 1)], p1 = p[i], p2 = p[i + 1], p3 = p[Math.min(n - 1, i + 2)];
+    for (let k = 0; k < 6; k++) {
+      const t = k / 6, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map(c => 0.5 * ((2 * p1[c]) + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3)));
     }
   }
-  out.push(l.pts[l.pts.length - 1]);
+  out.push(p[n - 1]); return out;
+}
+function remuestrear(p, paso) {
+  const out = [p[0]]; let falta = paso;
+  for (let i = 1; i < p.length; i++) {
+    let [x0, y0] = p[i - 1]; const [x1, y1] = p[i]; let d = Math.hypot(x1 - x0, y1 - y0);
+    while (d >= falta && d > 0) { const r = falta / d; x0 += (x1 - x0) * r; y0 += (y1 - y0) * r; out.push([x0, y0]); d = Math.hypot(x1 - x0, y1 - y0); falta = paso; }
+    falta -= d;
+  }
+  const u = p[p.length - 1], l = out[out.length - 1];
+  if (Math.hypot(u[0] - l[0], u[1] - l[1]) > 0.01) out.push(u);
   return out;
 }
+const largoDe = (p) => p.reduce((a, q, i) => i ? a + Math.hypot(q[0] - p[i - 1][0], q[1] - p[i - 1][1]) : 0, 0);
+function recortarFinal(p, d) {
+  let falta = d; const q = p.slice();
+  while (q.length > 2) { const a = q[q.length - 2], b = q[q.length - 1], s = Math.hypot(b[0] - a[0], b[1] - a[1]); if (s <= falta) { falta -= s; q.pop(); } else break; }
+  if (q.length >= 2) { const a = q[q.length - 2], b = q[q.length - 1], s = Math.hypot(b[0] - a[0], b[1] - a[1]); if (s > falta && s > 0) { const r = (s - falta) / s; q[q.length - 1] = [a[0] + (b[0] - a[0]) * r, a[1] + (b[1] - a[1]) * r]; } }
+  return q;
+}
+const trazoD = (p) => p.map((q, i) => (i ? "L" : "M") + (q[0] * S).toFixed(1) + " " + (q[1] * S).toFixed(1)).join(" ");
 
 function lineaSvg(l, opac) {
   if (!l.pts || l.pts.length < 2) return "";
-  const col = COLOR[l.t] || "#333", pts = puntosLinea(l).map(p => `${(p[0] * S).toFixed(1)},${(p[1] * S).toFixed(1)}`).join(" ");
-  const fin = l.pts[l.pts.length - 1];
-  let k = l.pts.length - 2;
-  while (k > 0 && Math.hypot(fin[0] - l.pts[k][0], fin[1] - l.pts[k][1]) < 0.35) k--;
-  const ant = l.pts[k], ang = Math.atan2(fin[1] - ant[1], fin[0] - ant[0]);
-  const px = fin[0] * S, py = fin[1] * S, L = 13, a1 = ang + 2.6, a2 = ang - 2.6;
-  const flecha = `<polygon points="${px.toFixed(1)},${py.toFixed(1)} ${(px + Math.cos(a1) * L).toFixed(1)},${(py + Math.sin(a1) * L).toFixed(1)} ${(px + Math.cos(a2) * L).toFixed(1)},${(py + Math.sin(a2) * L).toFixed(1)}" fill="${col}"/>`;
-  const nx = -Math.sin(ang) * 15, ny = Math.cos(ang) * 15;
-  let remate;
-  if (l.t === "pantalla") remate = `<line x1="${(px - nx).toFixed(1)}" y1="${(py - ny).toFixed(1)}" x2="${(px + nx).toFixed(1)}" y2="${(py + ny).toFixed(1)}" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>`;
-  else if (l.t === "entrega") remate = `<line x1="${(px - nx).toFixed(1)}" y1="${(py - ny).toFixed(1)}" x2="${(px + nx).toFixed(1)}" y2="${(py + ny).toFixed(1)}" stroke="${col}" stroke-width="3.6" stroke-linecap="round"/><line x1="${(px - Math.cos(ang) * 9).toFixed(1)}" y1="${(py - Math.sin(ang) * 9).toFixed(1)}" x2="${(px + Math.cos(ang) * 9).toFixed(1)}" y2="${(py + Math.sin(ang) * 9).toFixed(1)}" stroke="${col}" stroke-width="3.6" stroke-linecap="round"/>`;
-  else if (l.t === "tiro") remate = `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="8" fill="none" stroke="${col}" stroke-width="2.6"/><line x1="${(px - 12).toFixed(1)}" y1="${py.toFixed(1)}" x2="${(px + 12).toFixed(1)}" y2="${py.toFixed(1)}" stroke="${col}" stroke-width="2.2"/><line x1="${px.toFixed(1)}" y1="${(py - 12).toFixed(1)}" x2="${px.toFixed(1)}" y2="${(py + 12).toFixed(1)}" stroke="${col}" stroke-width="2.2"/>`;
-  else remate = flecha;
-  const dash = l.t === "pase" ? ' stroke-dasharray="9 7"' : (l.t === "tiro" ? ' stroke-dasharray="3 7"' : (l.t === "mueve" ? ' stroke-dasharray="2 6"' : ""));
-  return `<g opacity="${opac}" data-linea="1"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"${dash}/>${remate}</g>`;
+  const col = COLOR[l.t] || TINTA;
+  let base = remuestrear(suavizar(l.pts), 0.07);
+  if (base.length < 2) return "";
+  const fin = base[base.length - 1];
+  let k = base.length - 2;
+  while (k > 0 && Math.hypot(fin[0] - base[k][0], fin[1] - base[k][1]) < 0.3) k--;
+  const ang = Math.atan2(fin[1] - base[k][1], fin[0] - base[k][0]), ca = Math.cos(ang), sa = Math.sin(ang);
+  const px = fin[0] * S, py = fin[1] * S, nx = -sa, ny = ca, f = (v) => v.toFixed(1);
+  const barra = (cx, cy, mitad, grosor) => `<line x1="${f(cx - nx * mitad)}" y1="${f(cy - ny * mitad)}" x2="${f(cx + nx * mitad)}" y2="${f(cy + ny * mitad)}" stroke="${col}" stroke-width="${grosor}" stroke-linecap="round"/>`;
+  const flecha = (L, W) => `<path d="M ${f(px)} ${f(py)} L ${f(px - ca * L + nx * W)} ${f(py - sa * L + ny * W)} L ${f(px - ca * L * 0.72)} ${f(py - sa * L * 0.72)} L ${f(px - ca * L - nx * W)} ${f(py - sa * L - ny * W)} Z" fill="${col}" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
+  const sw = 3.6; let cuerpo = "", remate = "", dash = "";
+  const LA = 0.5; // largo de punta en metros
+  if (l.t === "bote") {
+    const corto = largoDe(base) > LA + 0.3 ? recortarFinal(base, LA * 0.7) : base, onda = [];
+    let s = 0;
+    for (let i = 0; i < corto.length; i++) {
+      if (i) s += Math.hypot(corto[i][0] - corto[i - 1][0], corto[i][1] - corto[i - 1][1]);
+      const a = corto[Math.max(0, i - 1)], b = corto[Math.min(corto.length - 1, i + 1)], d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const amp = 0.15 * Math.min(1, s / 0.35), w = Math.sin(s / 0.5 * 2 * Math.PI) * amp;
+      onda.push([corto[i][0] - (b[1] - a[1]) / d * w, corto[i][1] + (b[0] - a[0]) / d * w]);
+    }
+    cuerpo = onda; remate = flecha(15, 8.5);
+  } else if (l.t === "pantalla") { cuerpo = base; remate = barra(px, py, 16, 5); }
+  else if (l.t === "entrega") { cuerpo = base; remate = barra(px - ca * 4, py - sa * 4, 14, 4) + barra(px + ca * 6, py + sa * 6, 14, 4); }
+  else if (l.t === "tiro") {
+    cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="9 8"';
+    const cx = px - ca * 24, cy = py - sa * 24;
+    remate = `<circle cx="${f(cx)}" cy="${f(cy)}" r="8" fill="#e9cfa8" stroke="${col}" stroke-width="2.8"/><line x1="${f(cx - 8)}" y1="${f(cy)}" x2="${f(cx + 8)}" y2="${f(cy)}" stroke="${col}" stroke-width="2.4"/><line x1="${f(cx)}" y1="${f(cy - 8)}" x2="${f(cx)}" y2="${f(cy + 8)}" stroke="${col}" stroke-width="2.4"/>` + flecha(15, 8.5);
+  } else if (l.t === "pase") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="11 8"'; remate = flecha(15, 8.5); }
+  else if (l.t === "mueve") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="0.1 8.5"'; remate = flecha(15, 8.5); }
+  else { cuerpo = recortarFinal(base, LA * 0.7); remate = flecha(15, 8.5); }
+  const cap = l.t === "mueve" ? "round" : "butt", grosor = l.t === "mueve" ? 4.6 : sw;
+  return `<g opacity="${opac}" data-linea="1"><path d="${trazoD(cuerpo)}" fill="none" stroke="${col}" stroke-width="${grosor}" stroke-linecap="${cap}" stroke-linejoin="round"${dash}/>${remate}</g>`;
 }
+
+/* --- objetos sueltos (conos, texto, formas) --- */
+const OBJETOS = { cono: "Cono", texto: "Texto", rect: "Rectángulo", circulo: "Círculo", triangulo: "Triángulo", rombo: "Rombo", barra: "Línea", aro: "Aro" };
+function objetoSvg(o, i, interactivo) {
+  const x = o.x * S, y = o.y * S, f = (v) => v.toFixed(1), dat = interactivo ? ` data-o="${i}"` : "";
+  const t = TINTA, ln = `fill="none" stroke="${t}" stroke-width="3.2" stroke-linejoin="round"`;
+  let g = "";
+  if (o.t === "cono") g = `<ellipse cx="${f(x)}" cy="${f(y + 13)}" rx="15" ry="5" fill="#c9561f"/><path d="M ${f(x - 11)} ${f(y + 12)} L ${f(x - 3)} ${f(y - 15)} Q ${f(x)} ${f(y - 18)} ${f(x + 3)} ${f(y - 15)} L ${f(x + 11)} ${f(y + 12)} Z" fill="#f07a2a" stroke="#8a3a12" stroke-width="1.6"/><path d="M ${f(x - 7)} ${f(y - 2)} H ${f(x + 7)} M ${f(x - 9)} ${f(y + 6)} H ${f(x + 9)}" stroke="#fff" stroke-width="3"/>`;
+  else if (o.t === "texto") g = `<text x="${f(x)}" y="${f(y + 6)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="19" fill="${t}" stroke="#f3e0c0" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${esc(o.txt || "Texto")}</text>`;
+  else if (o.t === "rect") g = `<rect x="${f(x - 38)}" y="${f(y - 24)}" width="76" height="48" rx="7" ${ln}/>`;
+  else if (o.t === "circulo") g = `<circle cx="${f(x)}" cy="${f(y)}" r="27" ${ln}/>`;
+  else if (o.t === "triangulo") g = `<path d="M ${f(x)} ${f(y - 26)} L ${f(x + 28)} ${f(y + 20)} L ${f(x - 28)} ${f(y + 20)} Z" ${ln}/>`;
+  else if (o.t === "rombo") g = `<path d="M ${f(x)} ${f(y - 28)} L ${f(x + 28)} ${f(y)} L ${f(x)} ${f(y + 28)} L ${f(x - 28)} ${f(y)} Z" ${ln}/>`;
+  else if (o.t === "barra") g = `<line x1="${f(x - 36)}" y1="${f(y)}" x2="${f(x + 36)}" y2="${f(y)}" stroke="${t}" stroke-width="5" stroke-linecap="round"/>`;
+  else if (o.t === "aro") g = `<line x1="${f(x - 21)}" y1="${f(y - 8)}" x2="${f(x + 21)}" y2="${f(y - 8)}" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="${f(x)}" cy="${f(y + 2)}" r="8" fill="none" stroke="#fff" stroke-width="3.4"/>`;
+  return `<g${dat}${interactivo ? ' style="cursor:grab"' : ""}>${o.t !== "texto" && interactivo ? `<circle cx="${f(x)}" cy="${f(y)}" r="30" fill="transparent"/>` : ""}${g}</g>`;
+}
+const objetosSvg = (objs, interactivo) => (objs || []).map((o, i) => objetoSvg(o, i, interactivo)).join("");
+
 function fichaSvg(k, p, interactivo) {
   const x = (p.x * S).toFixed(1), y = (p.y * S).toFixed(1), n = etiquetaFicha(k), datos = interactivo ? `data-j="${k}" style="cursor:grab"` : "";
-  if (k[0] === "d") return `<g ${datos}><g stroke="#d12b4a" stroke-width="4" stroke-linecap="round"><line x1="${(p.x * S - 11).toFixed(1)}" y1="${(p.y * S - 11).toFixed(1)}" x2="${(p.x * S + 11).toFixed(1)}" y2="${(p.y * S + 11).toFixed(1)}"/><line x1="${(p.x * S + 11).toFixed(1)}" y1="${(p.y * S - 11).toFixed(1)}" x2="${(p.x * S - 11).toFixed(1)}" y2="${(p.y * S + 11).toFixed(1)}"/></g>
-    <text x="${(p.x * S + 13).toFixed(1)}" y="${(p.y * S + 13).toFixed(1)}" font-family="Arial" font-weight="700" font-size="11" fill="#d12b4a">${n}</text></g>`;
-  if (k[0] === "s") return `<g ${datos}><rect x="${(p.x * S - 15).toFixed(1)}" y="${(p.y * S - 15).toFixed(1)}" width="30" height="30" rx="6" fill="#2f6f5e" stroke="#fff" stroke-width="2.5"/>
-    <text x="${x}" y="${(p.y * S + 6).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="17" fill="#fff">${n}</text></g>`;
-  return `<g ${datos}><circle cx="${x}" cy="${y}" r="16" fill="#e0602a" stroke="#fff" stroke-width="2.5"/>
-    <text x="${x}" y="${(p.y * S + 6).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="17" fill="#fff">${n}</text></g>`;
+  const cx = p.x * S, cy = p.y * S;
+  if (k[0] === "d") return `<g ${datos}><circle cx="${x}" cy="${y}" r="18" fill="transparent"/><g stroke="#d9304f" stroke-width="5" stroke-linecap="round"><line x1="${(cx - 11).toFixed(1)}" y1="${(cy - 11).toFixed(1)}" x2="${(cx + 11).toFixed(1)}" y2="${(cy + 11).toFixed(1)}"/><line x1="${(cx + 11).toFixed(1)}" y1="${(cy - 11).toFixed(1)}" x2="${(cx - 11).toFixed(1)}" y2="${(cy + 11).toFixed(1)}"/></g>
+    <text x="${(cx + 13).toFixed(1)}" y="${(cy + 15).toFixed(1)}" font-family="Arial" font-weight="800" font-size="14" fill="#d9304f" stroke="#efd5ae" stroke-width="3" paint-order="stroke">${n}</text></g>`;
+  if (k[0] === "s") return `<g ${datos}><rect x="${(cx - 16).toFixed(1)}" y="${(cy - 16).toFixed(1)}" width="32" height="32" rx="6" fill="#fbf3e4" stroke="${TINTA}" stroke-width="3.2"/>
+    <text x="${x}" y="${(cy + 7).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="20" fill="${TINTA}">${n}</text></g>`;
+  return `<g ${datos}><circle cx="${x}" cy="${y}" r="17" fill="#fbf3e4" stroke="${TINTA}" stroke-width="3.2"/>
+    <text x="${x}" y="${(cy + 7).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="20" fill="${TINTA}">${n}</text></g>`;
 }
 function jugadoresSvg(pos, balonPos, interactivo) {
   let s = "";
   Object.keys(pos).sort((a, b) => (a[0] === "d" ? 0 : 1) - (b[0] === "d" ? 0 : 1)).forEach(k => { s += fichaSvg(k, pos[k], interactivo); });
-  if (balonPos) s += `<g><circle cx="${(balonPos.x * S).toFixed(1)}" cy="${(balonPos.y * S).toFixed(1)}" r="8.5" fill="#f08a2a" stroke="#4b2a10" stroke-width="1.8"/>
-      <path d="M ${(balonPos.x * S - 8.5).toFixed(1)} ${(balonPos.y * S).toFixed(1)} H ${(balonPos.x * S + 8.5).toFixed(1)} M ${(balonPos.x * S).toFixed(1)} ${(balonPos.y * S - 8.5).toFixed(1)} V ${(balonPos.y * S + 8.5).toFixed(1)}" stroke="#4b2a10" stroke-width="1.3" fill="none"/></g>`;
+  if (balonPos) { const bx = balonPos.x * S, by = balonPos.y * S, f = (v) => v.toFixed(1);
+    s += `<g><circle cx="${f(bx)}" cy="${f(by)}" r="9.5" fill="#f28c2e" stroke="#3d2310" stroke-width="2"/>
+      <path d="M ${f(bx - 9.5)} ${f(by)} H ${f(bx + 9.5)} M ${f(bx)} ${f(by - 9.5)} V ${f(by + 9.5)} M ${f(bx - 6.5)} ${f(by - 6.8)} Q ${f(bx)} ${f(by)} ${f(bx - 6.5)} ${f(by + 6.8)} M ${f(bx + 6.5)} ${f(by - 6.8)} Q ${f(bx)} ${f(by)} ${f(bx + 6.5)} ${f(by + 6.8)}" stroke="#3d2310" stroke-width="1.3" fill="none"/></g>`; }
   return s;
 }
 function posBalon(pos, dueno) {
@@ -497,7 +583,7 @@ function svgPaso(j, i, opciones) {
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}</svg>`;
 }
 const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
 
@@ -560,7 +646,7 @@ function estadoEn(j, i, t) {
 function fotogramaAnim(j, caja, i, t) {
   const a = j.pasos[i], E = estadoEn(j, i, t);
   let lineas = ""; E.st.forEach((idxs, s) => { if (s <= E.si) idxs.forEach(li => { lineas += lineaSvg(a.lineas[li], 0.38); }); });
-  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${pistaFondo()}${lineas}${jugadoresSvg(E.pos, E.balon, false)}</svg>`;
+  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${pistaFondo()}${objetosSvg(a.objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}</svg>`;
 }
 const PAUSA_FASE = 450;
 /* Segmentos de tiempo de una jugada (de la fase "desde" a la "hasta") */
@@ -616,6 +702,10 @@ const fichaCerca = (p, max, soloAtaque) => {
   Object.keys(pos).forEach(k => { if (soloAtaque && !esAtaque(k)) return; const d = Math.hypot(pos[k].x - p.x, pos[k].y - p.y); if (d < dm) { dm = d; mejor = k; } });
   return mejor;
 };
+function objetoCerca(p, max) {
+  let mejor = -1, dm = max; (jugada.pasos[paso].objs || []).forEach((o, i) => { const d = Math.hypot(o.x - p.x, o.y - p.y); if (d < dm) { dm = d; mejor = i; } });
+  return mejor;
+}
 function aMetros(ev) {
   const svg = $("pista").querySelector("svg"), pt = svg.createSVGPoint();
   pt.x = ev.clientX; pt.y = ev.clientY;
@@ -632,8 +722,35 @@ const AYUDAS = {
   mueve: "Dibuja un desplazamiento sin balón (reposicionarse).",
   entrega: "Dibuja desde quien entrega hasta quien recibe en mano a mano.",
   balon: "Toca a la jugadora que tiene el balón en esta fase.",
-  borrar: "Toca una línea para borrarla.",
+  borrar: "Toca una línea u objeto para borrarlo.",
+  objeto: "Toca la pista para colocar el objeto; luego arrástralo con ✋ Colocar.",
 };
+
+/* ---------- menu de herramientas con iconos ---------- */
+function iconoAccion(t) {
+  const c = "#fff", W = 46, H = 18, e = 'stroke="' + c + '" fill="none" stroke-width="2.4" stroke-linecap="round"';
+  const flecha = (x) => `<path d="M ${x} 9 l-6 -4.5 v9 z" fill="${c}" stroke="${c}" stroke-linejoin="round"/>`;
+  let g = "";
+  if (t === "bote") { let d = "M 2 9"; for (let i = 0; i < 6; i++) d += ` q 2.4 ${i % 2 ? 6 : -6} 4.8 0`; g = `<path d="${d}" ${e}/>${flecha(44)}`; }
+  else if (t === "pase") g = `<path d="M 2 9 H 12 M 17 9 H 27 M 32 9 H 36" ${e}/>${flecha(44)}`;
+  else if (t === "corte") g = `<path d="M 2 9 H 38" ${e}/>${flecha(44)}`;
+  else if (t === "pantalla") g = `<path d="M 2 9 H 42 M 42 2 V 16" ${e}/>`;
+  else if (t === "tiro") g = `<path d="M 2 9 H 11 M 16 9 H 21" ${e}/><circle cx="29" cy="9" r="4.6" ${e}/><path d="M 29 3 V 15 M 23 9 H 35" stroke="${c}" stroke-width="1.6"/>${flecha(44)}`;
+  else if (t === "mueve") g = `<path d="M 2 9 H 3 M 8 9 H 9 M 14 9 H 15 M 20 9 H 21 M 26 9 H 27 M 32 9 H 33" stroke="${c}" stroke-width="3" stroke-linecap="round"/>${flecha(44)}`;
+  else if (t === "entrega") g = `<path d="M 2 9 H 42 M 30 3 V 15 M 36 3 V 15" ${e}/>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+function iconoObjeto(t) {
+  const o = { t, x: 0, y: 0, txt: "T" }, svg = objetoSvg(o, 0, false);
+  const col = t === "aro" ? "" : "";
+  return `<svg width="34" height="34" viewBox="-20 -20 40 40" style="overflow:visible"><g transform="scale(.62)">${svg.replace(/#fff/g, "#23262d")}</g></svg>`;
+}
+function pintarHerramientas() {
+  const acc = [["bote", "Bote"], ["pase", "Pase"], ["corte", "Corte"], ["pantalla", "Pantalla"], ["tiro", "Tiro"], ["mueve", "Mover"], ["entrega", "Mano a mano"]];
+  $("tools").innerHTML = acc.map(([t, n]) => `<button data-t="${t}" title="${n}">${iconoAccion(t)}<span>${n}</span></button>`).join("");
+  $("toolsSec").innerHTML = `<button data-t="mover" class="suave on">✋ Colocar</button><button data-t="balon" class="suave">🏀 Balón</button><button data-t="borrar" class="suave">🗑 Borrar</button>`;
+  $("toolsObj").innerHTML = Object.keys(OBJETOS).map(t => `<button data-t="obj-${t}" title="${OBJETOS[t]}">${t === "texto" ? '<b style="font:800 22px Georgia,serif">T</b>' : iconoObjeto(t)}</button>`).join("");
+}
 function pintar() {
   if (!jugada.pasos[paso]) paso = 0;
   const act = jugada.pasos[paso];
@@ -644,7 +761,7 @@ function pintar() {
   $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
   $("btnDeshacer").disabled = !act.lineas.length;
   $("leyenda").innerHTML = textoLista(act.texto);
-  $("ayuda").textContent = "Fase " + (paso + 1) + " de " + jugada.pasos.length + " · " + AYUDAS[herramienta];
+  $("ayuda").textContent = "Fase " + (paso + 1) + " de " + jugada.pasos.length + " · " + (AYUDAS[herramienta] || AYUDAS.objeto);
   pintarPaleta();
   botonesHistorial();
   guardarBorrador();
@@ -690,15 +807,22 @@ function alPulsar(ev) {
   ev.preventDefault();
   const p = aMetros(ev), act = jugada.pasos[paso];
   if (herramienta === "mover") {
-    const k = fichaCerca(p, 0.9);
+    const k = fichaCerca(p, 0.9), oi = k ? -1 : objetoCerca(p, 1.0);
     if (k) { snap(); arrastre = k; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
+    else if (oi >= 0) { snap(); arrastreObj = oi; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
   } else if (herramienta === "balon") {
     const k = fichaCerca(p, 1.1, true);
     if (k) { snap(); act.balon = k; pintar(); }
   } else if (herramienta === "borrar") {
     let mejor = -1, dm = 0.7;
     act.lineas.forEach((l, i) => l.pts.forEach(q => { const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < dm) { dm = d; mejor = i; } }));
-    if (mejor >= 0) { snap(); act.lineas.splice(mejor, 1); pintar(); }
+    const oi = objetoCerca(p, 0.9);
+    if (oi >= 0 && (mejor < 0 || Math.hypot(act.objs[oi].x - p.x, act.objs[oi].y - p.y) < dm)) { snap(); act.objs.splice(oi, 1); pintar(); }
+    else if (mejor >= 0) { snap(); act.lineas.splice(mejor, 1); pintar(); }
+  } else if (herramienta.indexOf("obj-") === 0) {
+    const tipo = herramienta.slice(4); let txt = "";
+    if (tipo === "texto") { try { txt = window.prompt("Texto:", "") || ""; } catch (e) { txt = "Texto"; } if (!txt) return; }
+    snap(); act.objs = act.objs || []; act.objs.push({ t: tipo, x: p.x, y: p.y, txt }); pintar();
   } else {
     const k = fichaCerca(p, 1.0);
     const origen = k ? act.pos[k] : p;
@@ -707,9 +831,10 @@ function alPulsar(ev) {
   }
 }
 function alMover(ev) {
-  if (!arrastre && !trazo) return;
+  if (!arrastre && !trazo && arrastreObj < 0) return;
   const p = aMetros(ev);
-  if (arrastre) { jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y }; $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true }); }
+  if (arrastreObj >= 0) { jugada.pasos[paso].objs[arrastreObj].x = p.x; jugada.pasos[paso].objs[arrastreObj].y = p.y; $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true }); }
+  else if (arrastre) { jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y }; $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true }); }
   else if (trazo) {
     const u = trazo.pts[trazo.pts.length - 1];
     if (Math.hypot(p.x - u[0], p.y - u[1]) > 0.18) trazo.pts.push([p.x, p.y]);
@@ -718,6 +843,7 @@ function alMover(ev) {
   }
 }
 function alSoltar() {
+  if (arrastreObj >= 0) { arrastreObj = -1; pintar(); return; }
   if (arrastre) { arrastre = null; pintar(); return; }
   if (trazo) {
     const largo = trazo.pts.reduce((a, q, i) => i ? a + Math.hypot(q[0] - trazo.pts[i - 1][0], q[1] - trazo.pts[i - 1][1]) : 0, 0);
@@ -741,10 +867,10 @@ function nuevoPaso() {
     if (MOVEDORAS.includes(l.t) && l.de && pos[l.de]) pos[l.de] = { x: fin[0], y: fin[1] };
     if (l.t === "pase" || l.t === "entrega") { const r = receptoraDe(l, act.pos); if (r) balon = r; }
   });
-  jugada.pasos.splice(paso + 1, 0, { pos, balon, lineas: [], texto: "" });
+  jugada.pasos.splice(paso + 1, 0, { pos, balon, lineas: [], texto: "", objs: clonar(act.objs || []) });
   paso++; pintar();
 }
-function vaciarPaso() { snap(); const act = jugada.pasos[paso]; jugada.pasos.splice(paso + 1, 0, { pos: clonar(act.pos), balon: act.balon, lineas: [], texto: "" }); paso++; pintar(); }
+function vaciarPaso() { snap(); const act = jugada.pasos[paso]; jugada.pasos.splice(paso + 1, 0, { pos: clonar(act.pos), balon: act.balon, lineas: [], texto: "", objs: clonar(act.objs || []) }); paso++; pintar(); }
 function duplicarPaso() { snap(); jugada.pasos.splice(paso + 1, 0, clonar(jugada.pasos[paso])); paso++; pintar(); }
 function quitarPaso() { if (jugada.pasos.length < 2) return; snap(); jugada.pasos.splice(paso, 1); paso = Math.max(0, paso - 1); pintar(); }
 
@@ -1037,9 +1163,10 @@ if (VISOR) {
   const pista = $("pista");
   pista.addEventListener("pointerdown", alPulsar); pista.addEventListener("pointermove", alMover);
   pista.addEventListener("pointerup", alSoltar); pista.addEventListener("pointercancel", alSoltar);
-  $("tools").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+  pintarHerramientas();
+  document.querySelectorAll(".col-herr button[data-t]").forEach(b => b.addEventListener("click", () => {
     herramienta = b.dataset.t;
-    $("tools").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    document.querySelectorAll(".col-herr button[data-t]").forEach(x => x.classList.toggle("on", x === b));
     pintar();
   }));
   $("btnNuevoPaso").addEventListener("click", nuevoPaso);
