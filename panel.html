@@ -701,12 +701,32 @@ const correoValido = (c) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c);
 /* Mi equipo = el que el entrenador eligio en la web (se guarda en el navegador y, para otros aparatos, en la tabla ajustes) */
 const normEquipoPanel = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
   .replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !["CB", "BC", "CD", "CLUB", "BALONCESTO", "BASKET", "FEMENINO", "FEM", "SAD", "DE", "DEL", "LA", "EL", "LAS", "LOS"].includes(w)).join(" ");
-function equipoDePlantillas(nombre) {
-  if (!nombre || !plantillasFeb) return "";
-  const lista = [...new Set(plantillasFeb.filas.map(f => f.Equipo).filter(Boolean))];
-  const n = normEquipoPanel(nombre);
-  return lista.find(e => normEquipoPanel(e) === n)
-    || lista.find(e => { const m = normEquipoPanel(e); return n.length >= 5 && m.length >= 5 && (` ${m} `.includes(` ${n} `) || ` ${n} `.includes(` ${m} `)); }) || "";
+/* Dos nombres de equipo son el mismo aunque cambien tildes, "CB", abreviaturas o falten palabras */
+function mismoEquipo(a, b) {
+  const x = normEquipoPanel(a), y = normEquipoPanel(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  const [corto, largo] = x.length <= y.length ? [x, y] : [y, x];
+  if (corto.length >= 5 && ` ${largo} `.includes(` ${corto} `)) return true;
+  const A = new Set(x.split(" ").filter(w => w.length > 3));
+  return y.split(" ").filter(w => w.length > 3 && A.has(w)).length >= 2;
+}
+let equiposSheet = null;
+async function listaEquipos() {
+  // plantillas (con jugadoras) + equipos de las estadisticas, sin repetir
+  if (!equiposSheet) { const t = await leerPestana("Equipos"); equiposSheet = (t && t.filas) || []; }
+  const nombres = [];
+  const meter = (n) => { if (n && !nombres.some(e => mismoEquipo(e, n))) nombres.push(n); };
+  ((plantillasFeb && plantillasFeb.filas) || []).forEach(f => meter(f.Equipo));
+  equiposSheet.forEach(f => meter(f.Equipo));
+  return nombres.sort();
+}
+function equipoDePlantillas(nombre, lista) {
+  if (!nombre) return "";
+  const exacto = (lista || []).find(e => normEquipoPanel(e) === normEquipoPanel(nombre));
+  if (exacto) return exacto;
+  const parecidos = (lista || []).filter(e => mismoEquipo(e, nombre));
+  return parecidos.length === 1 ? parecidos[0] : (parecidos[0] || "");
 }
 async function miEquipoGuardado() {
   let nombre = "";
@@ -722,7 +742,8 @@ async function miEquipoGuardado() {
 }
 async function resolverMiEquipo() {
   const nombre = await miEquipoGuardado();
-  const enPlantillas = equipoDePlantillas(nombre);
+  const lista = await listaEquipos();
+  const enPlantillas = equipoDePlantillas(nombre, lista);
   const sel = $("accEquipo");
   if (enPlantillas) {
     sel.value = enPlantillas;
@@ -730,20 +751,21 @@ async function resolverMiEquipo() {
     $("accEquipoElegir").hidden = true;
     return enPlantillas;
   }
-  // No hay equipo elegido (o no esta en las plantillas): se pide una sola vez
-  $("accEquipoNombre").textContent = nombre ? nombre + " (no sale en las plantillas del Sheet)" : "Todavia no has elegido tu equipo";
+  // No hay equipo elegido (o no esta en el Sheet): se pide una sola vez
+  $("accEquipoNombre").textContent = nombre ? nombre + " (no lo encuentro en el Sheet: elige abajo cual es)" : "Todavia no has elegido tu equipo";
   $("accEquipoElegir").hidden = false;
   return sel.value || "";
 }
 async function prepararAccesos() {
   const sel = $("accEquipo");
   if (!plantillasFeb) plantillasFeb = await leerPestana("Plantillas");
-  if (!plantillasFeb || !plantillasFeb.filas.length) {
-    sel.innerHTML = `<option value="">No hay plantillas en el Sheet todavia</option>`;
-    $("accEquipoNombre").textContent = "No hay plantillas en el Sheet todavia"; return;
+  const equipos = await listaEquipos();
+  if (!equipos.length) {
+    sel.innerHTML = `<option value="">No hay equipos en el Sheet todavia</option>`;
+    $("accEquipoNombre").textContent = "No hay equipos en el Sheet todavia (ejecuta la actualizacion de la FEB)";
+    $("accEquipoElegir").hidden = true; return;
   }
-  const equipos = [...new Set(plantillasFeb.filas.map(f => f.Equipo).filter(Boolean))].sort();
-  sel.innerHTML = `<option value="">Elige tu equipo...</option>` + equipos.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  sel.innerHTML = `<option value="">Elige tu equipo (${equipos.length})...</option>` + equipos.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
   await resolverMiEquipo();
 }
 
@@ -789,12 +811,25 @@ async function guardarCorreoFila(inp) {
 
 async function traerPlantillaCompleta() {
   const equipo = (!$("accEquipoElegir").hidden && $("accEquipo").value) ? $("accEquipo").value : await resolverMiEquipo();
-  if (!equipo || !plantillasFeb) { avisar("avisoAcc", "Elige primero tu equipo.", "mal"); return; }
+  if (!equipo) { avisar("avisoAcc", "Elige primero tu equipo en la lista de arriba.", "mal"); $("accEquipoElegir").hidden = false; return; }
   const b = $("btnAccTraer"); b.disabled = true; b.textContent = "Trayendo...";
   const nombresEst = await mapaNombresEstadisticas();
   const ajustar = $("accAjustar").checked;
   const existentes = new Map(jugadoras.map(j => [claveNombre(j.nombre), j]));
-  const filas = plantillasFeb.filas.filter(f => f.Equipo === equipo && f.Jugadora);
+  let filas = plantillasFeb ? plantillasFeb.filas.filter(f => mismoEquipo(f.Equipo, equipo) && f.Jugadora) : [];
+  let origen = "plantilla";
+  if (!filas.length) {
+    // Sin plantilla en el Sheet: se usan las jugadoras que ya han jugado (salen en los rankings de la FEB)
+    const rk = await leerPestana("Jugadoras"), tiros = await leerPestana("Jugadoras_Tiros");
+    const dorsal = new Map(((tiros && tiros.filas) || []).map(f => [claveNombre(f.Jugador) + "|" + normEquipoPanel(f.Equipo), f.Dorsal]));
+    filas = ((rk && rk.filas) || []).filter(f => mismoEquipo(f.Equipo, equipo) && f.Jugador)
+      .map(f => ({ Equipo: equipo, Jugadora: f.Jugador, Dorsal: dorsal.get(claveNombre(f.Jugador) + "|" + normEquipoPanel(f.Equipo)) || "" }));
+    origen = "ranking";
+  }
+  if (!filas.length) {
+    avisar("avisoAcc", "No encuentro jugadoras de ese equipo en el Sheet todavia. Ejecuta la actualizacion de la FEB y vuelve a probar.", "mal");
+    b.disabled = false; b.textContent = "Traer mi plantilla completa"; return;
+  }
   const nuevas = [], arreglar = [];
   filas.forEach(f => {
     const bueno = (ajustar && nombresEst.get(claveNombre(f.Jugadora))) || f.Jugadora;
@@ -816,7 +851,8 @@ async function traerPlantillaCompleta() {
   const partes = [];
   if (creadas) partes.push(`${creadas} jugadoras creadas`);
   if (renombradas) partes.push(`${renombradas} nombres corregidos`);
-  avisar("avisoAcc", partes.length ? partes.join(" · ") + ". Ahora pon el correo de cada una." : "Ya estaban todas y con el nombre correcto.", "ok");
+  const nota = origen === "ranking" ? " (tu equipo aun no tiene plantilla en el Sheet: he traido a las que ya han jugado; vuelve a pulsar cuando se actualice)" : "";
+  avisar("avisoAcc", (partes.length ? partes.join(" · ") + ". Ahora pon el correo de cada una." : "Ya estaban todas y con el nombre correcto.") + nota, "ok");
   await cargarJugadoras();
 }
 
