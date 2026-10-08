@@ -123,6 +123,7 @@
   .ini-fila .r{flex:1;min-width:0;display:flex;align-items:center;gap:6px;font-weight:700;}
   .ini-fila .r img{width:18px;height:18px;object-fit:contain;}
   .ini-fila .m{font-family:'Archivo Black',sans-serif;font-size:13px;}
+  .ini-pos{border-radius:999px;padding:3px 9px;font-size:11px;font-weight:800;background:var(--suave);border:1px solid var(--wood-line);color:var(--ink-soft);white-space:nowrap;}
   .ini-dif-pill{border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:800;}
   .ini-dif-pill.dificil{background:#fbe6e0;color:#b9421a;} .ini-dif-pill.media{background:#fbf0cf;color:#8a6a10;} .ini-dif-pill.facil{background:#e3f3ec;color:#1f7a5a;}
   .ini-vd{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none;}
@@ -1226,11 +1227,13 @@ async function cargarInicio() {
     return { estrellas: 2, texto: "Asequible", clase: "facil", puesto };
   };
 
+  const puestoDe = (rival) => { const d = dificultad(rival); return d.puesto || null; };
   const filaPartido = (p, conResultado) => `<div class="ini-fila">
     ${conResultado ? `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>` : ""}
     <span class="f">${esc(p.fecha)}</span>
     <span class="r">${p.esLocal ? "vs" : "en"} ${escudo(p.rival, "ini-mini")}<span style="overflow:hidden;text-overflow:ellipsis;">${esc(p.rival)}</span></span>
-    ${conResultado ? `<span class="m">${p.pf}-${p.pc}</span>` : ""}</div>`;
+    ${conResultado ? `<span class="m">${p.pf}-${p.pc}</span>`
+      : (puestoDe(p.rival) ? `<span class="ini-pos" title="Puesto en la clasificacion de su grupo">${puestoDe(p.rival)}º</span>` : "")}</div>`;
 
   // ---- Proximo partido ----
   let html = "";
@@ -1248,6 +1251,7 @@ async function cargarInicio() {
         ${proximo.hora ? `<span class="ini-chip">🕕 ${esc(proximo.hora)}</span>` : ""}
         <span class="ini-chip">${proximo.esLocal ? "🏠 En casa" : "🚌 Fuera"}</span>
         ${[proximo.fase, proximo.jornada].filter(Boolean).length ? `<span class="ini-chip">🏀 ${esc([proximo.fase, proximo.jornada].filter(Boolean).join(" · "))}</span>` : ""}
+        ${puestoDe(proximo.rival) ? `<span class="ini-chip">🏆 ${puestoDe(proximo.rival)}º en su grupo</span>` : ""}
       </div>
       <div class="ini-abajo">
         <div class="ini-dias"><b>${dias === null ? "-" : (dias === 0 ? "Hoy" : (dias < 0 ? "Jugado" : dias))}</b>
@@ -1289,7 +1293,7 @@ async function cargarInicio() {
     const ultimos5 = partidosDe(rival).filter(p => p.jugado && p.gano !== null).slice(-5).reverse();
     html += `<div class="ini-panel"><h3 class="ini-tit">El rival de esta semana</h3>
       <div class="ini-rival">${escudo(rival, "esc")}<div><b>${esc(rival)}</b>
-        <div class="expl" style="margin:2px 0 0;">Ultimos 5:
+        <div class="expl" style="margin:2px 0 0;">${puestoDe(rival) ? puestoDe(rival) + "º de su grupo · " : ""}Ultimos 5:
         ${ultimos5.map(p => `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>`).join(" ") || "sin datos"}</div></div></div>
       <div class="ini-dos">
         <div class="f"><h4>Donde son fuertes</h4>${fuertes.length ? fuertes.map(x => `<div class="ini-lin b">${esc(txt(x))}</div>`).join("") : `<p class="expl">Sin datos suficientes.</p>`}</div>
