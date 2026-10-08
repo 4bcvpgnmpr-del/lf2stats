@@ -257,6 +257,14 @@
           <p class="hint" id="ayuda"></p>
         </div>
         <div class="col-herr herr">
+          <div class="bloque" id="panelObj" style="display:none;">
+            <h3 id="obTitulo">Objeto</h3>
+            <div class="lnfila" id="obColorFila"><span>Color</span><button id="obColor" class="muestra" title="Color"></button></div>
+            <div id="obPaleta" class="paleta-col" style="display:none;"></div>
+            <div class="lnfila" id="obMedidas" style="gap:5px;"><span>An</span><input type="number" id="obW" step="0.1" min="0.3" style="width:54px"><span>Al</span><input type="number" id="obH" step="0.1" min="0.3" style="width:54px"><span>°</span><input type="number" id="obRot" step="5" style="width:54px"></div>
+            <div class="fila"><button class="gris" id="obTexto">✏️ Editar texto</button><button class="rojo" id="obBorrar" style="width:auto;">🗑 Eliminar</button></div>
+            <p class="aviso-herr" style="margin:6px 0 0;">Arrastra los puntos azules para estirarlo; el círculo de arriba lo gira.</p>
+          </div>
           <div class="bloque" id="panelFicha" style="display:none;">
             <h3 id="fiTitulo">Jugadora</h3>
             <div class="lnfila"><span>X</span><input type="number" id="fiX" step="0.1" style="width:70px"><span>Y</span><input type="number" id="fiY" step="0.1" style="width:70px"></div>
@@ -471,7 +479,7 @@ function normalizar(j) {
 }
 
 /* ---------- estado ---------- */
-let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1, selLinea = -1, selPaso = -1, arrastreH = null, selFicha = null, RESALTE = null, colorNuevo = "", portaLinea = null;
+let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = null, arrastreOH = null, selObj = -1, selOPaso = -1, selLinea = -1, selPaso = -1, arrastreH = null, selFicha = null, RESALTE = null, colorNuevo = "", portaLinea = null;
 let hist = [], rehacer = [];
 const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } return JSON.stringify({ jugada, paso }); };
 function snap() { hist.push(instantanea()); if (hist.length > 80) hist.shift(); rehacer = []; botonesHistorial(); }
@@ -602,21 +610,41 @@ function lineaSvg(l, opac) {
 /* --- objetos sueltos (conos, texto, formas) --- */
 const COLORES = ["#23262d", "#9b00e6", "#3b44a8", "#1a82e0", "#00c070", "#00897b", "#f5a900", "#ff6a00", "#e8173f", "#eeeeee", "#9aa5b4", "#ffffff"];
 const OBJETOS = { cono: "Cono", texto: "Texto", rect: "Rectángulo", circulo: "Círculo", triangulo: "Triángulo", rombo: "Rombo", barra: "Línea", aro: "Aro" };
-function objetoSvg(o, i, interactivo) {
-  const x = o.x * S, y = o.y * S, f = (v) => v.toFixed(1), dat = interactivo ? ` data-o="${i}"` : "";
-  const t = TINTA, ln = `fill="none" stroke="${t}" stroke-width="3.2" stroke-linejoin="round"`;
+const CAJA = ["rect", "circulo", "rombo", "texto"], PUNTOS = ["triangulo", "barra"], COLOR_FORMA = "#5b9bd5";
+function objDef(o) {
+  if (o.t === "rect") { o.w = o.w || 3; o.h = o.h || 2; }
+  else if (o.t === "circulo" || o.t === "rombo") { o.w = o.w || 2; o.h = o.h || 2; }
+  else if (o.t === "texto") { o.w = o.w || 3; o.h = o.h || 0.9; }
+  if (CAJA.includes(o.t)) o.rot = o.rot || 0;
+  if (o.t === "triangulo" && !o.pts) o.pts = [[o.x, o.y - 1.1], [o.x + 1.2, o.y + 0.9], [o.x - 1.2, o.y + 0.9]];
+  if (o.t === "barra" && !o.pts) o.pts = [[o.x - 1.5, o.y], [o.x + 1.5, o.y]];
+  return o;
+}
+const colorObj = (o) => o.color || (o.t === "texto" || o.t === "barra" ? TINTA : COLOR_FORMA);
+function objetoSvg(o, i, interactivo, sel) {
+  objDef(o);
+  const f = (v) => v.toFixed(1), x = o.x * S, y = o.y * S, dat = interactivo ? ` data-o="${i}"` : "", col = colorObj(o);
   let g = "";
   if (o.t === "cono") g = `<ellipse cx="${f(x)}" cy="${f(y + 13)}" rx="15" ry="5" fill="#c9561f"/><path d="M ${f(x - 11)} ${f(y + 12)} L ${f(x - 3)} ${f(y - 15)} Q ${f(x)} ${f(y - 18)} ${f(x + 3)} ${f(y - 15)} L ${f(x + 11)} ${f(y + 12)} Z" fill="#f07a2a" stroke="#8a3a12" stroke-width="1.6"/><path d="M ${f(x - 7)} ${f(y - 2)} H ${f(x + 7)} M ${f(x - 9)} ${f(y + 6)} H ${f(x + 9)}" stroke="#fff" stroke-width="3"/>`;
-  else if (o.t === "texto") g = `<text x="${f(x)}" y="${f(y + 6)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="19" fill="${t}" stroke="#f3e0c0" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${esc(o.txt || "Texto")}</text>`;
-  else if (o.t === "rect") g = `<rect x="${f(x - 38)}" y="${f(y - 24)}" width="76" height="48" rx="7" ${ln}/>`;
-  else if (o.t === "circulo") g = `<circle cx="${f(x)}" cy="${f(y)}" r="27" ${ln}/>`;
-  else if (o.t === "triangulo") g = `<path d="M ${f(x)} ${f(y - 26)} L ${f(x + 28)} ${f(y + 20)} L ${f(x - 28)} ${f(y + 20)} Z" ${ln}/>`;
-  else if (o.t === "rombo") g = `<path d="M ${f(x)} ${f(y - 28)} L ${f(x + 28)} ${f(y)} L ${f(x)} ${f(y + 28)} L ${f(x - 28)} ${f(y)} Z" ${ln}/>`;
-  else if (o.t === "barra") g = `<line x1="${f(x - 36)}" y1="${f(y)}" x2="${f(x + 36)}" y2="${f(y)}" stroke="${t}" stroke-width="5" stroke-linecap="round"/>`;
   else if (o.t === "aro") g = `<line x1="${f(x - 21)}" y1="${f(y - 8)}" x2="${f(x + 21)}" y2="${f(y - 8)}" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="${f(x)}" cy="${f(y + 2)}" r="8" fill="none" stroke="#fff" stroke-width="3.4"/>`;
-  return `<g${dat}${interactivo ? ' style="cursor:grab"' : ""}>${o.t !== "texto" && interactivo ? `<circle cx="${f(x)}" cy="${f(y)}" r="30" fill="transparent"/>` : ""}${g}</g>`;
+  else if (o.t === "triangulo") { const pts = o.pts.map(q => f(q[0] * S) + "," + f(q[1] * S)).join(" "); g = `<polygon points="${pts}" fill="${col}" fill-opacity=".55" stroke="${col}" stroke-opacity=".9" stroke-width="2" stroke-linejoin="round"/>`; }
+  else if (o.t === "barra") g = `<line x1="${f(o.pts[0][0] * S)}" y1="${f(o.pts[0][1] * S)}" x2="${f(o.pts[1][0] * S)}" y2="${f(o.pts[1][1] * S)}" stroke="${col}" stroke-width="5" stroke-linecap="round"/>`;
+  else {
+    const w = o.w * S, h = o.h * S, hw = w / 2, hh = h / 2; let forma = "";
+    if (o.t === "rect") forma = `<rect x="${f(-hw)}" y="${f(-hh)}" width="${f(w)}" height="${f(h)}" rx="3" fill="${col}" fill-opacity=".55" stroke="${col}" stroke-opacity=".9" stroke-width="2"/>`;
+    else if (o.t === "circulo") forma = `<ellipse cx="0" cy="0" rx="${f(hw)}" ry="${f(hh)}" fill="${col}" fill-opacity=".55" stroke="${col}" stroke-opacity=".9" stroke-width="2"/>`;
+    else if (o.t === "rombo") forma = `<polygon points="0,${f(-hh)} ${f(hw)},0 0,${f(hh)} ${f(-hw)},0" fill="${col}" fill-opacity=".55" stroke="${col}" stroke-opacity=".9" stroke-width="2" stroke-linejoin="round"/>`;
+    else {
+      const txt = o.txt || "", vacio = !txt, fs = Math.max(8, Math.min(h * 0.62, w * 1.75 / Math.max(4, (txt || "Editar texto").length)));
+      forma = (sel ? `<rect x="${f(-hw)}" y="${f(-hh)}" width="${f(w)}" height="${f(h)}" fill="rgba(255,255,255,.4)" stroke="#1a73e8" stroke-width="1.4"/>` : `<rect x="${f(-hw)}" y="${f(-hh)}" width="${f(w)}" height="${f(h)}" fill="transparent"/>`) +
+        `<text x="0" y="${f(fs * 0.34)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="${f(fs)}" fill="${vacio ? "#8a7a66" : col}" stroke="${vacio ? "none" : "#f3e0c0"}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">${esc(txt || (sel ? "Editar texto" : ""))}</text>`;
+    }
+    g = `<g transform="translate(${f(x)} ${f(y)}) rotate(${o.rot || 0})">${forma}</g>`;
+  }
+  const hit = interactivo && (o.t === "cono" || o.t === "aro") ? `<circle cx="${f(x)}" cy="${f(y)}" r="28" fill="transparent"/>` : "";
+  return `<g${dat}${interactivo ? ' style="cursor:grab"' : ""}>${hit}${g}</g>`;
 }
-const objetosSvg = (objs, interactivo) => (objs || []).map((o, i) => objetoSvg(o, i, interactivo)).join("");
+const objetosSvg = (objs, interactivo) => (objs || []).map((o, i) => objetoSvg(o, i, interactivo, interactivo && i === selObj && selOPaso === paso)).join("");
 
 function fichaSvg(k, p, interactivo) {
   const x = (p.x * S).toFixed(1), y = (p.y * S).toFixed(1), n = etiquetaFicha(k), datos = interactivo ? `data-j="${k}" style="cursor:grab"` : "";
@@ -791,9 +819,63 @@ const fichaCerca = (p, max, soloAtaque) => {
   Object.keys(pos).forEach(k => { if (soloAtaque && !esAtaque(k)) return; const d = Math.hypot(pos[k].x - p.x, pos[k].y - p.y); if (d < dm) { dm = d; mejor = k; } });
   return mejor;
 };
+const rad = (d) => d * Math.PI / 180;
+function aLocal(o, p) { const c = Math.cos(rad(o.rot || 0)), s = Math.sin(rad(o.rot || 0)), dx = p.x - o.x, dy = p.y - o.y; return { x: dx * c + dy * s, y: -dx * s + dy * c }; }
+function deLocal(o, lx, ly) { const c = Math.cos(rad(o.rot || 0)), s = Math.sin(rad(o.rot || 0)); return { x: o.x + lx * c - ly * s, y: o.y + lx * s + ly * c }; }
+const distSeg = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], d2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((p.x - a[0]) * dx + (p.y - a[1]) * dy) / d2)); return Math.hypot(p.x - a[0] - dx * t, p.y - a[1] - dy * t); };
+function enTriangulo(p, t) { const s = (a, b, c) => (a[0] - c[0]) * (b[1] - c[1]) - (b[0] - c[0]) * (a[1] - c[1]), q = [p.x, p.y], d1 = s(q, t[0], t[1]), d2 = s(q, t[1], t[2]), d3 = s(q, t[2], t[0]); return !(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0))); }
 function objetoCerca(p, max) {
-  let mejor = -1, dm = max; (jugada.pasos[paso].objs || []).forEach((o, i) => { const d = Math.hypot(o.x - p.x, o.y - p.y); if (d < dm) { dm = d; mejor = i; } });
+  const objs = jugada.pasos[paso].objs || [];
+  for (let i = objs.length - 1; i >= 0; i--) {
+    const o = objDef(objs[i]);
+    if (CAJA.includes(o.t)) { const q = aLocal(o, p); if (Math.abs(q.x) <= o.w / 2 && Math.abs(q.y) <= o.h / 2) return i; }
+    else if (o.t === "triangulo") { if (enTriangulo(p, o.pts) || o.pts.some((a, k) => distSeg(p, a, o.pts[(k + 1) % 3]) < 0.3)) return i; }
+    else if (o.t === "barra") { if (distSeg(p, o.pts[0], o.pts[1]) < 0.45) return i; }
+    else if (Math.hypot(o.x - p.x, o.y - p.y) < Math.min(max, 0.9)) return i;
+  }
+  return -1;
+}
+function manejadoresObj(o) {
+  objDef(o);
+  if (CAJA.includes(o.t)) {
+    const hw = o.w / 2, hh = o.h / 2, r = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map((c, k) => Object.assign({ k: "c" + k }, deLocal(o, c[0], c[1])));
+    r.push(Object.assign({ k: "rot" }, deLocal(o, 0, -hh - 0.9)));
+    return r;
+  }
+  if (PUNTOS.includes(o.t)) return o.pts.map((q, k) => ({ k: "p" + k, x: q[0], y: q[1] }));
+  return [];
+}
+function objHandleCerca(o, p) {
+  let mejor = null, dm = 0.5;
+  manejadoresObj(o).forEach(h => { const d = Math.hypot(h.x - p.x, h.y - p.y); if (d <= dm) { dm = d; mejor = h; } });
   return mejor;
+}
+function moverManejadorObj(o, k, p) {
+  if (k === "rot") { let a = Math.atan2(p.y - o.y, p.x - o.x) * 180 / Math.PI + 90; a = ((Math.round(a) % 360) + 360) % 360; if (a < 4 || a > 356) a = 0; o.rot = a; }
+  else if (k[0] === "p") o.pts[Number(k.slice(1))] = [p.x, p.y];
+  else {
+    const i = Number(k.slice(1)), o0 = arrastreOH.o0, hw = o0.w / 2, hh = o0.h / 2, cs = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]], op = cs[(i + 2) % 4], O = deLocal(o0, op[0], op[1]);
+    const c = Math.cos(rad(o0.rot || 0)), sn = Math.sin(rad(o0.rot || 0)), dx = p.x - O.x, dy = p.y - O.y;
+    o.w = Math.max(0.3, Math.abs(dx * c + dy * sn)); o.h = Math.max(0.3, Math.abs(-dx * sn + dy * c));
+    o.x = (O.x + p.x) / 2; o.y = (O.y + p.y) / 2;
+  }
+}
+function pintarPanelObj() {
+  const caja = $("panelObj"), act = jugada.pasos[paso], o = selObj >= 0 && selOPaso === paso ? act.objs[selObj] : null;
+  if (!o || selLinea >= 0 || selFicha) { caja.style.display = "none"; return; }
+  objDef(o); caja.style.display = "";
+  $("obTitulo").textContent = (OBJETOS[o.t] || "Objeto").toUpperCase();
+  const conCol = o.t !== "cono" && o.t !== "aro"; $("obColorFila").style.display = conCol ? "" : "none";
+  $("obColor").style.background = colorObj(o);
+  if (!conCol) $("obPaleta").style.display = "none";
+  const caj = CAJA.includes(o.t); $("obMedidas").style.display = caj ? "" : "none";
+  if (caj) { if (document.activeElement !== $("obW")) $("obW").value = o.w.toFixed(1); if (document.activeElement !== $("obH")) $("obH").value = o.h.toFixed(1); if (document.activeElement !== $("obRot")) $("obRot").value = Math.round(o.rot || 0); }
+  $("obTexto").style.display = o.t === "texto" ? "" : "none";
+}
+function editarTexto(i) {
+  const o = jugada.pasos[paso].objs[i]; if (!o || o.t !== "texto") return;
+  let t; try { t = window.prompt("Texto:", o.txt || ""); } catch (e) { return; }
+  if (t === null) return; snap(); o.txt = t; pintar();
 }
 function aMetros(ev) {
   const svg = $("pista").querySelector("svg"), pt = svg.createSVGPoint();
@@ -830,9 +912,17 @@ function iconoAccion(t) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
 }
 function iconoObjeto(t) {
-  const o = { t, x: 0, y: 0, txt: "T" }, svg = objetoSvg(o, 0, false);
-  const col = t === "aro" ? "" : "";
-  return `<svg width="34" height="34" viewBox="-20 -20 40 40" style="overflow:visible"><g transform="scale(.62)">${svg.replace(/#fff/g, "#23262d")}</g></svg>`;
+  const c = "#23262d", b = "#5b9bd5", e = `stroke="${c}" stroke-width="2" fill="none"`;
+  const m = {
+    cono: `<path d="M9 22 L12.5 6 H15.5 L19 22 Z" fill="#f07a2a" stroke="#8a3a12" stroke-width="1.4"/><path d="M6 22.5 H22" stroke="#8a3a12" stroke-width="2"/>`,
+    rect: `<rect x="4" y="8" width="20" height="12" rx="2" fill="${b}" fill-opacity=".55" stroke="${b}" stroke-width="2"/>`,
+    circulo: `<circle cx="14" cy="14" r="9.5" fill="${b}" fill-opacity=".55" stroke="${b}" stroke-width="2"/>`,
+    triangulo: `<path d="M14 4 L24 23 H4 Z" fill="${b}" fill-opacity=".55" stroke="${b}" stroke-width="2" stroke-linejoin="round"/>`,
+    rombo: `<path d="M14 3 L25 14 L14 25 L3 14 Z" fill="${b}" fill-opacity=".55" stroke="${b}" stroke-width="2" stroke-linejoin="round"/>`,
+    barra: `<path d="M4 14 H24" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`,
+    aro: `<path d="M6 7 H22" stroke="${c}" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="14" r="5" ${e}/>`,
+  };
+  return `<svg width="28" height="28" viewBox="0 0 28 28">${m[t] || ""}</svg>`;
 }
 function pintarHerramientas() {
   const acc = [["bote", "Bote"], ["pase", "Pase"], ["corte", "Corte"], ["pantalla", "Pantalla"], ["tiro", "Tiro"], ["mueve", "Mover"], ["entrega", "Mano a mano"]];
@@ -847,10 +937,11 @@ function pintar() {
   if (selFicha && !act.pos[selFicha]) selFicha = null;
   { const ls = selLinea >= 0 ? act.lineas[selLinea] : null; RESALTE = ls && ls.a && (ls.t === "pase" || ls.t === "entrega") ? ls.a : (selLinea < 0 ? selFicha : null); }
   $("pista").innerHTML = pistaEdicion();
-  pintarPanelLinea(); pintarPanelFicha();
+  if (selObj >= 0 && (selOPaso !== paso || selObj >= (act.objs || []).length)) selObj = -1;
+  pintarPanelLinea(); pintarPanelFicha(); pintarPanelObj();
   if (trazo && trazo.pts.length > 1) $("pista").querySelector("svg").insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
   $("fases").innerHTML = jugada.pasos.map((_, i) => `<div class="fase ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}</div>`).join("");
-  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); selLinea = -1; selFicha = null; pintar(); }));
+  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); selLinea = -1; selFicha = null; selObj = -1; pintar(); }));
   $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
   $("btnDeshacer").disabled = !act.lineas.length;
   $("leyenda").innerHTML = textoLista(act.texto);
@@ -913,6 +1004,14 @@ function seleccionarLinea(i) {
   pintar();
 }
 function manejadoresSvg() {
+  const ob = selObj >= 0 && selOPaso === paso ? jugada.pasos[paso].objs[selObj] : null;
+  if (ob) {
+    const hs = manejadoresObj(ob); let s2 = "";
+    const rh = hs.find(h => h.k === "rot"), tc = CAJA.includes(ob.t) ? deLocal(ob, 0, -ob.h / 2) : null;
+    if (rh && tc) s2 += `<line x1="${(tc.x * S).toFixed(1)}" y1="${(tc.y * S).toFixed(1)}" x2="${(rh.x * S).toFixed(1)}" y2="${(rh.y * S).toFixed(1)}" stroke="#1a73e8" stroke-width="1.6" pointer-events="none"/>`;
+    hs.forEach(h => { s2 += `<circle cx="${(h.x * S).toFixed(1)}" cy="${(h.y * S).toFixed(1)}" r="${h.k === "rot" ? 5.5 : 6.5}" fill="${h.k === "rot" ? "#fff" : "#1a73e8"}" stroke="${h.k === "rot" ? "#1a73e8" : "#fff"}" stroke-width="2.2" pointer-events="none"/>`; });
+    return s2;
+  }
   const l = selLinea >= 0 && selPaso === paso ? jugada.pasos[paso].lineas[selLinea] : null;
   if (!l) return "";
   return l.pts.map((q, i) => { const fin = i === 0 || i === l.pts.length - 1;
@@ -972,15 +1071,19 @@ function alPulsar(ev) {
   if (ev.button > 0) return;
   ev.preventDefault();
   const p = aMetros(ev), act = jugada.pasos[paso];
+  if (selObj >= 0 && selOPaso === paso && act.objs[selObj]) {
+    const h = objHandleCerca(act.objs[selObj], p);
+    if (h) { snap(); arrastreOH = { k: h.k, o0: clonar(act.objs[selObj]) }; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } return; }
+  }
   if (selLinea >= 0 && selPaso === paso && act.lineas[selLinea]) {
     const h = handleCerca(act.lineas[selLinea], p);
     if (h >= 0) { snap(); arrastreH = { i: h, orig: clonar(act.lineas[selLinea].pts) }; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } return; }
   }
   if (herramienta === "mover") {
     const k = fichaCerca(p, 0.9), oi = k ? -1 : objetoCerca(p, 1.0);
-    if (k) { snap(); arrastre = k; selFicha = k; selLinea = -1; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
-    else if (oi >= 0) { snap(); arrastreObj = oi; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
-    else { const li = lineaCerca(p, 0.55); if (li >= 0) { selFicha = null; seleccionarLinea(li); } else if (selLinea >= 0 || selFicha) { selLinea = -1; selFicha = null; pintar(); } }
+    if (k) { snap(); arrastre = k; selFicha = k; selLinea = -1; selObj = -1; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
+    else if (oi >= 0) { snap(); selObj = oi; selOPaso = paso; selLinea = -1; selFicha = null; arrastreObj = { i: oi, gx: p.x, gy: p.y, o0: clonar(act.objs[oi]) }; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
+    else { const li = lineaCerca(p, 0.55); if (li >= 0) { selFicha = null; selObj = -1; seleccionarLinea(li); } else if (selLinea >= 0 || selFicha || selObj >= 0) { selLinea = -1; selFicha = null; selObj = -1; pintar(); } }
   } else if (herramienta === "balon") {
     const k = fichaCerca(p, 1.1, true);
     if (k) { snap(); act.balon = k; pintar(); }
@@ -993,9 +1096,11 @@ function alPulsar(ev) {
   } else if (herramienta.indexOf("obj-") === 0) {
     const tipo = herramienta.slice(4); let txt = "";
     if (tipo === "texto") { try { txt = window.prompt("Texto:", "") || ""; } catch (e) { txt = "Texto"; } if (!txt) return; }
-    snap(); act.objs = act.objs || []; act.objs.push({ t: tipo, x: p.x, y: p.y, txt }); pintar();
+    snap(); act.objs = act.objs || []; const no = objDef({ t: tipo, x: p.x, y: p.y, txt }); act.objs.push(no);
+    selObj = act.objs.length - 1; selOPaso = paso; selLinea = -1; selFicha = null; herramienta = "mover";
+    document.querySelectorAll(".col-herr button[data-t]").forEach(x => x.classList.toggle("on", x.dataset.t === "mover")); pintar();
   } else {
-    if (selLinea >= 0 || selFicha) { selLinea = -1; selFicha = null; pintar(); }
+    if (selLinea >= 0 || selFicha || selObj >= 0) { selLinea = -1; selFicha = null; selObj = -1; pintar(); }
     const k = fichaCerca(p, 1.0);
     const origen = k ? act.pos[k] : p;
     trazo = { t: herramienta, de: k || "", pts: [[origen.x, origen.y]] };
@@ -1003,13 +1108,18 @@ function alPulsar(ev) {
   }
 }
 function alMover(ev) {
-  if (!arrastre && !trazo && arrastreObj < 0 && !arrastreH) return;
+  if (!arrastre && !trazo && !arrastreObj && !arrastreH && !arrastreOH) return;
   const p = aMetros(ev);
   if (arrastreH) {
     const l = jugada.pasos[paso].lineas[selLinea]; moverExtremo(l, arrastreH.orig, arrastreH.i, p);
     RESALTE = fichaCerca(p, 1.0); $("pista").innerHTML = pistaEdicion(); return;
   }
-  if (arrastreObj >= 0) { jugada.pasos[paso].objs[arrastreObj].x = p.x; jugada.pasos[paso].objs[arrastreObj].y = p.y; $("pista").innerHTML = pistaEdicion(); }
+  if (arrastreOH) { moverManejadorObj(jugada.pasos[paso].objs[selObj], arrastreOH.k, p); $("pista").innerHTML = pistaEdicion(); return; }
+  if (arrastreObj) {
+    const o = jugada.pasos[paso].objs[arrastreObj.i], o0 = arrastreObj.o0, dx = p.x - arrastreObj.gx, dy = p.y - arrastreObj.gy;
+    o.x = o0.x + dx; o.y = o0.y + dy; if (o0.pts) o.pts = o0.pts.map(q => [q[0] + dx, q[1] + dy]);
+    $("pista").innerHTML = pistaEdicion();
+  }
   else if (arrastre) { jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y }; $("pista").innerHTML = pistaEdicion(); }
   else if (trazo) {
     const nr = fichaCerca(p, 1.0);
@@ -1042,7 +1152,8 @@ function alSoltar() {
     }
     pintar(); return;
   }
-  if (arrastreObj >= 0) { arrastreObj = -1; pintar(); return; }
+  if (arrastreOH) { arrastreOH = null; pintar(); return; }
+  if (arrastreObj) { arrastreObj = null; pintar(); return; }
   if (arrastre) { arrastre = null; pintar(); return; }
   if (trazo) {
     const largo = trazo.pts.reduce((a, q, i) => i ? a + Math.hypot(q[0] - trazo.pts[i - 1][0], q[1] - trazo.pts[i - 1][1]) : 0, 0);
@@ -1370,6 +1481,23 @@ if (VISOR) {
   pista.addEventListener("pointerdown", alPulsar); pista.addEventListener("pointermove", alMover);
   pista.addEventListener("pointerup", alSoltar); pista.addEventListener("pointercancel", alSoltar);
   pintarHerramientas();
+  const objSel = () => (selObj >= 0 ? jugada.pasos[paso].objs[selObj] : null);
+  $("obColor").addEventListener("click", () => { const q = $("obPaleta"); q.style.display = q.style.display === "none" ? "" : "none"; });
+  $("obPaleta").innerHTML = COLORES.map(c => `<button data-c="${c}" style="background:${c}" title="${c}"></button>`).join("") + '<label class="libre" title="Otro color">+<input type="color" id="obLibre" value="#5b9bd5"></label>';
+  const colorO = (c) => { const o = objSel(); if (!o) return; snap(); o.color = c; pintar(); };
+  $("obPaleta").querySelectorAll("button").forEach(b => b.addEventListener("click", () => colorO(b.dataset.c)));
+  $("obLibre").addEventListener("input", () => colorO($("obLibre").value));
+  const medidas = () => { const o = objSel(); if (!o) return; const w = parseFloat($("obW").value), h = parseFloat($("obH").value), r = parseFloat($("obRot").value); if (w > 0.2) o.w = w; if (h > 0.2) o.h = h; if (isFinite(r)) o.rot = r; pintar(); };
+  ["obW", "obH", "obRot"].forEach(id => { $(id).addEventListener("focus", snap); $(id).addEventListener("input", medidas); });
+  $("obTexto").addEventListener("click", () => editarTexto(selObj));
+  $("obBorrar").addEventListener("click", () => { if (selObj < 0) return; snap(); jugada.pasos[paso].objs.splice(selObj, 1); selObj = -1; pintar(); });
+  $("pista").addEventListener("dblclick", (ev) => { const p = aMetros(ev), oi = objetoCerca(p, 0.9); if (oi >= 0 && jugada.pasos[paso].objs[oi].t === "texto") editarTexto(oi); });
+  document.addEventListener("keydown", (e) => {
+    if ((e.key !== "Delete" && e.key !== "Backspace") || $("vistaEd").style.display === "none") return;
+    const t = (e.target && e.target.tagName) || ""; if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
+    if (selLinea >= 0) { e.preventDefault(); snap(); jugada.pasos[paso].lineas.splice(selLinea, 1); selLinea = -1; pintar(); }
+    else if (selObj >= 0) { e.preventDefault(); snap(); jugada.pasos[paso].objs.splice(selObj, 1); selObj = -1; pintar(); }
+  });
   const cambiaXY = () => { const q = jugada.pasos[paso].pos[selFicha]; if (!q) return; const x = parseFloat($("fiX").value), y = parseFloat($("fiY").value); if (isFinite(x)) q.x = Math.max(0, Math.min(ANCHO, x)); if (isFinite(y)) q.y = Math.max(0, Math.min(FONDO, y)); pintar(); };
   ["fiX", "fiY"].forEach(id => { $(id).addEventListener("focus", snap); $(id).addEventListener("input", cambiaXY); });
   $("fiBalon").addEventListener("click", () => { if (!selFicha) return; snap(); jugada.pasos[paso].balon = selFicha; pintar(); });
