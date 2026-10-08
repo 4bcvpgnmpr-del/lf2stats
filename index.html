@@ -1749,6 +1749,17 @@
   table.full-players td.shot-group, table.full-players th.shot-group{background:var(--tiro-fondo);color:var(--ink);}
   table.full-players td.shot-group.stat-leader{background:var(--verde-suave);color:var(--verde);}
   #filterEquipoJugadoras{padding:9px 10px;border:1.5px solid var(--wood-line);border-radius:6px;font-family:'Archivo',sans-serif;font-size:14px;}
+
+#puertaAcceso{position:fixed;inset:0;z-index:99999;background:#12263f;display:flex;align-items:center;justify-content:center;padding:16px;}
+#puertaAcceso .caja{background:#fff;color:#16263b;border-radius:14px;padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px;}
+#puertaAcceso h2{margin:0;} #puertaAcceso p{margin:0;font-size:14px;}
+#puertaAcceso input{padding:10px;border:1px solid #c9d3e0;border-radius:8px;font-size:15px;}
+#puertaAcceso button{padding:10px;border:0;border-radius:8px;background:#e8731a;color:#fff;font-weight:700;cursor:pointer;}
+#puertaAcceso button.sec{background:#e9eef5;color:#16263b;}
+#puertaAcceso .msg{font-size:13px;min-height:16px;} #puertaAcceso .msg.mal{color:#b3261e;} #puertaAcceso .msg.ok{color:#1b7a3a;}
+#puertaAcceso [hidden]{display:none !important;}
+html.sin-acceso body > *:not(#puertaAcceso){visibility:hidden;}
+body.rol-ayudante #btnPdfPagina{display:inline-block;}
 </style>
 </head>
 <body>
@@ -2708,6 +2719,7 @@ let vistaActual = null;
 const historialVistas = [];
 
 function showView(id, esVuelta) {
+  if (typeof ROL_APP !== "undefined" && ROL_APP === "ayudante" && !VISTAS_AYUDANTE.includes(id)) id = "inicio";
   if (vistaActual && vistaActual !== id && !esVuelta) {
     historialVistas.push({ vista: vistaActual, scroll: window.scrollY });
     if (historialVistas.length > 30) historialVistas.shift();
@@ -6802,6 +6814,104 @@ function wireInforme(contenedor) {
   const btnMandar = panel.querySelector("#btnMandarJugadoras");
   if (btnMandar) btnMandar.addEventListener("click", () => abrirEnvioJugadoras(nombre));
 }
+
+/* ============================================================
+   ACCESO Y ROLES
+   propietario = el entrenador principal: ve y edita todo.
+   ayudante    = otros entrenadores: solo Inicio, Mi equipo y el rival (sin editar).
+   ============================================================ */
+var ROL_APP = "";
+const VISTAS_AYUDANTE = ["inicio", "mi-equipo", "scouting", "equipo-detail", "jugadora-detail", "partido-detail"];
+document.documentElement.classList.add("sin-acceso");
+
+function mostrarPuerta(msg, tipo) {
+  let p = document.getElementById("puertaAcceso");
+  if (!p) {
+    p = document.createElement("div");
+    p.id = "puertaAcceso";
+    p.innerHTML = `<div class="caja"><h2>ScoutFlow</h2><p>Entra con tu correo de entrenador.</p>
+      <input type="email" id="paCorreo" placeholder="Correo" autocomplete="email">
+      <input type="password" id="paClave" placeholder="Contraseña" autocomplete="current-password">
+      <button id="paEntrar">Entrar</button>
+      <button id="paEnlace" class="sec">Enviarme un enlace al correo</button>
+      <div id="paMsg" class="msg"></div>
+      <a href="#" id="paSalir" hidden>Salir</a></div>`;
+    document.body.appendChild(p);
+    const sb = clienteJugadoras();
+    document.getElementById("paEntrar").onclick = async () => {
+      const c = document.getElementById("paCorreo").value.trim(), k = document.getElementById("paClave").value;
+      if (!c || !k) { mostrarPuerta("Escribe correo y contraseña.", "mal"); return; }
+      const { error } = await sb.auth.signInWithPassword({ email: c, password: k });
+      if (error) mostrarPuerta("No se ha podido entrar: " + error.message, "mal"); else location.reload();
+    };
+    document.getElementById("paEnlace").onclick = async () => {
+      const c = document.getElementById("paCorreo").value.trim();
+      if (!c) { mostrarPuerta("Escribe tu correo.", "mal"); return; }
+      const { error } = await sb.auth.signInWithOtp({ email: c, options: { emailRedirectTo: location.href.split("#")[0] } });
+      mostrarPuerta(error ? "No se ha podido enviar: " + error.message : "Listo. Abre el enlace del correo en este aparato.", error ? "mal" : "ok");
+    };
+    document.getElementById("paSalir").onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
+  }
+  const m = document.getElementById("paMsg");
+  m.textContent = msg || ""; m.className = "msg " + (tipo || "");
+  if (tipo === "mal" && /asiento|entrenador/i.test(msg || "")) document.getElementById("paSalir").hidden = false;
+  document.documentElement.classList.add("sin-acceso");
+}
+
+async function resolverRolApp(sb, user) {
+  try {
+    const { data, error } = await sb.from("ajustes").select("valor").eq("clave", "propietario").limit(1);
+    if (error) return "propietario";
+    const prop = data && data.length ? String(data[0].valor || "").toLowerCase() : "";
+    const yo = String(user.email || "").toLowerCase();
+    if (prop) return prop === yo ? "propietario" : "ayudante";
+    if (window.confirm("Todavia no hay propietario de esta app. ¿Eres tu el entrenador principal (" + yo + ")? Solo el propietario puede editar; los demas entrenadores veran Inicio, Mi equipo y el rival.")) {
+      await sb.from("ajustes").upsert({ clave: "propietario", valor: yo, actualizado: new Date().toISOString() });
+      return "propietario";
+    }
+    return "ayudante";
+  } catch (e) { return "propietario"; }
+}
+
+async function verificarAcceso() {
+  const sb = clienteJugadoras();
+  if (!sb) { mostrarPuerta("No se pudo cargar el acceso. Recarga la pagina.", "mal"); return; }
+  const { data: ses } = await sb.auth.getSession();
+  const user = ses && ses.session && ses.session.user;
+  if (!user) { mostrarPuerta(""); return; }
+  const { data: soy, error } = await sb.rpc("es_entrenador");
+  if (error || soy !== true) { mostrarPuerta("Tu correo (" + user.email + ") no tiene asiento de entrenador.", "mal"); return; }
+  ROL_APP = await resolverRolApp(sb, user);
+  document.body.classList.toggle("rol-ayudante", ROL_APP === "ayudante");
+  const pie = document.querySelector(".pie-lateral");
+  if (pie && !document.getElementById("cuentaApp")) {
+    const d = document.createElement("div");
+    d.id = "cuentaApp"; d.className = "hint";
+    d.innerHTML = `${escapeHtml(user.email)} · ${ROL_APP === "ayudante" ? "ayudante" : "propietario"} · <a href="#" id="cuentaSalir">Salir</a>`;
+    pie.appendChild(d);
+    document.getElementById("cuentaSalir").onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
+  }
+  if (ROL_APP === "ayudante") aplicarRolAyudante();
+  document.documentElement.classList.remove("sin-acceso");
+  const puerta = document.getElementById("puertaAcceso"); if (puerta) puerta.remove();
+}
+
+function aplicarRolAyudante() {
+  const ocultar = () => {
+    document.querySelectorAll("#mainNav button").forEach(b => {
+      if (!VISTAS_AYUDANTE.includes(b.getAttribute("data-view"))) b.style.display = "none";
+    });
+    document.querySelectorAll("button, a.btn, .btn").forEach(b => {
+      if (b.closest("#puertaAcceso, #mainNav, .pie-lateral")) return;
+      if (/enviar|guardar|borrar|eliminar|quitar|subir|publicar|a[nñ]adir|editar/i.test(b.textContent || "")) b.style.display = "none";
+    });
+    document.querySelectorAll("textarea").forEach(t => { t.readOnly = true; });
+  };
+  ocultar();
+  new MutationObserver(ocultar).observe(document.body, { childList: true, subtree: true });
+  if (typeof showView === "function") showView("inicio");
+}
+document.addEventListener("DOMContentLoaded", () => { verificarAcceso(); });
 
 /* ============================================================
    ENVIAR ESTE SCOUTING A LAS JUGADORAS

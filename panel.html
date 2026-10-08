@@ -460,6 +460,15 @@ async function entrar(sesion) {
   $("quien").textContent = (sesion.user && sesion.user.email) || "";
 
   // ¿Este correo esta dado de alta como entrenador?
+  try {
+    const { data: pr } = await sb.from("ajustes").select("valor").eq("clave", "propietario").limit(1);
+    const prop = pr && pr.length ? String(pr[0].valor || "").toLowerCase() : "";
+    const yo = String((sesion.user && sesion.user.email) || "").toLowerCase();
+    if (prop && prop !== yo) {
+      $("pantallaPanel").innerHTML = `<div class="vacio" style="margin:30px 16px;">Este panel es solo para el entrenador principal. Tu asiento de ayudante te deja ver Inicio, Mi equipo y el rival en la app.</div>`;
+      return;
+    }
+  } catch (e) { /* si no se puede comprobar, sigue */ }
   const { data: soy } = await sb.rpc("es_entrenador");
   if (soy === false) {
     $("avisoPermiso").innerHTML = `<div class="aviso mal">
