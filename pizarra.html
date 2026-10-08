@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pizarra de jugadas · ScoutFlow</title>
+<title>Entrenador · ScoutFlow</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <style>
@@ -11,43 +11,29 @@
   *{box-sizing:border-box;}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;}
   body{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);}
-  .wrap{max-width:1100px;margin:0 auto;padding:14px;}
+  .wrap{max-width:1280px;margin:0 auto;padding:14px;}
   header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   header h1{font-family:'Archivo Black',sans-serif;font-size:20px;margin:0;flex:1;min-width:180px;}
   header a{color:var(--soft);font-size:13px;font-weight:700;text-decoration:none;}
-  .grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px;align-items:start;}
-  @media (max-width:860px){.grid{grid-template-columns:1fr;}}
   .card{background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 20px rgba(27,36,50,.06);padding:14px;margin-bottom:14px;}
   .card h2{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--orange);margin:0 0 10px;}
   input,select,textarea{font-family:inherit;font-size:15px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--suave);color:var(--ink);width:100%;}
   textarea{resize:vertical;min-height:70px;}
   label{display:block;font-size:11.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--soft);margin:10px 0 4px;}
   .fila{display:flex;gap:8px;flex-wrap:wrap;}
-  .fila > *{flex:1;min-width:120px;}
+  .fila > *{flex:1;min-width:110px;}
   button{font-family:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:10px 13px;cursor:pointer;background:var(--ink);color:#fff;}
   button.naranja{background:var(--orange);} button.verde{background:var(--teal);}
   button.gris{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
   button:disabled{opacity:.4;cursor:default;}
-  .tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-  .tools button{flex:1;min-width:78px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);padding:9px 6px;font-size:12.5px;}
-  .tools button.on{background:var(--orange);border-color:var(--orange);color:#fff;}
-  #pista{background:#f3e6d2;border-radius:12px;border:1.5px solid var(--line);touch-action:none;user-select:none;-webkit-user-select:none;}
-  #pista svg{display:block;width:100%;height:auto;max-height:78vh;}
-  .pasos{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;margin:10px 0 6px;}
-  .paso{flex:none;width:92px;border:2px solid var(--line);border-radius:10px;background:#f3e6d2;cursor:pointer;position:relative;overflow:hidden;}
-  .paso.on{border-color:var(--orange);}
-  .paso svg{display:block;width:100%;height:auto;}
-  .paso b{position:absolute;left:4px;top:3px;font-size:11px;background:var(--ink);color:#fff;border-radius:6px;padding:1px 6px;}
-  .lista .item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:8px;}
-  .lista .item .t{flex:1;min-width:0;} .lista .item b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .lista .item small{color:var(--soft);font-size:11.5px;}
-  .lista button{padding:7px 10px;font-size:12px;}
   .hint{font-size:12.5px;color:var(--soft);line-height:1.45;margin:6px 0 0;}
-  #aviso{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-weight:700;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;}
+  #aviso{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-weight:700;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:90;}
   #aviso.ver{opacity:1;}
+  /* menu principal */
   .menu-ent{display:flex;gap:6px;margin:0 0 14px;}
   .menu-ent button{flex:1;background:var(--white);color:var(--soft);border:1.5px solid var(--line);padding:11px 8px;font-size:14px;}
   .menu-ent button.on{background:var(--orange);border-color:var(--orange);color:#fff;}
+  /* biblioteca */
   .estado-nube{font-size:12.5px;font-weight:700;color:var(--soft);margin:0 0 10px;}
   .estado-nube.ok{color:var(--teal);} .estado-nube.mal{color:#b3261e;}
   .banda{background:#fff7e6;border:1.5px solid #f0c987;border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13px;}
@@ -65,14 +51,88 @@
   .tarjeta .sub{font-size:11.5px;color:var(--soft);}
   .tarjeta .ins{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;}
   .tarjeta .ins button{flex:1;padding:7px 8px;font-size:12px;min-width:44px;}
-  .insignia{display:inline-block;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:var(--suave);border:1px solid var(--line);margin-right:4px;}
+  .insignia{display:inline-block;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:var(--suave);border:1px solid var(--line);}
   .insignia.comp{background:#e3f3ec;border-color:#9bd3bb;color:#1f6b4f;}
-  .leyenda{min-height:38px;margin:8px 0 0;padding:8px 11px;border-radius:10px;background:var(--suave);border:1.5px solid var(--line);font-size:14px;font-weight:700;}
+  /* editor */
+  .datos-ed{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
+  .datos-ed > div{flex:1;min-width:150px;} .datos-ed .chk{flex:none;min-width:0;display:flex;gap:10px;flex-wrap:wrap;}
+  .datos-ed .chk label{margin:0;display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;letter-spacing:0;}
+  .datos-ed .chk input{width:auto;}
+  .barra-ed{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:8px;margin-bottom:12px;position:sticky;top:0;z-index:15;}
+  .barra-ed .tabs{display:flex;gap:4px;flex:1;justify-content:center;flex-wrap:wrap;}
+  .barra-ed .tabs button{background:transparent;color:var(--soft);padding:9px 14px;}
+  .barra-ed .tabs button.on{background:var(--teal);color:#fff;}
+  .barra-ed .ic{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);padding:9px 12px;}
+  .panel-ed{display:none;} .panel-ed.on{display:block;}
+  .dib{display:grid;grid-template-columns:150px minmax(0,1fr) 270px;gap:14px;align-items:start;}
+  @media (max-width:1000px){.dib{grid-template-columns:minmax(0,1fr);} .dib .col-pasos{order:2;} .dib .col-pista{order:1;} .dib .col-herr{order:3;}}
+  .col-pasos .acc{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;}
+  .col-pasos .acc button{padding:8px 4px;font-size:12px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
+  .lista-fases{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;}
+  @media (max-width:1000px){.lista-fases{flex-direction:row;overflow-x:auto;overflow-y:hidden;max-height:none;padding-bottom:6px;} .lista-fases .fase{width:120px;flex:none;}}
+  .fase{border:2.5px solid var(--line);border-radius:10px;background:#f3e6d2;cursor:pointer;position:relative;overflow:hidden;}
+  .fase.on{border-color:#2f7bd8;}
+  .fase svg{display:block;width:100%;height:auto;}
+  .fase b{position:absolute;left:4px;top:3px;font-size:11px;background:var(--ink);color:#fff;border-radius:6px;padding:1px 6px;}
+  .caja-pista{background:#f3e6d2;border-radius:14px;border:1.5px solid var(--line);touch-action:none;user-select:none;-webkit-user-select:none;}
+  .caja-pista svg{display:block;width:100%;height:auto;max-height:80vh;}
+  .herr h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin:0 0 8px;color:var(--ink);}
+  .herr .bloque{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  .acciones{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .acciones button{background:var(--ink);padding:10px 8px;font-size:12.5px;text-align:left;display:flex;align-items:center;gap:6px;}
+  .acciones button.on{background:var(--orange);}
+  .acciones button.suave{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
+  .acciones button.suave.on{background:var(--orange);color:#fff;border-color:var(--orange);}
+  .paleta{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px;}
+  .paleta button{padding:0;height:36px;background:var(--white);color:var(--ink);border:1.5px solid #b9a07c;font-size:13px;font-family:Arial,sans-serif;}
+  .paleta button.c{border-radius:50%;} .paleta button.q{border-radius:6px;}
+  .paleta button.x{color:#d12b4a;border-color:var(--line);}
+  .paleta button.puesta{background:#fde7da;border-color:var(--orange);}
+  .aviso-herr{font-size:12.5px;color:var(--soft);margin:8px 0 0;min-height:18px;}
+  .leyenda{min-height:38px;margin:10px 0 0;padding:8px 11px;border-radius:10px;background:var(--suave);border:1.5px solid var(--line);font-size:14px;font-weight:700;}
   .leyenda:empty{display:none;}
+  .leyenda ul{margin:0;padding-left:18px;} .leyenda li{margin:2px 0;}
+  /* animar */
+  .ani{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:start;}
+  @media (max-width:900px){.ani{grid-template-columns:1fr;}}
+  .reprod{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px;}
+  .linea-tiempo{display:flex;gap:4px;margin:2px 0 10px;cursor:pointer;}
+  .linea-tiempo .seg{flex:1;height:7px;border-radius:4px;background:#dfe5ea;overflow:hidden;}
+  .linea-tiempo .seg i{display:block;height:100%;width:0;background:var(--teal);}
+  .ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ctrl .tiempo{font-size:13px;color:var(--soft);font-weight:700;}
+  .ctrl .play{width:46px;height:46px;border-radius:50%;padding:0;font-size:18px;background:var(--ink);}
+  .chips-fase{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .chips-fase button{background:var(--white);color:var(--ink);border:1.5px solid var(--line);padding:8px 14px;}
+  .chips-fase button.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .grupo-acc h4{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:15px;margin:14px 0 8px;}
+  .acc-fila{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:var(--white);border-radius:10px;padding:7px 8px;margin-bottom:6px;font-size:13.5px;font-weight:700;}
+  .acc-fila .num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
+  .acc-fila .et{flex:1;min-width:0;}
+  .acc-fila button{padding:6px 9px;font-size:12px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
+  .acc-fila button.dsp{background:#efe9ff;border-color:#c9b8ff;color:#5a3fb0;}
+  /* texto, videos, salida */
+  .fila-texto{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:14px;align-items:start;margin-bottom:14px;}
+  @media (max-width:760px){.fila-texto{grid-template-columns:1fr;}}
+  .fila-texto .mini{background:#f3e6d2;border-radius:12px;overflow:hidden;border:1.5px solid var(--line);} .fila-texto .mini svg{display:block;width:100%;height:auto;}
+  .fila-texto textarea{min-height:150px;}
+  .vid-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--white);}
+  .vid-item .vista{flex:1;min-width:0;}
+  .marco-vid{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;}
+  .marco-vid iframe,.marco-vid video{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .salida{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:860px;margin:0 auto;}
+  .salida h2.t{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:24px;margin:0 0 4px;}
+  .salida .meta{font-size:12.5px;color:var(--soft);margin-bottom:12px;}
+  .rejilla-salida{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px;}
+  @media (max-width:640px){.rejilla-salida{grid-template-columns:1fr;}}
+  .rejilla-salida .f b{display:block;font-size:12px;margin-bottom:5px;}
+  .rejilla-salida .mini{background:#f3e6d2;border-radius:6px;overflow:hidden;} .rejilla-salida .mini svg{display:block;width:100%;height:auto;}
+  .rejilla-salida ul{margin:8px 0 0;padding-left:18px;font-size:13px;} .rejilla-salida li{margin:2px 0;}
+  /* ventanas */
   #modalVer{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
   #modalVer.ver{display:flex;}
   #modalVer .caja{background:var(--white);border-radius:16px;width:100%;max-width:900px;max-height:96vh;overflow:auto;padding:14px;}
-  #modalVer h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 8px;}
+  #modalVer h3,#visor h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 8px;}
   #visor{display:none;}
   body.visor .wrap{display:none !important;} body.visor #visor{display:block;padding:12px;}
   body.visor{background:var(--white);}
@@ -80,7 +140,7 @@
   @media print{
     @page{size:A4 portrait;margin:12mm;}
     body{background:#fff;}
-    .wrap{display:none !important;}
+    .wrap,#modalVer,#visor{display:none !important;}
     #hojaImp{display:block !important;}
     #hojaImp h1{font-family:'Archivo Black',sans-serif;font-size:18pt;margin:0 0 2mm;}
     #hojaImp .meta{font-size:10pt;color:#555;margin-bottom:4mm;}
@@ -88,6 +148,7 @@
     #hojaImp .pasoImp{break-inside:avoid;page-break-inside:avoid;border:1px solid #d9d2c8;border-radius:3mm;padding:2mm;}
     #hojaImp .pasoImp svg{width:100%;height:auto;display:block;}
     #hojaImp .pasoImp b{font-size:10pt;}
+    #hojaImp .pasoImp ul{margin:1.5mm 0 0;padding-left:5mm;font-size:9.5pt;}
     #hojaImp .notas{margin-top:5mm;font-size:10.5pt;white-space:pre-wrap;}
   }
 </style>
@@ -124,150 +185,240 @@
 
   <!-- ================= EDITOR ================= -->
   <div id="vistaEd" style="display:none;">
-  <div class="grid">
-    <div>
+    <div class="datos-ed">
+      <div><label style="margin-top:0;">Nombre de la jugada</label><input id="nombre" placeholder="Ej: Cinco abierto, bloqueo directo"></div>
+      <div style="max-width:200px;"><label style="margin-top:0;">Tipo</label><select id="tipo"></select></div>
+      <div class="chk">
+        <label><input type="checkbox" id="chkFav">⭐ Favorita</label>
+        <label><input type="checkbox" id="chkComp">📤 Visible para las jugadoras</label>
+      </div>
+    </div>
+
+    <div class="barra-ed">
+      <div class="tabs" id="tabsEd">
+        <button data-p="Draw" class="on">✏️ Dibujar</button>
+        <button data-p="Anim">▶ Animar</button>
+        <button data-p="Text">📝 Texto</button>
+        <button data-p="Vid">🎬 Vídeos</button>
+        <button data-p="Out">📄 Salida</button>
+      </div>
+      <button class="ic" id="btnUndo" title="Deshacer">↶</button>
+      <button class="ic" id="btnRedo" title="Rehacer">↷</button>
+      <button class="naranja" id="btnGuardar">💾 Guardar</button>
+    </div>
+
+    <!-- ---- DIBUJAR ---- -->
+    <div class="panel-ed on" id="pDraw">
+      <div class="dib">
+        <div class="col-pasos">
+          <div class="acc">
+            <button id="btnNuevoPaso" title="Nueva fase donde acaba esta: cada jugadora aparece donde terminó su línea">➡ Siguiente</button>
+            <button id="btnDupPaso" title="Copia esta fase tal cual">⧉ Clonar</button>
+            <button id="btnVacioPaso" title="Nueva fase con las jugadoras donde están ahora, sin líneas">▢ Vacía</button>
+            <button id="btnQuitarPaso" title="Quita esta fase">🗑 Quitar</button>
+          </div>
+          <div class="lista-fases" id="fases"></div>
+        </div>
+        <div class="col-pista">
+          <div class="caja-pista" id="pista"></div>
+          <div class="leyenda" id="leyenda"></div>
+          <p class="hint" id="ayuda"></p>
+        </div>
+        <div class="col-herr herr">
+          <div class="bloque">
+            <h3>Acciones</h3>
+            <div class="acciones" id="tools">
+              <button data-t="mover" class="suave on">✋ Colocar</button>
+              <button data-t="bote">〰️ Bote</button>
+              <button data-t="pase">⤏ Pase</button>
+              <button data-t="corte">➡️ Corte</button>
+              <button data-t="pantalla">⊥ Pantalla</button>
+              <button data-t="tiro">🎯 Tiro</button>
+              <button data-t="mueve">⋯➤ Mover</button>
+              <button data-t="entrega">✚ Mano a mano</button>
+              <button data-t="balon" class="suave">🏀 Balón</button>
+              <button data-t="borrar" class="suave">🗑 Borrar línea</button>
+            </div>
+            <div class="fila" style="margin-top:8px;"><button class="gris" id="btnDeshacer">↩ Quitar la última línea</button></div>
+          </div>
+          <div class="bloque">
+            <h3>Jugadoras</h3>
+            <div class="paleta" id="palC"></div>
+            <div class="paleta" id="palQ"></div>
+            <div class="paleta" id="palX"></div>
+            <div class="fila" style="margin-top:6px;">
+              <button class="gris" id="btnFast">⚡ Cinco rápido</button>
+              <button class="gris" id="btnDef">🛡 Defensa</button>
+            </div>
+            <label>Formación de salida</label>
+            <select id="formacion"><option value="cinco">5 fuera</option><option value="cuatro">4 fuera 1 dentro</option><option value="altobajo">Alto-bajo</option></select>
+            <p class="aviso-herr">Toca una ficha para ponerla en la pista; tócala otra vez para quitarla.</p>
+          </div>
+          <div class="bloque" style="border:0;">
+            <div class="fila">
+              <button class="gris" id="btnPng">🖼️ Imagen de esta fase</button>
+              <button class="gris" id="btnImprimir">🖨️ Imprimir / PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- ANIMAR ---- -->
+    <div class="panel-ed" id="pAnim">
+      <div class="ani">
+        <div>
+          <div class="caja-pista" id="pistaAni"></div>
+          <div class="leyenda" id="leyendaAni"></div>
+          <div class="reprod">
+            <div class="linea-tiempo" id="lineaTiempo"></div>
+            <div class="ctrl">
+              <button class="play" id="btnPlay">▶</button>
+              <span class="tiempo" id="tiempoAni">0:00 / 0:00</span>
+              <span class="tiempo" id="faseAni"></span>
+              <select id="vel" style="flex:none;width:auto;margin-left:auto;"><option value="1800">Lenta</option><option value="1200" selected>Normal</option><option value="700">Rápida</option></select>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="chips-fase" id="chipsFase"></div>
+          <p class="hint" style="margin:0 0 6px;">Cada línea es una acción. «A la vez» la hace con la anterior; «Después» espera a que acabe la anterior. Con las flechas cambias el orden.</p>
+          <div id="listaAcc"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- TEXTO ---- -->
+    <div class="panel-ed" id="pText">
       <div class="card">
-        <h2>Diseña la jugada</h2>
-        <div class="fila">
-          <div><label style="margin-top:0;">Nombre</label><input id="nombre" placeholder="Ej: Cinco abierto, bloqueo directo"></div>
-          <div><label style="margin-top:0;">Tipo</label><select id="tipo"></select></div>
-          <div><label style="margin-top:0;">Formación</label>
-            <select id="formacion"><option value="cinco">5 fuera</option><option value="cuatro">4 fuera 1 dentro</option><option value="altobajo">Alto-bajo</option></select></div>
-        </div>
-        <label>Herramienta</label>
-        <div class="tools" id="tools">
-          <button data-t="mover" class="on">✋ Mover</button>
-          <button data-t="corte">➡️ Corte</button>
-          <button data-t="bote">〰️ Bote</button>
-          <button data-t="pase">⤏ Pase</button>
-          <button data-t="pantalla">⊥ Pantalla</button>
-          <button data-t="tiro">🎯 Tiro</button>
-          <button data-t="balon">🏀 Balón</button>
-          <button data-t="borrar">🗑️ Borrar</button>
-        </div>
-        <div id="pista"></div>
-        <div class="leyenda" id="leyenda"></div>
-        <p class="hint" id="ayuda"></p>
+        <h2>Descripción general</h2>
+        <textarea id="notas" placeholder="Para qué sirve la jugada, cómo se coloca el equipo, notas del entrenador..."></textarea>
+      </div>
+      <div id="textosFases"></div>
+    </div>
 
-        <label>Qué pasa en este paso (lo verán las jugadoras al reproducir)</label>
-        <input id="textoPaso" placeholder="Ej: El 4 sube a poner bloqueo directo al 1">
-
-        <div class="pasos" id="pasos"></div>
-        <div class="fila">
-          <button class="naranja" id="btnNuevoPaso">＋ Nuevo paso</button>
-          <button class="gris" id="btnDupPaso">⧉ Duplicar paso</button>
-          <button class="gris" id="btnQuitarPaso">Quitar este paso</button>
-          <button class="gris" id="btnDeshacer">↩ Deshacer línea</button>
-          <button class="verde" id="btnPlay">▶ Reproducir</button>
-        </div>
-        <div class="fila" style="margin-top:8px;align-items:center;">
-          <label style="margin:0;flex:none;"><input type="checkbox" id="chkDef" style="width:auto;margin-right:6px;">Mostrar defensa</label>
-          <div style="flex:none;min-width:130px;"><select id="vel"><option value="1500">Lenta</option><option value="1000" selected>Normal</option><option value="600">Rápida</option></select></div>
-        </div>
-
-        <label>Notas de la jugada</label>
-        <textarea id="notas" placeholder="Qué busca la jugada, lecturas, pistas para las jugadoras..."></textarea>
-
-        <div class="fila" style="margin-top:10px;align-items:center;">
-          <label style="margin:0;flex:none;"><input type="checkbox" id="chkFav" style="width:auto;margin-right:6px;">⭐ Favorita</label>
-          <label style="margin:0;flex:none;"><input type="checkbox" id="chkComp" style="width:auto;margin-right:6px;">📤 Visible para las jugadoras</label>
-        </div>
-
-        <div class="fila" style="margin-top:12px;">
-          <button class="naranja" id="btnGuardar">💾 Guardar en mis jugadas</button>
-          <button class="gris" id="btnNueva">Nueva jugada</button>
-        </div>
+    <!-- ---- VIDEOS ---- -->
+    <div class="panel-ed" id="pVid">
+      <div class="card">
+        <h2>Vídeos de la jugada</h2>
+        <p class="hint" style="margin-top:0;">Enlaces de YouTube o Vimeo, o un archivo de vídeo (.mp4). Los verán las jugadoras junto a la jugada.</p>
         <div class="fila" style="margin-top:8px;">
-          <button class="gris" id="btnPng">🖼️ Descargar imagen</button>
-          <button class="gris" id="btnImprimir">🖨️ Hoja para imprimir / PDF</button>
+          <div style="flex:3;min-width:220px;"><input id="vidUrl" placeholder="Pega el enlace del vídeo"></div>
+          <div style="flex:2;"><input id="vidTitulo" placeholder="Título (opcional)"></div>
+          <button class="naranja" id="btnAddVid" style="flex:none;">＋ Añadir</button>
         </div>
       </div>
+      <div id="listaVid"></div>
     </div>
 
-    <div>
-      <div class="card">
-        <h2>Cómo se dibuja</h2>
-        <p class="hint" style="margin:0;"><b>1.</b> Mueve a las jugadoras donde empieza la jugada.<br>
-        <b>2.</b> Elige <b>Corte</b>, <b>Bote</b>, <b>Pase</b>, <b>Pantalla</b> o <b>Tiro</b> y dibuja con el dedo o el ratón <b>desde la jugadora</b>.<br>
-        <b>3.</b> Escribe qué pasa en ese paso y pulsa <b>Nuevo paso</b>: cada jugadora aparece donde terminó su línea y el balón donde llegó el pase.<br>
-        <b>4.</b> Repite y pulsa <b>Reproducir</b> para ver la jugada en movimiento.<br>
-        <b>5.</b> Marca <b>Visible para las jugadoras</b> y guarda: les aparece animada en su app.</p>
+    <!-- ---- SALIDA ---- -->
+    <div class="panel-ed" id="pOut">
+      <div class="fila" style="max-width:860px;margin:0 auto 12px;">
+        <button class="verde" id="btnPlayTodo">▶ Reproducir la animación completa</button>
+        <button class="gris" id="btnImprimir2">🖨️ Imprimir / PDF</button>
       </div>
+      <div class="salida" id="salida"></div>
     </div>
-  </div>
   </div>
 </div>
 
 <!-- Ver una jugada en grande, animada -->
 <div id="modalVer"><div class="caja">
   <h3 id="mvTitulo"></h3>
-  <div id="mvPista" style="background:#f3e6d2;border-radius:12px;border:1.5px solid var(--line);"></div>
+  <div id="mvPista" class="caja-pista"></div>
   <div class="leyenda" id="mvLeyenda"></div>
-  <div class="fila" style="margin-top:10px;">
-    <button class="verde" id="mvPlay">▶ Reproducir</button>
-    <button class="gris" id="mvPrev">◀ Paso</button>
-    <button class="gris" id="mvNext">Paso ▶</button>
-    <button class="gris" id="mvCerrar">Cerrar</button>
-  </div>
+  <div class="reprod"><div class="linea-tiempo" id="mvLinea"></div>
+    <div class="ctrl"><button class="play" id="mvPlay">▶</button><span class="tiempo" id="mvTiempo"></span>
+      <button class="gris" id="mvPrev" style="margin-left:auto;">◀ Fase</button><button class="gris" id="mvNext">Fase ▶</button><button class="gris" id="mvCerrar">Cerrar</button></div></div>
   <p class="hint" id="mvNotas" style="white-space:pre-wrap;"></p>
+  <div id="mvVideos"></div>
 </div></div>
 
 <!-- Vista para las jugadoras (dentro de su app) -->
 <div id="visor">
-  <h3 id="vsTitulo" style="font-family:'Archivo Black',sans-serif;font-weight:400;font-size:18px;margin:0 0 8px;"></h3>
-  <div id="vsPista" style="background:#f3e6d2;border-radius:12px;border:1.5px solid var(--line);"></div>
+  <h3 id="vsTitulo"></h3>
+  <div id="vsPista" class="caja-pista"></div>
   <div class="leyenda" id="vsLeyenda"></div>
-  <div class="fila" style="margin-top:10px;">
-    <button class="verde" id="vsPlay">▶ Reproducir</button>
-    <button class="gris" id="vsPrev">◀ Paso</button>
-    <button class="gris" id="vsNext">Paso ▶</button>
-  </div>
+  <div class="reprod"><div class="linea-tiempo" id="vsLinea"></div>
+    <div class="ctrl"><button class="play" id="vsPlay">▶</button><span class="tiempo" id="vsTiempo"></span>
+      <button class="gris" id="vsPrev" style="margin-left:auto;">◀ Fase</button><button class="gris" id="vsNext">Fase ▶</button></div></div>
   <p class="hint" id="vsNotas" style="white-space:pre-wrap;"></p>
+  <div id="vsVideos"></div>
 </div>
 
 <div id="hojaImp"></div>
 <div id="aviso"></div>
-
 <script>
 /* ============================================================
-   PIZARRA DE JUGADAS
+   ENTRENADOR: biblioteca de jugadas + pizarra
    Coordenadas en metros: pista de medio campo 15 x 14, aro arriba.
+   Una jugada = varias FASES. Cada fase tiene jugadoras, balon, LINEAS (acciones, en orden) y un texto.
    ============================================================ */
 const TIPOS = ["Ataque", "Saque de fondo", "Saque de banda", "Contra zona", "Presion", "Ultimos segundos", "Otra"];
-const CLAVE = "scoutflow_pizarra_jugadas_v1", BORRADOR = "scoutflow_pizarra_borrador_v1";
+const CLAVE = "scoutflow_pizarra_jugadas_v1", BORRADOR = "scoutflow_pizarra_borrador_v2";
 const S = 33, ANCHO = 15, FONDO = 14, ARO = { x: 7.5, y: 1.575 };
-const COLOR = { corte: "#e0602a", bote: "#1f7a5a", pase: "#1b2432", pantalla: "#7a5aa6", tiro: "#c0392b" };
+const COLOR = { corte: "#e0602a", bote: "#1f7a5a", pase: "#1b2432", pantalla: "#7a5aa6", tiro: "#c0392b", mueve: "#6b7686", entrega: "#2a6fb0" };
+const NOMBRE_ACCION = { corte: "Corte", bote: "Bote", pase: "Pase", pantalla: "Pantalla", tiro: "Tiro", mueve: "Movimiento", entrega: "Mano a mano" };
+const MOVEDORAS = ["corte", "bote", "pantalla", "mueve", "entrega"];
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
 const VISOR = new URLSearchParams(location.search).get("visor") === "1";
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const clonar = (o) => JSON.parse(JSON.stringify(o));
+const idNuevo = () => "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
-/* ---------- formaciones ---------- */
+/* ---------- fichas: o = circulo numerado, s = cuadrado numerado, d = X de defensa; numero 0 = "?" ---------- */
+const etiquetaFicha = (k) => (k.slice(1) === "0" ? "?" : k.slice(1));
+const esAtaque = (k) => k[0] === "o" || k[0] === "s";
 const FORMACIONES = {
   cinco:    { o1: [7.5, 9.4], o2: [12.6, 6.6], o3: [2.4, 6.6], o4: [13.4, 2.6], o5: [1.6, 2.6] },
   cuatro:   { o1: [7.5, 9.4], o2: [12.6, 6.6], o3: [2.4, 6.6], o4: [13.4, 2.6], o5: [7.5, 4.4] },
   altobajo: { o1: [7.5, 9.4], o2: [12.2, 6.2], o3: [2.8, 6.2], o4: [8.9, 6.4], o5: [6.0, 3.2] },
 };
+function posicionDefensa(x, y) {
+  const dx = ARO.x - x, dy = ARO.y - y, d = Math.hypot(dx, dy) || 1;
+  return { x: x + dx / d * 1.6, y: y + dy / d * 1.6 };
+}
 function posicionesIniciales(clave) {
   const f = FORMACIONES[clave] || FORMACIONES.cinco, pos = {};
   Object.keys(f).forEach(k => { pos[k] = { x: f[k][0], y: f[k][1] }; });
-  // defensa: entre cada atacante y el aro
-  Object.keys(f).forEach((k, i) => {
-    const [x, y] = f[k], dx = ARO.x - x, dy = ARO.y - y, d = Math.hypot(dx, dy) || 1;
-    pos["d" + (i + 1)] = { x: x + dx / d * 1.6, y: y + dy / d * 1.6 };
-  });
   return pos;
 }
+function posicionPorDefecto(k, pos) {
+  const base = FORMACIONES.cinco;
+  if (k[0] === "o" && base[k]) return { x: base[k][0], y: base[k][1] };
+  if (k[0] === "d") { const o = pos["o" + k.slice(1)] || (base["o" + k.slice(1)] ? { x: base["o" + k.slice(1)][0], y: base["o" + k.slice(1)][1] } : null); if (o) return posicionDefensa(o.x, o.y); }
+  const n = k.slice(1) === "0" ? 6 : Number(k.slice(1));
+  return { x: 2 + n * 1.9, y: k[0] === "s" ? 12.7 : (k[0] === "d" ? 11.2 : 11.9) };
+}
 function jugadaNueva(formacion) {
-  return { id: "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), nombre: "", tipo: "Ataque", notas: "", formacion: formacion || "cinco", defensa: false, favorita: false, compartida: false,
+  return { v: 3, id: idNuevo(), nombre: "", tipo: "Ataque", notas: "", formacion: formacion || "cinco", favorita: false, compartida: false, videos: [],
     pasos: [{ pos: posicionesIniciales(formacion || "cinco"), balon: "o1", lineas: [], texto: "" }] };
 }
-const clonar = (o) => JSON.parse(JSON.stringify(o));
+/* Pone al dia jugadas guardadas con versiones anteriores */
+function normalizar(j) {
+  if (!j || !j.pasos) return j;
+  if (j.v >= 3) { j.videos = j.videos || []; return j; }
+  j.videos = j.videos || [];
+  j.pasos.forEach(p => {
+    p.texto = p.texto || ""; p.lineas = p.lineas || [];
+    if (!j.defensa) Object.keys(p.pos).forEach(k => { if (k[0] === "d") delete p.pos[k]; });
+    p.lineas.forEach(l => { if (l.t === "pase" && !l.a) { /* se resuelve al animar */ } });
+  });
+  delete j.defensa; j.v = 3;
+  return j;
+}
 
 /* ---------- estado ---------- */
-let jugada = jugadaNueva(), paso = 0, herramienta = "mover", animando = false, trazo = null, arrastre = null;
+let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null;
+let hist = [], rehacer = [];
+const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } return JSON.stringify({ jugada, paso }); };
+function snap() { hist.push(instantanea()); if (hist.length > 80) hist.shift(); rehacer = []; botonesHistorial(); }
+function botonesHistorial() { const u = $("btnUndo"), r = $("btnRedo"); if (u) u.disabled = !hist.length; if (r) r.disabled = !rehacer.length; }
+function deshacerCambio() { if (!hist.length) return; rehacer.push(instantanea()); const e = JSON.parse(hist.pop()); jugada = e.jugada; paso = Math.min(e.paso, jugada.pasos.length - 1); refrescarTodo(); }
+function rehacerCambio() { if (!rehacer.length) return; hist.push(instantanea()); const e = JSON.parse(rehacer.pop()); jugada = e.jugada; paso = Math.min(e.paso, jugada.pasos.length - 1); refrescarTodo(); }
 
-/* ---------- dibujo (devuelve SVG como texto; se usa para editor, miniaturas, PNG e impresion) ---------- */
+/* ---------- dibujo (devuelve SVG como texto; sirve para editor, miniaturas, PNG, impresion y animacion) ---------- */
 function pistaFondo() {
   const m = (v) => (v * S).toFixed(1), A = ARO;
   const yEsq = A.y + Math.sqrt(6.75 * 6.75 - Math.pow(A.x - 0.9, 2));
@@ -283,6 +434,7 @@ function pistaFondo() {
     <circle cx="${m(A.x)}" cy="${m(A.y)}" r="${m(0.225)}" stroke="#c0562a" stroke-width="3.2"/>
   </g>`;
 }
+
 function puntosLinea(l) {
   if (l.t !== "bote") return l.pts;
   // zigzag a lo largo del recorrido
@@ -299,6 +451,7 @@ function puntosLinea(l) {
   out.push(l.pts[l.pts.length - 1]);
   return out;
 }
+
 function lineaSvg(l, opac) {
   if (!l.pts || l.pts.length < 2) return "";
   const col = COLOR[l.t] || "#333", pts = puntosLinea(l).map(p => `${(p[0] * S).toFixed(1)},${(p[1] * S).toFixed(1)}`).join(" ");
@@ -307,122 +460,260 @@ function lineaSvg(l, opac) {
   while (k > 0 && Math.hypot(fin[0] - l.pts[k][0], fin[1] - l.pts[k][1]) < 0.35) k--;
   const ant = l.pts[k], ang = Math.atan2(fin[1] - ant[1], fin[0] - ant[0]);
   const px = fin[0] * S, py = fin[1] * S, L = 13, a1 = ang + 2.6, a2 = ang - 2.6;
+  const flecha = `<polygon points="${px.toFixed(1)},${py.toFixed(1)} ${(px + Math.cos(a1) * L).toFixed(1)},${(py + Math.sin(a1) * L).toFixed(1)} ${(px + Math.cos(a2) * L).toFixed(1)},${(py + Math.sin(a2) * L).toFixed(1)}" fill="${col}"/>`;
+  const nx = -Math.sin(ang) * 15, ny = Math.cos(ang) * 15;
   let remate;
-  if (l.t === "pantalla") {
-    const nx = -Math.sin(ang) * 15, ny = Math.cos(ang) * 15;
-    remate = `<line x1="${(px - nx).toFixed(1)}" y1="${(py - ny).toFixed(1)}" x2="${(px + nx).toFixed(1)}" y2="${(py + ny).toFixed(1)}" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>`;
-  } else {
-    remate = `<polygon points="${px.toFixed(1)},${py.toFixed(1)} ${(px + Math.cos(a1) * L).toFixed(1)},${(py + Math.sin(a1) * L).toFixed(1)} ${(px + Math.cos(a2) * L).toFixed(1)},${(py + Math.sin(a2) * L).toFixed(1)}" fill="${col}"/>`;
-  }
-  return `<g opacity="${opac}" data-linea="1"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"${l.t === "pase" ? ' stroke-dasharray="9 7"' : (l.t === "tiro" ? ' stroke-dasharray="2 7"' : "")}/>${remate}</g>`;
+  if (l.t === "pantalla") remate = `<line x1="${(px - nx).toFixed(1)}" y1="${(py - ny).toFixed(1)}" x2="${(px + nx).toFixed(1)}" y2="${(py + ny).toFixed(1)}" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>`;
+  else if (l.t === "entrega") remate = `<line x1="${(px - nx).toFixed(1)}" y1="${(py - ny).toFixed(1)}" x2="${(px + nx).toFixed(1)}" y2="${(py + ny).toFixed(1)}" stroke="${col}" stroke-width="3.6" stroke-linecap="round"/><line x1="${(px - Math.cos(ang) * 9).toFixed(1)}" y1="${(py - Math.sin(ang) * 9).toFixed(1)}" x2="${(px + Math.cos(ang) * 9).toFixed(1)}" y2="${(py + Math.sin(ang) * 9).toFixed(1)}" stroke="${col}" stroke-width="3.6" stroke-linecap="round"/>`;
+  else if (l.t === "tiro") remate = `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="8" fill="none" stroke="${col}" stroke-width="2.6"/><line x1="${(px - 12).toFixed(1)}" y1="${py.toFixed(1)}" x2="${(px + 12).toFixed(1)}" y2="${py.toFixed(1)}" stroke="${col}" stroke-width="2.2"/><line x1="${px.toFixed(1)}" y1="${(py - 12).toFixed(1)}" x2="${px.toFixed(1)}" y2="${(py + 12).toFixed(1)}" stroke="${col}" stroke-width="2.2"/>`;
+  else remate = flecha;
+  const dash = l.t === "pase" ? ' stroke-dasharray="9 7"' : (l.t === "tiro" ? ' stroke-dasharray="3 7"' : (l.t === "mueve" ? ' stroke-dasharray="2 6"' : ""));
+  return `<g opacity="${opac}" data-linea="1"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"${dash}/>${remate}</g>`;
 }
-function jugadoresSvg(pos, balonPos, defensa, interactivo) {
+function fichaSvg(k, p, interactivo) {
+  const x = (p.x * S).toFixed(1), y = (p.y * S).toFixed(1), n = etiquetaFicha(k), datos = interactivo ? `data-j="${k}" style="cursor:grab"` : "";
+  if (k[0] === "d") return `<g ${datos}><g stroke="#d12b4a" stroke-width="4" stroke-linecap="round"><line x1="${(p.x * S - 11).toFixed(1)}" y1="${(p.y * S - 11).toFixed(1)}" x2="${(p.x * S + 11).toFixed(1)}" y2="${(p.y * S + 11).toFixed(1)}"/><line x1="${(p.x * S + 11).toFixed(1)}" y1="${(p.y * S - 11).toFixed(1)}" x2="${(p.x * S - 11).toFixed(1)}" y2="${(p.y * S + 11).toFixed(1)}"/></g>
+    <text x="${(p.x * S + 13).toFixed(1)}" y="${(p.y * S + 13).toFixed(1)}" font-family="Arial" font-weight="700" font-size="11" fill="#d12b4a">${n}</text></g>`;
+  if (k[0] === "s") return `<g ${datos}><rect x="${(p.x * S - 15).toFixed(1)}" y="${(p.y * S - 15).toFixed(1)}" width="30" height="30" rx="6" fill="#2f6f5e" stroke="#fff" stroke-width="2.5"/>
+    <text x="${x}" y="${(p.y * S + 6).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="17" fill="#fff">${n}</text></g>`;
+  return `<g ${datos}><circle cx="${x}" cy="${y}" r="16" fill="#e0602a" stroke="#fff" stroke-width="2.5"/>
+    <text x="${x}" y="${(p.y * S + 6).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="17" fill="#fff">${n}</text></g>`;
+}
+function jugadoresSvg(pos, balonPos, interactivo) {
   let s = "";
-  if (defensa) for (let i = 1; i <= 5; i++) {
-    const p = pos["d" + i]; if (!p) continue;
-    s += `<g ${interactivo ? `data-j="d${i}" style="cursor:grab"` : ""}><circle cx="${(p.x * S).toFixed(1)}" cy="${(p.y * S).toFixed(1)}" r="15" fill="#44566c" stroke="#fff" stroke-width="2"/>
-      <text x="${(p.x * S).toFixed(1)}" y="${(p.y * S + 5).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="700" font-size="14" fill="#fff">X${i}</text></g>`;
-  }
-  for (let i = 1; i <= 5; i++) {
-    const p = pos["o" + i]; if (!p) continue;
-    s += `<g ${interactivo ? `data-j="o${i}" style="cursor:grab"` : ""}><circle cx="${(p.x * S).toFixed(1)}" cy="${(p.y * S).toFixed(1)}" r="16" fill="#e0602a" stroke="#fff" stroke-width="2.5"/>
-      <text x="${(p.x * S).toFixed(1)}" y="${(p.y * S + 6).toFixed(1)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="17" fill="#fff">${i}</text></g>`;
-  }
+  Object.keys(pos).sort((a, b) => (a[0] === "d" ? 0 : 1) - (b[0] === "d" ? 0 : 1)).forEach(k => { s += fichaSvg(k, pos[k], interactivo); });
   if (balonPos) s += `<g><circle cx="${(balonPos.x * S).toFixed(1)}" cy="${(balonPos.y * S).toFixed(1)}" r="8.5" fill="#f08a2a" stroke="#4b2a10" stroke-width="1.8"/>
       <path d="M ${(balonPos.x * S - 8.5).toFixed(1)} ${(balonPos.y * S).toFixed(1)} H ${(balonPos.x * S + 8.5).toFixed(1)} M ${(balonPos.x * S).toFixed(1)} ${(balonPos.y * S - 8.5).toFixed(1)} V ${(balonPos.y * S + 8.5).toFixed(1)}" stroke="#4b2a10" stroke-width="1.3" fill="none"/></g>`;
   return s;
 }
-const posBalon = (pos, dueno) => { const p = pos[dueno]; return p ? { x: p.x + 0.62, y: p.y - 0.62 } : null; };
+function posBalon(pos, dueno) {
+  let p = pos[dueno];
+  if (!p) { const k = Object.keys(pos).find(esAtaque); p = k ? pos[k] : null; }
+  return p ? { x: p.x + 0.62, y: p.y - 0.62 } : null;
+}
 function svgPaso(j, i, opciones) {
   opciones = opciones || {};
   const p = j.pasos[i];
   let lineas = "";
-  if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.22); }); }
+  if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), j.defensa, opciones.interactivo)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}</svg>`;
 }
+const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
 
-/* ---------- editor ---------- */
-function pintar() {
-  if (animando) return;
-  $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true });
-  const svg = $("pista").querySelector("svg");
-  svg.addEventListener("pointerdown", alPulsar);
-  svg.addEventListener("pointermove", alMover);
-  svg.addEventListener("pointerup", alSoltar);
-  svg.addEventListener("pointercancel", alSoltar);
-  if (trazo && trazo.pts.length > 1) svg.insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
-  $("pasos").innerHTML = jugada.pasos.map((_, i) => `<div class="paso ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}</div>`).join("");
-  $("pasos").querySelectorAll(".paso").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); pintar(); }));
-  $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
-  $("btnDeshacer").disabled = !jugada.pasos[paso].lineas.length;
-  $("chkDef").checked = !!jugada.defensa;
-  $("textoPaso").value = jugada.pasos[paso].texto || "";
-  $("leyenda").textContent = jugada.pasos[paso].texto || "";
-  $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida;
-  const ayuda = {
-    mover: "Arrastra a una jugadora para colocarla.",
-    corte: "Dibuja desde una jugadora hasta donde quieres que corte.",
-    bote: "Dibuja desde la jugadora que tiene el balón: avanza botando.",
-    pase: "Dibuja desde quien pasa hasta quien recibe.",
-    pantalla: "Dibuja desde la jugadora que bloquea hasta donde pone el bloqueo.",
-    tiro: "Dibuja desde la jugadora que tira hasta el aro.",
-    balon: "Toca a la jugadora que tiene el balón en este paso.",
-    borrar: "Toca una línea para borrarla.",
-  };
-  $("ayuda").textContent = "Paso " + (paso + 1) + " de " + jugada.pasos.length + " · " + ayuda[herramienta];
-  guardarBorrador();
+/* ---------- animacion: las jugadoras recorren su linea, el balon vuela en los pases y tiros ---------- */
+const easeIO = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+function etapasDe(p) {
+  const st = [];
+  p.lineas.forEach((l, i) => { if (!st.length || l.despues) st.push([i]); else st[st.length - 1].push(i); });
+  return st;
 }
+function puntoEn(pts, f) {
+  if (pts.length < 2) return pts[0];
+  const seg = []; let tot = 0;
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(d); tot += d; }
+  let obj = f * tot, acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const d = seg[i - 1];
+    if (obj <= acc + d || i === pts.length - 1) { const r = d ? Math.max(0, Math.min(1, (obj - acc) / d)) : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * r, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * r]; }
+    acc += d;
+  }
+  return pts[pts.length - 1];
+}
+/* receptora de un pase / mano a mano: la que se guardo al dibujar o la mas cercana al final de la linea */
+function receptoraDe(l, pos) {
+  if (l.a && pos[l.a]) return l.a;
+  const fin = l.pts[l.pts.length - 1]; let rec = "", dm = 1.6;
+  Object.keys(pos).forEach(k => { if (!esAtaque(k) || k === l.de) return; const d = Math.hypot(pos[k].x - fin[0], pos[k].y - fin[1]); if (d < dm) { dm = d; rec = k; } });
+  return rec;
+}
+function estadoEn(j, i, t) {
+  const a = j.pasos[i], b = j.pasos[i + 1] || a, st = etapasDe(a), nS = Math.max(1, st.length);
+  const u = Math.min(nS - 1e-9, Math.max(0, t) * nS), si = Math.floor(u), e = easeIO(u - si);
+  const pos = {}; Object.keys(a.pos).forEach(k => { pos[k] = { x: a.pos[k].x, y: a.pos[k].y }; });
+  const movidas = new Set();
+  st.forEach((idxs, s) => {
+    if (s > si) return;
+    const f = s < si ? 1 : e;
+    idxs.forEach(li => { const l = a.lineas[li]; if (l.de && MOVEDORAS.includes(l.t) && pos[l.de]) { const q = puntoEn(l.pts, f); pos[l.de] = { x: q[0], y: q[1] }; movidas.add(l.de); } });
+  });
+  // las que ninguna linea mueve (o se movieron a mano entre fases) se desplazan suavemente a su sitio final
+  Object.keys(a.pos).forEach(k => { if (!movidas.has(k) && b.pos[k]) { const g = easeIO(Math.max(0, Math.min(1, t))); pos[k] = { x: a.pos[k].x + (b.pos[k].x - a.pos[k].x) * g, y: a.pos[k].y + (b.pos[k].y - a.pos[k].y) * g }; } });
+  let holder = a.balon, vuelo = null;
+  st.forEach((idxs, s) => {
+    if (s > si) return;
+    const f = s < si ? 1 : e;
+    idxs.forEach(li => {
+      const l = a.lineas[li], rec = (l.t === "pase" || l.t === "entrega") ? receptoraDe(l, a.pos) : "";
+      if (l.t === "pase" && rec && pos[rec]) {
+        if (s < si) { holder = rec; vuelo = null; }
+        else { const o = posBalon(pos, l.de || holder), d = posBalon(pos, rec); if (o && d) vuelo = { x: o.x + (d.x - o.x) * f, y: o.y + (d.y - o.y) * f }; }
+      } else if (l.t === "entrega" && rec && pos[rec]) { if (s < si || f >= 0.5) holder = rec; }
+      else if (l.t === "tiro") {
+        const o = posBalon(pos, l.de || holder);
+        if (o) { if (s < si) vuelo = { x: ARO.x, y: ARO.y }; else vuelo = { x: o.x + (ARO.x - o.x) * f, y: o.y + (ARO.y - o.y) * f - Math.sin(Math.PI * f) * 1.3 }; }
+      }
+    });
+  });
+  return { pos, balon: vuelo || posBalon(pos, holder), si, st };
+}
+function fotogramaAnim(j, caja, i, t) {
+  const a = j.pasos[i], E = estadoEn(j, i, t);
+  let lineas = ""; E.st.forEach((idxs, s) => { if (s <= E.si) idxs.forEach(li => { lineas += lineaSvg(a.lineas[li], 0.38); }); });
+  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${pistaFondo()}${lineas}${jugadoresSvg(E.pos, E.balon, false)}</svg>`;
+}
+const PAUSA_FASE = 450;
+/* Segmentos de tiempo de una jugada (de la fase "desde" a la "hasta") */
+function segmentosAnim(j, dur, desde, hasta) {
+  const segs = []; let ini = 0;
+  for (let i = desde; i < hasta && i < j.pasos.length - 1; i++) {
+    const nS = Math.max(1, etapasDe(j.pasos[i]).length), d = nS * dur;
+    segs.push({ i, ini, dur: d, fin: ini + d + PAUSA_FASE }); ini += d + PAUSA_FASE;
+  }
+  return { segs, total: ini };
+}
+/* opciones: { desde, hasta, enFase(i), enProgreso(ms, total), alAcabar() } -> devuelve la funcion para parar */
+function animarJugada(j, caja, dur, op) {
+  op = op || {};
+  const { segs, total } = segmentosAnim(j, dur, op.desde || 0, op.hasta == null ? j.pasos.length - 1 : op.hasta);
+  let cancelar = false, ini = null, ultima = -1;
+  if (!segs.length) { if (op.alAcabar) op.alAcabar(); return () => {}; }
+  const marco = (ts) => {
+    if (cancelar) { if (op.alAcabar) op.alAcabar(false); return; }
+    if (ini === null) ini = ts;
+    const el = Math.min(total, ts - ini);
+    let sg = segs.find(s => el < s.fin) || segs[segs.length - 1];
+    const t = Math.min(1, (el - sg.ini) / sg.dur);
+    if (sg.i !== ultima) { ultima = sg.i; if (op.enFase) op.enFase(sg.i); }
+    fotogramaAnim(j, caja, sg.i, t);
+    if (op.enProgreso) op.enProgreso(el, total);
+    if (ts - ini >= total) { setTimeout(() => { if (op.alAcabar) op.alAcabar(true); }, 250); return; }
+    requestAnimationFrame(marco);
+  };
+  requestAnimationFrame(marco);
+  return () => { cancelar = true; };
+}
+const tiempoTxt = (ms) => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+
+/* ---------- video: youtube, vimeo, archivo o enlace ---------- */
+function videoHtml(u) {
+  u = String(u || "").trim(); if (!u) return "";
+  let m = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([\w-]{11})/.exec(u);
+  if (m) return `<div class="marco-vid"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen loading="lazy" allow="accelerometer; encrypted-media; picture-in-picture"></iframe></div>`;
+  m = /vimeo\.com\/(?:video\/)?(\d+)/.exec(u);
+  if (m) return `<div class="marco-vid"><iframe src="https://player.vimeo.com/video/${m[1]}" allowfullscreen loading="lazy"></iframe></div>`;
+  if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return `<div class="marco-vid"><video controls playsinline src="${esc(u)}"></video></div>`;
+  return `<a href="${esc(u)}" target="_blank" rel="noopener" style="font-weight:800;">🔗 Abrir el enlace</a>`;
+}
+const videosHtml = (j) => (j.videos || []).map(v => `<div style="margin-top:12px;">${v.titulo ? `<b style="display:block;margin-bottom:5px;">${esc(v.titulo)}</b>` : ""}${videoHtml(v.url)}</div>`).join("");
+
+/* ============================================================
+   EDITOR
+   ============================================================ */
+let tabActual = "Draw", faseAnim = -1, pararAni = null;
+const fichaCerca = (p, max, soloAtaque) => {
+  let mejor = null, dm = max; const pos = jugada.pasos[paso].pos;
+  Object.keys(pos).forEach(k => { if (soloAtaque && !esAtaque(k)) return; const d = Math.hypot(pos[k].x - p.x, pos[k].y - p.y); if (d < dm) { dm = d; mejor = k; } });
+  return mejor;
+};
 function aMetros(ev) {
   const svg = $("pista").querySelector("svg"), pt = svg.createSVGPoint();
   pt.x = ev.clientX; pt.y = ev.clientY;
   const q = pt.matrixTransform(svg.getScreenCTM().inverse());
   return { x: Math.max(0, Math.min(ANCHO, q.x / S)), y: Math.max(0, Math.min(FONDO, q.y / S)) };
 }
-function jugadoraCerca(p, max) {
-  let mejor = null, dm = max;
+const AYUDAS = {
+  mover: "Arrastra a una ficha para colocarla.",
+  bote: "Dibuja desde la jugadora que tiene el balón: avanza botando.",
+  pase: "Dibuja desde quien pasa hasta quien recibe.",
+  corte: "Dibuja desde una jugadora hasta donde quieres que corte.",
+  pantalla: "Dibuja desde la jugadora que bloquea hasta donde pone el bloqueo.",
+  tiro: "Dibuja desde la jugadora que tira hasta el aro.",
+  mueve: "Dibuja un desplazamiento sin balón (reposicionarse).",
+  entrega: "Dibuja desde quien entrega hasta quien recibe en mano a mano.",
+  balon: "Toca a la jugadora que tiene el balón en esta fase.",
+  borrar: "Toca una línea para borrarla.",
+};
+function pintar() {
+  if (!jugada.pasos[paso]) paso = 0;
+  const act = jugada.pasos[paso];
+  $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true });
+  if (trazo && trazo.pts.length > 1) $("pista").querySelector("svg").insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
+  $("fases").innerHTML = jugada.pasos.map((_, i) => `<div class="fase ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}</div>`).join("");
+  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); pintar(); }));
+  $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
+  $("btnDeshacer").disabled = !act.lineas.length;
+  $("leyenda").innerHTML = textoLista(act.texto);
+  $("ayuda").textContent = "Fase " + (paso + 1) + " de " + jugada.pasos.length + " · " + AYUDAS[herramienta];
+  pintarPaleta();
+  botonesHistorial();
+  guardarBorrador();
+}
+function pintarPaleta() {
   const pos = jugada.pasos[paso].pos;
-  Object.keys(pos).forEach(k => {
-    if (k[0] === "d" && !jugada.defensa) return;
-    const d = Math.hypot(pos[k].x - p.x, pos[k].y - p.y);
-    if (d < dm) { dm = d; mejor = k; }
-  });
-  return mejor;
+  const mk = (k, txt, cls) => `<button class="${cls}${pos[k] ? " puesta" : ""}" data-k="${k}">${txt}</button>`;
+  const ids = ["1", "2", "3", "4", "5", "0"];
+  $("palC").innerHTML = ids.map(n => mk("o" + n, n === "0" ? "?" : n, "c")).join("");
+  $("palQ").innerHTML = ids.map(n => mk("s" + n, n === "0" ? "?" : n, "q")).join("");
+  $("palX").innerHTML = ids.map(n => mk("d" + n, "X" + (n === "0" ? "?" : n), "x")).join("");
+  document.querySelectorAll("#palC button, #palQ button, #palX button").forEach(b => b.addEventListener("click", () => alternarFicha(b.dataset.k)));
+}
+function alternarFicha(k) {
+  snap();
+  const hay = !!jugada.pasos[paso].pos[k];
+  for (let i = paso; i < jugada.pasos.length; i++) {
+    const p = jugada.pasos[i];
+    if (hay) { delete p.pos[k]; if (p.balon === k) p.balon = Object.keys(p.pos).find(esAtaque) || ""; p.lineas = p.lineas.filter(l => l.de !== k && l.a !== k); }
+    else { p.pos[k] = posicionPorDefecto(k, jugada.pasos[paso].pos); if (!p.balon && esAtaque(k)) p.balon = k; }
+  }
+  pintar();
+}
+function cincoRapido() {
+  snap();
+  const f = FORMACIONES[$("formacion").value] || FORMACIONES.cinco;
+  for (let i = paso; i < jugada.pasos.length; i++) Object.keys(f).forEach(k => { jugada.pasos[i].pos[k] = { x: f[k][0], y: f[k][1] }; if (!jugada.pasos[i].balon) jugada.pasos[i].balon = "o1"; });
+  pintar();
+}
+function alternarDefensa() {
+  snap();
+  const hay = Object.keys(jugada.pasos[paso].pos).some(k => k[0] === "d");
+  const base = jugada.pasos[paso].pos;
+  for (let i = paso; i < jugada.pasos.length; i++) {
+    const p = jugada.pasos[i];
+    if (hay) { Object.keys(p.pos).forEach(k => { if (k[0] === "d") delete p.pos[k]; }); p.lineas = p.lineas.filter(l => !(l.de && l.de[0] === "d")); }
+    else ["1", "2", "3", "4", "5"].forEach(n => { const o = base["o" + n] || p.pos["o" + n]; if (o) p.pos["d" + n] = posicionDefensa(o.x, o.y); });
+  }
+  pintar();
 }
 function alPulsar(ev) {
-  if (animando) return;
+  if (ev.button > 0) return;
   ev.preventDefault();
-  const p = aMetros(ev), actual = jugada.pasos[paso];
+  const p = aMetros(ev), act = jugada.pasos[paso];
   if (herramienta === "mover") {
-    const k = jugadoraCerca(p, 0.9);
-    if (k) { arrastre = k; ev.target.setPointerCapture && ev.target.setPointerCapture(ev.pointerId); }
+    const k = fichaCerca(p, 0.9);
+    if (k) { snap(); arrastre = k; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
   } else if (herramienta === "balon") {
-    const k = jugadoraCerca(p, 1.1);
-    if (k && k[0] === "o") { actual.balon = k; pintar(); }
+    const k = fichaCerca(p, 1.1, true);
+    if (k) { snap(); act.balon = k; pintar(); }
   } else if (herramienta === "borrar") {
     let mejor = -1, dm = 0.7;
-    actual.lineas.forEach((l, i) => l.pts.forEach(q => { const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < dm) { dm = d; mejor = i; } }));
-    if (mejor >= 0) { actual.lineas.splice(mejor, 1); pintar(); }
+    act.lineas.forEach((l, i) => l.pts.forEach(q => { const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < dm) { dm = d; mejor = i; } }));
+    if (mejor >= 0) { snap(); act.lineas.splice(mejor, 1); pintar(); }
   } else {
-    const k = jugadoraCerca(p, 1.0);
-    const origen = k ? actual.pos[k] : p;
-    trazo = { t: herramienta, de: k && k[0] === "o" ? k : "", pts: [[origen.x, origen.y]] };
-    ev.target.setPointerCapture && ev.target.setPointerCapture(ev.pointerId);
+    const k = fichaCerca(p, 1.0);
+    const origen = k ? act.pos[k] : p;
+    trazo = { t: herramienta, de: k || "", pts: [[origen.x, origen.y]] };
+    try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ }
   }
 }
 function alMover(ev) {
+  if (!arrastre && !trazo) return;
   const p = aMetros(ev);
-  if (arrastre) {
-    jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y };
-    $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true });
-    const svg = $("pista").querySelector("svg");
-    svg.addEventListener("pointerdown", alPulsar); svg.addEventListener("pointermove", alMover);
-    svg.addEventListener("pointerup", alSoltar); svg.addEventListener("pointercancel", alSoltar);
-  } else if (trazo) {
+  if (arrastre) { jugada.pasos[paso].pos[arrastre] = { x: p.x, y: p.y }; $("pista").innerHTML = svgPaso(jugada, paso, { todas: true, interactivo: true }); }
+  else if (trazo) {
     const u = trazo.pts[trazo.pts.length - 1];
     if (Math.hypot(p.x - u[0], p.y - u[1]) > 0.18) trazo.pts.push([p.x, p.y]);
-    const svg = $("pista").querySelector("svg");
-    const viejo = svg.querySelector("[data-trazo]"); if (viejo) viejo.remove();
+    const svg = $("pista").querySelector("svg"), viejo = svg.querySelector("[data-trazo]"); if (viejo) viejo.remove();
     if (trazo.pts.length > 1) svg.insertAdjacentHTML("beforeend", lineaSvg(trazo, 1).replace("<g ", "<g data-trazo=\"1\" "));
   }
 }
@@ -431,119 +722,174 @@ function alSoltar() {
   if (trazo) {
     const largo = trazo.pts.reduce((a, q, i) => i ? a + Math.hypot(q[0] - trazo.pts[i - 1][0], q[1] - trazo.pts[i - 1][1]) : 0, 0);
     if (largo > 0.8) {
-      // se suaviza el trazo: se queda con un punto de cada pocos
       const pts = trazo.pts.filter((_, i) => i % 2 === 0 || i === trazo.pts.length - 1);
-      jugada.pasos[paso].lineas.push({ t: trazo.t, de: trazo.de, pts });
+      const linea = { t: trazo.t, de: trazo.de, pts, despues: false };
+      if (trazo.t === "pase" || trazo.t === "entrega") { const r = receptoraDe(linea, jugada.pasos[paso].pos); if (r) linea.a = r; }
+      snap(); jugada.pasos[paso].lineas.push(linea);
     }
     trazo = null; pintar();
   }
 }
 
-/* ---------- pasos ---------- */
+/* ---------- fases ---------- */
 function nuevoPaso() {
+  snap();
   const act = jugada.pasos[paso], pos = clonar(act.pos);
   let balon = act.balon;
   act.lineas.forEach(l => {
     const fin = l.pts[l.pts.length - 1];
-    if ((l.t === "corte" || l.t === "bote" || l.t === "pantalla") && l.de) pos[l.de] = { x: fin[0], y: fin[1] };
-    if (l.t === "pase") {
-      let rec = null, dm = 1.4;
-      Object.keys(pos).forEach(k => { if (k[0] !== "o") return; const d = Math.hypot(act.pos[k].x - fin[0], act.pos[k].y - fin[1]); if (d < dm && k !== l.de) { dm = d; rec = k; } });
-      if (rec) balon = rec;
-    }
+    if (MOVEDORAS.includes(l.t) && l.de && pos[l.de]) pos[l.de] = { x: fin[0], y: fin[1] };
+    if (l.t === "pase" || l.t === "entrega") { const r = receptoraDe(l, act.pos); if (r) balon = r; }
   });
   jugada.pasos.splice(paso + 1, 0, { pos, balon, lineas: [], texto: "" });
   paso++; pintar();
 }
-function duplicarPaso() {
-  const act = jugada.pasos[paso];
-  jugada.pasos.splice(paso + 1, 0, clonar(act));
-  paso++; pintar();
-}
-function quitarPaso() {
-  if (jugada.pasos.length < 2) return;
-  jugada.pasos.splice(paso, 1); paso = Math.max(0, paso - 1); pintar();
-}
+function vaciarPaso() { snap(); const act = jugada.pasos[paso]; jugada.pasos.splice(paso + 1, 0, { pos: clonar(act.pos), balon: act.balon, lineas: [], texto: "" }); paso++; pintar(); }
+function duplicarPaso() { snap(); jugada.pasos.splice(paso + 1, 0, clonar(jugada.pasos[paso])); paso++; pintar(); }
+function quitarPaso() { if (jugada.pasos.length < 2) return; snap(); jugada.pasos.splice(paso, 1); paso = Math.max(0, paso - 1); pintar(); }
 
-/* ---------- animacion (la usan el editor, la vista grande y la de las jugadoras) ---------- */
-function fotogramaAnim(j, caja, i, t) {
-  const a = j.pasos[i], b = j.pasos[i + 1];
-  const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-  const pos = {};
-  Object.keys(a.pos).forEach(k => { const q = b.pos[k] || a.pos[k]; pos[k] = { x: a.pos[k].x + (q.x - a.pos[k].x) * e, y: a.pos[k].y + (q.y - a.pos[k].y) * e }; });
-  let bp;
-  if (a.balon !== b.balon) { const o = posBalon(a.pos, a.balon), d = posBalon(b.pos, b.balon); bp = { x: o.x + (d.x - o.x) * e, y: o.y + (d.y - o.y) * e }; }
-  else bp = posBalon(pos, a.balon);
-  let lineas = ""; a.lineas.forEach(l => { lineas += lineaSvg(l, 0.35 * (1 - e) + 0.15); });
-  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}" style="display:block;width:100%;height:auto;">${pistaFondo()}${lineas}${jugadoresSvg(pos, bp, j.defensa, false)}</svg>`;
+/* ---------- pestanas del editor ---------- */
+function etiquetaLinea(l, pos) {
+  const de = l.de ? etiquetaFicha(l.de) : "";
+  let t = (NOMBRE_ACCION[l.t] || l.t) + (de ? " de " + de : "");
+  if (l.t === "pase" || l.t === "entrega") { const r = receptoraDe(l, pos); if (r) t += " a " + etiquetaFicha(r); }
+  return t;
 }
-/* Devuelve una funcion para parar. enPaso(i) avisa de que paso se esta ensenando; alAcabar() al terminar o parar. */
-function animarJugada(j, caja, dur, enPaso, alAcabar) {
-  let i = 0, ini = null, cancelar = false;
-  const fin = () => { if (alAcabar) alAcabar(); };
-  if (enPaso) enPaso(0);
-  const marco = (ts) => {
-    if (cancelar) { fin(); return; }
-    if (ini === null) ini = ts;
-    const t = Math.min(1, (ts - ini) / dur);
-    fotogramaAnim(j, caja, i, t);
-    if (t >= 1) {
-      i++; ini = null;
-      if (i >= j.pasos.length - 1) { if (enPaso) enPaso(j.pasos.length - 1); setTimeout(fin, 900); return; }
-      if (enPaso) enPaso(i);
-      setTimeout(() => requestAnimationFrame(marco), 350); return;
-    }
-    requestAnimationFrame(marco);
-  };
-  requestAnimationFrame(marco);
-  return () => { cancelar = true; };
+function pintarAnim() {
+  const n = jugada.pasos.length, ver = faseAnim < 0 ? 0 : Math.min(faseAnim, n - 1);
+  if (!pararAni) $("pistaAni").innerHTML = svgPaso(jugada, ver, {});
+  $("leyendaAni").innerHTML = textoLista(jugada.pasos[ver].texto);
+  $("chipsFase").innerHTML = `<button data-f="-1" class="${faseAnim < 0 ? "on" : ""}">Todas</button>` + jugada.pasos.map((_, i) => `<button data-f="${i}" class="${faseAnim === i ? "on" : ""}">${i + 1}</button>`).join("");
+  $("chipsFase").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { detenerAni(); faseAnim = Number(b.dataset.f); pintarAnim(); }));
+  const dur = Number($("vel").value), rango = rangoAnim();
+  const { segs, total } = segmentosAnim(jugada, dur, rango.desde, rango.hasta);
+  $("lineaTiempo").innerHTML = segs.length ? segs.map(s => `<div class="seg" style="flex:${s.dur + PAUSA_FASE};"><i></i></div>`).join("") : `<div class="seg"><i></i></div>`;
+  $("tiempoAni").textContent = "0:00 / " + tiempoTxt(total); $("faseAni").textContent = "";
+  $("btnPlay").textContent = pararAni ? "■" : "▶";
+  const grupos = jugada.pasos.map((p, i) => ({ p, i })).filter(g => faseAnim < 0 || g.i === faseAnim);
+  $("listaAcc").innerHTML = grupos.map(g => `<div class="grupo-acc"><h4>Fase ${g.i + 1}</h4>${g.p.lineas.length ? g.p.lineas.map((l, k) => `<div class="acc-fila" data-i="${g.i}" data-k="${k}">
+      <span class="num">${k + 1}</span><span class="et">${esc(etiquetaLinea(l, g.p.pos))}</span>
+      ${k > 0 ? `<button data-a="dsp" class="${l.despues ? "dsp" : ""}" title="Cuándo empieza">${l.despues ? "⏱ Después" : "∥ A la vez"}</button>` : ""}
+      <button data-a="up" ${k === 0 ? "disabled" : ""}>↑</button><button data-a="dn" ${k === g.p.lineas.length - 1 ? "disabled" : ""}>↓</button><button data-a="del">🗑</button></div>`).join("") : `<p class="hint" style="margin:0;">Esta fase no tiene acciones. Dibújalas en la pestaña Dibujar.</p>`}</div>`).join("");
+  $("listaAcc").querySelectorAll(".acc-fila").forEach(fila => fila.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    const i = Number(fila.dataset.i), k = Number(fila.dataset.k), ls = jugada.pasos[i].lineas;
+    detenerAni(); snap();
+    if (b.dataset.a === "dsp") ls[k].despues = !ls[k].despues;
+    if (b.dataset.a === "up" && k > 0) [ls[k - 1], ls[k]] = [ls[k], ls[k - 1]];
+    if (b.dataset.a === "dn" && k < ls.length - 1) [ls[k + 1], ls[k]] = [ls[k], ls[k + 1]];
+    if (b.dataset.a === "del") ls.splice(k, 1);
+    pintarAnim(); guardarBorrador();
+  })));
 }
-function reproducir() {
-  if (animando) return;
-  if (jugada.pasos.length < 2) { aviso("Añade al menos un segundo paso para verla en movimiento."); return; }
-  animando = true; $("btnPlay").textContent = "■ Parar";
-  const parar = animarJugada(jugada, $("pista"), Number($("vel").value),
-    (i) => { $("leyenda").textContent = jugada.pasos[i].texto || ""; },
-    () => { animando = false; $("btnPlay").textContent = "▶ Reproducir"; $("btnPlay").onclick = reproducir; pintar(); });
-  $("btnPlay").onclick = parar;
+const rangoAnim = () => faseAnim < 0 ? { desde: 0, hasta: jugada.pasos.length - 1 } : { desde: faseAnim, hasta: Math.min(faseAnim + 1, jugada.pasos.length - 1) };
+function detenerAni() { if (pararAni) { pararAni(); pararAni = null; } }
+function reproducirAni() {
+  if (pararAni) { detenerAni(); pintarAnim(); return; }
+  if (jugada.pasos.length < 2) { aviso("Añade al menos una segunda fase para verla en movimiento."); return; }
+  const dur = Number($("vel").value), r = rangoAnim();
+  if (r.hasta <= r.desde) { aviso("Esa es la última fase: no hay movimiento después."); return; }
+  const { segs, total } = segmentosAnim(jugada, dur, r.desde, r.hasta), barras = $("lineaTiempo").querySelectorAll(".seg i");
+  $("btnPlay").textContent = "■";
+  pararAni = animarJugada(jugada, $("pistaAni"), dur, { desde: r.desde, hasta: r.hasta,
+    enFase: (i) => { $("leyendaAni").innerHTML = textoLista(jugada.pasos[i].texto); $("faseAni").textContent = "Fase " + (i + 1); },
+    enProgreso: (el, tot) => { $("tiempoAni").textContent = tiempoTxt(el) + " / " + tiempoTxt(tot); segs.forEach((s, k) => { if (barras[k]) barras[k].style.width = Math.max(0, Math.min(1, (el - s.ini) / (s.fin - s.ini))) * 100 + "%"; }); },
+    alAcabar: () => { pararAni = null; pintarAnim(); } });
 }
+function pintarTexto() {
+  $("notas").value = jugada.notas || "";
+  $("textosFases").innerHTML = jugada.pasos.map((p, i) => `<div class="card"><h2>Fase ${i + 1}</h2><div class="fila-texto"><div class="mini">${svgPaso(jugada, i, {})}</div>
+    <div><textarea data-i="${i}" placeholder="Una idea por línea. Ej:&#10;El 1 pasa al 3&#10;El 5 sube a poner bloqueo">${esc(p.texto || "")}</textarea></div></div></div>`).join("");
+  $("textosFases").querySelectorAll("textarea").forEach(t => {
+    t.addEventListener("focus", snap);
+    t.addEventListener("input", () => { jugada.pasos[Number(t.dataset.i)].texto = t.value; guardarBorrador(); });
+  });
+}
+function pintarVid() {
+  const l = jugada.videos || [];
+  $("listaVid").innerHTML = l.length ? l.map((v, i) => `<div class="vid-item"><div class="vista">${v.titulo ? `<b style="display:block;margin-bottom:6px;">${esc(v.titulo)}</b>` : ""}${videoHtml(v.url)}<div class="hint" style="word-break:break-all;">${esc(v.url)}</div></div>
+    <button class="gris" data-i="${i}">🗑</button></div>`).join("") : `<p class="hint">Todavía no has añadido ningún vídeo.</p>`;
+  $("listaVid").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { snap(); jugada.videos.splice(Number(b.dataset.i), 1); pintarVid(); guardarBorrador(); }));
+}
+function anadirVideo() {
+  const url = $("vidUrl").value.trim(); if (!url) { aviso("Pega el enlace del vídeo."); return; }
+  snap(); jugada.videos = jugada.videos || []; jugada.videos.push({ url, titulo: $("vidTitulo").value.trim() });
+  $("vidUrl").value = ""; $("vidTitulo").value = ""; pintarVid(); guardarBorrador();
+}
+function pintarSalida() {
+  volcarCampos();
+  $("salida").innerHTML = `<h2 class="t">${esc(jugada.nombre || "Jugada sin nombre")}</h2><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "fase" : "fases"}</div>
+    ${jugada.notas ? `<p style="white-space:pre-wrap;font-size:14px;margin:0 0 6px;">${esc(jugada.notas)}</p>` : ""}
+    <div class="rejilla-salida">${jugada.pasos.map((p, i) => `<div class="f"><b>Fase ${i + 1}</b><div class="mini">${svgPaso(jugada, i, {})}</div>${textoLista(p.texto)}</div>`).join("")}</div>
+    ${videosHtml(jugada)}`;
+}
+function irPestana(p) {
+  detenerAni(); tabActual = p;
+  document.querySelectorAll("#tabsEd button").forEach(b => b.classList.toggle("on", b.dataset.p === p));
+  document.querySelectorAll(".panel-ed").forEach(x => x.classList.toggle("on", x.id === "p" + p));
+  pintarPestana();
+}
+function pintarPestana() {
+  volcarCampos();
+  if (tabActual === "Draw") pintar();
+  if (tabActual === "Anim") pintarAnim();
+  if (tabActual === "Text") pintarTexto();
+  if (tabActual === "Vid") pintarVid();
+  if (tabActual === "Out") pintarSalida();
+  botonesHistorial();
+}
+function refrescarTodo() { cargarCampos(); pintarPestana(); }
 
-/* ---------- visor generico: pasos a mano y reproducir (vista grande y vista de las jugadoras) ---------- */
-function crearVisor(ids, vel) {
+/* ---------- campos generales ---------- */
+function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; }
+function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; }
+function guardarBorrador() { try { localStorage.setItem(BORRADOR, JSON.stringify({ jugada, paso })); } catch (e) { /* nada */ } }
+
+/* ============================================================
+   VISOR (vista grande de la biblioteca y vista de las jugadoras)
+   ============================================================ */
+function crearVisor(ids, dur) {
   const v = { j: null, i: 0, parar: null };
-  const pista = $(ids.pista), ley = $(ids.leyenda), play = $(ids.play);
-  const pintarPaso = () => {
-    pista.innerHTML = svgPaso(v.j, v.i, { todas: true });
-    ley.textContent = v.j.pasos[v.i].texto || "";
-  };
-  const detener = () => { if (v.parar) { v.parar(); v.parar = null; } };
+  const pista = $(ids.pista), ley = $(ids.leyenda), play = $(ids.play), linea = $(ids.linea), tiempo = $(ids.tiempo);
+  const mostrar = () => { pista.innerHTML = svgPaso(v.j, v.i, {}); ley.innerHTML = textoLista(v.j.pasos[v.i].texto); };
+  const barras = () => linea.querySelectorAll(".seg i");
+  const resetBarras = (hasta) => { barras().forEach((b, k) => { b.style.width = hasta != null && k < hasta ? "100%" : "0"; }); };
+  const detener = () => { if (v.parar) { v.parar(); v.parar = null; } play.textContent = "▶"; };
   v.abrir = (j) => {
-    detener(); v.j = j; v.i = 0; play.textContent = "▶ Reproducir";
-    $(ids.titulo).textContent = j.nombre || "Jugada";
-    $(ids.notas).textContent = j.notas || "";
-    pintarPaso();
+    detener(); v.j = normalizar(clonar(j)); v.i = 0;
+    $(ids.titulo).textContent = v.j.nombre || "Jugada";
+    $(ids.notas).textContent = v.j.notas || "";
+    if (ids.videos) $(ids.videos).innerHTML = videosHtml(v.j);
+    const { segs, total } = segmentosAnim(v.j, dur, 0, v.j.pasos.length - 1);
+    linea.innerHTML = segs.length ? segs.map(s => `<div class="seg" style="flex:${s.dur + PAUSA_FASE};"><i></i></div>`).join("") : `<div class="seg"><i></i></div>`;
+    tiempo.textContent = "0:00 / " + tiempoTxt(total);
+    mostrar();
   };
   v.cerrar = detener;
-  $(ids.prev).addEventListener("click", () => { detener(); play.textContent = "▶ Reproducir"; if (v.j) { v.i = Math.max(0, v.i - 1); pintarPaso(); } });
-  $(ids.next).addEventListener("click", () => { detener(); play.textContent = "▶ Reproducir"; if (v.j) { v.i = Math.min(v.j.pasos.length - 1, v.i + 1); pintarPaso(); } });
-  play.addEventListener("click", () => {
-    if (!v.j) return;
-    if (v.parar) { detener(); play.textContent = "▶ Reproducir"; pintarPaso(); return; }
+  v.reproducir = () => {
+    if (!v.j || v.parar) return;
     if (v.j.pasos.length < 2) return;
-    play.textContent = "■ Parar";
-    v.parar = animarJugada(v.j, pista, vel || 1000, (k) => { v.i = k; ley.textContent = v.j.pasos[k].texto || ""; },
-      () => { v.parar = null; play.textContent = "▶ Reproducir"; v.i = v.j.pasos.length - 1; pintarPaso(); });
-  });
+    play.textContent = "■";
+    const { segs } = segmentosAnim(v.j, dur, 0, v.j.pasos.length - 1);
+    v.parar = animarJugada(v.j, pista, dur, { desde: 0, hasta: v.j.pasos.length - 1,
+      enFase: (k) => { ley.innerHTML = textoLista(v.j.pasos[k].texto); },
+      enProgreso: (el, tot) => { tiempo.textContent = tiempoTxt(el) + " / " + tiempoTxt(tot); segs.forEach((s, k) => { const b = barras()[k]; if (b) b.style.width = Math.max(0, Math.min(1, (el - s.ini) / (s.fin - s.ini))) * 100 + "%"; }); },
+      alAcabar: () => { v.parar = null; play.textContent = "▶"; v.i = v.j.pasos.length - 1; mostrar(); } });
+  };
+  const ir = (d) => { if (!v.j) return; detener(); v.i = Math.max(0, Math.min(v.j.pasos.length - 1, v.i + d)); resetBarras(v.i); mostrar(); };
+  $(ids.prev).addEventListener("click", () => ir(-1));
+  $(ids.next).addEventListener("click", () => ir(1));
+  play.addEventListener("click", () => { if (v.parar) { detener(); mostrar(); } else { v.i = 0; resetBarras(0); v.reproducir(); } });
   return v;
 }
 
-/* ---------- biblioteca (en la nube si hay sesion; si no, en este navegador) ---------- */
-let BIB = [], nube = null, modoNube = false, motivoLocal = "";
-const leerLocal = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || "[]"); } catch (e) { return []; } };
+/* ============================================================
+   BIBLIOTECA (en la nube si hay sesion; si no, en este navegador)
+   ============================================================ */
+let BIB = [], nube = null, modoNube = false, motivoLocal = "", visorGrande = null, soloFav = false;
+const leerLocal = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || "[]").map(normalizar); } catch (e) { return []; } };
 const escribirLocal = (l) => { try { localStorage.setItem(CLAVE, JSON.stringify(l)); } catch (e) { aviso("No se pudo guardar: el navegador no deja escribir."); } };
-const filaNube = (j) => ({ id: j.id, nombre: j.nombre || "", tipo: j.tipo || "", carpeta: j.carpeta || "", favorita: !!j.favorita, compartida: !!j.compartida,
-  data: j, actualizada: new Date().toISOString() });
-const deFila = (r) => Object.assign({}, r.data, { id: r.id, favorita: !!r.favorita, compartida: !!r.compartida, actualizada: r.actualizada });
+const filaNube = (j) => ({ id: j.id, nombre: j.nombre || "", tipo: j.tipo || "", carpeta: j.carpeta || "", favorita: !!j.favorita, compartida: !!j.compartida, data: j, actualizada: new Date().toISOString() });
+const deFila = (r) => normalizar(Object.assign({}, r.data, { id: r.id, favorita: !!r.favorita, compartida: !!r.compartida, actualizada: r.actualizada }));
 
 async function iniciarNube() {
   motivoLocal = "";
@@ -560,8 +906,7 @@ async function iniciarNube() {
 async function recargarBib() {
   if (modoNube) {
     const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false });
-    if (error) { modoNube = false; motivoLocal = error.message; }
-    else BIB = (data || []).map(deFila);
+    if (error) { modoNube = false; motivoLocal = error.message; } else BIB = (data || []).map(deFila);
   }
   if (!modoNube) BIB = leerLocal();
   pintarEstado(); pintarLista();
@@ -569,30 +914,21 @@ async function recargarBib() {
 function pintarEstado() {
   const e = $("estadoNube");
   e.className = "estado-nube " + (modoNube ? "ok" : "mal");
-  e.textContent = modoNube ? "☁️ Tus jugadas se guardan en la nube: las ves desde cualquier aparato."
-    : "💾 Solo se guardan en este navegador (" + (motivoLocal || "sin conexión a la nube") + ").";
+  e.textContent = modoNube ? "☁️ Tus jugadas se guardan en la nube: las ves desde cualquier aparato." : "💾 Solo se guardan en este navegador (" + (motivoLocal || "sin conexión a la nube") + ").";
   const locales = leerLocal();
-  $("bandaSubir").innerHTML = (modoNube && locales.length)
-    ? `<div class="banda">Tienes <b>${locales.length}</b> jugada(s) guardadas solo en este navegador. <button class="naranja" id="btnSubirLocales" style="margin-left:8px;padding:7px 12px;">Subirlas a la nube</button></div>` : "";
+  $("bandaSubir").innerHTML = (modoNube && locales.length) ? `<div class="banda">Tienes <b>${locales.length}</b> jugada(s) guardadas solo en este navegador. <button class="naranja" id="btnSubirLocales" style="margin-left:8px;padding:7px 12px;">Subirlas a la nube</button></div>` : "";
   const b = $("btnSubirLocales");
   if (b) b.addEventListener("click", async () => {
     b.disabled = true;
-    const filas = locales.map(filaNube);
-    const { error } = await nube.from("jugadas").upsert(filas);
+    const { error } = await nube.from("jugadas").upsert(locales.map(filaNube));
     if (error) { aviso("No se pudieron subir: " + error.message); b.disabled = false; return; }
     escribirLocal([]); aviso("Subidas ✓"); recargarBib();
   });
 }
 async function guardarJugada(j) {
   j.actualizada = new Date().toISOString();
-  if (modoNube) {
-    const { error } = await nube.from("jugadas").upsert(filaNube(j));
-    if (error) { aviso("No se pudo guardar: " + error.message); return false; }
-  } else {
-    const l = leerLocal(), i = l.findIndex(x => x.id === j.id);
-    if (i >= 0) l[i] = clonar(j); else l.unshift(clonar(j));
-    escribirLocal(l);
-  }
+  if (modoNube) { const { error } = await nube.from("jugadas").upsert(filaNube(j)); if (error) { aviso("No se pudo guardar: " + error.message); return false; } }
+  else { const l = leerLocal(), i = l.findIndex(x => x.id === j.id); if (i >= 0) l[i] = clonar(j); else l.unshift(clonar(j)); escribirLocal(l); }
   return true;
 }
 async function borrarJugada(id) {
@@ -600,15 +936,11 @@ async function borrarJugada(id) {
   else escribirLocal(leerLocal().filter(x => x.id !== id));
   return true;
 }
-function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; }
-function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; }
-function guardarBorrador() { try { localStorage.setItem(BORRADOR, JSON.stringify({ jugada, paso })); } catch (e) { /* nada */ } }
 async function guardar() {
   volcarCampos();
   if (!jugada.nombre) { aviso("Ponle un nombre a la jugada."); $("nombre").focus(); return; }
   if (await guardarJugada(jugada)) { aviso(jugada.compartida ? "Guardada ✓ · visible para las jugadoras" : "Guardada en tus jugadas ✓"); await recargarBib(); }
 }
-let soloFav = false;
 function pintarLista() {
   const q = $("buscar").value.trim().toLowerCase(), ft = $("filtroTipo").value;
   const ver = BIB.filter(x => (!q || (x.nombre + " " + x.tipo + " " + (x.notas || "")).toLowerCase().includes(q)) && (!ft || x.tipo === ft) && (!soloFav || x.favorita));
@@ -617,7 +949,7 @@ function pintarLista() {
       <div class="mini" data-a="ver">${svgPaso(x, 0, {})}<span class="play">▶ Ver</span></div>
       <div class="cuerpo">
         <b class="n">${x.favorita ? "⭐ " : ""}${esc(x.nombre)}</b>
-        <div class="sub">${esc(x.tipo)} · ${x.pasos.length} ${x.pasos.length === 1 ? "paso" : "pasos"}${x.compartida ? ' · <span class="insignia comp">📤 Jugadoras</span>' : ""}</div>
+        <div class="sub">${esc(x.tipo)} · ${x.pasos.length} ${x.pasos.length === 1 ? "fase" : "fases"}${(x.videos || []).length ? " · 🎬" : ""} ${x.compartida ? '<span class="insignia comp">📤 Jugadoras</span>' : ""}</div>
         <div class="ins"><button class="gris" data-a="abrir">✏️ Editar</button><button class="gris" data-a="fav" title="Favorita">${x.favorita ? "★" : "☆"}</button>
           <button class="gris" data-a="comp" title="Mostrar u ocultar a las jugadoras">📤</button><button class="gris" data-a="dup" title="Duplicar">⧉</button><button class="gris" data-a="borrar" title="Borrar">🗑️</button></div>
       </div></div>`).join("")
@@ -626,26 +958,24 @@ function pintarLista() {
 }
 async function accionLista(id, a) {
   const x = BIB.find(y => y.id === id); if (!x) return;
-  if (a === "ver") { abrirModal(x); return; }
-  if (a === "abrir") { jugada = clonar(x); paso = 0; cargarCampos(); mostrarVista("ed"); pintar(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  if (a === "ver") { $("modalVer").classList.add("ver"); visorGrande.abrir(x); return; }
+  if (a === "abrir") { jugada = normalizar(clonar(x)); paso = 0; hist = []; rehacer = []; cargarCampos(); mostrarVista("ed"); irPestana("Draw"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
   if (a === "fav") { const c = clonar(x); c.favorita = !c.favorita; if (await guardarJugada(c)) recargarBib(); return; }
   if (a === "comp") { const c = clonar(x); c.compartida = !c.compartida; if (await guardarJugada(c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); recargarBib(); } return; }
-  if (a === "dup") { const c = clonar(x); c.id = "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); c.nombre += " (copia)"; c.compartida = false; if (await guardarJugada(c)) { aviso("Duplicada"); recargarBib(); } return; }
+  if (a === "dup") { const c = clonar(x); c.id = idNuevo(); c.nombre += " (copia)"; c.compartida = false; if (await guardarJugada(c)) { aviso("Duplicada"); recargarBib(); } return; }
   if (a === "borrar" && confirm("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) { if (await borrarJugada(id)) recargarBib(); }
 }
-
-/* ---------- vistas ---------- */
 function mostrarVista(v) {
   $("vistaBib").style.display = v === "bib" ? "block" : "none";
   $("vistaEd").style.display = v === "ed" ? "block" : "none";
   $("verBib").classList.toggle("on", v === "bib"); $("verEd").classList.toggle("on", v === "ed");
-  if (v === "ed") pintar();
+  if (v === "ed") pintarPestana(); else detenerAni();
 }
-let visorGrande = null;
-function abrirModal(j) { $("modalVer").classList.add("ver"); visorGrande.abrir(j); }
 function cerrarModal() { visorGrande.cerrar(); $("modalVer").classList.remove("ver"); }
 
-/* ---------- exportar ---------- */
+/* ============================================================
+   EXPORTAR
+   ============================================================ */
 function descargar(nombre, blob) {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
@@ -653,25 +983,24 @@ function descargar(nombre, blob) {
 const nombreArchivo = () => (jugada.nombre || "jugada").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "_");
 function png() {
   volcarCampos();
-  const svg = svgPaso(jugada, paso, { todas: true, ancho: 1000 });
   const img = new Image();
   img.onload = () => {
     const c = document.createElement("canvas"); c.width = 1000; c.height = Math.round(1000 * (FONDO * S + 20) / (ANCHO * S + 20));
-    const g = c.getContext("2d"); g.drawImage(img, 0, 0, c.width, c.height);
-    c.toBlob(b => descargar(nombreArchivo() + "_paso" + (paso + 1) + ".png", b), "image/png");
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(b => descargar(nombreArchivo() + "_fase" + (paso + 1) + ".png", b), "image/png");
   };
-  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgPaso(jugada, paso, { todas: true, ancho: 1000 }));
 }
 function imprimir() {
   volcarCampos();
-  $("hojaImp").innerHTML = `<h1>${esc(jugada.nombre || "Jugada")}</h1><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "paso" : "pasos"}</div>
-    <div class="pasosImp">${jugada.pasos.map((p, i) => `<div class="pasoImp"><b>Paso ${i + 1}</b>${svgPaso(jugada, i, { todas: true })}${p.texto ? `<div style="font-size:9.5pt;margin-top:1.5mm;">${esc(p.texto)}</div>` : ""}</div>`).join("")}</div>
-    ${jugada.notas ? `<div class="notas"><b>Notas</b><br>${esc(jugada.notas)}</div>` : ""}`;
+  $("hojaImp").innerHTML = `<h1>${esc(jugada.nombre || "Jugada")}</h1><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "fase" : "fases"}</div>
+    ${jugada.notas ? `<div class="notas" style="margin:0 0 4mm;">${esc(jugada.notas)}</div>` : ""}
+    <div class="pasosImp">${jugada.pasos.map((p, i) => `<div class="pasoImp"><b>Fase ${i + 1}</b>${svgPaso(jugada, i, {})}${textoLista(p.texto)}</div>`).join("")}</div>`;
   setTimeout(() => window.print(), 150);
 }
 function copiaSeguridad() {
   if (!BIB.length) { aviso("No hay jugadas que guardar todavía."); return; }
-  descargar("mis_jugadas_" + new Date().toISOString().slice(0, 10) + ".json", new Blob([JSON.stringify({ version: 2, jugadas: BIB }, null, 1)], { type: "application/json" }));
+  descargar("mis_jugadas_" + new Date().toISOString().slice(0, 10) + ".json", new Blob([JSON.stringify({ version: 3, jugadas: BIB }, null, 1)], { type: "application/json" }));
 }
 function importar(archivo) {
   const r = new FileReader();
@@ -679,7 +1008,7 @@ function importar(archivo) {
     try {
       const d = JSON.parse(r.result), nuevas = (d.jugadas || (Array.isArray(d) ? d : [])).filter(x => x && x.pasos && x.pasos.length);
       let n = 0;
-      for (const x of nuevas) { if (!BIB.some(y => y.id === x.id)) { if (await guardarJugada(x)) n++; } }
+      for (const x of nuevas) { if (!BIB.some(y => y.id === x.id)) { if (await guardarJugada(normalizar(x))) n++; } }
       await recargarBib(); aviso(n + " jugada(s) importada(s)");
     } catch (e) { aviso("El archivo no es una copia de seguridad válida."); }
   };
@@ -688,18 +1017,26 @@ function importar(archivo) {
 let temporizador;
 function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporizador); temporizador = setTimeout(() => a.classList.remove("ver"), 2600); }
 
-/* ---------- arranque ---------- */
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
 if (VISOR) {
   document.body.classList.add("visor");
-  const v = crearVisor({ pista: "vsPista", leyenda: "vsLeyenda", play: "vsPlay", prev: "vsPrev", next: "vsNext", titulo: "vsTitulo", notas: "vsNotas" }, 1000);
-  window.addEventListener("message", (ev) => { if (ev.data && ev.data.jugada && ev.data.jugada.pasos) { v.abrir(ev.data.jugada); setTimeout(() => { try { parent.postMessage({ visorAltura: document.documentElement.scrollHeight }, "*"); } catch (e) { /* nada */ } }, 100); } });
+  const v = crearVisor({ pista: "vsPista", leyenda: "vsLeyenda", play: "vsPlay", prev: "vsPrev", next: "vsNext", titulo: "vsTitulo", notas: "vsNotas", videos: "vsVideos", linea: "vsLinea", tiempo: "vsTiempo" }, 1200);
+  const altura = () => { try { parent.postMessage({ visorAltura: document.documentElement.scrollHeight }, "*"); } catch (e) { /* nada */ } };
+  window.addEventListener("message", (ev) => { if (ev.data && ev.data.jugada && ev.data.jugada.pasos) { v.abrir(ev.data.jugada); setTimeout(altura, 120); } });
   try { parent.postMessage({ visorListo: true }, "*"); } catch (e) { /* nada */ }
 } else {
-  visorGrande = crearVisor({ pista: "mvPista", leyenda: "mvLeyenda", play: "mvPlay", prev: "mvPrev", next: "mvNext", titulo: "mvTitulo", notas: "mvNotas" }, 1000);
+  const modal = crearVisor({ pista: "mvPista", leyenda: "mvLeyenda", play: "mvPlay", prev: "mvPrev", next: "mvNext", titulo: "mvTitulo", notas: "mvNotas", videos: "mvVideos", linea: "mvLinea", tiempo: "mvTiempo" }, 1200);
+  visorGrande = modal;
   $("mvCerrar").addEventListener("click", cerrarModal);
   $("modalVer").addEventListener("click", (e) => { if (e.target === $("modalVer")) cerrarModal(); });
   $("tipo").innerHTML = TIPOS.map(t => `<option>${t}</option>`).join("");
   $("filtroTipo").innerHTML = `<option value="">Todos los tipos</option>` + TIPOS.map(t => `<option>${t}</option>`).join("");
+  // pista: un solo juego de eventos
+  const pista = $("pista");
+  pista.addEventListener("pointerdown", alPulsar); pista.addEventListener("pointermove", alMover);
+  pista.addEventListener("pointerup", alSoltar); pista.addEventListener("pointercancel", alSoltar);
   $("tools").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     herramienta = b.dataset.t;
     $("tools").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
@@ -707,46 +1044,58 @@ if (VISOR) {
   }));
   $("btnNuevoPaso").addEventListener("click", nuevoPaso);
   $("btnDupPaso").addEventListener("click", duplicarPaso);
+  $("btnVacioPaso").addEventListener("click", vaciarPaso);
   $("btnQuitarPaso").addEventListener("click", quitarPaso);
-  $("btnDeshacer").addEventListener("click", () => { jugada.pasos[paso].lineas.pop(); pintar(); });
-  $("btnPlay").onclick = reproducir;
-  $("chkDef").addEventListener("change", () => { jugada.defensa = $("chkDef").checked; pintar(); });
+  $("btnDeshacer").addEventListener("click", () => { snap(); jugada.pasos[paso].lineas.pop(); pintar(); });
+  $("btnFast").addEventListener("click", cincoRapido);
+  $("btnDef").addEventListener("click", alternarDefensa);
   $("formacion").addEventListener("change", () => {
     const f = $("formacion").value, hay = jugada.pasos.length > 1 || jugada.pasos[0].lineas.length;
-    if (hay && !confirm("Cambiar la formación borra los pasos y las líneas de esta jugada. ¿Seguir?")) { $("formacion").value = jugada.formacion; return; }
-    jugada.formacion = f; jugada.pasos = [{ pos: posicionesIniciales(f), balon: "o1", lineas: [], texto: "" }]; paso = 0; pintar();
+    if (hay && !confirm("Cambiar la formación borra las fases y las líneas de esta jugada. ¿Seguir?")) { $("formacion").value = jugada.formacion; return; }
+    snap(); jugada.formacion = f; jugada.pasos = [{ pos: posicionesIniciales(f), balon: "o1", lineas: [], texto: "" }]; paso = 0; pintar();
   });
+  $("btnPlay").addEventListener("click", reproducirAni);
+  $("vel").addEventListener("change", () => { detenerAni(); pintarAnim(); });
+  $("btnUndo").addEventListener("click", deshacerCambio); $("btnRedo").addEventListener("click", rehacerCambio);
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || $("vistaEd").style.display === "none") return;
+    const t = (e.target && e.target.tagName) || ""; if (t === "INPUT" || t === "TEXTAREA") return;
+    if (e.key === "z" || e.key === "Z") { e.preventDefault(); if (e.shiftKey) rehacerCambio(); else deshacerCambio(); }
+    if (e.key === "y") { e.preventDefault(); rehacerCambio(); }
+  });
+  $("tabsEd").querySelectorAll("button").forEach(b => b.addEventListener("click", () => irPestana(b.dataset.p)));
   ["nombre", "tipo", "notas"].forEach(id => $(id).addEventListener("input", () => { volcarCampos(); guardarBorrador(); }));
-  ["chkFav", "chkComp"].forEach(id => $(id).addEventListener("change", () => { volcarCampos(); guardarBorrador(); }));
-  $("textoPaso").addEventListener("input", () => { jugada.pasos[paso].texto = $("textoPaso").value; $("leyenda").textContent = $("textoPaso").value; guardarBorrador(); });
+  ["nombre", "notas"].forEach(id => $(id).addEventListener("focus", snap));
+  ["chkFav", "chkComp"].forEach(id => $(id).addEventListener("change", () => { snap(); volcarCampos(); guardarBorrador(); }));
+  $("btnAddVid").addEventListener("click", anadirVideo);
   $("btnGuardar").addEventListener("click", guardar);
   const nuevaJugada = () => {
     volcarCampos();
-    if ((jugada.pasos.length > 1 || jugada.pasos[0].lineas.length) && !confirm("Se empieza una jugada nueva. Lo que no hayas guardado se pierde. ¿Seguir?")) return false;
-    jugada = jugadaNueva($("formacion").value); paso = 0; cargarCampos(); return true;
+    const hay = jugada.pasos.length > 1 || jugada.pasos[0].lineas.length;
+    if (hay && !confirm("Se empieza una jugada nueva. Lo que no hayas guardado se pierde. ¿Seguir?")) return false;
+    jugada = jugadaNueva($("formacion").value); paso = 0; hist = []; rehacer = []; cargarCampos(); return true;
   };
-  $("btnNueva").addEventListener("click", () => { if (nuevaJugada()) pintar(); });
-  $("btnNuevaBib").addEventListener("click", () => { if (nuevaJugada()) { mostrarVista("ed"); } else mostrarVista("ed"); });
+  $("btnNuevaBib").addEventListener("click", () => { nuevaJugada(); mostrarVista("ed"); irPestana("Draw"); });
   $("verBib").addEventListener("click", () => mostrarVista("bib"));
-  $("verEd").addEventListener("click", () => mostrarVista("ed"));
+  $("verEd").addEventListener("click", () => { mostrarVista("ed"); });
   $("btnPng").addEventListener("click", png);
-  $("btnImprimir").addEventListener("click", imprimir);
+  $("btnImprimir").addEventListener("click", imprimir); $("btnImprimir2").addEventListener("click", imprimir);
+  $("btnPlayTodo").addEventListener("click", () => { volcarCampos(); $("modalVer").classList.add("ver"); modal.abrir(jugada); modal.reproducir(); });
   $("btnExportar").addEventListener("click", copiaSeguridad);
   $("btnImportar").addEventListener("click", () => $("fileImportar").click());
   $("fileImportar").addEventListener("change", (e) => { if (e.target.files[0]) importar(e.target.files[0]); e.target.value = ""; });
   $("buscar").addEventListener("input", pintarLista);
   $("filtroTipo").addEventListener("change", pintarLista);
   $("filtroFav").addEventListener("click", () => { soloFav = !soloFav; $("filtroFav").classList.toggle("on", soloFav); pintarLista(); });
-  // dentro de la app el enlace de volver no hace falta
   if (window.parent !== window) { const e = $("enlaceVolver"); if (e) e.style.display = "none"; }
 
   try {
     const b = JSON.parse(localStorage.getItem(BORRADOR) || "null");
-    if (b && b.jugada && b.jugada.pasos && b.jugada.pasos.length) { jugada = b.jugada; paso = Math.min(b.paso || 0, jugada.pasos.length - 1); }
+    if (b && b.jugada && b.jugada.pasos && b.jugada.pasos.length) { jugada = normalizar(b.jugada); paso = Math.min(b.paso || 0, jugada.pasos.length - 1); }
   } catch (e) { /* borrador roto: se empieza de cero */ }
   cargarCampos();
   iniciarNube().then(recargarBib);
-  pintarLista();
+  pintarLista(); botonesHistorial();
 }
 </script>
 </body>
