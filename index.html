@@ -6834,6 +6834,8 @@ function mostrarPuerta(msg, tipo) {
       <input type="password" id="paClave" placeholder="Contraseña" autocomplete="current-password">
       <button id="paEntrar">Entrar</button>
       <button id="paEnlace" class="sec">Enviarme un enlace al correo</button>
+      <button id="paCrear" class="sec">Crear mi cuenta con esta contraseña</button>
+      <button id="paOlvide" class="sec">Olvidé mi contraseña</button>
       <div id="paMsg" class="msg"></div>
       <a href="#" id="paSalir" hidden>Salir</a></div>`;
     document.body.appendChild(p);
@@ -6849,6 +6851,20 @@ function mostrarPuerta(msg, tipo) {
       if (!c) { mostrarPuerta("Escribe tu correo.", "mal"); return; }
       const { error } = await sb.auth.signInWithOtp({ email: c, options: { emailRedirectTo: location.href.split("#")[0] } });
       mostrarPuerta(error ? "No se ha podido enviar: " + error.message : "Listo. Abre el enlace del correo en este aparato.", error ? "mal" : "ok");
+    };
+    document.getElementById("paCrear").onclick = async () => {
+      const c = document.getElementById("paCorreo").value.trim(), k = document.getElementById("paClave").value;
+      if (!c || k.length < 6) { mostrarPuerta("Escribe tu correo y una contraseña de al menos 6 caracteres.", "mal"); return; }
+      const { data, error } = await sb.auth.signUp({ email: c, password: k, options: { emailRedirectTo: location.href.split("#")[0] } });
+      if (error) { mostrarPuerta("No se ha podido crear la cuenta: " + error.message, "mal"); return; }
+      if (data && data.session) location.reload();
+      else mostrarPuerta("Cuenta creada. Si te llega un correo de confirmación, ábrelo y luego entra aquí.", "ok");
+    };
+    document.getElementById("paOlvide").onclick = async () => {
+      const c = document.getElementById("paCorreo").value.trim();
+      if (!c) { mostrarPuerta("Escribe tu correo.", "mal"); return; }
+      const { error } = await sb.auth.resetPasswordForEmail(c, { redirectTo: location.href.split("#")[0] });
+      mostrarPuerta(error ? "No se ha podido enviar: " + error.message : "Te he enviado un correo para cambiar la contraseña.", error ? "mal" : "ok");
     };
     document.getElementById("paSalir").onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
   }
