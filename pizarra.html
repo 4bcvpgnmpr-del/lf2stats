@@ -153,6 +153,14 @@
   .rejilla-salida .mini{background:#f3e6d2;border-radius:6px;overflow:hidden;} .rejilla-salida .mini svg{display:block;width:100%;height:auto;}
   .rejilla-salida ul{margin:8px 0 0;padding-left:18px;font-size:13px;} .rejilla-salida li{margin:2px 0;}
   /* ventanas */
+  #modalPlant{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
+  #modalPlant.ver{display:flex;}
+  #modalPlant .caja{background:var(--white);border-radius:16px;width:100%;max-width:760px;max-height:94vh;overflow:auto;padding:16px;}
+  #modalPlant h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 6px;}
+  .rejilla-plant{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .plant{border:2px solid var(--line);border-radius:12px;padding:6px;background:var(--suave);cursor:pointer;text-align:center;font-size:12.5px;font-weight:700;}
+  .plant svg{width:100%;height:auto;border-radius:8px;display:block;margin-bottom:5px;}
+  .plant.on{border-color:var(--orange);background:#fde7da;}
   #modalVer{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
   #modalVer.ver{display:flex;}
   #modalVer .caja{background:var(--white);border-radius:16px;width:100%;max-width:900px;max-height:96vh;overflow:auto;padding:14px;}
@@ -249,6 +257,11 @@
           <p class="hint" id="ayuda"></p>
         </div>
         <div class="col-herr herr">
+          <div class="bloque" id="panelFicha" style="display:none;">
+            <h3 id="fiTitulo">Jugadora</h3>
+            <div class="lnfila"><span>X</span><input type="number" id="fiX" step="0.1" style="width:70px"><span>Y</span><input type="number" id="fiY" step="0.1" style="width:70px"></div>
+            <div class="fila"><button class="gris" id="fiBalon">🏀 Dar balón</button><button class="gris" id="fiQuitar" style="color:#c0392b;">🗑 Quitar</button></div>
+          </div>
           <div class="bloque" id="panelLinea" style="display:none;">
             <h3 id="lnTitulo">Línea</h3>
             <div class="lnfila">
@@ -278,7 +291,7 @@
               <button class="gris" id="btnDef">🛡 Defensa</button>
             </div>
             <label>Formación de salida</label>
-            <select id="formacion"><option value="cinco">5 fuera</option><option value="cuatro">4 fuera 1 dentro</option><option value="altobajo">Alto-bajo</option></select>
+            <select id="formacion"><option value="cinco">5 fuera</option><option value="cuatro">4 fuera 1 dentro</option><option value="altobajo">Alto-bajo</option><option value="vacia">Solo la 1</option><option value="caja">Caja</option><option value="cuernos">Cuernos</option><option value="alto14">1-4 alto</option><option value="flex">Flex</option><option value="cincoDef">5 fuera con defensa</option><option value="zona23">Contra zona 2-3</option></select>
             <p class="aviso-herr">Toca una ficha para ponerla en la pista; tócala otra vez para quitarla.</p>
           </div>
           <div class="bloque">
@@ -354,6 +367,12 @@
 </div>
 
 <!-- Ver una jugada en grande, animada -->
+<div id="modalPlant"><div class="caja">
+  <h3>Elige una plantilla</h3>
+  <p class="hint" style="margin:0 0 10px;">Punto de partida de la jugada. Luego puedes añadir o quitar jugadoras, defensas y objetos.</p>
+  <div class="rejilla-plant" id="rejillaPlant"></div>
+  <div class="fila" style="margin-top:12px;justify-content:flex-end;"><button class="gris" id="plantCancelar">Cancelar</button><button class="naranja" id="plantEmpezar">Empezar a dibujar</button></div>
+</div></div>
 <div id="modalVer"><div class="caja">
   <h3 id="mvTitulo"></h3>
   <div id="mvPista" class="caja-pista"></div>
@@ -407,11 +426,20 @@ const FORMACIONES = {
   cinco:    { o1: [7.5, 9.4], o2: [12.6, 6.6], o3: [2.4, 6.6], o4: [13.4, 2.6], o5: [1.6, 2.6] },
   cuatro:   { o1: [7.5, 9.4], o2: [12.6, 6.6], o3: [2.4, 6.6], o4: [13.4, 2.6], o5: [7.5, 4.4] },
   altobajo: { o1: [7.5, 9.4], o2: [12.2, 6.2], o3: [2.8, 6.2], o4: [8.9, 6.4], o5: [6.0, 3.2] },
+  vacia:    { o1: [7.5, 10.2] },
+  caja:     { o1: [7.5, 9.4], o2: [5.1, 3.0], o3: [9.9, 3.0], o4: [5.1, 5.8], o5: [9.9, 5.8] },
+  cuernos:  { o1: [7.5, 9.8], o2: [2.0, 7.4], o3: [13.0, 7.4], o4: [5.1, 5.8], o5: [9.9, 5.8] },
+  alto14:   { o1: [7.5, 10.4], o2: [2.6, 6.0], o3: [5.2, 6.0], o4: [9.8, 6.0], o5: [12.4, 6.0] },
+  flex:     { o1: [7.5, 9.8], o2: [1.8, 8.0], o3: [13.2, 8.0], o4: [5.1, 3.2], o5: [9.9, 3.2] },
 };
+const PLANTILLAS = [["vacia", "Vacía"], ["cinco", "5 fuera"], ["cuatro", "4 fuera 1 dentro"], ["altobajo", "Alto-bajo"], ["caja", "Caja"], ["cuernos", "Cuernos (Horns)"], ["alto14", "1-4 alto"], ["flex", "Flex"], ["cincoDef", "5 fuera con defensa"], ["zona23", "Contra zona 2-3"]];
 function posicionDefensa(x, y) {
   const dx = ARO.x - x, dy = ARO.y - y, d = Math.hypot(dx, dy) || 1;
   return { x: x + dx / d * 1.6, y: y + dy / d * 1.6 };
 }
+FORMACIONES.cincoDef = Object.assign({}, FORMACIONES.cinco);
+FORMACIONES.zona23 = Object.assign({}, FORMACIONES.cinco, { d1: [5.9, 4.9], d2: [9.1, 4.9], d3: [3.4, 2.7], d4: [7.5, 2.4], d5: [11.6, 2.7] });
+["1", "2", "3", "4", "5"].forEach(n => { const o = FORMACIONES.cinco["o" + n], d = posicionDefensa(o[0], o[1]); FORMACIONES.cincoDef["d" + n] = [d.x, d.y]; });
 function posicionesIniciales(clave) {
   const f = FORMACIONES[clave] || FORMACIONES.cinco, pos = {};
   Object.keys(f).forEach(k => { pos[k] = { x: f[k][0], y: f[k][1] }; });
@@ -443,7 +471,7 @@ function normalizar(j) {
 }
 
 /* ---------- estado ---------- */
-let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1, selLinea = -1, selPaso = -1, arrastreH = null, RESALTE = null, colorNuevo = "", portaLinea = null;
+let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = -1, selLinea = -1, selPaso = -1, arrastreH = null, selFicha = null, RESALTE = null, colorNuevo = "", portaLinea = null;
 let hist = [], rehacer = [];
 const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } return JSON.stringify({ jugada, paso }); };
 function snap() { hist.push(instantanea()); if (hist.length > 80) hist.shift(); rehacer = []; botonesHistorial(); }
@@ -816,12 +844,13 @@ function pintar() {
   if (!jugada.pasos[paso]) paso = 0;
   const act = jugada.pasos[paso];
   if (selPaso !== paso || selLinea >= act.lineas.length) selLinea = -1;
-  { const ls = selLinea >= 0 ? act.lineas[selLinea] : null; RESALTE = ls && ls.a && (ls.t === "pase" || ls.t === "entrega") ? ls.a : null; }
+  if (selFicha && !act.pos[selFicha]) selFicha = null;
+  { const ls = selLinea >= 0 ? act.lineas[selLinea] : null; RESALTE = ls && ls.a && (ls.t === "pase" || ls.t === "entrega") ? ls.a : (selLinea < 0 ? selFicha : null); }
   $("pista").innerHTML = pistaEdicion();
-  pintarPanelLinea();
+  pintarPanelLinea(); pintarPanelFicha();
   if (trazo && trazo.pts.length > 1) $("pista").querySelector("svg").insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
   $("fases").innerHTML = jugada.pasos.map((_, i) => `<div class="fase ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}</div>`).join("");
-  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); selLinea = -1; pintar(); }));
+  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); selLinea = -1; selFicha = null; pintar(); }));
   $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
   $("btnDeshacer").disabled = !act.lineas.length;
   $("leyenda").innerHTML = textoLista(act.texto);
@@ -906,6 +935,31 @@ function moverExtremo(l, orig, i, p) {
     return [A2[0] + zx * ex - zy * ey, A2[1] + zx * ey + zy * ex];
   });
 }
+function pintarPanelFicha() {
+  const caja = $("panelFicha"), act = jugada.pasos[paso], k = selFicha, q = k ? act.pos[k] : null;
+  if (!q || selLinea >= 0) { caja.style.display = "none"; return; }
+  caja.style.display = "";
+  $("fiTitulo").textContent = (k[0] === "d" ? "DEFENSA " : "JUGADORA ") + etiquetaFicha(k);
+  if (document.activeElement !== $("fiX")) $("fiX").value = q.x.toFixed(1);
+  if (document.activeElement !== $("fiY")) $("fiY").value = q.y.toFixed(1);
+  $("fiBalon").style.display = esAtaque(k) ? "" : "none";
+  $("fiBalon").disabled = act.balon === k;
+}
+function lineaPorDefecto(t, k) {
+  const act = jugada.pasos[paso], q = act.pos[k], A = [q.x, q.y];
+  let B;
+  if (t === "pase" || t === "entrega") {
+    let mejor = null, dm = 1e9;
+    Object.keys(act.pos).forEach(o => { if (o === k || !esAtaque(o)) return; const d = Math.hypot(act.pos[o].x - q.x, act.pos[o].y - q.y); if (d < dm) { dm = d; mejor = o; } });
+    if (mejor) { const r = act.pos[mejor], k2 = (dm - 0.62) / dm; B = [q.x + (r.x - q.x) * k2, q.y + (r.y - q.y) * k2]; }
+    else B = [Math.min(ANCHO - 0.5, q.x + 3), q.y];
+  } else if (t === "tiro") B = [ARO.x, ARO.y];
+  else { const dx = ARO.x - q.x, dy = ARO.y - q.y, d = Math.hypot(dx, dy) || 1, L = Math.min(3, Math.max(1.5, d - 1)); B = [q.x + dx / d * L, q.y + dy / d * L]; }
+  const l = { t, de: k, pts: [A, B], despues: false };
+  if (colorNuevo) l.color = colorNuevo;
+  if (t === "pase" || t === "entrega") { const r = receptoraDe(l, act.pos); if (r) l.a = r; }
+  return l;
+}
 function pintarPanelLinea() {
   const caja = $("panelLinea"), l = selLinea >= 0 && selPaso === paso ? jugada.pasos[paso].lineas[selLinea] : null;
   if (!l) { caja.style.display = "none"; return; }
@@ -924,9 +978,9 @@ function alPulsar(ev) {
   }
   if (herramienta === "mover") {
     const k = fichaCerca(p, 0.9), oi = k ? -1 : objetoCerca(p, 1.0);
-    if (k) { snap(); arrastre = k; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
+    if (k) { snap(); arrastre = k; selFicha = k; selLinea = -1; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
     else if (oi >= 0) { snap(); arrastreObj = oi; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } }
-    else { const li = lineaCerca(p, 0.55); if (li >= 0) seleccionarLinea(li); else if (selLinea >= 0) { selLinea = -1; pintar(); } }
+    else { const li = lineaCerca(p, 0.55); if (li >= 0) { selFicha = null; seleccionarLinea(li); } else if (selLinea >= 0 || selFicha) { selLinea = -1; selFicha = null; pintar(); } }
   } else if (herramienta === "balon") {
     const k = fichaCerca(p, 1.1, true);
     if (k) { snap(); act.balon = k; pintar(); }
@@ -941,7 +995,7 @@ function alPulsar(ev) {
     if (tipo === "texto") { try { txt = window.prompt("Texto:", "") || ""; } catch (e) { txt = "Texto"; } if (!txt) return; }
     snap(); act.objs = act.objs || []; act.objs.push({ t: tipo, x: p.x, y: p.y, txt }); pintar();
   } else {
-    if (selLinea >= 0) { selLinea = -1; pintar(); }
+    if (selLinea >= 0 || selFicha) { selLinea = -1; selFicha = null; pintar(); }
     const k = fichaCerca(p, 1.0);
     const origen = k ? act.pos[k] : p;
     trazo = { t: herramienta, de: k || "", pts: [[origen.x, origen.y]] };
@@ -1316,6 +1370,18 @@ if (VISOR) {
   pista.addEventListener("pointerdown", alPulsar); pista.addEventListener("pointermove", alMover);
   pista.addEventListener("pointerup", alSoltar); pista.addEventListener("pointercancel", alSoltar);
   pintarHerramientas();
+  const cambiaXY = () => { const q = jugada.pasos[paso].pos[selFicha]; if (!q) return; const x = parseFloat($("fiX").value), y = parseFloat($("fiY").value); if (isFinite(x)) q.x = Math.max(0, Math.min(ANCHO, x)); if (isFinite(y)) q.y = Math.max(0, Math.min(FONDO, y)); pintar(); };
+  ["fiX", "fiY"].forEach(id => { $(id).addEventListener("focus", snap); $(id).addEventListener("input", cambiaXY); });
+  $("fiBalon").addEventListener("click", () => { if (!selFicha) return; snap(); jugada.pasos[paso].balon = selFicha; pintar(); });
+  $("fiQuitar").addEventListener("click", () => { if (!selFicha) return; const k = selFicha; selFicha = null; alternarFicha(k); });
+  let plantElegida = "vacia";
+  const pintarPlantillas = () => {
+    $("rejillaPlant").innerHTML = PLANTILLAS.map(([id, n]) => `<div class="plant ${id === plantElegida ? "on" : ""}" data-id="${id}">${svgPaso(jugadaNueva(id), 0, {})}${n}</div>`).join("");
+    $("rejillaPlant").querySelectorAll(".plant").forEach(el => { el.addEventListener("click", () => { plantElegida = el.dataset.id; pintarPlantillas(); }); el.addEventListener("dblclick", () => $("plantEmpezar").click()); });
+  };
+  $("btnNuevaBib").addEventListener("click", () => { pintarPlantillas(); $("modalPlant").classList.add("ver"); }, true);
+  $("plantCancelar").addEventListener("click", () => $("modalPlant").classList.remove("ver"));
+  $("plantEmpezar").addEventListener("click", () => { $("modalPlant").classList.remove("ver"); if (nuevaJugada(plantElegida)) { selLinea = -1; selFicha = null; mostrarVista("ed"); irPestana("Draw"); } });
   const menu = $("menuCtx"), cerrarMenu = () => { menu.style.display = "none"; };
   document.addEventListener("pointerdown", (e) => { if (!menu.contains(e.target)) cerrarMenu(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenu(); });
@@ -1347,6 +1413,11 @@ if (VISOR) {
   $("lnBorrar").addEventListener("click", () => { if (selLinea < 0) return; snap(); jugada.pasos[paso].lineas.splice(selLinea, 1); selLinea = -1; pintar(); });
   document.querySelectorAll(".col-herr button[data-t]").forEach(b => b.addEventListener("click", () => {
     herramienta = b.dataset.t;
+    if (selFicha && MOVEDORAS.concat(["pase", "tiro"]).includes(herramienta) && jugada.pasos[paso].pos[selFicha]) {
+      snap(); const act = jugada.pasos[paso]; act.lineas.push(lineaPorDefecto(herramienta, selFicha));
+      selLinea = act.lineas.length - 1; selPaso = paso; selFicha = null; herramienta = "mover";
+      document.querySelectorAll(".col-herr button[data-t]").forEach(x => x.classList.toggle("on", x.dataset.t === "mover")); pintar(); return;
+    }
     document.querySelectorAll(".col-herr button[data-t]").forEach(x => x.classList.toggle("on", x === b));
     pintar();
   }));
@@ -1377,13 +1448,12 @@ if (VISOR) {
   ["chkFav", "chkComp"].forEach(id => $(id).addEventListener("change", () => { snap(); volcarCampos(); guardarBorrador(); }));
   $("btnAddVid").addEventListener("click", anadirVideo);
   $("btnGuardar").addEventListener("click", guardar);
-  const nuevaJugada = () => {
+  const nuevaJugada = (form) => {
     volcarCampos();
     const hay = jugada.pasos.length > 1 || jugada.pasos[0].lineas.length;
     if (hay && !confirm("Se empieza una jugada nueva. Lo que no hayas guardado se pierde. ¿Seguir?")) return false;
-    jugada = jugadaNueva($("formacion").value); paso = 0; hist = []; rehacer = []; cargarCampos(); return true;
+    jugada = jugadaNueva(form || $("formacion").value); paso = 0; hist = []; rehacer = []; cargarCampos(); return true;
   };
-  $("btnNuevaBib").addEventListener("click", () => { nuevaJugada(); mostrarVista("ed"); irPestana("Draw"); });
   $("verBib").addEventListener("click", () => mostrarVista("bib"));
   $("verEd").addEventListener("click", () => { mostrarVista("ed"); });
   $("btnPng").addEventListener("click", png);
