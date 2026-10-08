@@ -7104,7 +7104,8 @@ function trozosEnvio(nombre) {
     if (m) {
       [["Puntos", m.PT, "por partido"], ["Rebotes", m.RT, "por partido"],
        ["Asistencias", m.AS, "por partido"], ["Robos", m.BR, "por partido"],
-       ["Tiros de 2", m.T2, "% de acierto"], ["Tiros de 3", m.T3, "% de acierto"]]
+       ["Tiros de 2", m.T2, "% de acierto"], ["Tiros de 3", m.T3, "% de acierto"],
+       ["Tiros libres", m.TL, "% de acierto"]]
         .forEach(([et, val, pie]) => {
           if (n(val) !== null) datos.push({ et, v: n(val) + (pie.indexOf("%") === 0 ? "%" : ""), pie });
         });
@@ -8478,6 +8479,7 @@ function mediasClave(teamName) {
     BR: mediaPorPartido(row, "BR", baseType),
     T2: statMediaFor(row, "T2", baseType),
     T3: statMediaFor(row, "T3", baseType),
+    TL: statMediaFor(row, "TL", baseType),
   };
 }
 
@@ -8491,6 +8493,7 @@ function tablaDuelo(miNombre, rivalNombre) {
     ["Robos por partido", a.BR, b.BR, true],
     ["% tiros de 2", a.T2, b.T2, true],
     ["% tiros de 3", a.T3, b.T3, true],
+    ["% tiros libres", a.TL, b.TL, true],
   ].filter(f => f[1] !== null && f[2] !== null);
   if (!filas.length) return `<p class="hint">Proximamente: sin datos suficientes para comparar.</p>`;
   return `<table class="compare-table"><thead><tr><th></th>
