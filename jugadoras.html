@@ -1230,15 +1230,13 @@ async function cargarInicio() {
     ${conResultado ? `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>` : ""}
     <span class="f">${esc(p.fecha)}</span>
     <span class="r">${p.esLocal ? "vs" : "en"} ${escudo(p.rival, "ini-mini")}<span style="overflow:hidden;text-overflow:ellipsis;">${esc(p.rival)}</span></span>
-    ${conResultado ? `<span class="m">${p.pf}-${p.pc}</span>`
-      : `<span class="ini-dif-pill ${dificultad(p.rival).clase}">${esc(dificultad(p.rival).texto)}</span>`}</div>`;
+    ${conResultado ? `<span class="m">${p.pf}-${p.pc}</span>` : ""}</div>`;
 
   // ---- Proximo partido ----
   let html = "";
   if (proximo) {
     const f = fechaDe(proximo.fecha), hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const dias = f ? Math.round((f - hoy) / 86400000) : null;
-    const dif = dificultad(proximo.rival);
     html += `<div class="ini-panel ini-hero"><h3 class="ini-tit">Proximo partido</h3>
       <div class="ini-eqs">
         <div class="ini-eq">${escudo(equipo, "ini-esc")}<b>${esc(equipo)}</b><small>${proximo.esLocal ? "Local" : "Visitante"}</small></div>
@@ -1254,8 +1252,6 @@ async function cargarInicio() {
       <div class="ini-abajo">
         <div class="ini-dias"><b>${dias === null ? "-" : (dias === 0 ? "Hoy" : (dias < 0 ? "Jugado" : dias))}</b>
           <small>${dias > 0 ? (dias === 1 ? "dia restante" : "dias restantes") : ""}</small></div>
-        <div class="ini-dif">Dificultad<div class="ini-estrellas">${"★".repeat(dif.estrellas)}<span class="ap">${"★".repeat(5 - dif.estrellas)}</span></div>
-          <span class="ini-etq">${esc(dif.texto)}${dif.puesto ? " · " + dif.puesto + "º" : ""}</span></div>
       </div></div>`;
   } else {
     html += `<div class="ini-panel ini-hero"><h3 class="ini-tit">Proximo partido</h3>
@@ -1293,7 +1289,7 @@ async function cargarInicio() {
     const ultimos5 = partidosDe(rival).filter(p => p.jugado && p.gano !== null).slice(-5).reverse();
     html += `<div class="ini-panel"><h3 class="ini-tit">El rival de esta semana</h3>
       <div class="ini-rival">${escudo(rival, "esc")}<div><b>${esc(rival)}</b>
-        <div class="expl" style="margin:2px 0 0;">${dif.puesto ? dif.puesto + "º de su grupo · " : ""}Ultimos 5:
+        <div class="expl" style="margin:2px 0 0;">Ultimos 5:
         ${ultimos5.map(p => `<span class="ini-vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>`).join(" ") || "sin datos"}</div></div></div>
       <div class="ini-dos">
         <div class="f"><h4>Donde son fuertes</h4>${fuertes.length ? fuertes.map(x => `<div class="ini-lin b">${esc(txt(x))}</div>`).join("") : `<p class="expl">Sin datos suficientes.</p>`}</div>
