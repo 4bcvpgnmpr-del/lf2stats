@@ -1482,6 +1482,13 @@ if (VISOR) {
   const v = crearVisor({ pista: "vsPista", leyenda: "vsLeyenda", play: "vsPlay", prev: "vsPrev", next: "vsNext", titulo: "vsTitulo", notas: "vsNotas", videos: "vsVideos", linea: "vsLinea", tiempo: "vsTiempo" }, 1200);
   const altura = () => { try { parent.postMessage({ visorAltura: document.documentElement.scrollHeight }, "*"); } catch (e) { /* nada */ } };
   window.addEventListener("message", (ev) => { if (ev.data && ev.data.jugada && ev.data.jugada.pasos) { v.abrir(ev.data.jugada); setTimeout(altura, 120); } });
+  // miniaturas: la biblioteca del Entrenador pide el dibujo de varias jugadas de una vez
+  window.addEventListener("message", (ev) => {
+    if (!ev.data || !Array.isArray(ev.data.miniaturas)) return;
+    const out = {};
+    ev.data.miniaturas.forEach(m => { try { const j = normalizar(JSON.parse(JSON.stringify(m.jugada))); out[m.id] = svgPaso(j, 0, {}); } catch (e) { out[m.id] = ""; } });
+    try { parent.postMessage({ miniaturasListas: out }, "*"); } catch (e) { /* nada */ }
+  });
   try { parent.postMessage({ visorListo: true }, "*"); } catch (e) { /* nada */ }
 } else {
   const modal = crearVisor({ pista: "mvPista", leyenda: "mvLeyenda", play: "mvPlay", prev: "mvPrev", next: "mvNext", titulo: "mvTitulo", notas: "mvNotas", videos: "mvVideos", linea: "mvLinea", tiempo: "mvTiempo" }, 1200);

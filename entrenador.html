@@ -137,6 +137,7 @@
   .fila.sobre,.tj.sobre,.miga a.sobre{background:#d6f3e8 !important;outline:2.5px dashed #15a37f;outline-offset:-3px;border-radius:8px;}
   .arrastrando{opacity:.4;}
   .tj{position:relative;background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;} .tj:hover{border-color:#15a37f;}
+  .tj .vista.mini{aspect-ratio:4/3;background:#fff;font-size:44px;} .tj .vista.mini svg{width:100%;height:100%;display:block;}
   .tj .vista{background:var(--suave);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:44px;}
   .tj .cu{padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-width:0;} .tj .nom .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tj .ck{position:absolute;top:8px;left:8px;background:#fff;border-radius:6px;padding:3px;}
@@ -371,7 +372,7 @@ function pintarCarpetas(v, tipo) {
   } else {
     let t = "";
     cars.forEach(c => { t += `<div class="tj tcar" data-car="${esc(c.ruta)}" ${puedeEscribir ? 'draggable="true"' : ""}><div class="vista">${SVG_CARPETA(64)}</div><div class="cu"><div class="nom"><span class="t">${esc(c.nombre)}</span>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div><span class="peq">${c.n} elemento${c.n === 1 ? "" : "s"}</span></div></div>`; });
-    items.forEach(x => { const c = celdas(x); t += `<div class="tj${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="vista">${ICONO[tipo]}</div><div class="cu"><div class="nom"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div><span class="peq">${esc(c.slice(0, 2).join(" · "))}</span><div class="tags">${chipsTags(x)}</div></div></div>`; });
+    items.forEach(x => { const c = celdas(x); t += `<div class="tj${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="vista${tipo === "jugadas" ? " mini" : ""}" data-mini="${tipo === "jugadas" ? esc(x.id) : ""}">${tipo === "jugadas" && MINIS[x.id + "|" + x.actualizada] ? MINIS[x.id + "|" + x.actualizada] : ICONO[tipo]}</div><div class="cu"><div class="nom"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div><span class="peq">${esc(c.slice(0, 2).join(" · "))}</span><div class="tags">${chipsTags(x)}</div></div></div>`; });
     cuerpo = t ? `<div class="rejilla">${t}</div>` : `<div class="tabla"><div class="vacio">${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + "."}</div></div>`;
   }
   v.innerHTML = h + cuerpo;
@@ -392,6 +393,7 @@ function pintarCarpetas(v, tipo) {
   if ($("sTag")) $("sTag").onclick = () => editarTags(tipo, selItems());
   if ($("sMov")) $("sMov").onclick = () => moverACarpeta(tipo, selItems());
   if ($("sDel")) $("sDel").onclick = async () => { const l = selItems(); if (!confirm("¿Borrar " + l.length + " elemento" + (l.length > 1 ? "s" : "") + "? No se puede deshacer.")) return; for (const x of l) await borrarFila(TABLA_DE[tipo], x.id); seleccion.clear(); await cargarTodo(); pintar(); };
+  if (tipo === "jugadas" && !vistaLista) pedirMiniaturas(items);
   v.querySelectorAll(".selc").forEach(c => { c.addEventListener("click", (e) => e.stopPropagation()); c.addEventListener("change", () => { if (c.checked) seleccion.add(c.dataset.s); else seleccion.delete(c.dataset.s); redib(); }); });
   v.querySelectorAll("[data-car]").forEach(el => {
     const nombre = el.dataset.car;
@@ -408,6 +410,27 @@ function pintarCarpetas(v, tipo) {
     el.addEventListener("dragend", () => el.classList.remove("arrastrando"));
     const b = el.querySelector("[data-mi]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, opcionesElemento(tipo, x)); });
   });
+}
+/* miniaturas de jugadas: un iframe oculto de la pizarra dibuja el primer paso de cada una */
+const MINIS = {};
+let marcoMini = null, marcoMiniListo = false, colaMini = [];
+function pedirMiniaturas(items) {
+  const falta = items.filter(x => x.data && x.data.pasos && x.data.pasos.length && !MINIS[x.id + "|" + x.actualizada]);
+  if (!falta.length) return;
+  const enviar = () => { marcoMini.contentWindow.postMessage({ miniaturas: falta.map(x => ({ id: x.id + "|" + x.actualizada, jugada: x.data })) }, "*"); };
+  if (!marcoMini) {
+    marcoMini = document.createElement("iframe"); marcoMini.style.cssText = "position:fixed;left:-9999px;top:0;width:900px;height:700px;border:0;visibility:hidden;"; marcoMini.title = "miniaturas";
+    marcoMini.src = "pizarra.html?visor=1&v=" + VERSION; document.body.appendChild(marcoMini);
+    window.addEventListener("message", (ev) => {
+      if (!ev.data) return;
+      if (ev.data.visorListo && ev.source === marcoMini.contentWindow) { marcoMiniListo = true; colaMini.splice(0).forEach(f => f()); }
+      if (ev.data.miniaturasListas) {
+        Object.keys(ev.data.miniaturasListas).forEach(k => { if (ev.data.miniaturasListas[k]) MINIS[k] = ev.data.miniaturasListas[k]; });
+        document.querySelectorAll(".vista.mini[data-mini]").forEach(el => { const x = D.jugadas.find(y => y.id === el.dataset.mini); const s = x && MINIS[x.id + "|" + x.actualizada]; if (s && !el.querySelector("svg")) el.innerHTML = s; });
+      }
+    });
+  }
+  if (marcoMiniListo) enviar(); else colaMini.push(enviar);
 }
 /* soltar elementos arrastrados sobre una carpeta (o sobre la raiz) */
 function soltarEn(el, tipo, nombre) {
