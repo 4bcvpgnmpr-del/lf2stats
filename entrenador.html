@@ -218,12 +218,53 @@
   .np{display:flex;flex-direction:column;gap:10px;margin-top:10px;} .np button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px;font-weight:600;text-align:left;font-size:14px;}
   @media (max-width:900px){ .pe-top{flex-wrap:wrap;height:auto;padding:8px;} .pe-l{flex:1 1 100%;order:1;} .pe-c{order:3;flex:1 1 auto;justify-content:center;} .pe-r{order:2;flex:0 0 auto;} .pe-tabs button{padding:9px 12px;font-size:14px;}
     .pe-cuerpo{padding:16px 10px 90px;} .pe-h,.pe-add{margin-left:4px;} .pe-asa{width:16px;} .pe-tarj{flex-wrap:wrap;} .pe-c1{flex:0 0 90px;} .pe-c2{flex:1 1 calc(100% - 90px);border-right:0;} .pe-c3{flex:1 1 100%;border-top:1px solid var(--pln);} .pe-c4{margin-left:auto;border-left:0;} .pe-tarj input[data-f=notas]{padding-left:18px;} .pe-sep{display:none;} }
+  /* ===== playbooks ===== */
+  #pbEd{--pg:#3f9c86;--pgd:#34836f;--pln:#e3e6ea;position:fixed;inset:0;z-index:150;background:#f5f6f8;display:none;flex-direction:column;color:#1f2933;}
+  #pbEd.ver{display:flex;} #pbEd button{font-weight:600;} #pbEd .naranja{background:var(--pg);} #pbEd .naranja.sucio{box-shadow:0 0 0 3px rgba(63,156,134,.35);}
+  .pb-top{display:flex;align-items:center;gap:10px;height:60px;padding:0 14px;background:#fff;border-bottom:1px solid var(--pln);flex:none;} .pb-top .esp{flex:1;}
+  .pb-nom{border:0 !important;background:transparent !important;font-size:16px;font-weight:800;min-width:120px;max-width:300px;padding:6px 8px !important;} .pb-nom:focus{background:#f1f3f5 !important;}
+  .pb-ic{background:transparent;border:0;color:#5b6670;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;display:inline-flex;align-items:center;} .pb-ic:hover{background:#eceff1;color:#1f2933;}
+  .pb-tog{display:flex;background:#eef0f3;border-radius:10px;padding:3px;} .pb-tog button{border:0;background:transparent;padding:7px 16px;border-radius:8px;font-size:14px;color:#4a5560;} .pb-tog button.on{background:#fff;color:var(--pg);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  .pb-cuerpo{flex:1;display:flex;min-height:0;}
+  .pb-out{width:230px;flex:none;background:#fff;border-right:1px solid var(--pln);padding:16px 12px;overflow:auto;} .pb-oh{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#7a858f;margin:0 6px 10px;}
+  .pb-oc{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent;padding:9px 8px;border-radius:9px;font-size:14px;color:#1f2933;cursor:pointer;} .pb-oc:hover{background:#f1f3f5;} .pb-oc.on{background:#e6f3ef;color:var(--pgd);} .pb-oc .n{color:#8b949c;font-size:12px;width:14px;} .pb-oc .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;} .pb-oc .c{background:#eef0f3;border-radius:999px;font-size:11px;padding:1px 8px;color:#5b6670;}
+  .pb-main{flex:1;min-width:0;overflow:auto;padding:22px 26px 90px;}
+  .pb-cap{background:#fff;border:1.5px solid var(--pln);border-radius:14px;padding:14px 16px 16px;margin:0 auto 16px;max-width:760px;} .pb-cap.on{border-color:#b9ddd3;}
+  .pb-caph{display:flex;align-items:center;gap:6px;margin-bottom:10px;} .pb-capn{font-weight:800;font-size:16px;} .pb-capt{flex:1;min-width:0;border:0 !important;background:transparent !important;font-size:16px;font-weight:800;padding:6px 6px !important;} .pb-capt:focus{background:#f1f3f5 !important;}
+  .pb-asa{color:#a3acb4;display:inline-flex;cursor:grab;flex:none;}
+  .pb-items{display:flex;flex-direction:column;gap:8px;min-height:56px;border-radius:10px;} .pb-items.sobre{outline:2px dashed var(--pg);outline-offset:3px;background:#f3faf8;}
+  .pb-vacio{border:1.5px dashed #cfd5db;border-radius:10px;padding:16px;color:#7a858f;font-size:13.5px;text-align:center;}
+  .pb-fila{display:flex;align-items:center;gap:8px;border:1.5px solid var(--pln);border-radius:12px;padding:6px 8px;background:#fff;} .pb-fila.sobre{border-color:var(--pg);box-shadow:0 -3px 0 var(--pg);} .pb-fila.arr{opacity:.4;}
+  .pb-fila .pb-n{flex:1;min-width:0;font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .pb-tag{font-style:normal;font-size:11px;background:#eef0f3;color:#5b6670;border-radius:999px;padding:1px 8px;margin-left:6px;font-weight:700;}
+  .pb-fila.txt{align-items:flex-start;} .pb-fila.txt textarea{flex:1;border:0;background:#f7f8fa;border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;resize:none;min-height:44px;overflow:hidden;}
+  .pb-fila.salto{background:#f7f8fa;border-style:dashed;} .pb-sl{flex:1;color:#7a858f;font-size:13px;}
+  .pb-th{width:58px;height:44px;flex:none;border-radius:8px;overflow:hidden;background:#f3e6d2;display:flex;align-items:center;justify-content:center;font-size:20px;} .pb-th svg{width:100%;height:100%;display:block;}
+  .pb-addb,.pb-addc{display:block;width:100%;margin-top:10px;border:1.5px dashed #cfd5db;background:#fff;border-radius:10px;padding:10px;color:#4a5560;cursor:pointer;font-size:14px;} .pb-addb:hover,.pb-addc:hover{border-color:var(--pg);color:var(--pgd);} .pb-addc{max-width:760px;margin:0 auto;padding:14px;}
+  .pb-lib{width:340px;flex:none;background:#fff;border-left:1px solid var(--pln);display:flex;flex-direction:column;min-height:0;} .pb-lib.oculta{width:44px;align-items:center;padding-top:10px;}
+  .pb-lt{display:flex;align-items:center;gap:2px;padding:10px 12px 0;border-bottom:1px solid var(--pln);flex:none;} .pb-lt .esp{flex:1;} .pb-lt [data-t]{border:0;background:transparent;padding:9px 12px;font-size:14px;color:#5b6670;border-bottom:3px solid transparent;border-radius:0;cursor:pointer;} .pb-lt [data-t].on{color:var(--pgd);border-bottom-color:var(--pg);}
+  #pbLc{flex:1;min-height:0;overflow:auto;padding:10px 12px 20px;display:flex;flex-direction:column;} .pb-lb input{width:100%;} #pbLl{flex:1;}
+  .pb-mig{font-size:13px;color:#7a858f;margin:10px 2px;} .pb-mig a{cursor:pointer;color:#4a5560;font-weight:700;} .pb-mig a:hover{color:var(--pgd);}
+  .pb-lf{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:9px;cursor:pointer;font-weight:700;font-size:14px;} .pb-lf:hover,.pb-li:hover{background:#f3f5f7;}
+  .pb-li{display:flex;align-items:center;gap:10px;padding:6px;border-radius:10px;cursor:pointer;} .pb-lx{flex:1;min-width:0;display:flex;flex-direction:column;} .pb-lx b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .pb-lx small{color:#8b949c;font-size:12px;}
+  .pb-mas{color:var(--pgd);font-size:18px;font-weight:800;} .pb-ay{font-size:13px;color:#7a858f;margin:10px 2px;}
+  .pb-bl{display:flex;gap:12px;align-items:center;border:1.5px solid var(--pln);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:#fff;} .pb-bl:hover{border-color:var(--pg);} .pb-bl .i{font-size:20px;width:28px;text-align:center;color:#5b6670;} .pb-bl b{display:block;font-size:14px;} .pb-bl small{color:#7a858f;font-size:12.5px;}
+  #pbEd.prev .pb-out,#pbEd.prev .pb-lib{display:none;} #pbEd.prev .pb-main{background:#fff;} #pbEd.prev .pbv{max-width:860px;margin:0 auto;}
+  @media (max-width:900px){ .pb-cuerpo{flex-direction:column;} .pb-out{display:none;} .pb-lib{width:auto;flex:none;height:40vh;border-left:0;border-top:1px solid var(--pln);} .pb-main{flex:1 1 0;min-height:0;} .pb-lib.oculta{width:auto;height:44px;max-height:44px;flex-direction:row;} .pb-top{height:auto;flex-wrap:wrap;padding:8px;} .pb-nom{flex:1 1 140px;} .pb-main{padding:14px 10px 20px;} }
+  /* lectura / vista previa / impresion */
+  .pbv-acc{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;} .pbv-acc button{padding:9px 14px;}
+  .pbv h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:28px;margin:6px 0 4px;} .pbv-no{white-space:pre-wrap;color:#4a5560;margin:8px 0;}
+  .pbv-toc{background:#f5f6f8;border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:16px 0 26px;} .pbv-toc summary{font-weight:800;cursor:pointer;} .pbv-tc{margin-top:10px;} .pbv-tc a{font-weight:800;color:inherit;text-decoration:none;display:block;} .pbv-tc a b{color:#8b949c;margin-right:6px;} .pbv-tc span{display:block;color:#5b6670;font-size:13.5px;padding:2px 0 0 22px;}
+  .pbv-ch{display:flex;align-items:center;gap:14px;border-top:3px solid #1f2933;padding:14px 0 6px;margin-top:34px;} .pbv-ch .n{font-size:34px;font-weight:300;color:#8b949c;} .pbv-ch .t{flex:1;} .pbv-ch small{letter-spacing:1px;color:#8b949c;font-weight:700;font-size:11px;} .pbv-ch h2{margin:0;font-size:24px;} .pbv-ch .np{color:#8b949c;font-size:13px;}
+  .pbv-jug{margin:22px 0 28px;} .pbv-jug h3{margin:0 0 6px;font-size:20px;} .pbv-txt{margin:16px 0;line-height:1.55;} .pbv-salto{height:1px;}
+  .pbv-fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:12px;} .pbv-fases figure{margin:0;} .pbv-fases figcaption{font-weight:800;font-size:13px;margin-bottom:6px;} .pbv-fases .pista svg{width:100%;height:auto;display:block;border-radius:8px;} .pbv-fases ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;}
+  @media (max-width:640px){ .pbv-fases{grid-template-columns:minmax(0,1fr);} .pbv h1{font-size:22px;} }
   #hojaImp{display:none;}
   @media print{
-    #app,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#aviso{display:none !important;}
+    #app,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#pbEd,#aviso{display:none !important;}
     body{background:#fff;}
     #hojaImp{display:block;padding:10mm;font-size:12pt;}
     #hojaImp h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22pt;margin:0 0 4px;}
+    #hojaImp .pbp .pbv-anim,#hojaImp .pbp .pbv-toc{display:none !important;} #hojaImp .pbv-jug{break-inside:avoid;} #hojaImp .pbv-salto{break-after:page;} #hojaImp .pbv-ch{break-after:avoid;} #hojaImp .pbv-fases{grid-template-columns:repeat(2,1fr);}
     #hojaImp table{width:100%;border-collapse:collapse;margin-top:10px;}
     #hojaImp td,#hojaImp th{border:1px solid #888;padding:6px 8px;text-align:left;vertical-align:top;font-size:11pt;}
     #hojaImp th{background:#eee;}
@@ -375,6 +416,7 @@
 <div id="visorMarco"><div class="cabv"><span id="tituloVisor">Jugada</span><button class="gris" id="cerrarVisor">Cerrar ✕</button></div><iframe id="marcoVisor" title="Jugada" allowfullscreen allow="fullscreen"></iframe></div>
 
 <div id="planEd"></div>
+<div id="pbEd"></div>
 
 <div id="hojaImp"></div>
 
@@ -758,58 +800,206 @@ window.addEventListener("message", (ev) => {
   if (d.scoutflowEntrenador === "guardado") { /* se recarga al cerrar */ }
 });
 
-/* ------------ playbooks ------------ */
+/* ------------ playbooks (capítulos con jugadas, como The Hoops Geek) ------------ */
+const pbCaps = (p) => { p.data = p.data || {}; if (!Array.isArray(p.data.capitulos) || !p.data.capitulos.length) p.data.capitulos = [{ id: idNuevo("c"), titulo: (p.data.jugadas || []).length ? "Jugadas" : "", items: (p.data.jugadas || []).map(id => ({ t: "j", id })) }]; return p.data.capitulos; };
+const pbEsJ = (i) => i.t === "j" || i.t === "e";
+const pbNJ = (p) => pbCaps(p).reduce((n, c) => n + c.items.filter(pbEsJ).length, 0);
+const pbElem = (it) => it.t === "e" ? D.ejercicios.find(x => x.id === it.id) : D.jugadas.find(x => x.id === it.id);
+const pbTit = (c, i) => c.titulo || ("Capítulo " + (i + 1));
 function pintarPlaybooks(v) {
   const q = busqueda.toLowerCase(), lista = D.playbooks.filter(p => !q || (p.nombre + " " + (p.equipo || "") + " " + (p.temporada || "")).toLowerCase().includes(q));
   let filas = `<div class="fila c-pb cabt"><div>Título</div><div>Jugadas</div><div>Equipo</div><div>Temporada</div><div>Jugadoras</div><div>Última edición</div><div></div></div>`;
-  lista.forEach(p => { const n = ((p.data && p.data.jugadas) || []).length; filas += `<div class="fila c-pb" data-id="${esc(p.id)}"><div class="nom"><span class="ico">📘</span><span class="t">${esc(p.nombre || "(sin nombre)")}</span></div><div class="peq">${n}</div><div class="peq">${esc(p.equipo || "—")}</div><div class="peq">${esc(p.temporada || "—")}</div><div class="peq">${p.compartido ? "📤 Sí" : "—"}</div><div class="peq">${fechaTxt(p.actualizada)}</div><div>${puedeEscribir ? '<button class="mas">⋮</button>' : ""}</div></div>`; });
-  if (!lista.length) filas += `<div class="vacio">${q ? "Nada coincide con la búsqueda." : "Todavía no hay playbooks. Un playbook es una colección de jugadas (por ejemplo, «Ataque a zona» o «Saques de fondo»)."}</div>`;
+  lista.forEach(p => { const n = pbNJ(clonar(p)); filas += `<div class="fila c-pb" data-id="${esc(p.id)}"><div class="nom"><span class="ico">📘</span><span class="t">${esc(p.nombre || "(sin nombre)")}</span></div><div class="peq">${n}</div><div class="peq">${esc(p.equipo || "—")}</div><div class="peq">${esc(p.temporada || "—")}</div><div class="peq">${p.compartido ? "📤 Sí" : "—"}</div><div class="peq">${fechaTxt(p.actualizada)}</div><div>${puedeEscribir ? '<button class="mas">⋮</button>' : ""}</div></div>`; });
+  if (!lista.length) filas += `<div class="vacio">${q ? "Nada coincide con la búsqueda." : "Todavía no hay playbooks. Un playbook es un documento con capítulos y jugadas (por ejemplo, «Sistemas de ataque» con un capítulo por sistema)."}</div>`;
   v.innerHTML = `<div class="cab"><h2>Playbooks</h2><span class="esp"></span>${botonNuevo("＋ Nuevo playbook", "bNuevo")}</div><div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div><div class="tabla">${filas}</div>`;
   $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; pintarPlaybooks(v); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
   if ($("bNuevo")) $("bNuevo").onclick = () => formPlaybook(null);
   v.querySelectorAll(".fila[data-id]").forEach(el => {
     const p = D.playbooks.find(y => y.id === el.dataset.id);
     el.addEventListener("click", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); });
-    const b = el.querySelector(".mas"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📘 Abrir", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }], ["✏️ Editar datos", () => formPlaybook(p)], ["⧉ Duplicar", async () => { const c = clonar(p); c.id = idNuevo("b"); c.nombre += " (copia)"; c.compartido = false; if (await guardarFila("playbooks", c)) { await cargarTodo(); pintar(); } }], ["🗑 Eliminar", async () => { if (confirm("¿Borrar el playbook «" + p.nombre + "»? Las jugadas no se borran.") && await borrarFila("playbooks", p.id)) { await cargarTodo(); pintar(); } }, "pel"]]); });
+    const b = el.querySelector(".mas"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📘 Abrir", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }], ["✏️ Editar playbook", () => abrirPbEd(p, false)], ["⚙ Datos (título, equipo…)", () => formPlaybook(p)], ["⧉ Duplicar", async () => { const c = clonar(p); c.id = idNuevo("b"); c.nombre += " (copia)"; c.compartido = false; pbCaps(c).forEach(k => { k.id = idNuevo("c"); }); if (await guardarFila("playbooks", c)) { await cargarTodo(); pintar(); } }], ["🗑 Eliminar", async () => { if (confirm("¿Borrar el playbook «" + p.nombre + "»? Las jugadas no se borran.") && await borrarFila("playbooks", p.id)) { await cargarTodo(); pintar(); } }, "pel"]]); });
   });
 }
+/* ---- vista de lectura: contenido, capítulos, jugadas con sus fases ---- */
+function pbVistaHtml(p) {
+  const caps = pbCaps(p), uid = Date.now().toString(36); let toc = "", cuerpo = "", n = 0;
+  const lineas = (t) => String(t || "").split("\n").map(s => s.trim()).filter(Boolean);
+  caps.forEach((c, ci) => {
+    const js = c.items.filter(pbEsJ).map(pbElem).filter(Boolean);
+    toc += `<div class="pbv-tc"><a href="#pbc${ci}"><b>${ci + 1}</b> ${esc(pbTit(c, ci))}</a>${js.map(x => `<span>${esc(x.nombre || "")}</span>`).join("")}</div>`;
+    cuerpo += `<section class="pbv-cap" id="pbc${ci}"><div class="pbv-ch"><span class="n">${String(ci + 1).padStart(2, "0")}</span><div class="t"><small>CAPÍTULO</small><h2>${esc(pbTit(c, ci))}</h2></div><span class="np">${js.length} ${js.length === 1 ? "jugada" : "jugadas"}</span></div>`;
+    c.items.forEach(it => {
+      if (it.t === "txt") { cuerpo += `<p class="pbv-txt">${esc(it.txt || "").replace(/\n/g, "<br>")}</p>`; return; }
+      if (it.t === "salto") { cuerpo += `<div class="pbv-salto"></div>`; return; }
+      const x = pbElem(it); if (!x) return; const d = diagDe(x) || { pasos: [] }, k = uid + "_" + (n++), notas = it.t === "e" ? ((x.data && x.data.descripcion) || "") : (d.notas || (x.data && x.data.notas) || "");
+      cuerpo += `<div class="pbv-jug" data-pbk="${k}" data-pbt="${it.t}" data-pbid="${esc(x.id)}"><h3>${esc(x.nombre || "(sin nombre)")}</h3>${notas ? `<p class="pbv-no">${esc(notas)}</p>` : ""}${(d.pasos && d.pasos.length) ? `<button class="pbv-anim jug-btn" type="button">▶ Reproducir animación completa</button><div class="pbv-fases">${d.pasos.map((q, i) => { const ls = lineas(q.texto); return `<figure><figcaption>${esc(q.titulo || "Fase " + (i + 1))}</figcaption><div class="pista" data-pbf="${i}"></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}</figure>`; }).join("")}</div>` : '<p class="peq">Sin dibujo.</p>'}</div>`;
+    });
+    cuerpo += `</section>`;
+  });
+  return `<div class="pbv"><header class="pbv-h"><h1>${esc(p.nombre || "Playbook")}</h1><div class="peq">${esc(p.equipo || "")}${p.temporada ? " · " + esc(p.temporada) : ""}</div>${(p.data && p.data.notas) ? `<p class="pbv-no">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}</header><details class="pbv-toc" open><summary>Contenido</summary>${toc}</details>${cuerpo}</div>`;
+}
+function pbCargar(root) {
+  root.querySelectorAll(".pbv-jug").forEach(el => {
+    const tipo = el.dataset.pbt === "e" ? "ejercicios" : "jugadas", x = (tipo === "ejercicios" ? D.ejercicios : D.jugadas).find(y => y.id === el.dataset.pbid); if (!x) return;
+    const b = el.querySelector(".pbv-anim"); if (b) b.onclick = () => { const d = diagDe(x); verJugada(tipo === "jugadas" ? x : { id: x.id, nombre: x.nombre, data: Object.assign({}, d) }); };
+    if (el.querySelector("[data-pbf]")) pedirFases(x, tipo, el.dataset.pbk, (sv) => { el.querySelectorAll("[data-pbf]").forEach(f => { const s = sv[Number(f.dataset.pbf)]; if (s) f.innerHTML = s; }); });
+  });
+}
+function imprimirPb(root) { $("hojaImp").innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; window.print(); }
 function pintarPlaybook(v) {
   const p = D.playbooks.find(y => y.id === vistaDetalle.id); if (!p) { vistaDetalle = null; return pintar(); }
-  const ids = (p.data && p.data.jugadas) || [], js = ids.map(i => D.jugadas.find(j => j.id === i)).filter(Boolean);
-  v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span>${puedeEscribir ? '<button class="gris" id="editPb">✏️ Editar</button>' : ""}</div>
-    <p class="peq" style="margin:-6px 0 14px;">${esc(p.equipo || "")} ${p.temporada ? "· " + esc(p.temporada) : ""} · ${js.length} jugadas · ${p.compartido ? "📤 visible para las jugadoras" : "solo para ti"}</p>
-    ${(p.data && p.data.notas) ? `<p style="white-space:pre-wrap;margin:0 0 14px;">${esc(p.data.notas)}</p>` : ""}
-    <div class="tabla">${js.length ? js.map((j, i) => `<div class="fila c-eje" data-j="${esc(j.id)}" style="grid-template-columns:34px minmax(0,1fr) 120px 110px;"><div class="peq">${i + 1}</div><div class="nom"><span class="ico">🏀</span><span class="t">${esc(j.nombre)}</span></div><div class="peq">${esc(j.tipo || "")}</div><div><button class="gris" data-v="1">▶ Ver</button></div></div>`).join("") : '<div class="vacio">Este playbook no tiene jugadas todavía. Pulsa «Editar» para añadirlas.</div>'}</div>`;
+  v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span></div><div class="pbv-acc"><button class="gris" id="impPb">🖨 Imprimir / PDF</button>${puedeEscribir ? '<button class="naranja" id="editPb">✏️ Editar playbook</button>' : ""}</div><div id="pbLect">${pbVistaHtml(p)}</div>`;
   $("volverPb").onclick = () => { vistaDetalle = null; pintar(); };
-  if ($("editPb")) $("editPb").onclick = () => formPlaybook(p);
-  v.querySelectorAll("[data-j]").forEach(el => el.addEventListener("click", () => verJugada(D.jugadas.find(j => j.id === el.dataset.j))));
+  if ($("editPb")) $("editPb").onclick = () => abrirPbEd(p, false);
+  $("impPb").onclick = () => imprimirPb($("pbLect"));
+  pbCargar($("pbLect"));
 }
-function formPlaybook(p) {
-  const nuevo = !p; p = p ? clonar(p) : { id: idNuevo("b"), nombre: "", equipo: "", temporada: "", compartido: false, data: { jugadas: [], notas: "" } };
-  p.data = p.data || {}; p.data.jugadas = p.data.jugadas || [];
-  let sel = p.data.jugadas.slice(), filtro = "";
-  const m = ventana(`<h3>${nuevo ? "Nuevo playbook" : "Editar playbook"}</h3>
-    <label>Título</label><input id="pbN" value="${esc(p.nombre)}" placeholder="Ej: Ataque a zona">
+/* datos del playbook (título, equipo, temporada, notas, visible para jugadoras) */
+function formPlaybook(p, alGuardar) {
+  const nuevo = !p; p = p ? clonar(p) : { id: idNuevo("b"), nombre: "", equipo: "", temporada: "", compartido: false, data: {} };
+  pbCaps(p);
+  const m = ventana(`<h3>${nuevo ? "Nuevo playbook" : "Datos del playbook"}</h3>
+    <label>Título</label><input id="pbN" value="${esc(p.nombre)}" placeholder="Ej: Sistemas de ataque">
     <div class="dos"><div><label>Equipo</label><input id="pbE" value="${esc(p.equipo || "")}"></div><div><label>Temporada</label><input id="pbT" value="${esc(p.temporada || "")}" placeholder="2026/27"></div></div>
-    <label>Notas</label><textarea id="pbNo" style="min-height:60px;">${esc(p.data.notas || "")}</textarea>
+    <label>Notas de introducción</label><textarea id="pbNo" style="min-height:70px;">${esc(p.data.notas || "")}</textarea>
     <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible para las jugadoras</label>
-    <label>Jugadas del playbook (<span id="pbCnt">0</span>)</label><input type="search" id="pbQ" placeholder="Buscar jugada…"><div class="lista-sel" id="pbL"></div>
-    <div class="pie-m"><button class="gris" id="pbX">Cancelar</button><button class="naranja" id="pbG">Guardar</button></div>`, true);
-  const pintarSel = () => {
-    $("pbCnt").textContent = sel.length;
-    const q = filtro.toLowerCase(), orden = sel.map(i => D.jugadas.find(j => j.id === i)).filter(Boolean), resto = D.jugadas.filter(j => !sel.includes(j.id) && (!q || (j.nombre + " " + (j.tipo || "")).toLowerCase().includes(q)));
-    { const A = orden.map((j, i) => `<label class="it"><input type="checkbox" checked data-id="${esc(j.id)}"><span style="flex:1;">${i + 1}. ${esc(j.nombre)}</span><span class="peq">${esc(j.tipo || "")}</span><button type="button" class="gris" data-up="${esc(j.id)}" style="padding:3px 8px;">↑</button><button type="button" class="gris" data-dn="${esc(j.id)}" style="padding:3px 8px;">↓</button></label>`).join(""); const B = resto.map(j => `<label class="it"><input type="checkbox" data-id="${esc(j.id)}"><span style="flex:1;">${esc(j.nombre)}</span><span class="peq">${esc(j.tipo || "")}</span></label>`).join(""); $("pbL").innerHTML = (A + B) || '<div class="vacio">No hay jugadas guardadas.</div>'; }
-    $("pbL").querySelectorAll("input[type=checkbox]").forEach(c => c.addEventListener("change", () => { const id = c.dataset.id; sel = c.checked ? sel.concat([id]) : sel.filter(x => x !== id); pintarSel(); }));
-    $("pbL").querySelectorAll("[data-up]").forEach(b => b.addEventListener("click", (e) => { e.preventDefault(); const i = sel.indexOf(b.dataset.up); if (i > 0) { [sel[i - 1], sel[i]] = [sel[i], sel[i - 1]]; pintarSel(); } }));
-    $("pbL").querySelectorAll("[data-dn]").forEach(b => b.addEventListener("click", (e) => { e.preventDefault(); const i = sel.indexOf(b.dataset.dn); if (i < sel.length - 1) { [sel[i + 1], sel[i]] = [sel[i], sel[i + 1]]; pintarSel(); } }));
-  };
-  pintarSel(); $("pbQ").addEventListener("input", (e) => { filtro = e.target.value; pintarSel(); });
+    <div class="pie-m"><button class="gris" id="pbX">Cancelar</button><button class="naranja" id="pbG">${nuevo ? "Crear y añadir jugadas" : "Guardar"}</button></div>`);
   $("pbX").onclick = cerrarVentana;
   $("pbG").onclick = async () => {
     p.nombre = $("pbN").value.trim(); if (!p.nombre) { aviso("Ponle un título."); return; }
-    p.equipo = $("pbE").value.trim(); p.temporada = $("pbT").value.trim(); p.compartido = $("pbC").checked; p.data.notas = $("pbNo").value; p.data.jugadas = sel;
-    if (await guardarFila("playbooks", p)) { cerrarVentana(); aviso("Playbook guardado ✓"); await cargarTodo(); if (vistaDetalle && vistaDetalle.tipo === "playbook") vistaDetalle.id = p.id; pintar(); }
+    p.equipo = $("pbE").value.trim(); p.temporada = $("pbT").value.trim(); p.compartido = $("pbC").checked; p.data.notas = $("pbNo").value;
+    if (alGuardar) { cerrarVentana(); alGuardar(p); return; }
+    if (nuevo) { cerrarVentana(); abrirPbEd(p, true); return; }
+    if (await guardarFila("playbooks", p)) { cerrarVentana(); aviso("Playbook guardado ✓"); await cargarTodo(); pintar(); }
   };
+}
+/* ---- editor (Esquema | capítulos | biblioteca) ---- */
+let PB = null, PBD = null;
+function abrirPbEd(p, nuevo) {
+  p = clonar(p); pbCaps(p);
+  PB = { p, sel: 0, tab: "j", car: "", q: "", prev: false, sucio: !!nuevo, lib: true };
+  $("pbEd").innerHTML = `<div class="pb-top" id="pbTop"></div><div class="pb-cuerpo"><div class="pb-out" id="pbOut"></div><div class="pb-main" id="pbMain"></div><div class="pb-lib" id="pbLib"></div></div>`;
+  $("pbEd").classList.add("ver"); pbTodo();
+}
+const pbTodo = () => { pbTop(); pbOut(); pbMain(); pbLib(); $("pbEd").classList.toggle("prev", PB.prev); };
+const pbSucio = () => { PB.sucio = true; const g = $("pbGuardar"); if (g) g.classList.add("sucio"); };
+async function pbCerrar() {
+  if (PB && PB.sucio && !confirm("Hay cambios sin guardar. ¿Salir sin guardar?")) return;
+  $("pbEd").classList.remove("ver"); $("pbEd").innerHTML = ""; const id = PB && PB.p.id; PB = null; await cargarTodo(); if (vistaDetalle && vistaDetalle.tipo === "playbook" && !D.playbooks.find(y => y.id === id)) vistaDetalle = null; pintar();
+}
+async function pbGuardar() {
+  const p = PB.p; if (!p.nombre) { aviso("Ponle un título al playbook (⚙ Datos)."); return; }
+  p.data.jugadas = []; p.data.capitulos.forEach(c => c.items.forEach(i => { if (i.t === "j") p.data.jugadas.push(i.id); }));
+  if (await guardarFila("playbooks", p)) { PB.sucio = false; const g = $("pbGuardar"); if (g) g.classList.remove("sucio"); aviso("Playbook guardado ✓"); }
+}
+function pbTop() {
+  const p = PB.p, ro = !puedeEscribir;
+  $("pbTop").innerHTML = `<button class="pb-ic" id="pbX" title="Cerrar">✕</button><input id="pbNom" class="pb-nom" value="${esc(p.nombre)}" placeholder="Título del playbook" ${ro ? "disabled" : ""}>
+    <div class="pb-tog"><button data-m="e" class="${PB.prev ? "" : "on"}">Editor</button><button data-m="v" class="${PB.prev ? "on" : ""}">Vista previa</button></div><span class="esp"></span>
+    ${PB.prev ? '<button class="gris" id="pbImp">🖨 Imprimir / PDF</button>' : ""}<button class="gris" id="pbDat">⚙ Datos</button>${ro ? "" : `<button class="naranja ${PB.sucio ? "sucio" : ""}" id="pbGuardar">Guardar</button>`}`;
+  $("pbX").onclick = pbCerrar;
+  $("pbNom").addEventListener("input", (e) => { p.nombre = e.target.value; pbSucio(); });
+  $("pbTop").querySelectorAll(".pb-tog button").forEach(b => b.onclick = () => { PB.prev = b.dataset.m === "v"; pbTodo(); });
+  $("pbDat").onclick = () => formPlaybook(p, (np) => { PB.p = np; pbSucio(); pbTodo(); });
+  if ($("pbGuardar")) $("pbGuardar").onclick = pbGuardar;
+  if ($("pbImp")) $("pbImp").onclick = () => imprimirPb($("pbMain"));
+}
+function pbOut() {
+  const caps = PB.p.data.capitulos;
+  $("pbOut").innerHTML = `<div class="pb-oh">Esquema</div>` + caps.map((c, i) => `<button class="pb-oc ${i === PB.sel ? "on" : ""}" data-i="${i}"><span class="n">${i + 1}</span><span class="t">${esc(pbTit(c, i))}</span><span class="c">${c.items.filter(pbEsJ).length}</span></button>`).join("");
+  $("pbOut").querySelectorAll(".pb-oc").forEach(b => b.onclick = () => { PB.sel = Number(b.dataset.i); pbOut(); const el = document.querySelector(`#pbMain [data-cap="${PB.sel}"]`); if (el) { if (PB.prev) { const t = document.getElementById("pbc" + PB.sel); if (t) t.scrollIntoView({ behavior: "smooth" }); } else el.scrollIntoView({ behavior: "smooth", block: "start" }); } else if (PB.prev) { const t = document.getElementById("pbc" + PB.sel); if (t) t.scrollIntoView({ behavior: "smooth" }); } });
+}
+function pbSoltar(ci, ii) {
+  const d = PBD; PBD = null; if (!d) return; const caps = PB.p.data.capitulos, dest = caps[ci].items;
+  if (d.add) dest.splice(ii == null ? dest.length : ii, 0, Object.assign({}, d.add));
+  else if (d.mov) { const o = caps[d.mov.c].items, it = o.splice(d.mov.i, 1)[0]; let k = ii == null ? dest.length : ii; if (d.mov.c === ci && d.mov.i < k) k--; dest.splice(k, 0, it); }
+  PB.sel = ci; pbSucio(); pbMain(); pbOut();
+}
+function pbAnadir(it) { const c = PB.p.data.capitulos[PB.sel] || PB.p.data.capitulos[0]; c.items.push(it); pbSucio(); pbMain(); pbOut(); const el = document.querySelector(`#pbMain [data-cap="${PB.p.data.capitulos.indexOf(c)}"]`); if (el) { const l = el.querySelector(".pb-items"); if (l && l.lastElementChild) l.lastElementChild.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }
+function pbMain() {
+  const root = $("pbMain"), p = PB.p, caps = p.data.capitulos, ro = !puedeEscribir;
+  if (PB.prev) { root.innerHTML = pbVistaHtml(p); pbCargar(root); root.scrollTop = 0; return; }
+  const sc = root.scrollTop;
+  root.innerHTML = caps.map((c, ci) => `<section class="pb-cap ${ci === PB.sel ? "on" : ""}" data-cap="${ci}">
+    <div class="pb-caph"><span class="pb-asa">${IC.asa}</span><span class="pb-capn">${ci + 1}.</span><input class="pb-capt" data-ci="${ci}" value="${esc(c.titulo || "")}" placeholder="Capítulo sin título" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pb-ic" data-capmas="${ci}" title="Más">${IC.mas}</button>`}</div>
+    <div class="pb-items" data-ci="${ci}">${c.items.map((it, ii) => pbFila(it, ci, ii, ro)).join("") || `<div class="pb-vacio">Arrastra jugadas aquí, haz clic en una de la biblioteca o añade un bloque.</div>`}</div>
+    ${ro ? "" : `<button class="pb-addb" data-addb="${ci}">＋ Añadir bloque</button>`}</section>`).join("") + (ro ? "" : `<button class="pb-addc" id="pbAddCap">＋ Añadir capítulo</button>`);
+  root.scrollTop = sc;
+  root.querySelectorAll(".pb-cap").forEach(el => el.addEventListener("mousedown", () => { const i = Number(el.dataset.cap); if (PB.sel !== i) { PB.sel = i; root.querySelectorAll(".pb-cap").forEach(x => x.classList.toggle("on", x === el)); pbOut(); } }));
+  root.querySelectorAll(".pb-capt").forEach(inp => inp.addEventListener("input", () => { caps[Number(inp.dataset.ci)].titulo = inp.value; pbSucio(); const b = $("pbOut").querySelector(`.pb-oc[data-i="${inp.dataset.ci}"] .t`); if (b) b.textContent = pbTit(caps[Number(inp.dataset.ci)], Number(inp.dataset.ci)); }));
+  root.querySelectorAll("[data-capmas]").forEach(b => b.onclick = (e) => { const ci = Number(b.dataset.capmas); abrirMenu(e, [["↑ Subir capítulo", () => { if (ci > 0) { [caps[ci - 1], caps[ci]] = [caps[ci], caps[ci - 1]]; PB.sel = ci - 1; pbSucio(); pbMain(); pbOut(); } }], ["↓ Bajar capítulo", () => { if (ci < caps.length - 1) { [caps[ci + 1], caps[ci]] = [caps[ci], caps[ci + 1]]; PB.sel = ci + 1; pbSucio(); pbMain(); pbOut(); } }], ["🗑 Eliminar capítulo", () => { if (caps.length < 2) { aviso("Tiene que quedar al menos un capítulo."); return; } if (caps[ci].items.length && !confirm("¿Eliminar el capítulo y su contenido? Las jugadas no se borran.")) return; caps.splice(ci, 1); PB.sel = Math.max(0, Math.min(PB.sel, caps.length - 1)); pbSucio(); pbMain(); pbOut(); }, "pel"]]); });
+  root.querySelectorAll("[data-addb]").forEach(b => b.onclick = (e) => { PB.sel = Number(b.dataset.addb); abrirMenu(e, [["¶ Párrafo de texto", () => pbAnadir({ t: "txt", txt: "" })], ["⤓ Salto de página", () => pbAnadir({ t: "salto" })], ["🏀 Jugada de la biblioteca…", () => { PB.tab = "j"; PB.lib = true; pbLib(); const q = $("pbLq"); if (q) q.focus(); }]]); });
+  if ($("pbAddCap")) $("pbAddCap").onclick = () => { caps.push({ id: idNuevo("c"), titulo: "", items: [] }); PB.sel = caps.length - 1; pbSucio(); pbMain(); pbOut(); const l = root.querySelector(`[data-cap="${PB.sel}"] .pb-capt`); if (l) { l.scrollIntoView({ behavior: "smooth" }); l.focus(); } };
+  root.querySelectorAll(".pb-fila").forEach(el => {
+    const ci = Number(el.dataset.ci), ii = Number(el.dataset.ii), it = caps[ci].items[ii];
+    const del = el.querySelector("[data-del]"); if (del) del.onclick = () => { caps[ci].items.splice(ii, 1); pbSucio(); pbMain(); pbOut(); };
+    const mas = el.querySelector("[data-mas]"); if (mas) mas.onclick = (e) => { const x = pbElem(it), opts = []; if (x && diagDe(x)) opts.push(["▶ Ver animación", () => { const d = diagDe(x); verJugada(it.t === "j" ? x : { id: x.id, nombre: x.nombre, data: Object.assign({}, d) }); }]); opts.push(["↑ Subir", () => { if (ii > 0) { const a = caps[ci].items; [a[ii - 1], a[ii]] = [a[ii], a[ii - 1]]; pbSucio(); pbMain(); } }], ["↓ Bajar", () => { const a = caps[ci].items; if (ii < a.length - 1) { [a[ii + 1], a[ii]] = [a[ii], a[ii + 1]]; pbSucio(); pbMain(); } }], ["Quitar del capítulo", () => { caps[ci].items.splice(ii, 1); pbSucio(); pbMain(); pbOut(); }, "pel"]); abrirMenu(e, opts); };
+    const ta = el.querySelector("textarea"); if (ta) { const aj = () => { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px"; }; ta.addEventListener("input", () => { it.txt = ta.value; pbSucio(); aj(); }); setTimeout(aj, 0); }
+    if (!ro) {
+      el.draggable = true;
+      el.addEventListener("dragstart", (e) => { if (e.target.closest("textarea")) { e.preventDefault(); return; } PBD = { mov: { c: ci, i: ii } }; try { e.dataTransfer.setData("text/plain", "pb"); } catch (x) { /* nada */ } e.dataTransfer.effectAllowed = "move"; el.classList.add("arr"); });
+      el.addEventListener("dragend", () => { PBD = null; root.querySelectorAll(".arr,.sobre").forEach(x => x.classList.remove("arr", "sobre")); });
+      el.addEventListener("dragover", (e) => { if (!PBD) return; e.preventDefault(); e.stopPropagation(); el.classList.add("sobre"); });
+      el.addEventListener("dragleave", () => el.classList.remove("sobre"));
+      el.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.remove("sobre"); pbSoltar(ci, ii); });
+    }
+  });
+  if (!ro) root.querySelectorAll(".pb-items").forEach(el => {
+    const ci = Number(el.dataset.ci);
+    el.addEventListener("dragover", (e) => { if (!PBD) return; e.preventDefault(); el.classList.add("sobre"); });
+    el.addEventListener("dragleave", (e) => { if (e.target === el) el.classList.remove("sobre"); });
+    el.addEventListener("drop", (e) => { e.preventDefault(); el.classList.remove("sobre"); pbSoltar(ci, null); });
+  });
+  pedirMiniaturas(D.jugadas.concat(D.ejercicios));
+}
+function pbFila(it, ci, ii, ro) {
+  const asa = `<span class="pb-asa">${IC.asa}</span>`, dat = `data-ci="${ci}" data-ii="${ii}"`;
+  if (it.t === "txt") return `<div class="pb-fila txt" ${dat}>${asa}<textarea placeholder="Escribe un párrafo: reglas, notas, introducción…" ${ro ? "disabled" : ""}>${esc(it.txt || "")}</textarea>${ro ? "" : `<button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
+  if (it.t === "salto") return `<div class="pb-fila salto" ${dat}>${asa}<span class="pb-sl">⤓ Salto de página (empieza una página nueva en el PDF)</span>${ro ? "" : `<button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
+  const x = pbElem(it), mini = x ? (MINIS[x.id + "|" + x.actualizada] || "") : "";
+  return `<div class="pb-fila" ${dat}>${asa}<div class="pb-th" ${x ? `data-mini="${esc(x.id)}"` : ""}>${mini || (x && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length ? "" : "🏀")}</div><span class="pb-n">${x ? esc(x.nombre || "(sin nombre)") : "<i>(elemento eliminado)</i>"}${it.t === "e" ? ' <em class="pb-tag">Ejercicio</em>' : ""}</span>${ro ? "" : `<button class="pb-ic" data-mas title="Más">${IC.mas}</button><button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
+}
+function pbLib() {
+  const box = $("pbLib"); box.classList.toggle("oculta", !PB.lib);
+  if (!PB.lib) { box.innerHTML = `<button class="pb-ic pb-mostrar" id="pbLm" title="Mostrar biblioteca">«</button>`; $("pbLm").onclick = () => { PB.lib = true; pbLib(); }; return; }
+  box.innerHTML = `<div class="pb-lt"><button data-t="j" class="${PB.tab === "j" ? "on" : ""}">Jugadas</button><button data-t="e" class="${PB.tab === "e" ? "on" : ""}">Ejercicios</button><button data-t="b" class="${PB.tab === "b" ? "on" : ""}">Bloques</button><span class="esp"></span><button class="pb-ic" id="pbLo" title="Ocultar biblioteca">»</button></div><div id="pbLc"></div>`;
+  box.querySelectorAll(".pb-lt [data-t]").forEach(b => b.onclick = () => { PB.tab = b.dataset.t; PB.car = ""; PB.q = ""; pbLib(); });
+  $("pbLo").onclick = () => { PB.lib = false; pbLib(); };
+  const c = $("pbLc");
+  if (PB.tab === "b") {
+    c.innerHTML = `<p class="pb-ay">Arrastra un bloque a un capítulo o haz clic para añadirlo al final del capítulo elegido.</p>` + [["cap", "📖", "Capítulo", "Una sección nueva con su propio título"], ["txt", "¶", "Párrafo de texto", "Notas, reglas o una introducción"], ["salto", "⤓", "Salto de página", "Empieza una página nueva en el PDF"]].map(([k, ic, t, d]) => `<div class="pb-bl" data-k="${k}" ${puedeEscribir ? 'draggable="true"' : ""}><span class="i">${ic}</span><div><b>${t}</b><small>${d}</small></div></div>`).join("");
+    c.querySelectorAll(".pb-bl").forEach(el => {
+      const k = el.dataset.k, alta = () => { if (k === "cap") { PB.p.data.capitulos.push({ id: idNuevo("c"), titulo: "", items: [] }); PB.sel = PB.p.data.capitulos.length - 1; pbSucio(); pbMain(); pbOut(); } else pbAnadir(k === "txt" ? { t: "txt", txt: "" } : { t: "salto" }); };
+      el.onclick = alta;
+      if (k !== "cap") { el.addEventListener("dragstart", (e) => { PBD = { add: k === "txt" ? { t: "txt", txt: "" } : { t: "salto" } }; try { e.dataTransfer.setData("text/plain", "pb"); } catch (x) { /* nada */ } }); el.addEventListener("dragend", () => { PBD = null; }); }
+    });
+    return;
+  }
+  const tipo = PB.tab === "e" ? "ejercicios" : "jugadas";
+  c.innerHTML = `<div class="pb-lb"><input type="search" id="pbLq" placeholder="Buscar…" value="${esc(PB.q)}"></div><div id="pbLl"></div>`;
+  $("pbLq").addEventListener("input", (e) => { PB.q = e.target.value; pbLibLista(); });
+  pbLibLista();
+}
+function pbLibLista() {
+  const tipo = PB.tab === "e" ? "ejercicios" : "jugadas", q = PB.q.trim().toLowerCase(), box = $("pbLl"); if (!box) return;
+  const items = D[tipo].filter(x => q ? textoDe(tipo, x).includes(q) : (x.carpeta || "") === PB.car).sort((a, b) => String(b.actualizada).localeCompare(String(a.actualizada)));
+  const carp = q ? [] : carpetasDe(tipo, PB.car);
+  const partes = PB.car ? PB.car.split("/") : [];
+  let h = `<div class="pb-mig"><a data-c="">${tipo === "ejercicios" ? "Ejercicios" : "Jugadas"}</a>${partes.map((s, i) => ` › <a data-c="${esc(partes.slice(0, i + 1).join("/"))}">${esc(s)}</a>`).join("")}</div>`;
+  h += carp.map(c => `<div class="pb-lf" data-c="${esc(c.ruta)}">${SVG_CARPETA(26)}<span>${esc(c.nombre)}</span></div>`).join("");
+  h += items.map(x => `<div class="pb-li" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}><div class="pb-th" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ((diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length) ? "" : "🏀")}</div><div class="pb-lx"><b>${esc(x.nombre || "(sin nombre)")}</b><small>Editado ${fechaTxt(x.actualizada)}</small></div>${puedeEscribir ? '<button class="pb-ic pb-mas" title="Añadir al capítulo">＋</button>' : ""}</div>`).join("");
+  if (!carp.length && !items.length) h += `<div class="pb-vacio">${q ? "Nada coincide." : "No hay nada en esta carpeta."}</div>`;
+  box.innerHTML = h;
+  box.querySelectorAll(".pb-mig a").forEach(a => a.onclick = () => { PB.car = a.dataset.c; pbLibLista(); });
+  box.querySelectorAll(".pb-lf").forEach(a => a.onclick = () => { PB.car = a.dataset.c; pbLibLista(); });
+  const t = PB.tab === "e" ? "e" : "j";
+  box.querySelectorAll(".pb-li").forEach(el => {
+    const id = el.dataset.id;
+    el.onclick = () => { if (puedeEscribir) pbAnadir({ t, id }); };
+    el.addEventListener("dragstart", (e) => { PBD = { add: { t, id } }; try { e.dataTransfer.setData("text/plain", "pb"); } catch (x) { /* nada */ } e.dataTransfer.effectAllowed = "copy"; });
+    el.addEventListener("dragend", () => { PBD = null; $("pbMain").querySelectorAll(".sobre").forEach(x => x.classList.remove("sobre")); });
+  });
+  pedirMiniaturas(items);
 }
 
 /* ------------ ejercicios ------------ */
@@ -1123,7 +1313,9 @@ $("bmQ").addEventListener("input", (e) => { busqueda = e.target.value; const v =
 window.addEventListener("resize", pintarMovil);
 
 let marcoFases = null, marcoFasesListo = false, colaFases = [], detalleActual = null;
-function pedirFases(x, tipo, id) {
+const FASESCB = {};
+function pedirFases(x, tipo, id, cb) {
+  if (cb) FASESCB[id] = cb;
   const diag = diagDe(x); if (!diag || !diag.pasos) return;
   const enviar = () => marcoFases.contentWindow.postMessage({ fases: { id, jugada: diag } }, "*");
   if (!marcoFases) {
@@ -1132,7 +1324,7 @@ function pedirFases(x, tipo, id) {
     window.addEventListener("message", (ev) => {
       if (!ev.data) return;
       if (ev.data.visorListo && ev.source === marcoFases.contentWindow) { marcoFasesListo = true; colaFases.splice(0).forEach(f => f()); }
-      if (ev.data.fasesListas && detalleActual && ev.data.fasesListas.id === detalleActual.id) { const sv = ev.data.fasesListas.svgs || []; document.querySelectorAll("#djCuerpo [data-f]").forEach(el => { const s = sv[Number(el.dataset.f)]; if (s) el.innerHTML = s; }); }
+      if (ev.data.fasesListas) { const cb = FASESCB[ev.data.fasesListas.id]; if (cb) cb(ev.data.fasesListas.svgs || []); else if (detalleActual && ev.data.fasesListas.id === detalleActual.id) { const sv = ev.data.fasesListas.svgs || []; document.querySelectorAll("#djCuerpo [data-f]").forEach(el => { const s = sv[Number(el.dataset.f)]; if (s) el.innerHTML = s; }); } }
     });
   }
   if (marcoFasesListo) enviar(); else colaFases.push(enviar);
