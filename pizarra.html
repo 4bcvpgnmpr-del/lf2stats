@@ -183,6 +183,19 @@
   .pc h3,.pc .hint,.pc .leyenda,.pc .leyenda li{color:#e8edf4 !important;}
   .pc .leyenda{max-height:22vh;overflow:auto;font-size:14px;}
   .pc .reprod{margin-top:8px;flex:none;} .pc #mvNotas,.pc #mvVideos,.pc #vsNotas,.pc #vsVideos{display:none;}
+
+  .vmodo{display:flex;gap:6px;align-items:center;margin:2px 0 8px;flex-wrap:wrap;} .vmodo button{background:#eef1f3;color:var(--ink);border:1.5px solid #dfe3e8;padding:8px 14px;border-radius:999px;font-size:13.5px;font-weight:700;} .vmodo button.on{background:#12a483;border-color:#12a483;color:#fff;}
+  .vmodo select{width:auto;max-width:48%;padding:7px 10px;font-size:13px;margin-left:auto;}
+  .vm-video .caja-pista,.vm-video .leyenda,.vm-video .reprod,.vm-video .hint{display:none !important;}
+  .vm-video .un-video .marco-vid,.vm-dual .un-video .marco-vid{margin-top:4px;}
+  .vm-dual:not(.pc) .caja-pista svg{max-height:38vh;width:auto;max-width:100%;margin:0 auto;display:block;} .vm-dual:not(.pc) .un-video .marco-vid{max-width:min(100%,62vh);margin-left:auto;margin-right:auto;}
+  .vm-dual{display:flex;flex-direction:column;}
+  .vm-dual .leyenda{margin-top:6px;}
+  .pc .vmodo button{background:#243041;border-color:#34425a;color:#e8edf4;} .pc .vmodo button.on{background:#12a483;border-color:#12a483;color:#fff;}
+  .pc.vm-dual .caja-pista{flex:1 1 52% !important;} .pc.vm-dual #mvVideos,.pc.vm-dual #vsVideos,.pc.vm-video #mvVideos,.pc.vm-video #vsVideos{display:flex !important;flex:1 1 42%;min-height:0;}
+  .pc.vm-video #mvVideos,.pc.vm-video #vsVideos{flex:1 1 auto;}
+  .pc .un-video{flex:1;min-height:0;display:flex;width:100%;} .pc .un-video .marco-vid{aspect-ratio:auto;height:100%;margin:0;}
+  .pc.vm-dual .leyenda{max-height:12vh;}
   body.hay-pc{overflow:hidden;}
   #btnDatos{display:none;flex:none;}
   @media (max-width:1000px){
@@ -1523,10 +1536,36 @@ function crearVisor(ids, dur) {
     $(ids.titulo).textContent = v.j.nombre || "Jugada";
     $(ids.notas).textContent = v.j.notas || "";
     if (ids.videos) $(ids.videos).innerHTML = videosHtml(v.j);
+    if (ids.videos) prepararModos();
     const { segs, total } = segmentosAnim(v.j, dur, 0, v.j.pasos.length - 1);
     linea.innerHTML = segs.length ? segs.map(s => `<div class="seg" style="flex:${s.dur + PAUSA_FASE};"><i></i></div>`).join("") : `<div class="seg"><i></i></div>`;
     tiempo.textContent = "0:00 / " + tiempoTxt(total);
     mostrar();
+  };
+  /* modos cuando la jugada tiene video: pista (normal) / video / los dos a la vez (pista arriba, video abajo) */
+  const cont = pista.parentElement;
+  const prepararModos = () => {
+    const vids = (v.j.videos || []).filter(x => x && x.url), cajaV = $(ids.videos);
+    const viejo = cont.querySelector(":scope > .vmodo"); if (viejo) viejo.remove();
+    const poner = (m, forzar) => {
+      cont.classList.toggle("vm-video", m === "video"); cont.classList.toggle("vm-dual", m === "ambos");
+      const antes = v.modo || "pista"; v.modo = m;
+      if (m === "video") detener();
+      const barra = cont.querySelector(":scope > .vmodo"); if (barra) barra.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.m === m));
+      if (forzar || (antes === "pista") !== (m === "pista")) {
+        if (m === "pista") cajaV.innerHTML = videosHtml(v.j);
+        else { const x = vids[v.vsel || 0] || vids[0]; cajaV.innerHTML = `<div class="un-video">${videoHtml(x.url)}</div>`; }
+      }
+      [...cont.children].forEach(el => { el.style.order = m === "ambos" ? (el.id === ids.titulo ? 0 : el.classList.contains("vmodo") ? 1 : el === pista ? 2 : el === cajaV ? 3 : 4) : ""; });
+      if (m !== "pista") { const mv = cajaV.querySelector("video,iframe"); void mv; }
+    };
+    v.modo = "pista"; v.vsel = 0; cont.classList.remove("vm-video", "vm-dual"); [...cont.children].forEach(el => { el.style.order = ""; });
+    if (!vids.length) return;
+    const barra = document.createElement("div"); barra.className = "vmodo";
+    barra.innerHTML = `<button data-m="pista" class="on">Pista</button><button data-m="video">Vídeo</button><button data-m="ambos">Los dos</button>` + (vids.length > 1 ? `<select>${vids.map((x, i) => `<option value="${i}">${esc(x.titulo || "Vídeo " + (i + 1))}</option>`).join("")}</select>` : "");
+    cont.insertBefore(barra, pista);
+    barra.addEventListener("click", (e) => { const b = e.target.closest("button[data-m]"); if (b) poner(b.dataset.m); });
+    const sel = barra.querySelector("select"); if (sel) sel.addEventListener("change", () => { v.vsel = Number(sel.value) || 0; poner(v.modo, true); });
   };
   v.cerrar = detener;
   v.reproducir = () => {
