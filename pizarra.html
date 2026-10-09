@@ -1022,12 +1022,15 @@ function segmentosAnim(j, dur, desde, hasta) {
     const d = msFase(j.pasos[i], dur);
     segs.push({ i, ini, dur: d, fin: ini + d + PAUSA_FASE }); ini += d + PAUSA_FASE;
   }
+  /* la ultima fase tambien se anima si tiene lineas (pases, cortes...): antes solo se animaban las fases que tienen otra detras */
+  const u = j.pasos.length - 1;
+  if (hasta > u && u >= desde && j.pasos[u].lineas && j.pasos[u].lineas.length) { const d = msFase(j.pasos[u], dur); segs.push({ i: u, ini, dur: d, fin: ini + d + PAUSA_FASE }); ini += d + PAUSA_FASE; }
   return { segs, total: ini };
 }
 /* opciones: { desde, hasta, enFase(i), enProgreso(ms, total), alAcabar() } -> devuelve la funcion para parar */
 function animarJugada(j, caja, dur, op) {
   op = op || {};
-  const { segs, total } = segmentosAnim(j, dur, op.desde || 0, op.hasta == null ? j.pasos.length - 1 : op.hasta);
+  const { segs, total } = segmentosAnim(j, dur, op.desde || 0, op.hasta == null ? j.pasos.length : op.hasta);
   let cancelar = false, ini = null, ultima = -1;
   if (!segs.length) { if (op.alAcabar) op.alAcabar(); return () => {}; }
   const marco = (ts) => {
@@ -1332,6 +1335,8 @@ function pintarPanelFicha() {
   $("fiBalon").style.display = esAtaque(k) ? "" : "none";
   $("fiBalon").disabled = act.balon === k;
 }
+/* tras un pase/tiro, la accion siguiente empieza cuando el balon ya llego (mas natural); se puede cambiar a "a la vez" en la pestaña Animar */
+const despuesDeBalon = (act) => { const u = act.lineas[act.lineas.length - 1]; return !!u && (u.t === "pase" || u.t === "entrega" || u.t === "tiro"); };
 function lineaPorDefecto(t, k) {
   const act = jugada.pasos[paso], q = act.pos[k], A = [q.x, q.y];
   let B;
@@ -1342,7 +1347,7 @@ function lineaPorDefecto(t, k) {
     else B = [Math.min(ANCHO - 0.5, q.x + 3), q.y];
   } else if (t === "tiro") B = [ARO.x, ARO.y];
   else { const dx = ARO.x - q.x, dy = ARO.y - q.y, d = Math.hypot(dx, dy) || 1, L = Math.min(3, Math.max(1.5, d - 1)); B = [q.x + dx / d * L, q.y + dy / d * L]; }
-  const l = { t, de: k, pts: [A, B], despues: false };
+  const l = { t, de: k, pts: [A, B], despues: despuesDeBalon(act) && t !== "pase" };
   if (colorNuevo) l.color = colorNuevo;
   if (t === "pase" || t === "entrega") { const r = receptoraDe(l, act.pos); if (r) l.a = r; }
   return l;
@@ -1456,13 +1461,16 @@ function alSoltar() {
       const rectas = ["pase", "entrega", "pantalla", "tiro"].includes(trazo.t);
       let pts = rectas ? [trazo.pts[0], trazo.pts[trazo.pts.length - 1]] : simplificar(trazo.pts, 0.22);
       if (!rectas && pts.length === 3) { const a = pts[0], b = pts[2], m = pts[1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; if (Math.abs((m[0] - a[0]) * dy - (m[1] - a[1]) * dx) / L < 0.3) pts = [a, b]; }
-      const linea = { t: trazo.t, de: trazo.de, pts, despues: !!trazo.cont }; if (colorNuevo) linea.color = colorNuevo;
+      const linea = { t: trazo.t, de: trazo.de, pts, despues: !!trazo.cont || (trazo.t !== "pase" && despuesDeBalon(jugada.pasos[paso])) }; if (colorNuevo) linea.color = colorNuevo;
       if (trazo.t === "pase" || trazo.t === "entrega") {
         resolverPase(jugada.pasos[paso], linea, true);
       } else if (trazo.t === "tiro") {
         const f = pts[1]; if (Math.hypot(f[0] - ARO.x, f[1] - ARO.y) < 2.2) linea.pts = [pts[0], [ARO.x, ARO.y]];
       }
       snap(); jugada.pasos[paso].lineas.push(linea); selLinea = jugada.pasos[paso].lineas.length - 1; selPaso = paso;
+    } else if (trazo.de && !trazo.cont && jugada.pasos[paso].pos[trazo.de]) {
+      /* toque simple sobre una jugadora: flecha de tamaño estándar */
+      snap(); jugada.pasos[paso].lineas.push(lineaPorDefecto(trazo.t, trazo.de)); selLinea = jugada.pasos[paso].lineas.length - 1; selPaso = paso;
     }
     trazo = null; pintar();
   }
@@ -1518,13 +1526,12 @@ function pintarAnim() {
     pintarAnim(); guardarBorrador();
   })));
 }
-const rangoAnim = () => faseAnim < 0 ? { desde: 0, hasta: jugada.pasos.length - 1 } : { desde: faseAnim, hasta: Math.min(faseAnim + 1, jugada.pasos.length - 1) };
+const rangoAnim = () => faseAnim < 0 ? { desde: 0, hasta: jugada.pasos.length } : { desde: faseAnim, hasta: faseAnim + 1 };
 function detenerAni() { if (pararAni) { pararAni(); pararAni = null; } }
 function reproducirAni() {
   if (pararAni) { detenerAni(); pintarAnim(); return; }
-  if (jugada.pasos.length < 2) { aviso("Añade al menos una segunda fase para verla en movimiento."); return; }
   const dur = Number($("vel").value), r = rangoAnim();
-  if (r.hasta <= r.desde) { aviso("Esa es la última fase: no hay movimiento después."); return; }
+  if (!segmentosAnim(jugada, dur, r.desde, r.hasta).segs.length) { aviso("Dibuja alguna acción (pase, corte…) para verla en movimiento."); return; }
   const { segs, total } = segmentosAnim(jugada, dur, r.desde, r.hasta), barras = $("lineaTiempo").querySelectorAll(".seg i");
   $("btnPlay").textContent = "■";
   pararAni = animarJugada(jugada, $("pistaAni"), dur, { desde: r.desde, hasta: r.hasta,
@@ -1601,7 +1608,7 @@ function crearVisor(ids, dur) {
     preparar();
   };
   const preparar = () => {
-    const { segs, total } = segmentosAnim(v.j, dur, 0, v.j.pasos.length - 1);
+    const { segs, total } = segmentosAnim(v.j, dur, 0, v.j.pasos.length);
     linea.innerHTML = segs.length ? segs.map(s => `<div class="seg" style="flex:${s.dur + PAUSA_FASE};"><i></i></div>`).join("") : `<div class="seg"><i></i></div>`;
     tiempo.textContent = "0:00 / " + tiempoTxt(total);
     mostrar();
@@ -1642,13 +1649,13 @@ function crearVisor(ids, dur) {
   v.cerrar = detener;
   v.reproducir = () => {
     if (!v.j || v.parar) return;
-    if (v.j.pasos.length < 2) return;
+    if (!segmentosAnim(v.j, dur, 0, v.j.pasos.length).segs.length) return;
     play.textContent = "■";
-    const { segs } = segmentosAnim(v.j, dur, 0, v.j.pasos.length - 1);
-    v.parar = animarJugada(v.j, pista, dur, { desde: 0, hasta: v.j.pasos.length - 1,
+    const { segs } = segmentosAnim(v.j, dur, 0, v.j.pasos.length);
+    v.parar = animarJugada(v.j, pista, dur, { desde: 0, hasta: v.j.pasos.length,
       enFase: (k) => { ley.innerHTML = textoLista(v.j.pasos[k].texto); },
       enProgreso: (el, tot) => { tiempo.textContent = tiempoTxt(el) + " / " + tiempoTxt(tot); segs.forEach((s, k) => { const b = barras()[k]; if (b) b.style.width = Math.max(0, Math.min(1, (el - s.ini) / (s.fin - s.ini))) * 100 + "%"; }); },
-      alAcabar: () => { v.parar = null; play.textContent = "▶"; v.i = v.j.pasos.length - 1; mostrar(); } });
+      alAcabar: () => { v.parar = null; play.textContent = "▶"; v.i = v.j.pasos.length - 1; if (!(v.j.pasos[v.i].lineas || []).length) mostrar(); } });
   };
   const ir = (d) => { if (!v.j) return; detener(); v.i = Math.max(0, Math.min(v.j.pasos.length - 1, v.i + d)); resetBarras(v.i); mostrar(); };
   $(ids.prev).addEventListener("click", () => ir(-1));
