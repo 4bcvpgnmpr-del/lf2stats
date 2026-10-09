@@ -293,6 +293,7 @@
       <div><label style="margin-top:0;">Nombre de la jugada</label><input id="nombre" placeholder="Ej: Cinco abierto, bloqueo directo"></div>
       <button class="gris" id="btnDatos" type="button">⚙ Datos</button>
       <div style="max-width:200px;"><label style="margin-top:0;">Tipo</label><select id="tipo"></select></div>
+      <div id="boxMin" style="max-width:150px;display:none;"><label style="margin-top:0;">Duración (min)</label><input type="number" id="minEj" min="0" step="1" placeholder="10"></div>
       <div style="max-width:200px;"><label style="margin-top:0;">Carpeta</label><input id="carpetaJ" list="listaCarpetas" placeholder="Sin carpeta"><datalist id="listaCarpetas"></datalist></div>
       <div style="max-width:220px;"><label style="margin-top:0;">Etiquetas</label><input id="tagsJ" placeholder="separadas por comas"></div>
       <div class="chk">
@@ -512,6 +513,7 @@ const MOVEDORAS = ["corte", "bote", "pantalla", "mueve", "entrega"];
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
 const PARAMS = new URLSearchParams(location.search);
 const VISOR = PARAMS.get("visor") === "1";
+const EJ = PARAMS.get("tabla") === "ejercicios", ORIG = {}, CATEG = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"], TABLA = EJ ? "ejercicios" : "jugadas";
 const EDITOR = PARAMS.get("editor") === "1", ID_ED = PARAMS.get("id") || "", CARPETA_ED = PARAMS.get("carpeta") || "";
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -1448,8 +1450,8 @@ function pintarPestana() {
 function refrescarTodo() { cargarCampos(); pintarPestana(); }
 
 /* ---------- campos generales ---------- */
-function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.carpeta = $("carpetaJ").value.trim(); jugada.tags = $("tagsJ").value.split(",").map(t => t.trim()).filter(Boolean); jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; }
-function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("carpetaJ").value = jugada.carpeta || ""; $("tagsJ").value = (jugada.tags || []).join(", "); $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; }
+function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.carpeta = $("carpetaJ").value.trim(); jugada.tags = $("tagsJ").value.split(",").map(t => t.trim()).filter(Boolean); jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; if (EJ) jugada.minutos = Number($("minEj").value) || 0; }
+function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("carpetaJ").value = jugada.carpeta || ""; $("tagsJ").value = (jugada.tags || []).join(", "); $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; if (EJ) $("minEj").value = jugada.minutos || ""; }
 function guardarBorrador() { if (EDITOR) return; try { localStorage.setItem(BORRADOR, JSON.stringify({ jugada, paso })); } catch (e) { /* nada */ } }
 
 /* ============================================================
@@ -1497,6 +1499,7 @@ let BIB = [], nube = null, modoNube = false, motivoLocal = "", visorGrande = nul
 const leerLocal = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || "[]").map(normalizar); } catch (e) { return []; } };
 const escribirLocal = (l) => { try { localStorage.setItem(CLAVE, JSON.stringify(l)); } catch (e) { aviso("No se pudo guardar: el navegador no deja escribir."); } };
 const filaNube = (j) => ({ id: j.id, nombre: j.nombre || "", tipo: j.tipo || "", carpeta: j.carpeta || "", favorita: !!j.favorita, compartida: !!j.compartida, data: j, actualizada: new Date().toISOString() });
+const deFilaEj = (r) => { const d = r.data || {}; ORIG[r.id] = d; return normalizar(Object.assign(jugadaNueva("cinco"), clonar(d.diagrama || {}), { id: r.id, nombre: r.nombre || "", carpeta: r.carpeta || "", tags: d.tags || [], notas: d.descripcion || "", tipo: d.categoria || "Otro", minutos: d.minutos || 0, actualizada: r.actualizada })); };
 const deFila = (r) => normalizar(Object.assign({}, r.data, { id: r.id, favorita: !!r.favorita, compartida: !!r.compartida, actualizada: r.actualizada }));
 
 async function iniciarNube() {
@@ -1506,15 +1509,15 @@ async function iniciarNube() {
     nube = window.supabase.createClient(SB.url, SB.anon);
     const { data } = await nube.auth.getSession();
     if (!data || !data.session) { motivoLocal = "no has entrado con tu cuenta"; return; }
-    const { error } = await nube.from("jugadas").select("id").limit(1);
+    const { error } = await nube.from(TABLA).select("id").limit(1);
     if (error) { motivoLocal = "falta ejecutar jugadas.sql en Supabase (" + error.message + ")"; return; }
     modoNube = true;
   } catch (e) { motivoLocal = "error al conectar"; }
 }
 async function recargarBib() {
   if (modoNube) {
-    const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false });
-    if (error) { modoNube = false; motivoLocal = error.message; } else BIB = (data || []).map(deFila);
+    const { data, error } = await nube.from(TABLA).select("*").order("actualizada", { ascending: false });
+    if (error) { modoNube = false; motivoLocal = error.message; } else BIB = (data || []).map(EJ ? deFilaEj : deFila);
   }
   if (!modoNube) BIB = leerLocal();
   pintarEstado(); pintarLista();
@@ -1535,12 +1538,19 @@ function pintarEstado() {
 }
 async function guardarJugada(j) {
   j.actualizada = new Date().toISOString();
+  if (EJ) {
+    if (!modoNube) { aviso("Hace falta conexión con la nube para guardar ejercicios."); return false; }
+    const diag = clonar(j); ["nombre", "carpeta", "tags", "notas", "tipo", "minutos", "actualizada", "favorita", "compartida"].forEach(k => delete diag[k]);
+    const data = Object.assign({}, ORIG[j.id] || {}, { diagrama: diag, tags: j.tags || [], descripcion: j.notas || "", categoria: j.tipo || "Otro", minutos: Number(j.minutos) || 0 });
+    const { error } = await nube.from("ejercicios").upsert({ id: j.id, nombre: j.nombre || "", carpeta: j.carpeta || "", data, actualizada: j.actualizada });
+    if (error) { aviso("No se pudo guardar: " + error.message); return false; } ORIG[j.id] = data; return true;
+  }
   if (modoNube) { const { error } = await nube.from("jugadas").upsert(filaNube(j)); if (error) { aviso("No se pudo guardar: " + error.message); return false; } }
   else { const l = leerLocal(), i = l.findIndex(x => x.id === j.id); if (i >= 0) l[i] = clonar(j); else l.unshift(clonar(j)); escribirLocal(l); }
   return true;
 }
 async function borrarJugada(id) {
-  if (modoNube) { const { error } = await nube.from("jugadas").delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } }
+  if (modoNube) { const { error } = await nube.from(TABLA).delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } }
   else escribirLocal(leerLocal().filter(x => x.id !== id));
   return true;
 }
@@ -1554,7 +1564,7 @@ function cerrarEditor() {
 async function guardar() {
   volcarCampos();
   if (!jugada.nombre) { aviso("Ponle un nombre a la jugada."); $("nombre").focus(); return; }
-  if (await guardarJugada(jugada)) { aviso(jugada.compartida ? "Guardada ✓ · visible para las jugadoras" : "Guardada en tus jugadas ✓"); marcaGuardado(); if (EDITOR) { try { parent.postMessage({ scoutflowEntrenador: "guardado", id: jugada.id }, "*"); } catch (e) { /* nada */ } } await recargarBib(); }
+  if (await guardarJugada(jugada)) { aviso(EJ ? "Ejercicio guardado ✓" : jugada.compartida ? "Guardada ✓ · visible para las jugadoras" : "Guardada en tus jugadas ✓"); marcaGuardado(); if (EDITOR) { try { parent.postMessage({ scoutflowEntrenador: "guardado", id: jugada.id }, "*"); } catch (e) { /* nada */ } } await recargarBib(); }
 }
 function pintarLista() {
   const q = $("buscar").value.trim().toLowerCase(), ft = $("filtroTipo").value;
@@ -1715,7 +1725,8 @@ if (VISOR) {
   visorGrande = modal;
   $("mvCerrar").addEventListener("click", cerrarModal);
   $("modalVer").addEventListener("click", (e) => { if (e.target === $("modalVer")) cerrarModal(); });
-  $("tipo").innerHTML = TIPOS.map(t => `<option>${t}</option>`).join("");
+  $("tipo").innerHTML = (EJ ? CATEG : TIPOS).map(t => `<option>${t}</option>`).join("");
+  if (EJ) { $("boxMin").style.display = ""; $("chkFav").parentElement.style.display = "none"; $("chkComp").parentElement.style.display = "none"; $("nombre").placeholder = "Ej: 3 contra 2 en transición"; $("nombre").parentElement.querySelector("label").textContent = "Nombre del ejercicio"; $("tipo").parentElement.querySelector("label").textContent = "Categoría"; $("notas").placeholder = "Descripción: cómo se hace, puntos clave, variantes…"; }
   $("filtroTipo").innerHTML = `<option value="">Todos los tipos</option>` + TIPOS.map(t => `<option>${t}</option>`).join("");
   // pista: un solo juego de eventos
   const pista = $("pista");
