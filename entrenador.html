@@ -224,24 +224,68 @@
     #hojaImp td,#hojaImp th{border:1px solid #888;padding:6px 8px;text-align:left;vertical-align:top;font-size:11pt;}
     #hojaImp th{background:#eee;}
   }
+
+  /* ===== tema claro (como The Hoops Geek) ===== */
+  :root{--ink:#2b3640;--soft:#5b6670;--orange:#3f9c86;--line:#e3e6ea;--bg:#f5f6f8;--teal:#3f9c86;--suave:#f1f3f5;--side:#fff;}
+  body{font-size:15px;}
+  h2,h3{font-family:'Archivo',sans-serif;font-weight:700;}
+  button{font-weight:600;}
+  button.naranja:hover{background:#34836f;}
+  #app{grid-template-columns:272px minmax(0,1fr);}
+  aside{background:#fff;color:#4a5560;border-right:1px dashed #d4d9de;padding:18px 14px 14px;position:relative;}
+  .marca{padding:0 4px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .marca .logo{line-height:0;}
+  .colbtn{background:#fff !important;color:#4a5560 !important;border:1px solid #e3e6ea !important;border-radius:999px !important;width:34px;height:34px;padding:0 !important;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .perfil{display:flex;align-items:center;gap:12px;background:#f1f3f5;border-radius:14px;padding:16px 14px;margin:0 0 14px;}
+  .perfil .av{width:42px;height:42px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid #e3e6ea;flex:none;}
+  .perfil b{display:block;font-size:16px;color:#2b3640;} .perfil small{display:block;color:#5b6670;font-size:14px;}
+  .grupo{padding:6px 0 4px;}
+  .grupo h4{margin:14px 10px 8px;font-size:13.5px;letter-spacing:.3px;text-transform:uppercase;color:#2b3640;font-weight:800;}
+  .grupo button{color:#4a5560;padding:12px 12px;font-size:16px;font-weight:500;gap:14px;border-radius:12px;}
+  .grupo button .i{display:inline-flex;line-height:0;color:#5b6670;}
+  .grupo button:hover{background:#f4f6f7;}
+  .grupo button.on{background:#e9f4f1;color:#2f8a74;font-weight:600;} .grupo button.on .i{color:#2f8a74;}
+  .grupo button .n{color:#8b949c;}
+  .pie a{color:#4a5560;border:1px solid #e3e6ea;font-weight:600;} .pie a:hover{background:#f4f6f7;}
+  main{padding:44px 56px 80px;}
+  .cab{margin-bottom:26px;gap:14px;}
+  .cab h2{font-size:36px;font-weight:700;color:#2b3640;letter-spacing:-.3px;}
+  .miga a{color:var(--orange);font-weight:600;}
+  .split button.naranja{padding:0 26px;height:56px;font-size:18px;font-weight:600;border-radius:12px 0 0 12px;} .split button.naranja+button{border-radius:0 12px 12px 0;padding:0 18px;}
+  .split{box-shadow:0 6px 14px rgba(63,156,134,.28);border-radius:12px;}
+  .barra{margin-bottom:26px;gap:12px;}
+  .barra input[type=search]{max-width:420px;height:52px;border:1px solid #d9dee3;border-radius:10px;padding:0 16px;font-size:17px;}
+  .barra button.gris,.barra .vista-t button{height:52px;background:#fff;border:1px solid #d9dee3;border-radius:10px;color:#2b3640;font-size:16px;padding:0 18px;font-weight:500;}
+  .tabla{background:transparent;border:0;border-radius:0;overflow:visible;}
+  .tabla .fila{padding:18px 24px;border-top:0;border-bottom:1px solid #e3e6ea;gap:14px;font-size:16px;}
+  .tabla .fila.cabt{background:#f1f3f5;border-bottom:1px solid #e3e6ea;font-size:16px;font-weight:600;letter-spacing:0;text-transform:none;color:#2b3640;border-radius:4px 4px 0 0;padding:20px 24px;}
+  .tabla .fila:not(.cabt):hover{background:#fff;}
+  .tabla .fila .nom{font-weight:600;font-size:17px;gap:18px;}
+  .tabla .fila .peq{font-size:16px;color:#2b3640;}
+  .tabla .fila:not(.cabt) .mas{color:#2b3640;font-size:24px;}
+  .tabla .fila .carp,.carp{filter:none;} .carp path{fill:#3f9c86;}
+  .tabla .fila.c-jug:not(.cabt),.tabla .fila.c-eje:not(.cabt),.tabla .fila.c-pla:not(.cabt){padding-top:14px;padding-bottom:14px;}
+  .modal{border-radius:16px;} .modal h3{font-size:20px;}
+  input,select,textarea{border:1px solid #d9dee3;}
+  @media (max-width:900px){ aside{border-right:0;border-bottom:1px dashed #d4d9de;padding:6px;} .perfil,.marca .logo{display:none;} .grupo h4{display:none;} .grupo button{font-size:14px;padding:9px 12px;} main{padding:18px 14px 70px;} .cab h2{font-size:26px;} .tabla .fila,.tabla .fila.cabt{padding:12px 12px;font-size:14px;} .tabla .fila .nom{font-size:15px;} .split button.naranja{height:46px;font-size:15px;padding:0 16px;} .barra input[type=search]{height:44px;font-size:15px;} .barra button.gris{height:44px;font-size:14px;} }
 </style>
 </head>
 <body>
 <div id="app">
   <aside>
-    <div class="marca"><div class="tt"><span>🏀 Entrenador</span><small>ScoutFlow · pizarra y planificación</small></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div>
+    <div class="marca"><div class="logo"><svg width="46" height="46" viewBox="0 0 48 48" fill="none" stroke="#3f9c86" stroke-width="3" stroke-linecap="round"><circle cx="24" cy="24" r="18"/><path d="M6 24h36M24 6v36M10 11c7 5 7 21 0 26M38 11c-7 5-7 21 0 26"/></svg></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div><div class="perfil"><span class="av">🏀</span><div class="tt"><b>Entrenador</b><small>Mi biblioteca</small></div></div>
     <div class="grupo"><h4>Jugadas</h4>
-      <button data-s="jugadas"><span class="i">🏀</span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
-      <button data-s="playbooks"><span class="i">📘</span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
+      <button data-s="jugadas"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
+      <button data-s="playbooks"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.500-1.500-6-1.500-9 .5-3-2-6.500-2-9-.5z"/><path d="M12 6v13.500"/></svg></span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
     </div>
     <div class="grupo"><h4>Planificación</h4>
-      <button data-s="ejercicios"><span class="i">🎯</span><span class="tx">Ejercicios</span><span class="n" id="n-ejercicios"></span></button>
-      <button data-s="planes"><span class="i">📋</span><span class="tx">Planes de entrenamiento</span><span class="n" id="n-planes"></span></button>
+      <button data-s="ejercicios"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Ejercicios</span><span class="n" id="n-ejercicios"></span></button>
+      <button data-s="planes"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.01M8 17.500h2M12 17.500h2"/></svg></span><span class="tx">Planes de entreno</span><span class="n" id="n-planes"></span></button>
     </div>
     <div class="grupo"><h4>Archivos</h4>
-      <button data-s="video"><span class="i">🎬</span><span class="tx">Vídeos</span><span class="n" id="n-video"></span></button>
-      <button data-s="imagen"><span class="i">🖼️</span><span class="tx">Imágenes</span><span class="n" id="n-imagen"></span></button>
-      <button data-s="audio"><span class="i">🎧</span><span class="tx">Audio</span><span class="n" id="n-audio"></span></button>
+      <button data-s="video"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2.500"/><path d="M16 10.500l5-3v9l-5-3"/></svg></span><span class="tx">Vídeos</span><span class="n" id="n-video"></span></button>
+      <button data-s="imagen"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="4" width="17" height="16" rx="2.500"/><circle cx="9" cy="9.500" r="1.600"/><path d="M4 17l5-4.500 4 3.500 3-2.500 4 3.500"/></svg></span><span class="tx">Imágenes</span><span class="n" id="n-imagen"></span></button>
+      <button data-s="audio"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4.500" height="6" rx="1.500"/><rect x="16.500" y="14" width="4.500" height="6" rx="1.500"/></svg></span><span class="tx">Audio</span><span class="n" id="n-audio"></span></button>
     </div>
     <div class="pie"><a href="index.html"><span class="i">←</span><span class="tx"> Volver a estadísticas</span></a></div>
   </aside>
