@@ -858,9 +858,9 @@ function svgPaso(j, i, opciones) {
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  const MINI_CSS = opciones.mini ? `<style>g[data-linea] path[fill="none"]{stroke-width:5.2px!important}g[data-linea] line{stroke-width:5px!important}text[font-size="23"]{font-size:42px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:7px;stroke-linejoin:round}text[font-size="13"]{font-size:26px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:6px}g[stroke="#d9304f"]{stroke-width:6.5px}circle[r="18"]{stroke-width:5px}</style>` : "";
+  const MINI_CSS = opciones.mini ? `<style>svg.sfm g[data-linea] path[fill="none"]{stroke-width:5.2px!important}svg.sfm g[data-linea] line{stroke-width:5px!important}svg.sfm text[font-size="23"]{font-size:42px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:7px;stroke-linejoin:round}svg.sfm text[font-size="13"]{font-size:26px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:6px}svg.sfm g[stroke="#d9304f"]{stroke-width:6.5px}svg.sfm circle[r="18"]{stroke-width:5px}</style>` : "";
   const VB = opciones.mini ? `-3 -3 ${ANCHO * S + 6} ${FONDO * S + 6}` : `-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VB}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${MINI_CSS}${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${opciones.rotulo && p.mostrarTitulo && p.titulo ? rotuloSvg(p.titulo, 1) : ""}${CLIP_FIN}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg"${opciones.mini ? ' class="sfm"' : ""} viewBox="${VB}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${MINI_CSS}${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${opciones.rotulo && p.mostrarTitulo && p.titulo ? rotuloSvg(p.titulo, 1) : ""}${CLIP_FIN}</svg>`;
 }
 const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
 
