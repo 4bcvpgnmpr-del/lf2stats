@@ -389,10 +389,10 @@
   /* ---- iPad / tablet ---- */
   @media (min-width:701px) and (max-width:1250px){
     #app,#app.col{grid-template-columns:218px minmax(0,1fr);} #app.col{grid-template-columns:64px minmax(0,1fr);}
-    aside{padding:14px 10px 12px;} .marca .logo img{height:auto;width:100%;} .marca .logo{padding:4px;} .tabla .fila.c-jug:not(.cabt){grid-template-columns:26px minmax(0,2.4fr) minmax(0,1fr) 80px 60px 80px 130px 40px !important;} .fila.c-jug .nom{min-width:120px;} .perfil{padding:8px;} .grupo button{font-size:14px;padding:10px 10px;}
+    aside{padding:14px 10px 12px;} .marca .logo img{height:auto;width:100%;} .marca .logo{padding:4px;}  .perfil{padding:8px;} .grupo button{font-size:14px;padding:10px 10px;}
     main{padding:20px 20px 60px;} .cab h2{font-size:24px;}
     .rejilla{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
-    .fila .nom span.t{white-space:normal;overflow:visible;}
+    .fila .nom span.t{white-space:normal;overflow:hidden;overflow-wrap:anywhere;}
     .fila .peq{font-size:12.5px;}
   }
   @media (min-width:701px) and (max-width:900px){
@@ -410,6 +410,13 @@
   .marca .logo{background:transparent !important;border-radius:0 !important;padding:0 6px !important;overflow:visible;display:flex !important;align-items:center;gap:10px;line-height:normal;}
   .marca .logo .lg-bola{color:#ff6a00;font-size:26px;line-height:1;} .marca .logo .lg-t b{font-family:'Archivo Black',sans-serif;font-size:17px;display:block;color:#2b3640;} .marca .logo .lg-t b span{color:#ff6a00;} .marca .logo .lg-t small{display:block;font-size:10.5px;color:#6b7683;font-weight:600;}
   #app.col .marca .lg-t{display:none;} #app.col .marca .logo{justify-content:center;padding:0 !important;}
+
+  @media (min-width:701px) and (max-width:1250px){ .mini-l{width:92px;height:84px;padding:2px;} }
+  @media (min-width:901px) and (max-width:1250px){
+    .tabla .fila.c-jug:not(.cabt){grid-template-columns:26px minmax(150px,2.4fr) minmax(0,.9fr) 84px 52px 80px minmax(96px,1fr) 40px !important;column-gap:10px;}
+    .fila.c-jug>*{min-width:0;} .fila.c-jug .nom{min-width:0;}
+    .fila.c-jug>:nth-child(4){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  }
 </style>
 </head>
 <body>
@@ -610,7 +617,7 @@ function pintarCarpetas(v, tipo) {
   const nuevoTxt = tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
   let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
-    <div class="barra"><input type="search" id="bq" placeholder="🔍 Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
+    <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
       <button class="gris" id="bOrden" title="Ordenar">⇅ ${ORDENES[ordenar]}</button>
       <span class="vistas"><button class="gris ${vistaLista ? "" : "on"}" id="vRej" title="Rejilla">▦</button><button class="gris ${vistaLista ? "on" : ""}" id="vLis" title="Lista">☰</button></span></div>`;
