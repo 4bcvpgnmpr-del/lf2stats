@@ -73,6 +73,18 @@
   .panel-fase{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px 12px;margin-bottom:10px;}
   .panel-fase label{margin:6px 0 4px;} .panel-fase label.chkl{display:flex;gap:7px;align-items:center;text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:700;color:var(--ink);margin:8px 0;line-height:1.25;}
   .panel-fase label.chkl input{width:auto;flex:none;} .panel-fase .fila button{flex:1;padding:7px 4px;font-size:12px;}
+  .fase .fh{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(31,41,55,.86);color:#fff;font-size:12px;font-weight:700;}
+  .fase .fh .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .fase .fgrip{cursor:grab;opacity:.75;font-size:14px;line-height:1;padding:0 2px;}
+  .fase .fh button{background:transparent;color:#fff;border:0;padding:2px 6px;font-size:14px;line-height:1;border-radius:6px;} .fase .fh button:hover{background:rgba(255,255,255,.2);}
+  .fase .fnom{flex:1;min-width:0;font-size:12px;padding:2px 5px;border-radius:5px;border:0;color:#111;background:#fff;}
+  .fase.arrastrando{opacity:.45;} .fase.sobre{outline:3px dashed #2f7bd8;outline-offset:1px;}
+  .fflecha{text-align:center;color:#9aa4ae;font-size:15px;line-height:1;margin:-2px 0;}
+  @media (max-width:1000px){.fflecha{display:none;}}
+  #menuFase{position:fixed;z-index:400;background:#fff;border:1px solid #e1e5ea;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.2);padding:6px;min-width:230px;display:none;} #menuFase.ver{display:block;}
+  #menuFase button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:transparent;color:var(--ink);border:0;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:600;} #menuFase button:hover{background:#f1f3f5;} #menuFase button span{width:18px;text-align:center;} #menuFase hr{border:0;border-top:1px solid #eceff1;margin:4px 0;}
+  body.editor:not(.movil) #panelFase,body.editor:not(.movil) #btnQuitarPaso{display:none;}
+  body.editor:not(.movil) .col-pasos .acc{grid-template-columns:repeat(3,1fr);}
+  .fase b{display:none;}
   .fase .ft{display:block;font-size:11px;font-weight:800;padding:3px 6px 4px;background:#fff;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .fase{border:2.5px solid var(--line);border-radius:10px;background:#f3e6d2;cursor:pointer;position:relative;overflow:hidden;}
   .fase.on{border-color:#2f7bd8;}
@@ -1213,9 +1225,10 @@ function pintar() {
   if (selObj >= 0 && (selOPaso !== paso || selObj >= (act.objs || []).length)) selObj = -1;
   pintarPanelLinea(); pintarPanelFicha(); pintarPanelObj();
   if (trazo && trazo.pts.length > 1) $("pista").querySelector("svg").insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
-  $("fases").innerHTML = jugada.pasos.map((q, i) => `<div class="fase ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}${q.titulo ? `<span class="ft">${q.mostrarTitulo ? "🏷 " : ""}${esc(q.titulo)}</span>` : ""}</div>`).join("");
+  $("fases").innerHTML = jugada.pasos.map((q, i) => `${i ? '<div class="fflecha">↓</div>' : ""}<div class="fase ${i === paso ? "on" : ""}" data-i="${i}" draggable="true"><div class="fh"><span class="fgrip" title="Arrastra para cambiar el orden">⠿</span>${renaFase === i ? `<input class="fnom" maxlength="60" value="${esc(q.titulo || "")}" placeholder="Fase ${i + 1}">` : `<span class="nm">${esc(q.titulo || "Fase " + (i + 1))}${q.mostrarTitulo ? " 🏷" : ""}</span>`}<button class="fmas" data-f="mas" title="Más opciones">⋯</button><button class="fdel" data-f="del" title="Quitar fase">🗑</button></div>${svgPaso(jugada, i, {})}</div>`).join("");
+  conectarFases();
   { const ft = $("faseTitulo"); if (document.activeElement !== ft) ft.value = act.titulo || ""; $("faseMostrar").checked = !!act.mostrarTitulo; $("faseArriba").disabled = paso < 1; $("faseAbajo").disabled = paso >= jugada.pasos.length - 1; }
-  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); selLinea = -1; selFicha = null; selObj = -1; pintar(); }));
+  $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", (ev) => { if (ev.target.closest("button,input")) return; paso = Number(el.dataset.i); selLinea = -1; selFicha = null; selObj = -1; pintar(); }));
   $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
   $("btnDeshacer").disabled = !act.lineas.length;
   $("leyenda").innerHTML = textoLista(act.texto);
@@ -1853,6 +1866,46 @@ function importar(archivo) {
 let temporizador;
 function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporizador); temporizador = setTimeout(() => a.classList.remove("ver"), 2600); }
 
+/* ---------- tarjetas de fase (como Hoops Geek): menu ⋯, papelera, arrastrar para ordenar, renombrar, reflejar ---------- */
+let renaFase = -1, arrFase = -1;
+function espejoPaso() {
+  snap(); const q = jugada.pasos[paso], W = ANCHO;
+  Object.keys(q.pos).forEach(k => { q.pos[k].x = W - q.pos[k].x; });
+  (q.lineas || []).forEach(l => { (l.pts || []).forEach(p => { p[0] = W - p[0]; }); });
+  (q.objs || []).forEach(o => { if (typeof o.x === "number") o.x = W - o.x; if (typeof o.rot === "number") o.rot = -o.rot; if (Array.isArray(o.pts)) o.pts.forEach(p => { p[0] = W - p[0]; }); });
+  pintar();
+}
+function menuFase(btn, i) {
+  paso = i; selLinea = -1; selFicha = null; selObj = -1;
+  let m = $("menuFase"); if (!m) { m = document.createElement("div"); m.id = "menuFase"; document.body.appendChild(m); document.addEventListener("click", () => m.classList.remove("ver")); }
+  const q = jugada.pasos[i], it = [["➜", "Fase siguiente (donde acaban)", nuevoPaso], ["⧉", "Duplicar fase", duplicarPaso], ["▢", "Añadir fase vacía", vaciarPaso], ["✏️", "Renombrar fase", () => { renaFase = i; pintar(); const inp = $("fases").querySelector(".fnom"); if (inp) { inp.focus(); inp.select(); } }], ["🏷", (q.mostrarTitulo ? "Ocultar" : "Mostrar") + " el título al cambiar de fase", () => { snap(); q.mostrarTitulo = !q.mostrarTitulo; if (q.mostrarTitulo && !q.titulo) { aviso("Ponle nombre a la fase para que se vea"); renaFase = i; } pintar(); const inp = $("fases").querySelector(".fnom"); if (inp) inp.focus(); }], ["⇋", "Reflejar fase (espejo)", espejoPaso]];
+  m.innerHTML = ""; it.forEach(([ic, t, f], k) => { if (k === 5) m.insertAdjacentHTML("beforeend", "<hr>"); const b = document.createElement("button"); b.innerHTML = `<span>${ic}</span>${t}`; b.addEventListener("click", (e) => { e.stopPropagation(); m.classList.remove("ver"); f(); }); m.appendChild(b); });
+  const r = btn.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - 250, r.left)) + "px"; m.style.top = (r.bottom + 4) + "px"; m.classList.add("ver"); pintar();
+  const nb = $("fases").querySelector(`.fase[data-i="${i}"] .fmas`); if (nb) { const r2 = nb.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - 250, r2.left)) + "px"; m.style.top = (r2.bottom + 4) + "px"; }
+}
+function conectarFases() {
+  const caja = $("fases");
+  caja.querySelectorAll(".fase").forEach(el => {
+    const i = Number(el.dataset.i);
+    el.querySelector(".fmas").addEventListener("click", (e) => { e.stopPropagation(); menuFase(e.currentTarget, i); });
+    el.querySelector(".fdel").addEventListener("click", (e) => { e.stopPropagation(); if (jugada.pasos.length < 2) { aviso("Tiene que quedar al menos una fase."); return; } paso = i; quitarPaso(); });
+    const inp = el.querySelector(".fnom");
+    if (inp) {
+      const fin = (ok) => { if (renaFase !== i) return; renaFase = -1; if (ok) { snap(); jugada.pasos[i].titulo = inp.value.trim(); } pintar(); };
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") fin(true); else if (e.key === "Escape") fin(false); });
+      inp.addEventListener("blur", () => fin(true));
+      inp.addEventListener("click", (e) => e.stopPropagation());
+    }
+    el.addEventListener("dragstart", (e) => { if (renaFase >= 0) { e.preventDefault(); return; } arrFase = i; e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", String(i)); } catch (x) { /* nada */ } el.classList.add("arrastrando"); });
+    el.addEventListener("dragend", () => { arrFase = -1; caja.querySelectorAll(".fase").forEach(x => x.classList.remove("arrastrando", "sobre")); });
+    el.addEventListener("dragover", (e) => { if (arrFase < 0) return; e.preventDefault(); el.classList.add("sobre"); });
+    el.addEventListener("dragleave", () => el.classList.remove("sobre"));
+    el.addEventListener("drop", (e) => {
+      e.preventDefault(); const d = arrFase; arrFase = -1; if (d < 0 || d === i) { pintar(); return; }
+      snap(); const [m] = jugada.pasos.splice(d, 1); jugada.pasos.splice(i, 0, m); paso = i; selLinea = -1; pintar();
+    });
+  });
+}
 /* ---------- editar la fase: titulo, mostrarlo al cambiar de fase, orden ---------- */
 {
   const ft = $("faseTitulo");
@@ -1864,9 +1917,8 @@ function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ve
   $("faseAbajo").addEventListener("click", () => mover(1));
 }
 function pintarSoloFases() {
-  const el = $("fases").querySelector(".fase.on"); if (!el) return;
-  const q = jugada.pasos[paso]; let s = el.querySelector(".ft");
-  if (q.titulo) { if (!s) { s = document.createElement("span"); s.className = "ft"; el.appendChild(s); } s.textContent = (q.mostrarTitulo ? "🏷 " : "") + q.titulo; } else if (s) s.remove();
+  const el = $("fases").querySelector(".fase.on .nm"); if (!el) return;
+  const q = jugada.pasos[paso]; el.textContent = (q.titulo || "Fase " + (paso + 1)) + (q.mostrarTitulo ? " 🏷" : "");
 }
 /* ---------- zoom y mano (editor de escritorio) ---------- */
 const ZOOM_ON = EDITOR && window.matchMedia("(min-width:1001px)").matches;
