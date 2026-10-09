@@ -306,12 +306,20 @@ const SINGULAR = { jugadas: "jugada", ejercicios: "ejercicio", planes: "plan" };
 const SVG_CARPETA = (t) => `<svg class="carp" viewBox="0 0 24 20" width="${t || 30}" height="${Math.round((t || 30) * 20 / 24)}"><path d="M1 3a2 2 0 0 1 2-2h6l2 2.5h10a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" fill="#15a37f"/></svg>`;
 let ordenar = "recientes", filtroTags = [], filtroTipo = "", vistaLista = true, seleccion = new Set();
 try { vistaLista = localStorage.getItem("ent_vista") !== "rejilla"; } catch (e) { /* nada */ }
-function carpetasDe(tipo) {
+const ultimo = (p) => p.split("/").pop();
+const padreDe = (p) => p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
+const enRama = (p, raiz) => p === raiz || p.startsWith(raiz + "/");
+const limpiaNombre = (n) => n.replace(/[\/]+/g, "-").trim();
+function rutasCarpetas(tipo) {
   const set = new Map();
-  D.carpetas.filter(c => c.tipo === tipo).forEach(c => set.set(c.nombre, { nombre: c.nombre, n: 0, ult: c.creada }));
-  D[tipo].forEach(x => { if (x.carpeta) { const e = set.get(x.carpeta) || { nombre: x.carpeta, n: 0, ult: "" }; e.n++; if (!e.ult || x.actualizada > e.ult) e.ult = x.actualizada; set.set(x.carpeta, e); } });
-  return [...set.values()];
+  const sumar = (p, ult) => { if (!p) return; const partes = p.split("/"); for (let i = 1; i <= partes.length; i++) { const r = partes.slice(0, i).join("/"); if (!set.has(r)) set.set(r, { nombre: r, n: 0, ult: "" }); } const e = set.get(p); if (ult && (!e.ult || ult > e.ult)) e.ult = ult; };
+  D.carpetas.filter(c => c.tipo === tipo).forEach(c => sumar(c.nombre, c.creada));
+  D[tipo].forEach(x => { if (x.carpeta) sumar(x.carpeta, x.actualizada); });
+  const todas = [...set.values()];
+  todas.forEach(c => { c.n = D[tipo].filter(x => x.carpeta && enRama(x.carpeta, c.nombre)).length; D[tipo].forEach(x => { if (x.carpeta && enRama(x.carpeta, c.nombre) && x.actualizada > c.ult) c.ult = x.actualizada; }); });
+  return todas;
 }
+function carpetasDe(tipo, padre) { padre = padre == null ? carpeta : padre; return rutasCarpetas(tipo).filter(c => padreDe(c.nombre) === padre).map(c => Object.assign({}, c, { ruta: c.nombre, nombre: ultimo(c.nombre) })); }
 const textoDe = (tipo, x) => (x.nombre + " " + (x.carpeta || "") + " " + ((x.data && (x.data.categoria || x.data.descripcion)) || x.tipo || "") + " " + tagsDe(x).join(" ")).toLowerCase();
 const valorTipo = (tipo, x) => tipo === "jugadas" ? (x.tipo || "") : tipo === "ejercicios" ? ((x.data && x.data.categoria) || "") : "";
 function filtrar(tipo, plano) {
@@ -331,7 +339,7 @@ function ordenarLista(arr, campoFecha, campoNombre) {
 function pintarCarpetas(v, tipo) {
   const plano = hayFiltro();
   const items = ordenarLista(filtrar(tipo, plano), "actualizada", "nombre");
-  const cars = (carpeta || plano) ? [] : ordenarLista(carpetasDe(tipo), "ult", "nombre");
+  const cars = plano ? [] : ordenarLista(carpetasDe(tipo), "ult", "nombre");
   const extra = { jugadas: ["Tipo", "Fases", "Jugadoras"], ejercicios: ["Categoría", "Duración"], planes: ["Fecha", "Duración", "Ejercicios"] }[tipo];
   const clase = { jugadas: "c-jug", ejercicios: "c-eje", planes: "c-pla" }[tipo];
   const celdas = (x) => {
@@ -343,7 +351,7 @@ function pintarCarpetas(v, tipo) {
   const nFiltros = filtroTags.length + (filtroTipo ? 1 : 0);
   const nuevoTxt = tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
-  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a> › ${SVG_CARPETA(16)} ${esc(carpeta)}</span>` : ""}<span class="esp"></span>${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
+  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
     <div class="barra"><input type="search" id="bq" placeholder="🔍 Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
       <button class="gris" id="bOrden" title="Ordenar">⇅ ${ORDENES[ordenar]}</button>
@@ -355,19 +363,20 @@ function pintarCarpetas(v, tipo) {
   if (vistaLista) {
     const fila = (cols, extraC) => `<div class="fila ${clase}${extraC || ""}">${cols.join("")}</div>`;
     let filas = fila(["<div></div>", "<div>Título</div>", "<div>Etiquetas</div>"].concat(extra.map(t => `<div>${t}</div>`), ["<div>Última edición</div>", "<div></div>"]), " cabt");
-    cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.nombre)}"><div></div><div class="nom">${SVG_CARPETA(30)}<span class="t">${esc(c.nombre)}</span></div><div></div>${extra.map((_, i) => `<div class="peq">${i === 0 ? "Carpeta · " + c.n : ""}</div>`).join("")}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
+    cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.ruta)}" ${puedeEscribir ? 'draggable="true"' : ""}><div></div><div class="nom">${SVG_CARPETA(30)}<span class="t">${esc(c.nombre)}</span></div><div></div>${extra.map((_, i) => `<div class="peq">${i === 0 ? "Carpeta · " + c.n : ""}</div>`).join("")}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
     items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="nom"><span class="ico">${ICONO[tipo]}</span><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span></div><div class="tags">${chipsTags(x)}</div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
     if (!cars.length && !items.length) filas += `<div class="vacio">${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + ". Empieza con «＋ " + nuevoTxt + "»."}</div>`;
     cuerpo = `<div class="tabla">${filas}</div>`;
   } else {
     let t = "";
-    cars.forEach(c => { t += `<div class="tj tcar" data-car="${esc(c.nombre)}"><div class="vista">${SVG_CARPETA(64)}</div><div class="cu"><div class="nom"><span class="t">${esc(c.nombre)}</span>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div><span class="peq">${c.n} elemento${c.n === 1 ? "" : "s"}</span></div></div>`; });
+    cars.forEach(c => { t += `<div class="tj tcar" data-car="${esc(c.ruta)}" ${puedeEscribir ? 'draggable="true"' : ""}><div class="vista">${SVG_CARPETA(64)}</div><div class="cu"><div class="nom"><span class="t">${esc(c.nombre)}</span>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div><span class="peq">${c.n} elemento${c.n === 1 ? "" : "s"}</span></div></div>`; });
     items.forEach(x => { const c = celdas(x); t += `<div class="tj${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="vista">${ICONO[tipo]}</div><div class="cu"><div class="nom"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div><span class="peq">${esc(c.slice(0, 2).join(" · "))}</span><div class="tags">${chipsTags(x)}</div></div></div>`; });
     cuerpo = t ? `<div class="rejilla">${t}</div>` : `<div class="tabla"><div class="vacio">${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + "."}</div></div>`;
   }
   v.innerHTML = h + cuerpo;
   const redib = () => { pintarCarpetas(v, tipo); };
   const raiz = v.querySelector('[data-a="raiz"]'); if (raiz) { raiz.onclick = () => { carpeta = ""; seleccion.clear(); pintar(); }; soltarEn(raiz, tipo, ""); }
+  v.querySelectorAll("[data-r]").forEach(a => { a.onclick = () => { carpeta = a.dataset.r; seleccion.clear(); pintar(); }; soltarEn(a, tipo, a.dataset.r); });
   $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; redib(); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
   $("bFiltro").onclick = () => abrirFiltro(v, tipo);
   $("bOrden").onclick = (e) => abrirMenu(e, Object.keys(ORDENES).map(k => [(k === ordenar ? "✓ " : "　") + ORDENES[k], () => { ordenar = k; redib(); }]));
@@ -376,7 +385,7 @@ function pintarCarpetas(v, tipo) {
   const lf = $("limpiaF"); if (lf) lf.onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; redib(); };
   v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
   if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
-  if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [["📁 Nueva carpeta", () => preguntar("Nueva carpeta", "Nombre", "", async (n) => { if (!await guardarFila("carpetas", { tipo, nombre: n })) return; await cargarTodo(); pintar(); })]]);
+  if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
   if ($("sNo")) $("sNo").onclick = () => { seleccion.clear(); redib(); };
   const selItems = () => D[tipo].filter(x => seleccion.has(x.id));
   if ($("sTag")) $("sTag").onclick = () => editarTags(tipo, selItems());
@@ -387,24 +396,36 @@ function pintarCarpetas(v, tipo) {
     const nombre = el.dataset.car;
     el.addEventListener("click", () => { carpeta = nombre; seleccion.clear(); pintar(); });
     soltarEn(el, tipo, nombre);
+    el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ car: nombre })); e.dataTransfer.effectAllowed = "move"; el.classList.add("arrastrando"); });
+    el.addEventListener("dragend", () => el.classList.remove("arrastrando"));
     const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]]); });
   });
   v.querySelectorAll("[data-id]").forEach(el => {
     const x = D[tipo].find(y => y.id === el.dataset.id);
     el.addEventListener("click", () => abrirElemento(tipo, x));
-    el.addEventListener("dragstart", (e) => { const ids = seleccion.has(x.id) ? [...seleccion] : [x.id]; e.dataTransfer.setData("text/plain", JSON.stringify(ids)); e.dataTransfer.effectAllowed = "move"; el.classList.add("arrastrando"); });
+    el.addEventListener("dragstart", (e) => { const ids = seleccion.has(x.id) ? [...seleccion] : [x.id]; e.dataTransfer.setData("text/plain", JSON.stringify({ ids })); e.dataTransfer.effectAllowed = "move"; el.classList.add("arrastrando"); });
     el.addEventListener("dragend", () => el.classList.remove("arrastrando"));
     const b = el.querySelector("[data-mi]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, opcionesElemento(tipo, x)); });
   });
 }
 /* soltar elementos arrastrados sobre una carpeta (o sobre la raiz) */
 function soltarEn(el, tipo, nombre) {
-  el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("sobre"); });
+  el.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add("sobre"); });
   el.addEventListener("dragleave", () => el.classList.remove("sobre"));
   el.addEventListener("drop", async (e) => {
-    e.preventDefault(); el.classList.remove("sobre");
-    let ids = []; try { ids = JSON.parse(e.dataTransfer.getData("text/plain")); } catch (x) { return; }
-    const lista = D[tipo].filter(x => ids.includes(x.id) && (x.carpeta || "") !== nombre); if (!lista.length) return;
+    e.preventDefault(); e.stopPropagation(); el.classList.remove("sobre");
+    let p = null; try { p = JSON.parse(e.dataTransfer.getData("text/plain")); } catch (x) { return; }
+    if (!p) return;
+    if (p.car) {
+      const nuevo = (nombre ? nombre + "/" : "") + ultimo(p.car);
+      if (nuevo === p.car) return;
+      if (nombre && enRama(nombre, p.car)) { aviso("No se puede meter una carpeta dentro de sí misma"); return; }
+      if (rutasCarpetas(tipo).some(c => c.nombre === nuevo)) { aviso("Ya existe una carpeta llamada «" + ultimo(p.car) + "» ahí"); return; }
+      await moverCarpeta(tipo, p.car, nuevo);
+      aviso("Carpeta «" + ultimo(p.car) + "» movida" + (nombre ? " a «" + nombre + "»" : " a la raíz"));
+      await cargarTodo(); pintar(); return;
+    }
+    const lista = D[tipo].filter(x => (p.ids || []).includes(x.id) && (x.carpeta || "") !== nombre); if (!lista.length) return;
     for (const x of lista) await ponerCarpeta(tipo, x, nombre);
     seleccion.clear(); aviso(lista.length + (lista.length > 1 ? " elementos movidos" : " elemento movido") + (nombre ? " a «" + nombre + "»" : " a la raíz"));
     await cargarTodo(); pintar();
@@ -436,20 +457,34 @@ function opcionesElemento(tipo, x) {
   o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
   return o;
 }
-async function renombrarCarpeta(tipo, nombre) {
-  preguntar("Renombrar carpeta", "Nombre", nombre, async (n) => {
-    if (n === nombre) return;
-    await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", nombre);
-    await guardarFila("carpetas", { tipo, nombre: n });
-    for (const x of D[tipo].filter(y => y.carpeta === nombre)) { if (tipo === "jugadas") { const d = clonar(x.data); d.carpeta = n; await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: n }).eq("id", x.id); }
+async function moverCarpeta(tipo, de, a) {
+  const filas = new Set(D.carpetas.filter(c => c.tipo === tipo && enRama(c.nombre, de)).map(c => c.nombre));
+  rutasCarpetas(tipo).filter(c => enRama(c.nombre, de)).forEach(c => filas.add(c.nombre));
+  filas.add(de);
+  for (const old of filas) {
+    const nuevo = a + old.slice(de.length);
+    await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", old);
+    await guardarFila("carpetas", { tipo, nombre: nuevo });
+  }
+  for (const x of D[tipo].filter(y => y.carpeta && enRama(y.carpeta, de))) await ponerCarpeta(tipo, x, a + x.carpeta.slice(de.length));
+}
+async function renombrarCarpeta(tipo, ruta) {
+  preguntar("Renombrar carpeta", "Nombre", ultimo(ruta), async (n) => {
+    n = limpiaNombre(n); if (!n || n === ultimo(ruta)) return;
+    const nuevo = (padreDe(ruta) ? padreDe(ruta) + "/" : "") + n;
+    if (rutasCarpetas(tipo).some(c => c.nombre === nuevo)) { aviso("Ya existe una carpeta con ese nombre"); return; }
+    await moverCarpeta(tipo, ruta, nuevo);
+    if (carpeta && enRama(carpeta, ruta)) carpeta = nuevo + carpeta.slice(ruta.length);
     await cargarTodo(); pintar();
   });
 }
-async function borrarCarpeta(tipo, nombre) {
-  const dentro = D[tipo].filter(y => y.carpeta === nombre);
-  if (!confirm("¿Eliminar la carpeta «" + nombre + "»?" + (dentro.length ? " Los " + dentro.length + " elementos que contiene NO se borran: pasan a la raíz." : ""))) return;
-  await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", nombre);
-  for (const x of dentro) { if (tipo === "jugadas") { const d = clonar(x.data); d.carpeta = ""; await nube.from("jugadas").update({ carpeta: "", data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: "" }).eq("id", x.id); }
+async function borrarCarpeta(tipo, ruta) {
+  const dentro = D[tipo].filter(y => y.carpeta && enRama(y.carpeta, ruta));
+  const sub = rutasCarpetas(tipo).filter(c => c.nombre !== ruta && enRama(c.nombre, ruta)).length;
+  if (!confirm("¿Eliminar la carpeta «" + ultimo(ruta) + "»?" + (sub ? " También sus " + sub + " subcarpetas." : "") + (dentro.length ? " Los " + dentro.length + " elementos que contiene NO se borran: pasan a " + (padreDe(ruta) ? "«" + padreDe(ruta) + "»" : "la raíz") + "." : ""))) return;
+  for (const c of D.carpetas.filter(c => c.tipo === tipo && enRama(c.nombre, ruta))) await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", c.nombre);
+  for (const x of dentro) await ponerCarpeta(tipo, x, padreDe(ruta));
+  if (carpeta && enRama(carpeta, ruta)) carpeta = padreDe(ruta);
   await cargarTodo(); pintar();
 }
 async function ponerCarpeta(tipo, x, n) {
@@ -457,7 +492,7 @@ async function ponerCarpeta(tipo, x, n) {
   if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) { await guardarFila("carpetas", { tipo, nombre: n }); D.carpetas.push({ tipo, nombre: n }); }
 }
 function moverACarpeta(tipo, lista) {
-  const cs = carpetasDe(tipo).map(c => c.nombre).sort((a, b) => a.localeCompare(b, "es"));
+  const cs = rutasCarpetas(tipo).map(c => c.nombre).sort((a, b) => a.localeCompare(b, "es"));
   const m = ventana(`<h3>Mover ${lista.length === 1 ? "«" + esc(lista[0].nombre) + "»" : lista.length + " elementos"}</h3><label>Carpeta (vacío = raíz)</label><input id="mvc" list="dlc" value="${esc(lista.length === 1 ? (lista[0].carpeta || "") : "")}"><datalist id="dlc">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist><div class="pie-m"><button class="gris" id="mc1">Cancelar</button><button class="naranja" id="mc2">Mover</button></div>`);
   $("mc1").onclick = cerrarVentana;
   $("mc2").onclick = async () => {
@@ -561,7 +596,7 @@ function formPlaybook(p) {
 function formEjercicio(x) {
   const nuevo = !x; x = x ? clonar(x) : { id: idNuevo("e"), nombre: "", carpeta: carpeta || "", data: {} };
   const d = x.data = x.data || {};
-  const cs = carpetasDe("ejercicios").map(c => c.nombre), vids = D.archivos.filter(a => a.tipo === "video" || a.tipo === "imagen");
+  const cs = rutasCarpetas("ejercicios").map(c => c.nombre), vids = D.archivos.filter(a => a.tipo === "video" || a.tipo === "imagen");
   const m = ventana(`<h3>${nuevo ? "Nuevo ejercicio" : "Ejercicio"}</h3>
     <label>Título</label><input id="ejN" value="${esc(x.nombre)}" placeholder="Ej: 3 contra 2 en transición">
     <div class="dos"><div><label>Carpeta</label><input id="ejC" list="dlej" value="${esc(x.carpeta || "")}" placeholder="Sin carpeta"><datalist id="dlej">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
