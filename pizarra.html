@@ -1337,8 +1337,8 @@ function pintarPanelFicha() {
 }
 /* tras un pase/tiro, la accion siguiente empieza cuando el balon ya llego (mas natural); se puede cambiar a "a la vez" en la pestaña Animar */
 const despuesDeBalon = (act) => { const u = act.lineas[act.lineas.length - 1]; return !!u && (u.t === "pase" || u.t === "entrega" || u.t === "tiro"); };
-function lineaPorDefecto(t, k) {
-  const act = jugada.pasos[paso], q = act.pos[k], A = [q.x, q.y];
+function lineaPorDefecto(t, k, desde) {
+  const act = jugada.pasos[paso], q = desde ? { x: desde[0], y: desde[1] } : act.pos[k], A = [q.x, q.y];
   let B;
   if (t === "pase" || t === "entrega") {
     let mejor = null, dm = 1e9;
@@ -1347,7 +1347,7 @@ function lineaPorDefecto(t, k) {
     else B = [Math.min(ANCHO - 0.5, q.x + 3), q.y];
   } else if (t === "tiro") B = [ARO.x, ARO.y];
   else { const dx = ARO.x - q.x, dy = ARO.y - q.y, d = Math.hypot(dx, dy) || 1, L = Math.min(3, Math.max(1.5, d - 1)); B = [q.x + dx / d * L, q.y + dy / d * L]; }
-  const l = { t, de: k, pts: [A, B], despues: despuesDeBalon(act) && t !== "pase" };
+  const l = { t, de: k, pts: [A, B], despues: !!desde || (despuesDeBalon(act) && t !== "pase") };
   if (colorNuevo) l.color = colorNuevo;
   if (t === "pase" || t === "entrega") { const r = receptoraDe(l, act.pos); if (r) l.a = r; }
   return l;
@@ -1468,9 +1468,9 @@ function alSoltar() {
         const f = pts[1]; if (Math.hypot(f[0] - ARO.x, f[1] - ARO.y) < 2.2) linea.pts = [pts[0], [ARO.x, ARO.y]];
       }
       snap(); jugada.pasos[paso].lineas.push(linea); selLinea = jugada.pasos[paso].lineas.length - 1; selPaso = paso;
-    } else if (trazo.de && !trazo.cont && jugada.pasos[paso].pos[trazo.de]) {
+    } else if (trazo.de && jugada.pasos[paso].pos[trazo.de]) {
       /* toque simple sobre una jugadora: flecha de tamaño estándar */
-      snap(); jugada.pasos[paso].lineas.push(lineaPorDefecto(trazo.t, trazo.de)); selLinea = jugada.pasos[paso].lineas.length - 1; selPaso = paso;
+      snap(); jugada.pasos[paso].lineas.push(lineaPorDefecto(trazo.t, trazo.de, trazo.cont ? trazo.pts[0] : null)); selLinea = jugada.pasos[paso].lineas.length - 1; selPaso = paso;
     }
     trazo = null; pintar();
   }
