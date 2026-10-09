@@ -165,9 +165,46 @@
     .fila.c-pb{grid-template-columns:minmax(0,1fr) 36px !important;} .fila.c-pb>:nth-child(n+2):not(:last-child){display:none;}
   }
   @media (max-width:520px){ .cab .split button{font-size:12.5px;padding:9px 10px;} main{padding:14px 12px 60px !important;} }
+
+  #planEd{position:fixed;inset:0;z-index:150;background:var(--bg);display:none;flex-direction:column;}
+  #planEd.ver{display:flex;}
+  .pe-top{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border-bottom:1.5px solid var(--line);flex-wrap:wrap;}
+  .pe-top .esp{flex:1;} .pe-tit{flex:1 1 220px;max-width:380px;font-weight:800;font-size:16px;border-color:transparent;background:transparent;}
+  .pe-tit:focus,.pe-tit:hover{border-color:var(--line);background:#fff;}
+  .pe-tabs{display:inline-flex;background:var(--suave);border-radius:10px;padding:3px;gap:2px;}
+  .pe-tabs button{background:transparent;color:var(--soft);padding:7px 14px;}
+  .pe-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+  .pe-top button:disabled{opacity:.4;cursor:default;}
+  .pe-cuerpo{flex:1;overflow:auto;padding:18px 14px 80px;width:100%;max-width:860px;margin:0 auto;}
+  .pe-tot{font-size:15px;margin-bottom:12px;} .pe-tot b{color:var(--orange);}
+  .pe-lista{display:flex;flex-direction:column;gap:8px;}
+  .pe-seg,.pe-sec{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 10px;position:relative;}
+  .pe-sec{align-items:center;background:var(--suave);}
+  .pe-sec input{text-align:center;text-transform:uppercase;font-weight:800;letter-spacing:1.2px;border-color:transparent;background:transparent;}
+  .pe-sec input:focus{background:#fff;border-color:var(--line);}
+  .pe-asa{cursor:grab;color:#b5a88f;font-size:20px;line-height:1;padding:8px 2px;user-select:none;touch-action:none;}
+  .pe-seg.arr,.pe-sec.arr{opacity:.4;} .dst-a{box-shadow:0 -3px 0 var(--orange);} .dst-b{box-shadow:0 3px 0 var(--orange);}
+  .pe-min{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);min-width:54px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;line-height:1.05;font-size:17px;font-family:'Archivo Black',sans-serif;font-weight:400;}
+  .pe-min small{font-family:'Archivo',sans-serif;font-size:10px;font-weight:700;color:var(--soft);}
+  .pe-cen{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+  .pe-l1{display:flex;gap:6px;} .pe-l1 input{font-weight:800;}
+  .pe-nota{font-size:13px;color:var(--soft);}
+  .pe-vinc{padding:6px 11px;font-size:15px;}
+  .pe-hora{font-size:11.5px;color:var(--soft);font-weight:700;padding-top:12px;white-space:nowrap;}
+  .pe-mas{padding:6px 10px;}
+  .pe-add{margin-top:14px;}
+  .pe-card{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:18px;}
+  .pv-sec{display:flex;justify-content:space-between;align-items:center;background:var(--suave);border-radius:8px;padding:7px 12px;margin:14px 0 6px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;font-size:12.5px;} .pv-sec span{color:var(--orange);}
+  .pv-seg{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line);} .pv-seg:first-of-type{border-top:0;}
+  .pv-m{min-width:48px;text-align:center;font-family:'Archivo Black',sans-serif;font-size:18px;color:var(--orange);display:flex;flex-direction:column;line-height:1.05;} .pv-m small{font-family:'Archivo',sans-serif;font-size:10px;color:var(--soft);font-weight:700;}
+  .pv-n{margin-top:3px;} .pv-d{margin-top:3px;font-size:13px;color:var(--soft);}
+  .pt{width:210px;padding:6px;} .pt-f{display:flex;gap:6px;margin:8px 0;} .pt-f input{text-align:center;font-weight:800;} .pt-r{display:flex;gap:6px;} .pt button{width:auto;display:inline-block;text-align:center;}
+  .pt-r button{flex:1;padding:7px 0;} .pt-f button{padding:6px 14px;}
+  .np{display:flex;flex-direction:column;gap:10px;margin-top:10px;} .np button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px;font-weight:600;text-align:left;font-size:14px;}
+  @media (max-width:640px){ .pe-top{padding:8px 10px;} .pe-tit{order:2;flex-basis:100%;max-width:none;} .pe-hora{display:none;} .pe-cuerpo{padding:12px 10px 80px;} }
   #hojaImp{display:none;}
   @media print{
-    #app,#menuPop,.velo,#editorMarco,#visorMarco,#aviso{display:none !important;}
+    #app,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#aviso{display:none !important;}
     body{background:#fff;}
     #hojaImp{display:block;padding:10mm;font-size:12pt;}
     #hojaImp h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22pt;margin:0 0 4px;}
@@ -209,6 +246,8 @@
 <!-- editor de jugadas (pizarra) y visor -->
 <div id="editorMarco"><iframe id="marcoEd" title="Editor de jugadas"></iframe></div>
 <div id="visorMarco"><div class="cabv"><span id="tituloVisor">Jugada</span><button class="gris" id="cerrarVisor">Cerrar ✕</button></div><iframe id="marcoVisor" title="Jugada" allowfullscreen allow="fullscreen"></iframe></div>
+
+<div id="planEd"></div>
 
 <div id="hojaImp"></div>
 
@@ -263,7 +302,6 @@ function pintar() {
   m.innerHTML = aviso0 + '<div id="vista"></div>';
   const v = $("vista");
   if (vistaDetalle && vistaDetalle.tipo === "playbook") return pintarPlaybook(v);
-  if (vistaDetalle && vistaDetalle.tipo === "plan") return pintarPlan(v);
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
   if (seccion === "playbooks") return pintarPlaybooks(v);
   return pintarArchivos(v, seccion);
@@ -361,7 +399,7 @@ function pintarCarpetas(v, tipo) {
   const celdas = (x) => {
     if (tipo === "jugadas") return [x.tipo || "—", ((x.data && x.data.pasos) || []).length, x.compartida ? "📤 Sí" : "—"];
     if (tipo === "ejercicios") return [(x.data && x.data.categoria) || "—", ((x.data && x.data.minutos) || 0) ? x.data.minutos + " min" : "—"];
-    const ej = (x.data && x.data.ejercicios) || [], min = ej.reduce((a, e) => a + (Number(e.min) || 0), 0);
+    const ej = ((x.data && x.data.ejercicios) || []).filter(e => !e.sec), min = ej.reduce((a, e) => a + (Number(e.min) || 0), 0);
     return [solofecha(x.fecha), min + " min", ej.length];
   };
   const nFiltros = filtroTags.length + (filtroTipo ? 1 : 0);
@@ -557,12 +595,12 @@ async function alternarComp(x) { const c = clonar(x); c.compartida = !c.comparti
 function nuevoElemento(tipo) {
   if (tipo === "jugadas") return abrirEditor("");
   if (tipo === "ejercicios") return formEjercicio(null);
-  vistaDetalle = { tipo: "plan", plan: { id: idNuevo("p"), nombre: "", carpeta: carpeta || "", fecha: new Date().toISOString().slice(0, 10), data: { ejercicios: [], notas: "", inicio: "18:00" }, nuevo: true } }; pintar();
+  nuevoPlanModal();
 }
 function abrirElemento(tipo, x) {
   if (tipo === "jugadas") return abrirEditor(x.id);
   if (tipo === "ejercicios") return formEjercicio(x);
-  const p = clonar(x); p.data = p.data || {}; p.data.ejercicios = p.data.ejercicios || []; vistaDetalle = { tipo: "plan", plan: p }; pintar();
+  abrirPlan(x);
 }
 
 /* ------------ editor de jugadas (pizarra) y visor ------------ */
@@ -664,45 +702,167 @@ function formEjercicio(x) {
   };
 }
 
-/* ------------ planes de entrenamiento ------------ */
-function pintarPlan(v) {
-  const p = vistaDetalle.plan, d = p.data, lista = d.ejercicios;
-  const hm = (min) => { const [h, m] = (d.inicio || "18:00").split(":").map(Number); const t = h * 60 + m + min; return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
-  const total = lista.reduce((a, e) => a + (Number(e.min) || 0), 0);
-  let acum = 0;
-  const filas = lista.map((e, i) => { const ej = D.ejercicios.find(y => y.id === e.id), ini = hm(acum); acum += Number(e.min) || 0;
-    return `<div class="ejp" data-i="${i}"><div class="nn">${i + 1}</div><div><b>${esc(ej ? ej.nombre : "(ejercicio borrado)")}</b><div class="h">${esc(ej && ej.data && ej.data.categoria || "")} · ${ini}–${hm(acum)}</div></div><div><input type="number" min="0" data-f="min" value="${esc(e.min)}" ${puedeEscribir ? "" : "disabled"}></div><div><input data-f="notas" placeholder="Notas" value="${esc(e.notas || "")}" ${puedeEscribir ? "" : "disabled"}></div><div style="display:flex;gap:4px;">${puedeEscribir ? `<button class="gris" data-m="up">↑</button><button class="gris" data-m="dn">↓</button><button class="gris" data-m="x">✕</button>` : ""}</div></div>`; }).join("");
-  v.innerHTML = `<div class="cab"><h2>📋 ${p.nuevo ? "Nuevo plan" : esc(p.nombre || "Plan")}</h2><span class="miga"><a id="volverPl">← Planes</a></span><span class="esp"></span><button class="gris" id="plPrint">🖨️ Imprimir / PDF</button>${puedeEscribir ? '<button class="naranja" id="plG">Guardar</button>' : ""}</div>
-    <div class="dos" style="margin-bottom:6px;"><div><label style="margin-top:0;">Nombre del plan</label><input id="plN" value="${esc(p.nombre)}" placeholder="Ej: Entrenamiento martes"></div>
-      <div class="dos" style="grid-template-columns:1fr 1fr 1fr;"><div><label style="margin-top:0;">Fecha</label><input type="date" id="plF" value="${esc(p.fecha || "")}"></div><div><label style="margin-top:0;">Hora de inicio</label><input type="time" id="plH" value="${esc(d.inicio || "18:00")}"></div><div><label style="margin-top:0;">Carpeta</label><input id="plC" list="dlpl" value="${esc(p.carpeta || "")}"><datalist id="dlpl">${carpetasDe("planes").map(c => `<option value="${esc(c.nombre)}">`).join("")}</datalist></div></div></div>
-    <label>Objetivo / notas generales</label><textarea id="plNo" style="min-height:60px;">${esc(d.notas || "")}</textarea>
-    <div class="totales"><span>Duración total: <b>${total} min</b></span><span>Ejercicios: <b>${lista.length}</b></span><span>Termina a las: <b>${hm(total)}</b></span></div>
-    <div class="tabla" id="plLista">${filas || '<div class="vacio">Añade ejercicios de tu biblioteca para montar la sesión.</div>'}</div>
-    ${puedeEscribir ? '<div style="margin-top:12px;"><button class="verde" id="plAdd">＋ Añadir ejercicio</button></div>' : ""}`;
-  const volcar = () => { p.nombre = $("plN").value.trim(); p.fecha = $("plF").value || null; p.carpeta = $("plC").value.trim(); d.inicio = $("plH").value || "18:00"; d.notas = $("plNo").value; };
-  ["plN", "plF", "plC", "plNo"].forEach(id => $(id).addEventListener("input", volcar));
-  $("plH").addEventListener("change", () => { volcar(); pintar(); });
-  $("volverPl").onclick = () => { vistaDetalle = null; pintar(); };
-  v.querySelectorAll(".ejp").forEach(el => {
-    const i = Number(el.dataset.i);
-    el.querySelectorAll("[data-f]").forEach(inp => inp.addEventListener(inp.dataset.f === "min" ? "change" : "input", () => { lista[i][inp.dataset.f] = inp.dataset.f === "min" ? (Number(inp.value) || 0) : inp.value; if (inp.dataset.f === "min") { volcar(); pintar(); } }));
-    el.querySelectorAll("[data-m]").forEach(b => b.addEventListener("click", () => { volcar(); if (b.dataset.m === "x") lista.splice(i, 1); else if (b.dataset.m === "up" && i > 0) [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; else if (b.dataset.m === "dn" && i < lista.length - 1) [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; pintar(); }));
-  });
-  if ($("plAdd")) $("plAdd").onclick = () => { volcar(); elegirEjercicio((id) => { const ej = D.ejercicios.find(y => y.id === id); lista.push({ id, min: (ej && ej.data && ej.data.minutos) || 10, notas: "" }); pintar(); }); };
-  if ($("plG")) $("plG").onclick = async () => { volcar(); if (!p.nombre) { aviso("Ponle un nombre al plan."); return; } const fila = { id: p.id, nombre: p.nombre, carpeta: p.carpeta, fecha: p.fecha, data: d }; if (await guardarFila("planes", fila)) { aviso("Plan guardado ✓"); p.nuevo = false; if (p.carpeta && !D.carpetas.some(c => c.tipo === "planes" && c.nombre === p.carpeta)) await guardarFila("carpetas", { tipo: "planes", nombre: p.carpeta }); await cargarTodo(); pintarPlan(v); } };
-  $("plPrint").onclick = () => { volcar(); imprimirPlan(p, hm); };
+/* ------------ planes de entrenamiento (creador estilo Hoops Geek) ------------ */
+const hmDe = (inicio, min) => { const [h, m] = (inicio || "18:00").split(":").map(Number); const t = h * 60 + m + min; return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+const ejDe = (e) => e.id ? D.ejercicios.find(y => y.id === e.id) : null;
+const tituloSeg = (e) => e.titulo != null && e.titulo !== "" ? e.titulo : (ejDe(e) ? ejDe(e).nombre : "");
+const segmentos = (d) => (d.ejercicios || []).filter(e => !e.sec);
+const minPlan = (d) => segmentos(d).reduce((a, e) => a + (Number(e.min) || 0), 0);
+let PL = null; // { p, tab, hist, fut, sucio, base }
+const snapPlan = () => JSON.stringify({ n: PL.p.nombre, f: PL.p.fecha, c: PL.p.carpeta, d: PL.p.data });
+function histPlan() { const s = snapPlan(); if (PL.hist[PL.hist.length - 1] === s) return; PL.hist.push(s); if (PL.hist.length > 80) PL.hist.shift(); PL.fut = []; PL.sucio = true; }
+function aplicarSnap(s) { const o = JSON.parse(s); PL.p.nombre = o.n; PL.p.fecha = o.f; PL.p.carpeta = o.c; PL.p.data = o.d; PL.sucio = true; pEd(); }
+function deshacerPlan() { if (PL.hist.length < 2) return; PL.fut.push(PL.hist.pop()); aplicarSnap(PL.hist[PL.hist.length - 1]); }
+function rehacerPlan() { if (!PL.fut.length) return; const s = PL.fut.pop(); PL.hist.push(s); aplicarSnap(s); }
+function abrirPlan(p) {
+  p = clonar(p); p.data = p.data || {}; p.data.ejercicios = p.data.ejercicios || []; p.data.inicio = p.data.inicio || "18:00";
+  PL = { p, tab: "tl", hist: [], fut: [], sucio: !!p.nuevo }; PL.hist.push(snapPlan()); $("planEd").classList.add("ver"); pEd();
+}
+async function cerrarPlan(forzar) {
+  if (!forzar && PL && PL.sucio && puedeEscribir && !confirm("Hay cambios sin guardar. ¿Salir sin guardar?")) return;
+  $("planEd").classList.remove("ver"); $("planEd").innerHTML = ""; PL = null; await cargarTodo(); pintar();
+}
+async function guardarPlan(cerrar) {
+  const p = PL.p; if (!p.nombre.trim()) { aviso("Ponle un título al plan."); const t = $("peT"); if (t) t.focus(); return; }
+  const fila = { id: p.id, nombre: p.nombre.trim(), carpeta: p.carpeta || "", fecha: p.fecha || null, data: p.data };
+  if (await guardarFila("planes", fila)) {
+    if (p.carpeta && !D.carpetas.some(c => c.tipo === "planes" && c.nombre === p.carpeta)) await guardarFila("carpetas", { tipo: "planes", nombre: p.carpeta });
+    PL.sucio = false; p.nuevo = false; aviso("Plan guardado ✓"); if (cerrar) cerrarPlan(true); else pEd();
+  }
+}
+function pEd() {
+  const root = $("planEd"), p = PL.p, d = p.data, lista = d.ejercicios, ro = !puedeEscribir, tab = PL.tab;
+  const total = minPlan(d), nSeg = segmentos(d).length;
+  const cab = `<div class="pe-top"><button class="gris pe-x" id="peX" title="Cerrar">✕</button><input id="peT" class="pe-tit" value="${esc(p.nombre)}" placeholder="Título del plan…" ${ro ? "disabled" : ""}>
+    <div class="pe-tabs">${[["tl", "Cronograma"], ["det", "Detalles"], ["pre", "Vista previa"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-tab="${k}">${t}</button>`).join("")}</div>
+    <span class="esp"></span>${ro ? "" : `<button class="gris" id="peUn" title="Deshacer" ${PL.hist.length < 2 ? "disabled" : ""}>↶</button><button class="gris" id="peRe" title="Rehacer" ${PL.fut.length ? "" : "disabled"}>↷</button>`}
+    <button class="gris" id="peMas" title="Más">⋯</button>${ro ? "" : `<span class="split"><button class="naranja" id="peG">${PL.sucio ? "Guardar" : "Guardado ✓"}</button><button class="naranja" id="peG2" title="Guardar y salir">▾</button></span>`}</div>`;
+  let cuerpo = "";
+  if (tab === "tl") {
+    let acum = 0, n = 0;
+    const filas = lista.map((e, i) => {
+      if (e.sec) return `<div class="pe-sec" data-i="${i}" draggable="false"><span class="pe-asa" title="Arrastrar">⠿</span><input data-f="sec" value="${esc(e.titulo || "")}" placeholder="TÍTULO DE SECCIÓN" ${ro ? "disabled" : ""}><button class="gris pe-mas" data-r="${i}">⋯</button></div>`;
+      const ini = hmDe(d.inicio, acum); acum += Number(e.min) || 0; n++;
+      const ej = ejDe(e);
+      return `<div class="pe-seg" data-i="${i}"><span class="pe-asa" title="Arrastrar">⠿</span><button class="pe-min" data-min="${i}" title="Editar tiempo">${Number(e.min) || 0}<small>min</small></button>
+        <div class="pe-cen"><div class="pe-l1"><input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="gris pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio de la biblioteca" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : "＋"}</button>`}</div>
+        <input data-f="notas" class="pe-nota" value="${esc(e.notas || "")}" placeholder="Notas…" ${ro ? "disabled" : ""}></div>
+        <span class="pe-hora">${ini}–${hmDe(d.inicio, acum)}</span><button class="gris pe-mas" data-r="${i}">⋯</button></div>`;
+    }).join("");
+    cuerpo = `<div class="pe-cuerpo"><div class="pe-tot"><b>${total} min</b> · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · termina a las <b>${hmDe(d.inicio, total)}</b></div>
+      <div class="pe-lista" id="peLista">${filas || '<div class="vacio">Añade segmentos para montar la sesión.</div>'}</div>
+      ${ro ? "" : `<div class="pe-add"><span class="split"><button class="verde" id="peAdd">＋ Añadir segmento</button><button class="verde" id="peAddM" title="Más opciones">▾</button></span></div>`}</div>`;
+  } else if (tab === "det") {
+    cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><div class="dos"><div><label style="margin-top:0;">Fecha</label><input type="date" id="pdF" value="${esc(p.fecha || "")}" ${ro ? "disabled" : ""}></div><div><label style="margin-top:0;">Hora de inicio</label><input type="time" id="pdH" value="${esc(d.inicio || "18:00")}" ${ro ? "disabled" : ""}></div></div>
+      <label>Carpeta</label><input id="pdC" list="dlpl" value="${esc(p.carpeta || "")}" placeholder="Sin carpeta" ${ro ? "disabled" : ""}><datalist id="dlpl">${carpetasDe("planes").map(c => `<option value="${esc(c.nombre)}">`).join("")}</datalist>
+      <label>Objetivo / notas generales</label><textarea id="pdN" style="min-height:120px;" ${ro ? "disabled" : ""}>${esc(d.notas || "")}</textarea></div></div>`;
+  } else {
+    let acum = 0, sub = 0, filas = "", secAbierta = false;
+    const cierra = () => { if (secAbierta) filas = filas.replace("§SUB§", sub + " min"); };
+    lista.forEach((e) => {
+      if (e.sec) { cierra(); sub = 0; secAbierta = true; filas += `<div class="pv-sec">${esc(e.titulo || "Sección")}<span>§SUB§</span></div>`; return; }
+      const ini = hmDe(d.inicio, acum), ej = ejDe(e), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; sub += Number(e.min) || 0;
+      filas += `<div class="pv-seg"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}</div></div>`;
+    });
+    cierra();
+    cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><h2 style="font-size:22px;">${esc(p.nombre || "Plan sin título")}</h2><p class="peq" style="margin:2px 0 12px;">${solofecha(p.fecha)} · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · ${total} min · ${d.inicio}–${hmDe(d.inicio, total)}</p>${d.notas ? `<p style="white-space:pre-wrap;margin:0 0 12px;">${esc(d.notas)}</p>` : ""}${filas || '<div class="vacio">Aún no hay segmentos.</div>'}
+      ${d.reflexion != null ? `<label>Reflexión</label><textarea id="pvR" style="min-height:90px;" placeholder="¿Qué funcionó? ¿Qué cambiarías?" ${ro ? "disabled" : ""}>${esc(d.reflexion)}</textarea>` : (ro ? "" : '<div style="margin-top:14px;"><button class="gris" id="pvAddR">＋ Añadir reflexión</button></div>')}</div></div>`;
+  }
+  root.innerHTML = cab + cuerpo;
+  // eventos
+  const volcarCab = () => { p.nombre = $("peT").value; };
+  $("peX").onclick = () => cerrarPlan(false);
+  $("peT").addEventListener("input", () => { p.nombre = $("peT").value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; });
+  $("peT").addEventListener("change", () => { histPlan(); });
+  root.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { PL.tab = b.dataset.tab; pEd(); });
+  if ($("peUn")) { $("peUn").onclick = deshacerPlan; $("peRe").onclick = rehacerPlan; $("peG").onclick = () => guardarPlan(false); $("peG2").onclick = (e) => abrirMenu(e, [["💾 Guardar y salir", () => guardarPlan(true)], ["🚪 Salir sin guardar", () => cerrarPlan(true)]]); }
+  $("peMas").onclick = (e) => abrirMenu(e, [["🖨️ Imprimir / PDF", () => imprimirPlan(p)]].concat(ro ? [] : [["⧉ Duplicar plan", async () => { const c = clonar(p); c.id = idNuevo("p"); c.nombre = (c.nombre || "Plan") + " (copia)"; if (await guardarFila("planes", { id: c.id, nombre: c.nombre, carpeta: c.carpeta || "", fecha: c.fecha || null, data: c.data })) { aviso("Duplicado"); await cargarTodo(); PL = null; abrirPlan(D.planes.find(y => y.id === c.id) || c); } }], ...(p.nuevo ? [] : [["🗑 Eliminar plan", async () => { if (confirm("¿Borrar el plan «" + p.nombre + "»?") && await borrarFila("planes", p.id)) cerrarPlan(true); }, "pel"]])]));
+  if (tab === "tl") {
+    root.querySelectorAll(".pe-seg,.pe-sec").forEach(el => {
+      const i = Number(el.dataset.i);
+      el.querySelectorAll("input[data-f]").forEach(inp => {
+        inp.addEventListener("input", () => { const f = inp.dataset.f; if (f === "sec") lista[i].titulo = inp.value; else lista[i][f] = inp.value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; });
+        inp.addEventListener("change", () => histPlan());
+      });
+      const mn = el.querySelector("[data-min]"); if (mn && !ro) mn.onclick = (ev) => popTiempo(ev, i);
+      const vb = el.querySelector("[data-v]"); if (vb) vb.onclick = () => elegirEjercicio((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista[i].id = id; lista[i].titulo = ej.nombre; if (!Number(lista[i].min)) lista[i].min = (ej.data && ej.data.minutos) || 10; histPlan(); pEd(); });
+      const mb = el.querySelector("[data-r]"); mb.onclick = (ev) => abrirMenu(ev, ro ? [] : [["↑ Subir", () => mover(i, -1)], ["↓ Bajar", () => mover(i, 1)], ["⧉ Duplicar", () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); }]].concat(lista[i].id && ejDe(lista[i]) ? [["🔗 Quitar vínculo con el ejercicio", () => { lista[i].titulo = tituloSeg(lista[i]); delete lista[i].id; histPlan(); pEd(); }]] : []).concat([["🗑 Eliminar", () => { lista.splice(i, 1); histPlan(); pEd(); }, "pel"]]));
+      // arrastrar
+      const asa = el.querySelector(".pe-asa");
+      if (asa && !ro) {
+        asa.addEventListener("mousedown", () => { el.draggable = true; }); asa.addEventListener("touchstart", () => { el.draggable = true; }, { passive: true });
+        el.addEventListener("dragstart", (e) => { if (!el.draggable) return; e.dataTransfer.setData("text/plain", "plan" + i); e.dataTransfer.effectAllowed = "move"; PL.arr = i; el.classList.add("arr"); });
+        el.addEventListener("dragend", () => { el.draggable = false; el.classList.remove("arr"); root.querySelectorAll(".dst-a,.dst-b").forEach(x => x.classList.remove("dst-a", "dst-b")); });
+        el.addEventListener("dragover", (e) => { if (PL.arr == null) return; e.preventDefault(); const r = el.getBoundingClientRect(), arriba = e.clientY < r.top + r.height / 2; root.querySelectorAll(".dst-a,.dst-b").forEach(x => x.classList.remove("dst-a", "dst-b")); el.classList.add(arriba ? "dst-a" : "dst-b"); el._arriba = arriba; });
+        el.addEventListener("drop", (e) => { if (PL.arr == null) return; e.preventDefault(); const de = PL.arr; PL.arr = null; let a = i + (el._arriba ? 0 : 1); const it = lista.splice(de, 1)[0]; if (de < a) a--; lista.splice(a, 0, it); histPlan(); pEd(); });
+      }
+    });
+    const mover = (i, dir) => { const j = i + dir; if (j < 0 || j >= lista.length) return; [lista[i], lista[j]] = [lista[j], lista[i]]; histPlan(); pEd(); };
+    if ($("peAdd")) {
+      const nuevoSeg = () => { lista.push({ titulo: "", min: 10, notas: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-seg input[data-f=titulo]"); if (ins.length) ins[ins.length - 1].focus(); root.querySelector(".pe-cuerpo").scrollTop = 1e6; };
+      $("peAdd").onclick = nuevoSeg;
+      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-sec input"); if (ins.length) ins[ins.length - 1].focus(); }]]);
+    }
+  } else if (tab === "det") {
+    const volc = () => { p.fecha = $("pdF").value || null; d.inicio = $("pdH").value || "18:00"; p.carpeta = $("pdC").value.trim(); d.notas = $("pdN").value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; };
+    ["pdF", "pdH", "pdC", "pdN"].forEach(id => { $(id).addEventListener("input", volc); $(id).addEventListener("change", () => { volc(); histPlan(); }); });
+  } else {
+    if ($("pvAddR")) $("pvAddR").onclick = () => { d.reflexion = ""; histPlan(); pEd(); $("pvR").focus(); };
+    if ($("pvR")) { $("pvR").addEventListener("input", () => { d.reflexion = $("pvR").value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; }); $("pvR").addEventListener("change", () => histPlan()); }
+  }
+}
+function abrirMenuHtml(ev, pop) { ev.stopPropagation(); pop.style.display = "block"; pop.onclick = (e) => e.stopPropagation(); const r = ev.currentTarget.getBoundingClientRect(); pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8)) + "px"; pop.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - pop.offsetHeight - 8)) + "px"; }
+function popTiempo(ev, i) {
+  const e = PL.p.data.ejercicios[i], pop = $("menuPop");
+  const poner = (v) => { e.min = Math.max(0, Math.min(600, Math.round(v))); histPlan(); pEd(); const sv = $("ptV"); if (sv) sv.value = e.min; };
+  pop.innerHTML = `<div class="pt"><b>Editar tiempo</b><div class="pt-f"><button class="gris" id="ptM">−</button><input type="number" id="ptV" min="0" max="600" value="${Number(e.min) || 0}"><button class="gris" id="ptP">＋</button></div><div class="pt-r">${[5, 10, 15, 20].map(n => `<button class="gris" data-q="${n}">${n}</button>`).join("")}</div><button class="naranja" id="ptOk" style="width:100%;margin-top:8px;">Listo</button></div>`;
+  abrirMenuHtml(ev, pop);
+  $("ptM").onclick = () => poner((Number($("ptV").value) || 0) - 1); $("ptP").onclick = () => poner((Number($("ptV").value) || 0) + 1);
+  pop.querySelectorAll("[data-q]").forEach(b => b.onclick = () => poner(Number(b.dataset.q)));
+  $("ptV").addEventListener("change", () => poner(Number($("ptV").value) || 0));
+  $("ptOk").onclick = () => { poner(Number($("ptV").value) || 0); pop.style.display = "none"; };
+  $("ptV").focus(); $("ptV").select();
+}
+function reutilizarSegmentos() {
+  const mapa = new Map();
+  D.planes.forEach(pl => { if (PL && pl.id === PL.p.id) return; const fe = pl.fecha || (pl.actualizada || "").slice(0, 10); ((pl.data && pl.data.ejercicios) || []).forEach(e => { if (e.sec) return; const t = tituloSeg(e); if (!t) return; const k = t.trim().toLowerCase(), prev = mapa.get(k); if (!prev || (fe || "") > (prev.fe || "")) mapa.set(k, { titulo: t, min: Number(e.min) || 0, notas: e.notas || "", id: e.id, plan: pl.nombre, fe }); }); });
+  // tambien los del plan actual no cuentan; ordenar por mas reciente
+  const todos = [...mapa.values()].sort((a, b) => (b.fe || "").localeCompare(a.fe || ""));
+  let q = "", sel = new Set();
+  ventana(`<h3>Reutilizar segmentos anteriores</h3><input type="search" id="rsQ" placeholder="Buscar…"><div class="lista-sel" id="rsL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="rsX">Cancelar</button><button class="naranja" id="rsOk">Añadir seleccionados</button></div>`, true);
+  const pin = () => {
+    const l = todos.filter(t => !q || (t.titulo + " " + t.notas).toLowerCase().includes(q));
+    $("rsL").innerHTML = l.length ? l.map(t => `<label class="it" style="align-items:flex-start;"><input type="checkbox" data-k="${esc(t.titulo.trim().toLowerCase())}" ${sel.has(t.titulo.trim().toLowerCase()) ? "checked" : ""}><span style="flex:1;min-width:0;"><b>${esc(t.titulo)}</b> <span class="peq">· ${t.min} min</span><br><span class="peq">Usado por última vez en «${esc(t.plan || "")}» · ${solofecha(t.fe)}</span>${t.notas ? `<br><span class="peq">${esc(t.notas)}</span>` : ""}</span></label>`).join("") : '<div class="vacio">Aún no hay segmentos en otros planes.</div>';
+    $("rsL").querySelectorAll("input").forEach(c => c.addEventListener("change", () => { c.checked ? sel.add(c.dataset.k) : sel.delete(c.dataset.k); }));
+  };
+  pin(); $("rsQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase(); pin(); }); $("rsX").onclick = cerrarVentana;
+  $("rsOk").onclick = () => { const L = PL.p.data.ejercicios; todos.filter(t => sel.has(t.titulo.trim().toLowerCase())).forEach(t => { const o = { titulo: t.titulo, min: t.min, notas: t.notas }; if (t.id && D.ejercicios.some(y => y.id === t.id)) o.id = t.id; L.push(o); }); cerrarVentana(); histPlan(); pEd(); };
 }
 function elegirEjercicio(ok) {
   let q = "";
-  const m = ventana(`<h3>Añadir ejercicio</h3><input type="search" id="elQ" placeholder="Buscar en tu biblioteca…"><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
+  ventana(`<h3>Vincular ejercicio de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en tu biblioteca…"><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
   const pin = () => { const l = D.ejercicios.filter(e => !q || (e.nombre + " " + (e.carpeta || "") + " " + ((e.data && e.data.categoria) || "")).toLowerCase().includes(q)); $("elL").innerHTML = l.length ? l.map(e => `<label class="it" data-id="${esc(e.id)}"><span style="flex:1;">🎯 ${esc(e.nombre)}</span><span class="peq">${esc((e.data && e.data.categoria) || "")} ${e.data && e.data.minutos ? "· " + e.data.minutos + " min" : ""}</span></label>`).join("") : '<div class="vacio">Aún no tienes ejercicios. Crea alguno en «Ejercicios».</div>'; $("elL").querySelectorAll("[data-id]").forEach(el => el.addEventListener("click", () => { cerrarVentana(); ok(el.dataset.id); })); };
   pin(); $("elQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase(); pin(); }); $("elX").onclick = cerrarVentana;
 }
-function imprimirPlan(p, hm) {
-  const d = p.data; let acum = 0;
-  const filas = d.ejercicios.map((e, i) => { const ej = D.ejercicios.find(y => y.id === e.id), ini = hm(acum); acum += Number(e.min) || 0; const dd = (ej && ej.data) || {};
-    return `<tr><td>${i + 1}</td><td>${ini}–${hm(acum)}<br>${e.min || 0} min</td><td><b>${esc(ej ? ej.nombre : "")}</b><br>${esc(dd.categoria || "")}${dd.materiales ? "<br><i>Material: " + esc(dd.materiales) + "</i>" : ""}</td><td>${esc(dd.descripcion || "").replace(/\n/g, "<br>")}${e.notas ? "<br><b>Notas:</b> " + esc(e.notas) : ""}</td></tr>`; }).join("");
-  $("hojaImp").innerHTML = `<h1>${esc(p.nombre || "Plan de entrenamiento")}</h1><div>${solofecha(p.fecha)} · ${acum} min · ${d.ejercicios.length} ejercicios</div>${d.notas ? `<p>${esc(d.notas).replace(/\n/g, "<br>")}</p>` : ""}<table><tr><th>#</th><th>Horario</th><th>Ejercicio</th><th>Descripción</th></tr>${filas}</table>`;
+function nuevoPlanModal() {
+  ventana(`<h3>Nuevo plan de entrenamiento</h3><div class="np"><button class="gris" id="npB"><b>＋ Empezar en blanco</b><span class="peq">Un plan vacío para montar tú mismo</span></button><button class="gris" id="npC"><b>⧉ Copiar un plan existente</b><span class="peq">Parte de uno que ya tienes</span></button></div><div class="pie-m"><button class="gris" id="npX">Cancelar</button></div>`);
+  $("npX").onclick = cerrarVentana;
+  $("npB").onclick = () => { cerrarVentana(); abrirPlan({ id: idNuevo("p"), nombre: "", carpeta: carpeta || "", fecha: new Date().toISOString().slice(0, 10), data: { ejercicios: [], notas: "", inicio: "18:00" }, nuevo: true }); };
+  $("npC").onclick = () => {
+    let q = "";
+    ventana(`<h3>Copiar un plan</h3><input type="search" id="cpQ" placeholder="Buscar plan…"><div class="lista-sel" id="cpL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="cpX">Cancelar</button></div>`);
+    const pin = () => { const l = D.planes.filter(x => !q || x.nombre.toLowerCase().includes(q)); $("cpL").innerHTML = l.length ? l.map(x => `<label class="it" data-id="${esc(x.id)}"><span style="flex:1;">📋 ${esc(x.nombre)}</span><span class="peq">${solofecha(x.fecha)} · ${minPlan(x.data || {})} min</span></label>`).join("") : '<div class="vacio">Aún no hay planes.</div>'; $("cpL").querySelectorAll("[data-id]").forEach(el => el.addEventListener("click", () => { const o = clonar(D.planes.find(y => y.id === el.dataset.id)); cerrarVentana(); o.id = idNuevo("p"); o.nombre = (o.nombre || "Plan") + " (copia)"; o.fecha = new Date().toISOString().slice(0, 10); o.nuevo = true; delete o.actualizada; if (carpeta) o.carpeta = carpeta; abrirPlan(o); })); };
+    pin(); $("cpQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase(); pin(); }); $("cpX").onclick = cerrarVentana;
+  };
+}
+function imprimirPlan(p) {
+  const d = p.data; let acum = 0, n = 0, filas = "";
+  d.ejercicios.forEach((e) => {
+    if (e.sec) { filas += `<tr><th colspan="4" style="text-align:center;letter-spacing:1px;text-transform:uppercase;">${esc(e.titulo || "")}</th></tr>`; return; }
+    const ej = ejDe(e), ini = hmDe(d.inicio, acum), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; n++;
+    filas += `<tr><td>${n}</td><td>${ini}–${hmDe(d.inicio, acum)}<br>${e.min || 0} min</td><td><b>${esc(tituloSeg(e))}</b>${dd.categoria ? "<br>" + esc(dd.categoria) : ""}${dd.materiales ? "<br><i>Material: " + esc(dd.materiales) + "</i>" : ""}</td><td>${esc(dd.descripcion || "").replace(/\n/g, "<br>")}${e.notas ? (dd.descripcion ? "<br>" : "") + "<b>Notas:</b> " + esc(e.notas) : ""}</td></tr>`;
+  });
+  $("hojaImp").innerHTML = `<h1>${esc(p.nombre || "Plan de entrenamiento")}</h1><div>${solofecha(p.fecha)} · ${acum} min · ${n} ejercicios</div>${d.notas ? `<p>${esc(d.notas).replace(/\n/g, "<br>")}</p>` : ""}<table><tr><th>#</th><th>Horario</th><th>Ejercicio</th><th>Descripción</th></tr>${filas}</table>${d.reflexion ? `<h3>Reflexión</h3><p>${esc(d.reflexion).replace(/\n/g, "<br>")}</p>` : ""}`;
   window.print();
 }
 
