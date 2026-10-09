@@ -938,12 +938,23 @@ function hgRuta(folders, id) {
 /* marcador (bookmarklet): se ejecuta dentro de Hoops Geek, con tu sesión, y descarga tus jugadas en un archivo */
 function hgMarcador() {
   (async () => {
-    const A = "https://app.thehoopsgeek.com/apiv2", J = async (u) => { const r = await fetch(A + u, { credentials: "include" }); if (r.status === 401) throw new Error("no has iniciado sesión en app.thehoopsgeek.com (entra con tu cuenta y vuelve a pulsar)"); if (!r.ok) throw new Error(u + " " + r.status); return r.json(); };
+    const A = "https://app.thehoopsgeek.com/apiv2"; let cab = {};
+    const crudo = async (u, h) => fetch(A + u, { credentials: "include", headers: h });
+    const J = async (u) => { const r = await crudo(u, cab); if (!r.ok) throw new Error(u + " " + r.status); return r.json(); };
+    const buscaToken = async () => {
+      if ((await crudo("/user_auth", {})).ok) return {};
+      const c = new Set(); const ve = (v) => { if (typeof v !== "string") return; (v.match(/eyJ[\w-]+\.[\w-]+\.[\w-]+/g) || []).forEach(x => c.add(x)); try { const o = JSON.parse(v); const rec = (q, d) => { if (d > 4 || !q || typeof q !== "object") return; for (const k in q) { if (typeof q[k] === "string" && /token|jwt|access/i.test(k) && q[k].length > 20) c.add(q[k]); else rec(q[k], d + 1); } }; rec(o, 0); } catch (e) { } };
+      for (const st of [localStorage, sessionStorage]) for (let k = 0; k < st.length; k++) ve(st.getItem(st.key(k)));
+      document.cookie.split(";").forEach(x => ve(decodeURIComponent(x.split("=").slice(1).join("="))));
+      for (const t of c) for (const h of [{ Authorization: "Bearer " + t }, { Authorization: t }, { "x-auth-token": t }]) { if ((await crudo("/user_auth", h)).ok) return h; }
+      const claves = []; for (const st of [localStorage, sessionStorage]) for (let k = 0; k < st.length; k++) claves.push(st.key(k));
+      throw new Error("sesión no reconocida. Claves: " + claves.join(", ").slice(0, 300));
+    };
     if (location.hostname !== "app.thehoopsgeek.com") { alert("Abre primero app.thehoopsgeek.com, entra con tu cuenta y pulsa el marcador allí."); return; }
     const caja = document.createElement("div"); caja.style.cssText = "position:fixed;z-index:2147483647;left:50%;top:16px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font:600 15px system-ui;box-shadow:0 8px 30px #0006"; document.body.appendChild(caja);
     const di = (t) => { caja.textContent = t; };
     try {
-      di("Buscando tus jugadas…");
+      di("Buscando tus jugadas…"); cab = await buscaToken();
       const ua = await J("/user_auth"), uid = ua.user_id; let carpetas = [];
       try { carpetas = await J("/user/" + uid + "/folders?type=play"); } catch (e) { carpetas = []; }
       const ids = new Set();
@@ -965,7 +976,7 @@ function hgMarcador() {
       const blob = new Blob([JSON.stringify({ origen: "hoopsgeek", plays, folders: Array.isArray(carpetas) ? carpetas : [] })], { type: "application/json" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "hoopsgeek-jugadas.json"; document.body.appendChild(a); a.click(); a.remove();
       di("Listo: " + plays.length + " jugadas. Súbelo en ScoutFlow."); setTimeout(() => caja.remove(), 7000);
-    } catch (e) { di("Error: " + e.message); setTimeout(() => caja.remove(), 8000); }
+    } catch (e) { di("Error: " + e.message); caja.onclick = () => caja.remove(); setTimeout(() => caja.remove(), 30000); }
   })();
 }
 function dialogoHG() {
