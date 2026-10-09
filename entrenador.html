@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icono-180.png">
 <meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Archivo+Black&family=Bebas+Neue&family=Inter:wght@400;600;700;800&family=Merriweather:wght@400;700;900&family=Oswald:wght@500;700&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <style>
   :root{--ink:#1b2432;--soft:#5b6779;--orange:#e0602a;--line:#e5d8c4;--bg:#f8f4ee;--white:#fff;--teal:#2f6f5e;--suave:#f4efe6;--side:#1b2432;--rojo:#e8403a;}
@@ -248,15 +248,24 @@
   .pb-li{display:flex;align-items:center;gap:10px;padding:6px;border-radius:10px;cursor:pointer;} .pb-lx{flex:1;min-width:0;display:flex;flex-direction:column;} .pb-lx b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .pb-lx small{color:#8b949c;font-size:12px;}
   .pb-mas{color:var(--pgd);font-size:18px;font-weight:800;} .pb-ay{font-size:13px;color:#7a858f;margin:10px 2px;}
   .pb-bl{display:flex;gap:12px;align-items:center;border:1.5px solid var(--pln);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:#fff;} .pb-bl:hover{border-color:var(--pg);} .pb-bl .i{font-size:20px;width:28px;text-align:center;color:#5b6670;} .pb-bl b{display:block;font-size:14px;} .pb-bl small{color:#7a858f;font-size:12.5px;}
-  #pbEd.prev .pb-out,#pbEd.prev .pb-lib{display:none;} #pbEd.prev .pb-main{background:#fff;} #pbEd.prev .pbv{max-width:860px;margin:0 auto;}
+  #pbEd.prev .pb-out,#pbEd.prev .pb-lib{display:none;}
+  .pe-pan h5{margin:16px 0 6px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:#7a858f;} .pe-pan select{width:100%;}
+  .pe-seg{display:flex;background:#eef0f3;border-radius:10px;padding:3px;} .pe-seg button{flex:1;border:0;background:transparent;padding:8px 6px;border-radius:8px;font-size:13px;color:#4a5560;cursor:pointer;} .pe-seg button.on{background:#fff;color:var(--pgd);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  .pe-cols{display:flex;gap:8px;flex-wrap:wrap;align-items:center;} .pe-cols button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;} .pe-cols button.on{outline:3px solid rgba(63,156,134,.45);outline-offset:2px;} .pe-cols input[type=color]{width:34px;height:30px;padding:0;border:0;background:none;}
+  .pe-chk{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:14px;text-transform:none;letter-spacing:0;color:#1f2933;} .pe-chk input{width:auto;}
+  #pbEd.prev.est .pb-lib{display:flex;}
+ #pbEd.prev .pb-main{background:#fff;} #pbEd.prev .pbv{max-width:860px;margin:0 auto;}
   @media (max-width:900px){ .pb-cuerpo{flex-direction:column;} .pb-out{display:none;} .pb-lib{width:auto;flex:none;height:40vh;border-left:0;border-top:1px solid var(--pln);} .pb-main{flex:1 1 0;min-height:0;} .pb-lib.oculta{width:auto;height:44px;max-height:44px;flex-direction:row;} .pb-top{height:auto;flex-wrap:wrap;padding:8px;} .pb-nom{flex:1 1 140px;} .pb-main{padding:14px 10px 20px;} }
   /* lectura / vista previa / impresion */
   .pbv-acc{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;} .pbv-acc button{padding:9px 14px;}
-  .pbv h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:28px;margin:6px 0 4px;} .pbv-no{white-space:pre-wrap;color:#4a5560;margin:8px 0;}
-  .pbv-toc{background:#f5f6f8;border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:16px 0 26px;} .pbv-toc summary{font-weight:800;cursor:pointer;} .pbv-tc{margin-top:10px;} .pbv-tc a{font-weight:800;color:inherit;text-decoration:none;display:block;} .pbv-tc a b{color:#8b949c;margin-right:6px;} .pbv-tc span{display:block;color:#5b6670;font-size:13.5px;padding:2px 0 0 22px;}
-  .pbv-ch{display:flex;align-items:center;gap:14px;border-top:3px solid #1f2933;padding:14px 0 6px;margin-top:34px;} .pbv-ch .n{font-size:34px;font-weight:300;color:#8b949c;} .pbv-ch .t{flex:1;} .pbv-ch small{letter-spacing:1px;color:#8b949c;font-weight:700;font-size:11px;} .pbv-ch h2{margin:0;font-size:24px;} .pbv-ch .np{color:#8b949c;font-size:13px;}
-  .pbv-jug{margin:22px 0 28px;} .pbv-jug h3{margin:0 0 6px;font-size:20px;} .pbv-txt{margin:16px 0;line-height:1.55;} .pbv-salto{height:1px;}
-  .pbv-fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:12px;} .pbv-fases figure{margin:0;} .pbv-fases figcaption{font-weight:800;font-size:13px;margin-bottom:6px;} .pbv-fases .pista svg{width:100%;height:auto;display:block;border-radius:8px;} .pbv-fases ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;}
+  .pbv{font-family:var(--fb,'Inter',system-ui,sans-serif);font-size:var(--fs,15.5px);background:var(--fondo,#fff);color:#1f2933;padding:6px 4px 20px;} .pbv[style*="#10151d"]{color:#e8edf4;}
+  .pbv h1,.pbv h2,.pbv h3{font-family:var(--ft,'Archivo Black',sans-serif);font-weight:400;} .pbv h1{font-size:2.1em;margin:6px 0 4px;line-height:1.1;} .pbv-no{white-space:pre-wrap;color:#4a5560;margin:8px 0;} .pbv[style*="#10151d"] .pbv-no,.pbv[style*="#10151d"] .peq{color:#b7c2cf;}
+  .pbv-portada{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:40px 10px;} .pbv-portada img{width:150px;height:150px;object-fit:contain;} .pbv-portada h1{font-size:3em;} .pbv-sub{font-size:1.2em;color:var(--ac);font-weight:700;} .pbv-lin{width:90px;height:5px;border-radius:3px;background:var(--ac);}
+  .pbv-toc{background:rgba(127,127,127,.08);border:1px solid rgba(127,127,127,.25);border-left:5px solid var(--ac);border-radius:14px;padding:14px 18px;margin:18px 0 26px;} .pbv-toc summary{font-family:var(--ft);font-size:1.3em;cursor:pointer;} .pbv-tc{margin-top:10px;} .pbv-tc a{font-weight:800;color:inherit;text-decoration:none;display:block;} .pbv-tc a b{color:var(--ac);margin-right:8px;} .pbv-tc span{display:block;opacity:.75;font-size:.92em;padding:2px 0 0 26px;}
+  .pbv-ch{display:flex;align-items:center;gap:14px;border-top:4px solid var(--ac);padding:14px 0 6px;margin-top:34px;} .pbv-ch .n{font-family:var(--ft);font-size:2.2em;color:var(--ac);line-height:1;} .pbv-ch .t{flex:1;} .pbv-ch small{letter-spacing:1.5px;opacity:.6;font-weight:700;font-size:11px;} .pbv-ch h2{margin:0;font-size:1.6em;line-height:1.15;} .pbv-ch .np{opacity:.6;font-size:.85em;}
+  .cap-banda .pbv-ch{background:var(--ac);color:#fff;border-radius:14px;padding:16px 20px;border-top:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;} .cap-banda .pbv-ch .n{color:#fff;opacity:.9;} .cap-minimal .pbv-ch{border-top:0;border-bottom:2px solid var(--ac);padding-top:6px;} .cap-minimal .pbv-ch .n{font-size:1.4em;}
+  .pbv-jug{margin:22px 0 28px;} .pbv-jug h3{margin:0 0 6px;font-size:1.3em;} .pbv-jug .jug-btn{background:var(--ac) !important;} .pbv-txt{margin:16px 0;line-height:1.6;} .pbv-salto{height:1px;}
+  .pbv-fases{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:16px;margin-top:12px;} .pbv-fases figure{margin:0;} .pbv-fases figcaption{font-weight:800;font-size:.85em;margin-bottom:6px;color:var(--ac);text-transform:uppercase;letter-spacing:.5px;} .pbv-fases .pista svg{width:100%;height:auto;display:block;border-radius:8px;} .pbv-fases ul{margin:8px 0 0;padding-left:18px;font-size:.9em;}
   @media (max-width:640px){ .pbv-fases{grid-template-columns:minmax(0,1fr);} .pbv h1{font-size:22px;} }
   #hojaImp{display:none;}
   @media print{
@@ -264,7 +273,7 @@
     body{background:#fff;}
     #hojaImp{display:block;padding:10mm;font-size:12pt;}
     #hojaImp h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22pt;margin:0 0 4px;}
-    #hojaImp .pbp .pbv-anim,#hojaImp .pbp .pbv-toc{display:none !important;} #hojaImp .pbv-jug{break-inside:avoid;} #hojaImp .pbv-salto{break-after:page;} #hojaImp .pbv-ch{break-after:avoid;} #hojaImp .pbv-fases{grid-template-columns:repeat(2,1fr);}
+    #hojaImp .pbp .pbv-anim{display:none !important;} #hojaImp .pbp{-webkit-print-color-adjust:exact;print-color-adjust:exact;} #hojaImp .pbv-jug{break-inside:avoid;} #hojaImp .pbv-jug.pag{break-before:page;} #hojaImp .pbv-salto{break-after:page;} #hojaImp .pbv-ch{break-after:avoid;} #hojaImp .pbv-portada{min-height:240mm;break-after:page;} #hojaImp .pbv-toc{break-after:page;} #hojaImp .pbv-toc summary{list-style:none;} #hojaImp .pbv-toc summary::-webkit-details-marker{display:none;}
     #hojaImp table{width:100%;border-collapse:collapse;margin-top:10px;}
     #hojaImp td,#hojaImp th{border:1px solid #888;padding:6px 8px;text-align:left;vertical-align:top;font-size:11pt;}
     #hojaImp th{background:#eee;}
@@ -820,23 +829,32 @@ function pintarPlaybooks(v) {
     const b = el.querySelector(".mas"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📘 Abrir", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }], ["✏️ Editar playbook", () => abrirPbEd(p, false)], ["⚙ Datos (título, equipo…)", () => formPlaybook(p)], ["⧉ Duplicar", async () => { const c = clonar(p); c.id = idNuevo("b"); c.nombre += " (copia)"; c.compartido = false; pbCaps(c).forEach(k => { k.id = idNuevo("c"); }); if (await guardarFila("playbooks", c)) { await cargarTodo(); pintar(); } }], ["🗑 Eliminar", async () => { if (confirm("¿Borrar el playbook «" + p.nombre + "»? Las jugadas no se borran.") && await borrarFila("playbooks", p.id)) { await cargarTodo(); pintar(); } }, "pel"]]); });
   });
 }
+/* ---- estilo del playbook (letra, colores, portada, índice…) ---- */
+const PB_FT = { "Archivo Black": "'Archivo Black',sans-serif", "Bebas Neue": "'Bebas Neue','Archivo Black',sans-serif", "Oswald": "'Oswald',sans-serif", "Poppins": "'Poppins',sans-serif", "Merriweather": "'Merriweather',Georgia,serif", "Georgia": "Georgia,'Times New Roman',serif" };
+const PB_FB = { "Inter": "'Inter',system-ui,sans-serif", "Archivo": "'Archivo',system-ui,sans-serif", "Poppins": "'Poppins',sans-serif", "Merriweather": "'Merriweather',Georgia,serif", "Georgia": "Georgia,'Times New Roman',serif", "Sistema": "system-ui,-apple-system,'Segoe UI',sans-serif" };
+const PB_COL = ["#3f9c86", "#1f2933", "#d9304f", "#2f7bd8", "#e8741e", "#7c4dff", "#0f766e", "#b8860b"];
+const PB_EST0 = { tit: "Archivo Black", cuerpo: "Inter", color: "#3f9c86", tam: "m", cap: "linea", cols: 2, portada: false, indice: true, indicejug: true, notas: true, textos: true, paginajug: false, fondo: "#ffffff" };
+const pbEst = (p) => Object.assign({}, PB_EST0, (p.data && p.data.estilo) || {});
+const pbVars = (e) => `--ac:${e.color};--ft:${PB_FT[e.tit] || PB_FT["Archivo Black"]};--fb:${PB_FB[e.cuerpo] || PB_FB.Inter};--fs:${e.tam === "s" ? 14 : e.tam === "l" ? 17 : 15.5}px;--cols:${e.cols};--fondo:${e.fondo}`;
 /* ---- vista de lectura: contenido, capítulos, jugadas con sus fases ---- */
 function pbVistaHtml(p) {
-  const caps = pbCaps(p), uid = Date.now().toString(36); let toc = "", cuerpo = "", n = 0;
+  const caps = pbCaps(p), uid = Date.now().toString(36), E = pbEst(p); let toc = "", cuerpo = "", n = 0;
   const lineas = (t) => String(t || "").split("\n").map(s => s.trim()).filter(Boolean);
   caps.forEach((c, ci) => {
     const js = c.items.filter(pbEsJ).map(pbElem).filter(Boolean);
-    toc += `<div class="pbv-tc"><a href="#pbc${ci}"><b>${ci + 1}</b> ${esc(pbTit(c, ci))}</a>${js.map(x => `<span>${esc(x.nombre || "")}</span>`).join("")}</div>`;
+    toc += `<div class="pbv-tc"><a href="#pbc${ci}"><b>${ci + 1}</b> ${esc(pbTit(c, ci))}</a>${E.indicejug ? js.map(x => `<span>${esc(x.nombre || "")}</span>`).join("") : ""}</div>`;
     cuerpo += `<section class="pbv-cap" id="pbc${ci}"><div class="pbv-ch"><span class="n">${String(ci + 1).padStart(2, "0")}</span><div class="t"><small>CAPÍTULO</small><h2>${esc(pbTit(c, ci))}</h2></div><span class="np">${js.length} ${js.length === 1 ? "jugada" : "jugadas"}</span></div>`;
     c.items.forEach(it => {
-      if (it.t === "txt") { cuerpo += `<p class="pbv-txt">${esc(it.txt || "").replace(/\n/g, "<br>")}</p>`; return; }
+      if (it.t === "txt") { if (E.textos) cuerpo += `<p class="pbv-txt">${esc(it.txt || "").replace(/\n/g, "<br>")}</p>`; return; }
       if (it.t === "salto") { cuerpo += `<div class="pbv-salto"></div>`; return; }
       const x = pbElem(it); if (!x) return; const d = diagDe(x) || { pasos: [] }, k = uid + "_" + (n++), notas = it.t === "e" ? ((x.data && x.data.descripcion) || "") : (d.notas || (x.data && x.data.notas) || "");
-      cuerpo += `<div class="pbv-jug" data-pbk="${k}" data-pbt="${it.t}" data-pbid="${esc(x.id)}"><h3>${esc(x.nombre || "(sin nombre)")}</h3>${notas ? `<p class="pbv-no">${esc(notas)}</p>` : ""}${(d.pasos && d.pasos.length) ? `<button class="pbv-anim jug-btn" type="button">▶ Reproducir animación completa</button><div class="pbv-fases">${d.pasos.map((q, i) => { const ls = lineas(q.texto); return `<figure><figcaption>${esc(q.titulo || "Fase " + (i + 1))}</figcaption><div class="pista" data-pbf="${i}"></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}</figure>`; }).join("")}</div>` : '<p class="peq">Sin dibujo.</p>'}</div>`;
+      cuerpo += `<div class="pbv-jug${E.paginajug ? " pag" : ""}" data-pbk="${k}" data-pbt="${it.t}" data-pbid="${esc(x.id)}"><h3>${esc(x.nombre || "(sin nombre)")}</h3>${(notas && E.notas) ? `<p class="pbv-no">${esc(notas)}</p>` : ""}${(d.pasos && d.pasos.length) ? `<button class="pbv-anim jug-btn" type="button">▶ Reproducir animación completa</button><div class="pbv-fases">${d.pasos.map((q, i) => { const ls = lineas(q.texto); return `<figure><figcaption>${esc(q.titulo || "Fase " + (i + 1))}</figcaption><div class="pista" data-pbf="${i}"></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}</figure>`; }).join("")}</div>` : '<p class="peq">Sin dibujo.</p>'}</div>`;
     });
     cuerpo += `</section>`;
   });
-  return `<div class="pbv"><header class="pbv-h"><h1>${esc(p.nombre || "Playbook")}</h1><div class="peq">${esc(p.equipo || "")}${p.temporada ? " · " + esc(p.temporada) : ""}</div>${(p.data && p.data.notas) ? `<p class="pbv-no">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}</header><details class="pbv-toc" open><summary>Contenido</summary>${toc}</details>${cuerpo}</div>`;
+  const eq = equipoDe(), crest = eq.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(eq.ruta).data.publicUrl : "";
+  const portada = E.portada ? `<section class="pbv-portada">${crest ? `<img src="${esc(crest)}" alt="">` : ""}<h1>${esc(p.nombre || "Playbook")}</h1><div class="pbv-sub">${esc(p.equipo || eq.equipo || "")}${(p.temporada || eq.temporada) ? " · " + esc(p.temporada || eq.temporada) : ""}</div><div class="pbv-lin"></div>${(p.data && p.data.notas && E.notas) ? `<p class="pbv-no" style="max-width:520px;">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}</section>` : "";
+  return `<div class="pbv cap-${E.cap}" style="${pbVars(E)}">${portada}<header class="pbv-h">${E.portada ? "" : `<h1>${esc(p.nombre || "Playbook")}</h1><div class="peq">${esc(p.equipo || "")}${p.temporada ? " · " + esc(p.temporada) : ""}</div>`}${(!E.portada && p.data && p.data.notas && E.notas) ? `<p class="pbv-no">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}</header>${E.indice ? `<details class="pbv-toc" open><summary>Índice</summary>${toc}</details>` : ""}${cuerpo}</div>`;
 }
 function pbCargar(root) {
   root.querySelectorAll(".pbv-jug").forEach(el => {
@@ -845,7 +863,7 @@ function pbCargar(root) {
     if (el.querySelector("[data-pbf]")) pedirFases(x, tipo, el.dataset.pbk, (sv) => { el.querySelectorAll("[data-pbf]").forEach(f => { const s = sv[Number(f.dataset.pbf)]; if (s) f.innerHTML = s; }); });
   });
 }
-function imprimirPb(root) { $("hojaImp").innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; window.print(); }
+function imprimirPb(root) { const h = $("hojaImp"); h.innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; h.querySelectorAll("details").forEach(d => { d.open = true; }); window.print(); }
 function pintarPlaybook(v) {
   const p = D.playbooks.find(y => y.id === vistaDetalle.id); if (!p) { vistaDetalle = null; return pintar(); }
   v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span></div><div class="pbv-acc"><button class="gris" id="impPb">🖨 Imprimir / PDF</button>${puedeEscribir ? '<button class="naranja" id="editPb">✏️ Editar playbook</button>' : ""}</div><div id="pbLect">${pbVistaHtml(p)}</div>`;
@@ -881,7 +899,7 @@ function abrirPbEd(p, nuevo) {
   $("pbEd").innerHTML = `<div class="pb-top" id="pbTop"></div><div class="pb-cuerpo"><div class="pb-out" id="pbOut"></div><div class="pb-main" id="pbMain"></div><div class="pb-lib" id="pbLib"></div></div>`;
   $("pbEd").classList.add("ver"); pbTodo();
 }
-const pbTodo = () => { pbTop(); pbOut(); pbMain(); pbLib(); $("pbEd").classList.toggle("prev", PB.prev); };
+const pbTodo = () => { pbTop(); pbOut(); pbMain(); pbLib(); $("pbEd").classList.toggle("prev", PB.prev); $("pbEd").classList.toggle("est", !!(PB.est && PB.prev)); };
 const pbSucio = () => { PB.sucio = true; const g = $("pbGuardar"); if (g) g.classList.add("sucio"); };
 async function pbCerrar() {
   if (PB && PB.sucio && !confirm("Hay cambios sin guardar. ¿Salir sin guardar?")) return;
@@ -896,10 +914,11 @@ function pbTop() {
   const p = PB.p, ro = !puedeEscribir;
   $("pbTop").innerHTML = `<button class="pb-ic" id="pbX" title="Cerrar">✕</button><input id="pbNom" class="pb-nom" value="${esc(p.nombre)}" placeholder="Título del playbook" ${ro ? "disabled" : ""}>
     <div class="pb-tog"><button data-m="e" class="${PB.prev ? "" : "on"}">Editor</button><button data-m="v" class="${PB.prev ? "on" : ""}">Vista previa</button></div><span class="esp"></span>
-    ${PB.prev ? '<button class="gris" id="pbImp">🖨 Imprimir / PDF</button>' : ""}<button class="gris" id="pbDat">⚙ Datos</button>${ro ? "" : `<button class="naranja ${PB.sucio ? "sucio" : ""}" id="pbGuardar">Guardar</button>`}`;
+    ${PB.prev ? '<button class="gris" id="pbImp">🖨 Imprimir / PDF</button>' : ""}<button class="gris" id="pbEstB">🎨 Estilo</button><button class="gris" id="pbDat">⚙ Datos</button>${ro ? "" : `<button class="naranja ${PB.sucio ? "sucio" : ""}" id="pbGuardar">Guardar</button>`}`;
   $("pbX").onclick = pbCerrar;
   $("pbNom").addEventListener("input", (e) => { p.nombre = e.target.value; pbSucio(); });
   $("pbTop").querySelectorAll(".pb-tog button").forEach(b => b.onclick = () => { PB.prev = b.dataset.m === "v"; pbTodo(); });
+  $("pbEstB").onclick = () => { PB.est = !PB.est; if (PB.est) PB.prev = true; pbTodo(); };
   $("pbDat").onclick = () => formPlaybook(p, (np) => { PB.p = np; pbSucio(); pbTodo(); });
   if ($("pbGuardar")) $("pbGuardar").onclick = pbGuardar;
   if ($("pbImp")) $("pbImp").onclick = () => imprimirPb($("pbMain"));
@@ -959,8 +978,34 @@ function pbFila(it, ci, ii, ro) {
   const x = pbElem(it), mini = x ? (MINIS[x.id + "|" + x.actualizada] || "") : "";
   return `<div class="pb-fila" ${dat}>${asa}<div class="pb-th" ${x ? `data-mini="${esc(x.id)}"` : ""}>${mini || (x && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length ? "" : "🏀")}</div><span class="pb-n">${x ? esc(x.nombre || "(sin nombre)") : "<i>(elemento eliminado)</i>"}${it.t === "e" ? ' <em class="pb-tag">Ejercicio</em>' : ""}</span>${ro ? "" : `<button class="pb-ic" data-mas title="Más">${IC.mas}</button><button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
 }
+function pbPanelEstilo(box) {
+  const p = PB.p; p.data.estilo = pbEst(p); const E = p.data.estilo; box.classList.remove("oculta");
+  const seg = (k, vals) => `<div class="pe-seg" data-k="${k}">${vals.map(([v, t]) => `<button type="button" data-v="${v}" class="${String(E[k]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
+  const chk = (k, t) => `<label class="pe-chk"><input type="checkbox" data-c="${k}" ${E[k] ? "checked" : ""}>${t}</label>`;
+  box.innerHTML = `<div class="pb-lt"><b style="padding:10px 12px;">🎨 Estilo del playbook</b><span class="esp"></span><button class="pb-ic" id="pbEstX" title="Cerrar">✕</button></div>
+  <div id="pbLc" class="pe-pan">
+    <h5>Letra de títulos</h5><select data-s="tit">${Object.keys(PB_FT).map(f => `<option ${E.tit === f ? "selected" : ""}>${f}</option>`).join("")}</select>
+    <h5>Letra del texto</h5><select data-s="cuerpo">${Object.keys(PB_FB).map(f => `<option ${E.cuerpo === f ? "selected" : ""}>${f}</option>`).join("")}</select>
+    <h5>Tamaño del texto</h5>${seg("tam", [["s", "Pequeño"], ["m", "Normal"], ["l", "Grande"]])}
+    <h5>Color principal</h5><div class="pe-cols">${PB_COL.map(c => `<button type="button" class="${E.color.toLowerCase() === c ? "on" : ""}" data-col="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="pbColL" value="${esc(E.color)}" title="Otro color"></div>
+    <h5>Estilo de los capítulos</h5>${seg("cap", [["linea", "Línea"], ["banda", "Banda de color"], ["minimal", "Sencillo"]])}
+    <h5>Fases por fila</h5>${seg("cols", [["1", "1"], ["2", "2"], ["3", "3"]])}
+    <h5>Fondo de la página</h5><div class="pe-cols">${["#ffffff", "#faf6ee", "#f1f5f9", "#10151d"].map(c => `<button type="button" class="${E.fondo.toLowerCase() === c ? "on" : ""}" data-fon="${c}" style="background:${c};border:1.5px solid #cfd5db"></button>`).join("")}</div>
+    <h5>Contenido</h5>${chk("portada", "Portada con escudo y nombre del equipo")}${chk("indice", "Índice al principio (también en el PDF)")}${chk("indicejug", "Incluir las jugadas en el índice")}${chk("notas", "Mostrar notas de las jugadas")}${chk("textos", "Mostrar los párrafos de texto")}${chk("paginajug", "Una jugada por página al imprimir")}
+    <button class="gris" id="pbEstR" style="margin-top:14px;width:100%;">↺ Volver al estilo original</button>
+  </div>`;
+  const aplicar = (estructura) => { pbSucio(); if (estructura) { pbMain(); return; } const v = $("pbMain").querySelector(".pbv"); if (v) { v.style.cssText = pbVars(E); v.className = "pbv cap-" + E.cap; } };
+  $("pbEstX").onclick = () => { PB.est = false; pbTodo(); };
+  box.querySelectorAll("select[data-s]").forEach(el => el.onchange = () => { E[el.dataset.s] = el.value; aplicar(false); });
+  box.querySelectorAll(".pe-seg").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => { const k = g.dataset.k; E[k] = k === "cols" ? Number(b.dataset.v) : b.dataset.v; g.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); aplicar(false); }));
+  box.querySelectorAll("[data-col]").forEach(b => b.onclick = () => { E.color = b.dataset.col; $("pbColL").value = E.color; box.querySelectorAll("[data-col]").forEach(x => x.classList.toggle("on", x === b)); aplicar(false); });
+  $("pbColL").oninput = (e) => { E.color = e.target.value; box.querySelectorAll("[data-col]").forEach(x => x.classList.remove("on")); aplicar(false); };
+  box.querySelectorAll("[data-fon]").forEach(b => b.onclick = () => { E.fondo = b.dataset.fon; box.querySelectorAll("[data-fon]").forEach(x => x.classList.toggle("on", x === b)); aplicar(false); });
+  box.querySelectorAll("input[data-c]").forEach(c => c.onchange = () => { E[c.dataset.c] = c.checked; aplicar(true); });
+  $("pbEstR").onclick = () => { p.data.estilo = Object.assign({}, PB_EST0); pbSucio(); pbTodo(); };
+}
 function pbLib() {
-  const box = $("pbLib"); box.classList.toggle("oculta", !PB.lib);
+  const box = $("pbLib"); if (PB.est && PB.prev) return pbPanelEstilo(box); box.classList.toggle("oculta", !PB.lib);
   if (!PB.lib) { box.innerHTML = `<button class="pb-ic pb-mostrar" id="pbLm" title="Mostrar biblioteca">«</button>`; $("pbLm").onclick = () => { PB.lib = true; pbLib(); }; return; }
   box.innerHTML = `<div class="pb-lt"><button data-t="j" class="${PB.tab === "j" ? "on" : ""}">Jugadas</button><button data-t="e" class="${PB.tab === "e" ? "on" : ""}">Ejercicios</button><button data-t="b" class="${PB.tab === "b" ? "on" : ""}">Bloques</button><span class="esp"></span><button class="pb-ic" id="pbLo" title="Ocultar biblioteca">»</button></div><div id="pbLc"></div>`;
   box.querySelectorAll(".pb-lt [data-t]").forEach(b => b.onclick = () => { PB.tab = b.dataset.t; PB.car = ""; PB.q = ""; pbLib(); });
