@@ -150,6 +150,7 @@
   .acc-fila .num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
   .acc-fila .et{flex:1;min-width:0;}
   .acc-fila button{padding:6px 9px;font-size:12px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
+  .acc-fila button.opc{background:#e3f4ee;border-color:#12a483;color:#0b7a60;}
   .acc-fila button.dsp{background:#efe9ff;border-color:#c9b8ff;color:#5a3fb0;}
   /* texto, videos, salida */
   .fila-texto{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:14px;align-items:start;margin-bottom:14px;}
@@ -971,7 +972,7 @@ function estadoEn(j, i, t, dur) {
   st.forEach((idxs, s) => {
     if (s > si) return;
     const f = s < si ? 1 : e;
-    idxs.forEach(li => { const l = a.lineas[li]; if (l.de && MOVEDORAS.includes(l.t) && pos[l.de]) { const q = puntoEn(trayectoria(l), f); pos[l.de] = { x: q[0], y: q[1] }; movidas.add(l.de); } });
+    idxs.forEach(li => { const l = a.lineas[li]; if (l.de && !l.opcional && MOVEDORAS.includes(l.t) && pos[l.de]) { const q = puntoEn(trayectoria(l), f); pos[l.de] = { x: q[0], y: q[1] }; movidas.add(l.de); } });
   });
   const g = easeIO(Math.max(0, Math.min(1, (si + e) / nS)));
   Object.keys(a.pos).forEach(k => { if (!movidas.has(k) && b.pos[k]) { pos[k] = { x: a.pos[k].x + (b.pos[k].x - a.pos[k].x) * g, y: a.pos[k].y + (b.pos[k].y - a.pos[k].y) * g }; } });
@@ -980,7 +981,7 @@ function estadoEn(j, i, t, dur) {
     if (s > si) return;
     const f = s < si ? 1 : e;
     idxs.forEach(li => {
-      const l = a.lineas[li], rec = (l.t === "pase" || l.t === "entrega") ? receptoraDe(l, a.pos) : "";
+      const l = a.lineas[li]; if (l.opcional) return; const rec = (l.t === "pase" || l.t === "entrega") ? receptoraDe(l, a.pos) : "";
       if (l.t === "pase" && rec && pos[rec]) {
         if (s < si || f >= 1) { holder = rec; vuelo = null; }
         else if (f > 0) {
@@ -1483,6 +1484,7 @@ function nuevoPaso() {
   let balon = act.balon;
   act.lineas.forEach(l => {
     const fin = l.pts[l.pts.length - 1];
+    if (l.opcional) return;
     if (MOVEDORAS.includes(l.t) && l.de && pos[l.de]) pos[l.de] = { x: fin[0], y: fin[1] };
     if (l.t === "pase" || l.t === "entrega") { const r = receptoraDe(l, act.pos); if (r) balon = r; }
   });
@@ -1514,12 +1516,14 @@ function pintarAnim() {
   const grupos = jugada.pasos.map((p, i) => ({ p, i })).filter(g => faseAnim < 0 || g.i === faseAnim);
   $("listaAcc").innerHTML = grupos.map(g => `<div class="grupo-acc"><h4>Fase ${g.i + 1}</h4>${g.p.lineas.length ? g.p.lineas.map((l, k) => `<div class="acc-fila" data-i="${g.i}" data-k="${k}">
       <span class="num">${k + 1}</span><span class="et">${esc(etiquetaLinea(l, g.p.pos))}</span>
+      <button data-a="opc" class="${l.opcional ? "opc" : ""}" title="Acción opcional: dibuja la flecha pero no mueve jugadoras ni balón">⌥ ${l.opcional ? "Opcional" : ""}</button>
       ${k > 0 ? `<button data-a="dsp" class="${l.despues ? "dsp" : ""}" title="Cuándo empieza">${l.despues ? "⏱ Después" : "∥ A la vez"}</button>` : ""}
       <button data-a="up" ${k === 0 ? "disabled" : ""}>↑</button><button data-a="dn" ${k === g.p.lineas.length - 1 ? "disabled" : ""}>↓</button><button data-a="del">🗑</button></div>`).join("") : `<p class="hint" style="margin:0;">Esta fase no tiene acciones. Dibújalas en la pestaña Dibujar.</p>`}</div>`).join("");
   $("listaAcc").querySelectorAll(".acc-fila").forEach(fila => fila.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     const i = Number(fila.dataset.i), k = Number(fila.dataset.k), ls = jugada.pasos[i].lineas;
     detenerAni(); snap();
     if (b.dataset.a === "dsp") ls[k].despues = !ls[k].despues;
+    if (b.dataset.a === "opc") { if (ls[k].opcional) delete ls[k].opcional; else ls[k].opcional = true; }
     if (b.dataset.a === "up" && k > 0) [ls[k - 1], ls[k]] = [ls[k], ls[k - 1]];
     if (b.dataset.a === "dn" && k < ls.length - 1) [ls[k + 1], ls[k]] = [ls[k], ls[k + 1]];
     if (b.dataset.a === "del") ls.splice(k, 1);
