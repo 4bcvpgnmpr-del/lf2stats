@@ -171,6 +171,32 @@
   body.visor .wrap{display:none !important;} body.visor #visor{display:block;padding:12px;}
   body.visor{background:var(--white);}
   #hojaImp{display:none;}
+
+  /* pantalla completa de la animacion + movil / tablet */
+  .pc{position:fixed !important;inset:0 !important;z-index:2000 !important;background:#10151d !important;margin:0 !important;border-radius:0 !important;max-width:none !important;width:auto !important;height:auto !important;max-height:none !important;display:flex !important;flex-direction:column;padding:10px !important;overflow:hidden !important;box-sizing:border-box;}
+  .pc .caja-pista{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;background:transparent !important;border:0 !important;}
+  .pc .caja-pista svg{width:100% !important;height:100% !important;max-height:none !important;}
+  .pc h3,.pc .hint,.pc .leyenda,.pc .leyenda li{color:#e8edf4 !important;}
+  .pc .leyenda{max-height:22vh;overflow:auto;font-size:14px;}
+  .pc .reprod{margin-top:8px;flex:none;} .pc #mvNotas,.pc #mvVideos,.pc #vsNotas,.pc #vsVideos{display:none;}
+  body.hay-pc{overflow:hidden;}
+  #btnDatos{display:none;flex:none;}
+  @media (max-width:1000px){
+    .barra-ed{flex-wrap:nowrap;overflow-x:auto;gap:4px;padding:6px;-webkit-overflow-scrolling:touch;}
+    .barra-ed .tabs{flex:none;flex-wrap:nowrap;justify-content:flex-start;}
+    .barra-ed .tabs button{white-space:nowrap;padding:8px 10px;font-size:12.5px;}
+    .barra-ed .ic,.barra-ed .naranja{flex:none;white-space:nowrap;}
+    .datos-ed{gap:8px;} .datos-ed > div{min-width:130px;}
+    .datos-ed.plegado > div:not(:first-child),.datos-ed.plegado .chk{display:none;}
+    #btnDatos{display:inline-block;}
+    .caja-pista svg{max-height:70vh;}
+    .col-herr .acciones button{padding:12px 6px;}
+  }
+  @media (max-width:640px){
+    body{font-size:14px;} .datos-ed > div:first-child{flex-basis:100%;}
+    .acciones{grid-template-columns:repeat(3,1fr) !important;}
+    .reprod .ctrl{flex-wrap:wrap;gap:6px;}
+  }
   @media print{
     @page{size:A4 portrait;margin:12mm;}
     body{background:#fff;}
@@ -222,6 +248,7 @@
   <div id="vistaEd" style="display:none;">
     <div class="datos-ed">
       <div><label style="margin-top:0;">Nombre de la jugada</label><input id="nombre" placeholder="Ej: Cinco abierto, bloqueo directo"></div>
+      <button class="gris" id="btnDatos" type="button">⚙ Datos</button>
       <div style="max-width:200px;"><label style="margin-top:0;">Tipo</label><select id="tipo"></select></div>
       <div style="max-width:200px;"><label style="margin-top:0;">Carpeta</label><input id="carpetaJ" list="listaCarpetas" placeholder="Sin carpeta"><datalist id="listaCarpetas"></datalist></div>
       <div style="max-width:220px;"><label style="margin-top:0;">Etiquetas</label><input id="tagsJ" placeholder="separadas por comas"></div>
@@ -324,7 +351,7 @@
     <!-- ---- ANIMAR ---- -->
     <div class="panel-ed" id="pAnim">
       <div class="ani">
-        <div>
+        <div id="cajaAni">
           <div class="caja-pista" id="pistaAni"></div>
           <div class="leyenda" id="leyendaAni"></div>
           <div class="reprod">
@@ -334,6 +361,7 @@
               <span class="tiempo" id="tiempoAni">0:00 / 0:00</span>
               <span class="tiempo" id="faseAni"></span>
               <select id="vel" style="flex:none;width:auto;margin-left:auto;"><option value="1800">Lenta</option><option value="1200" selected>Normal</option><option value="700">Rápida</option></select>
+              <button class="gris" id="btnFsAni" type="button" title="Pantalla completa" style="flex:none;">⛶ Pantalla completa</button>
             </div>
           </div>
         </div>
@@ -386,13 +414,13 @@
   <div class="rejilla-plant" id="rejillaPlant"></div>
   <div class="fila" style="margin-top:12px;justify-content:flex-end;"><button class="gris" id="plantCancelar">Cancelar</button><button class="naranja" id="plantEmpezar">Empezar a dibujar</button></div>
 </div></div>
-<div id="modalVer"><div class="caja">
+<div id="modalVer"><div class="caja" id="mvCaja">
   <h3 id="mvTitulo"></h3>
   <div id="mvPista" class="caja-pista"></div>
   <div class="leyenda" id="mvLeyenda"></div>
   <div class="reprod"><div class="linea-tiempo" id="mvLinea"></div>
     <div class="ctrl"><button class="play" id="mvPlay">▶</button><span class="tiempo" id="mvTiempo"></span>
-      <button class="gris" id="mvPrev" style="margin-left:auto;">◀ Fase</button><button class="gris" id="mvNext">Fase ▶</button><button class="gris" id="mvCerrar">Cerrar</button></div></div>
+      <button class="gris" id="mvPrev" style="margin-left:auto;">◀ Fase</button><button class="gris" id="mvNext">Fase ▶</button><button class="gris" id="mvFs" title="Pantalla completa">⛶</button><button class="gris" id="mvCerrar">Cerrar</button></div></div>
   <p class="hint" id="mvNotas" style="white-space:pre-wrap;"></p>
   <div id="mvVideos"></div>
 </div></div>
@@ -404,7 +432,7 @@
   <div class="leyenda" id="vsLeyenda"></div>
   <div class="reprod"><div class="linea-tiempo" id="vsLinea"></div>
     <div class="ctrl"><button class="play" id="vsPlay">▶</button><span class="tiempo" id="vsTiempo"></span>
-      <button class="gris" id="vsPrev" style="margin-left:auto;">◀ Fase</button><button class="gris" id="vsNext">Fase ▶</button></div></div>
+      <button class="gris" id="vsPrev" style="margin-left:auto;">◀ Fase</button><button class="gris" id="vsNext">Fase ▶</button><button class="gris" id="vsFs" title="Pantalla completa">⛶</button></div></div>
   <p class="hint" id="vsNotas" style="white-space:pre-wrap;"></p>
   <div id="vsVideos"></div>
 </div>
@@ -505,7 +533,7 @@ function maderaSvg() {
   while (x < W - 10) {
     const w = 11 + rnd() * 16; let y = -10;
     while (y < H - 10) {
-      const h = 45 + rnd() * 150;
+      const h = Math.min(45 + rnd() * 150, H - 10 - y);
       o += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w + 0.6).toFixed(1)}" height="${(h + 0.6).toFixed(1)}" fill="${tonos[Math.floor(rnd() * tonos.length)]}"/>`;
       y += h;
     }
@@ -672,13 +700,15 @@ function posBalon(pos, dueno) {
   if (!p) { const k = Object.keys(pos).find(esAtaque); p = k ? pos[k] : null; }
   return p ? { x: p.x, y: p.y } : null;
 }
+/* todo el dibujo se recorta al rectangulo de la pista (la madera no se sale al ajustar a la pantalla) */
+const CLIP_INI = "", CLIP_FIN = "";
 function svgPaso(j, i, opciones) {
   opciones = opciones || {};
   const p = j.pasos[i];
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${CLIP_FIN}</svg>`;
 }
 const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
 
@@ -822,7 +852,7 @@ function estadoEn(j, i, t, dur) {
 function fotogramaAnim(j, caja, i, t, dur) {
   const E = estadoEn(j, i, t, dur);
   let lineas = ""; E.vis.forEach(v => { lineas += lineaSvg(recorteLinea(v.l, v.f), 1); });
-  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}</svg>`;
+  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${CLIP_INI}${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}${CLIP_FIN}</svg>`;
 }
 const PAUSA_FASE = 450;
 /* Segmentos de tiempo de una jugada (de la fase "desde" a la "hasta") */
@@ -1528,6 +1558,30 @@ function importar(archivo) {
 }
 let temporizador;
 function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporizador); temporizador = setTimeout(() => a.classList.remove("ver"), 2600); }
+
+/* ---------- pantalla completa de la animacion ---------- */
+let pcActivo = null, pcApi = false;
+function salirPC() {
+  if (!pcActivo) return;
+  pcActivo.classList.remove("pc"); document.body.classList.remove("hay-pc"); pcActivo = null;
+  try { if (pcApi && document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ }
+  pcApi = false;
+  document.querySelectorAll("[data-fs]").forEach(b => { b.textContent = b.dataset.fs; });
+}
+function entrarPC(el) {
+  if (pcActivo) salirPC();
+  el.classList.add("pc"); document.body.classList.add("hay-pc"); pcActivo = el;
+  try { if (el.requestFullscreen) { pcApi = true; const r = el.requestFullscreen(); if (r && r.catch) r.catch(() => { pcApi = false; }); } } catch (e) { pcApi = false; }
+}
+function conectarPC(idBoton, idCaja) {
+  const b = $(idBoton), c = $(idCaja); if (!b || !c) return;
+  b.dataset.fs = b.textContent;
+  b.addEventListener("click", () => { if (pcActivo === c) salirPC(); else { entrarPC(c); b.textContent = "✕ Salir"; } });
+}
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && pcActivo && pcApi) salirPC(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pcActivo) salirPC(); });
+conectarPC("btnFsAni", "cajaAni"); conectarPC("mvFs", "mvCaja"); conectarPC("vsFs", "visor");
+if ($("btnDatos")) { $("btnDatos").addEventListener("click", () => document.querySelector(".datos-ed").classList.toggle("plegado")); if (window.innerWidth <= 1000) document.querySelector(".datos-ed").classList.add("plegado"); }
 
 /* ============================================================
    ARRANQUE

@@ -66,8 +66,6 @@
     .marca{display:none;} .grupo{display:flex;padding:8px 6px;gap:4px;} .grupo h4{display:none;}
     .grupo button{white-space:nowrap;padding:9px 12px;} .pie{margin:0;padding:8px;} .pie a{white-space:nowrap;padding:9px 12px;}
     main{padding:16px 14px 60px;}
-    .c-jug,.c-eje,.c-pla,.c-pb{grid-template-columns:minmax(0,1fr) 40px;}
-    .c-jug>:nth-child(n+2):not(:last-child),.c-eje>:nth-child(n+2):not(:last-child),.c-pla>:nth-child(n+2):not(:last-child),.c-pb>:nth-child(n+2):not(:last-child){display:none;}
   }
 
   /* menu contextual y ventanas */
@@ -153,6 +151,20 @@
   #app.col{grid-template-columns:64px minmax(0,1fr);} #app.col .tx,#app.col .n,#app.col .grupo h4,#app.col .marca small,#app.col .marca .tt span{display:none;} #app.col .marca{padding:14px 8px;flex-direction:column;align-items:center;} #app.col .grupo button{justify-content:center;padding:10px 4px;} #app.col .pie a{padding:10px 0;}
   @media (max-width:900px){.colbtn{display:none;} #app.col{grid-template-columns:1fr;} #app.col .tx{display:inline;}
     .fila.c-jug,.fila.c-eje,.fila.c-pla{grid-template-columns:26px minmax(0,1fr) 36px !important;} .fila.c-jug>:nth-child(n+3):not(:last-child),.fila.c-eje>:nth-child(n+3):not(:last-child),.fila.c-pla>:nth-child(n+3):not(:last-child){display:none;}}
+
+  @media (max-width:900px){
+    #app{grid-template-columns:1fr !important;grid-template-rows:auto minmax(0,1fr);}
+    aside .marca,aside .colbtn{display:none !important;}
+    aside{position:sticky;top:0;z-index:20;} aside .grupo button{padding:10px 12px;} aside .grupo button .i{width:auto;}
+    aside .grupo .n{margin-left:4px;}
+    .cab h2{font-size:20px;} .barra input[type=search]{max-width:none;flex:1 1 100%;}
+    .mini-l{width:56px;height:52px;}
+    .tgbox,.cajon-c{max-width:100%;}
+    .modal{padding:14px;} .modal.ancho{max-width:100%;}
+    .rejilla{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+    .fila.c-pb{grid-template-columns:minmax(0,1fr) 36px !important;} .fila.c-pb>:nth-child(n+2):not(:last-child){display:none;}
+  }
+  @media (max-width:520px){ .cab .split button{font-size:12.5px;padding:9px 10px;} main{padding:14px 12px 60px !important;} }
   #hojaImp{display:none;}
   @media print{
     #app,#menuPop,.velo,#editorMarco,#visorMarco,#aviso{display:none !important;}
@@ -196,7 +208,7 @@
 
 <!-- editor de jugadas (pizarra) y visor -->
 <div id="editorMarco"><iframe id="marcoEd" title="Editor de jugadas"></iframe></div>
-<div id="visorMarco"><div class="cabv"><span id="tituloVisor">Jugada</span><button class="gris" id="cerrarVisor">Cerrar ✕</button></div><iframe id="marcoVisor" title="Jugada"></iframe></div>
+<div id="visorMarco"><div class="cabv"><span id="tituloVisor">Jugada</span><button class="gris" id="cerrarVisor">Cerrar ✕</button></div><iframe id="marcoVisor" title="Jugada" allowfullscreen allow="fullscreen"></iframe></div>
 
 <div id="hojaImp"></div>
 
