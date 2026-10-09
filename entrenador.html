@@ -139,7 +139,7 @@
   .fila.sobre,.tj.sobre,.miga a.sobre{background:#d6f3e8 !important;outline:2.5px dashed #15a37f;outline-offset:-3px;border-radius:8px;}
   .arrastrando{opacity:.4;}
   .tj{position:relative;background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;} .tj:hover{border-color:#15a37f;}
-  .mini-l{flex:none;width:84px;height:78px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;} .mini-l svg{width:100%;height:100%;display:block;}
+  .mini-l{flex:none;width:136px;height:124px;border-radius:10px;overflow:hidden;border:1px solid #d9dee3;padding:3px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;} .mini-l svg{width:100%;height:100%;display:block;}
   .fila.c-jug:not(.cabt){padding-top:7px;padding-bottom:7px;}
   .tj .vista.mini{aspect-ratio:4/3;background:#fff;font-size:44px;} .tj .vista.mini svg{width:100%;height:100%;display:block;}
   .tj .vista{background:var(--suave);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:44px;}
@@ -162,7 +162,7 @@
     aside{position:sticky;top:0;z-index:20;} aside .grupo button{padding:10px 12px;} aside .grupo button .i{width:auto;}
     aside .grupo .n{margin-left:4px;}
     .cab h2{font-size:20px;} .barra input[type=search]{max-width:none;flex:1 1 100%;}
-    .mini-l{width:56px;height:52px;}
+    .mini-l{width:84px;height:78px;}
     .tgbox,.cajon-c{max-width:100%;}
     .modal{padding:14px;} .modal.ancho{max-width:100%;}
     .rejilla{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
@@ -285,6 +285,9 @@
   .marca .wm{display:none;}
   #app.col .marca .lf{display:none;} #app.col .marca .li{display:block;} #app.col .marca{flex-direction:column;gap:8px;} #app.col .marca .logo{margin:0;}
   @media (max-width:900px){ .marca .logo{display:none !important;} }
+  .mini-l svg{border-radius:7px;} .tj .vista.mini svg{border-radius:0;}
+  .tabla .fila.c-jug:not(.cabt),.tabla .fila.c-eje:not(.cabt){padding-top:12px;padding-bottom:12px;}
+  .fila.c-jug .nom span.t,.fila.c-eje .nom span.t{white-space:normal;overflow:visible;}
 </style>
 </head>
 <body>
