@@ -288,6 +288,52 @@
   .mini-l svg{border-radius:7px;} .tj .vista.mini svg{border-radius:0;}
   .tabla .fila.c-jug:not(.cabt),.tabla .fila.c-eje:not(.cabt){padding-top:12px;padding-bottom:12px;}
   .fila.c-jug .nom span.t,.fila.c-eje .nom span.t{white-space:normal;overflow:visible;}
+
+  /* ====== telefono (como The Hoops Geek): barra superior, lista con miniaturas, barra inferior, ficha de la jugada ====== */
+  #topMov,#barraMov,#veloMenu,#detalleJ{display:none;}
+  @media (max-width:700px){
+    body{background:#fff;}
+    #app{display:block !important;height:auto;}
+    aside{position:fixed !important;left:0;top:0;bottom:0;width:290px;max-width:84vw;z-index:400;transform:translateX(-102%);transition:transform .2s;flex-direction:column !important;overflow:auto !important;padding:18px 14px 14px !important;box-shadow:0 0 40px rgba(0,0,0,.3);}
+    body.menu-ab aside{transform:none;}
+    aside .marca,aside .logo{display:block !important;} aside .marca{display:flex !important;} aside .colbtn{display:none !important;} aside .perfil{display:flex !important;}
+    aside .grupo{display:block !important;} aside .grupo h4{display:block !important;} aside .grupo button{font-size:16px !important;padding:12px !important;}
+    #veloMenu{position:fixed;inset:0;background:rgba(15,23,35,.5);z-index:390;} body.menu-ab #veloMenu{display:block;}
+    #topMov{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:30;background:#fff;padding:10px 12px;height:60px;}
+    #topMov button{background:#fff;color:#2b3640;border:1.5px solid #e3e6ea;border-radius:999px;width:44px;height:44px;padding:0;font-size:22px;display:flex;align-items:center;justify-content:center;flex:none;}
+    #topMov b{flex:1;text-align:center;font-size:19px;font-weight:700;color:#2b3640;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    main{padding:0 0 130px !important;background:#fff;overflow:visible !important;}
+    #app,.velo{max-width:100%;}
+    main .cab,main .barra{display:none !important;}
+    main .tabla{background:#fff;}
+    .tabla .fila.cabt{display:none;}
+    .tabla .fila{padding:12px 14px !important;border-bottom:1px solid #eceff1 !important;gap:10px;}
+    .fila.c-jug,.fila.c-eje,.fila.c-pla{grid-template-columns:minmax(0,1fr) 40px !important;}
+    .fila.c-jug>:first-child,.fila.c-eje>:first-child,.fila.c-pla>:first-child{display:none;}
+    .tabla .fila .nom{gap:14px;font-size:16px;font-weight:600;align-items:center;}
+    .tc{display:flex;flex-direction:column;gap:4px;min-width:0;} .tc .t{white-space:normal !important;overflow:visible !important;line-height:1.25;} .tc .ed{display:block !important;color:#6b7680;font-size:12.5px;font-weight:500;}
+    .mini-l{width:92px;height:84px;padding:2px;}
+    .tabla .fila .mas{font-size:22px;}
+    .activos,.selbar{margin:8px 12px;}
+    #barraMov{display:flex;align-items:center;gap:6px;position:fixed;left:10px;right:10px;bottom:12px;z-index:60;background:#fff;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.2);padding:6px;}
+    body.sin-barra #barraMov{display:none;}
+    #barraMov .bm-pill{flex:1;display:flex;align-items:center;gap:6px;background:#f1f3f5;border-radius:999px;padding:0 12px;min-width:0;height:42px;}
+    #barraMov input{border:0;background:transparent;height:40px;padding:0;font-size:15px;min-width:0;} #barraMov input:focus{outline:0;}
+    #barraMov button{background:transparent;color:#2b3640;width:40px;height:40px;padding:0;border-radius:999px;font-size:18px;flex:none;}
+    #barraMov #bmNew{background:#3f9c86;color:#fff;font-size:24px;}
+    #detalleJ{position:fixed;inset:0;z-index:150;background:#fff;flex-direction:column;} #detalleJ.ver{display:flex;}
+    .dj-top{display:flex;align-items:center;gap:8px;padding:10px 12px;height:60px;flex:none;}
+    .dj-top button{background:#fff;color:#2b3640;border:1.5px solid #e3e6ea;border-radius:999px;width:44px;height:44px;padding:0;font-size:22px;flex:none;}
+    .dj-top b{flex:1;text-align:center;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .dj-cuerpo{flex:1;overflow:auto;padding:6px 16px 60px;}
+    .dj-cuerpo h1{font-size:25px;margin:6px 0 12px;font-weight:700;color:#2b3640;}
+    .dj-cuerpo p{font-size:16px;line-height:1.5;margin:0 0 12px;color:#2b3640;white-space:pre-wrap;}
+    .dj-cuerpo .jug-btn{background:#12a483;color:#fff;border-radius:8px;padding:11px 16px;font-size:15px;font-weight:600;margin:4px 0 18px;}
+    .dj-cuerpo h4{font-size:15px;font-weight:700;margin:16px 0 8px;color:#2b3640;}
+    .dj-cuerpo .pista{border-radius:6px;overflow:hidden;background:#eee;min-height:160px;} .dj-cuerpo .pista svg{display:block;width:100%;height:auto;}
+    .dj-cuerpo ul{margin:10px 0 6px;padding-left:20px;font-size:16px;line-height:1.5;color:#2b3640;}
+    .dj-cuerpo .meta{color:#6b7680;font-size:13px;margin-bottom:10px;}
+  }
 </style>
 </head>
 <body>
@@ -309,9 +355,13 @@
     </div>
     <div class="pie"><a href="index.html"><span class="i">←</span><span class="tx"> Volver a estadísticas</span></a></div>
   </aside>
+  <div id="topMov"><button id="tmIzq" aria-label="Menú">☰</button><b id="tmTit">Jugadas</b><button id="tmMas" aria-label="Nuevo">＋</button></div>
   <main id="main"><p class="vacio">Cargando…</p></main>
 </div>
 
+<div id="veloMenu"></div>
+<div id="barraMov"><div class="bm-pill"><span class="bm-lupa">🔍</span><input type="search" id="bmQ" placeholder="Buscar"></div><button id="bmFil" aria-label="Filtro">☰</button><button id="bmOrd" aria-label="Orden">⇅</button><button id="bmVis" aria-label="Vista">▦</button><button id="bmNew" aria-label="Nuevo">＋</button></div>
+<div id="detalleJ"><div class="dj-top"><button id="djAtras" aria-label="Volver">‹</button><b id="djTit"></b><button id="djPlay" aria-label="Reproducir">▶</button><button id="djMas" aria-label="Más">⋯</button></div><div class="dj-cuerpo" id="djCuerpo"></div></div>
 <div id="menuPop"></div>
 <div id="cajon"></div>
 <div id="aviso"></div>
@@ -494,8 +544,8 @@ function pintarCarpetas(v, tipo) {
   if (vistaLista) {
     const fila = (cols, extraC) => `<div class="fila ${clase}${extraC || ""}">${cols.join("")}</div>`;
     let filas = fila(["<div></div>", "<div>Título</div>", "<div>Etiquetas</div>"].concat(extra.map(t => `<div>${t}</div>`), ["<div>Última edición</div>", "<div></div>"]), " cabt");
-    cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.ruta)}" ${puedeEscribir ? 'draggable="true"' : ""}><div></div><div class="nom">${SVG_CARPETA(30)}<span class="t">${esc(c.nombre)}</span></div><div></div>${extra.map((_, i) => `<div class="peq"></div>`).join("")}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
-    items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="nom">${(tipo === "jugadas" || tipo === "ejercicios") ? `<span class="mini-l" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO[tipo]}</span>` : `<span class="ico">${ICONO[tipo]}</span>`}<span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span></div><div class="tags">${chipsTags(x)}</div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
+    cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.ruta)}" ${puedeEscribir ? 'draggable="true"' : ""}><div></div><div class="nom">${SVG_CARPETA(30)}<span class="tc"><span class="t">${esc(c.nombre)}</span><small class="ed">Editado ${fechaTxt(c.ult)}</small></span></div><div></div>${extra.map((_, i) => `<div class="peq"></div>`).join("")}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
+    items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="nom">${(tipo === "jugadas" || tipo === "ejercicios") ? `<span class="mini-l" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO[tipo]}</span>` : `<span class="ico">${ICONO[tipo]}</span>`}<span class="tc"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span><small class="ed">Editado ${fechaTxt(x.actualizada)}</small></span></div><div class="tags">${chipsTags(x)}</div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
     if (!cars.length && !items.length) filas += `<div class="vacio">${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + ". Empieza con «＋ " + nuevoTxt + "»."}</div>`;
     cuerpo = `<div class="tabla">${filas}</div>`;
   } else {
@@ -598,7 +648,7 @@ function abrirFiltro(v, tipo) {
   pintaCajon();
 }
 function opcionesElemento(tipo, x) {
-  const o = [["✏️ " + (tipo === "jugadas" || tipo === "ejercicios" ? "Editar en la pizarra" : "Abrir"), () => abrirElemento(tipo, x)]];
+  const o = [["✏️ " + (tipo === "jugadas" || tipo === "ejercicios" ? "Editar en la pizarra" : "Abrir"), () => editarElemento(tipo, x)]];
   if (tipo === "ejercicios") o.push(["📝 Editar datos (material, vídeo…)", () => formEjercicio(x)]);
   if (tipo === "jugadas") o.push(["▶ Ver animada", () => verJugada(x)], [x.compartida ? "🙈 Ocultar a las jugadoras" : "📤 Mostrar a las jugadoras", () => alternarComp(x)]);
   o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
@@ -676,7 +726,12 @@ function nuevoElemento(tipo) {
   if (tipo === "ejercicios") return abrirEditor("", "ejercicios");
   nuevoPlanModal();
 }
+const esMovil = () => window.matchMedia("(max-width:700px)").matches;
 function abrirElemento(tipo, x) {
+  if (esMovil() && (tipo === "jugadas" || tipo === "ejercicios")) return abrirDetalle(tipo, x);
+  return editarElemento(tipo, x);
+}
+function editarElemento(tipo, x) {
   if (tipo === "jugadas") return abrirEditor(x.id);
   if (tipo === "ejercicios") return abrirEditor(x.id, "ejercicios");
   abrirPlan(x);
@@ -1030,6 +1085,80 @@ function formEquipo() {
   };
 }
 $("perfil").addEventListener("click", formEquipo);
+
+
+/* ------------ telefono: barra superior, menu lateral, barra inferior y ficha de la jugada ------------ */
+function pintarMovil() {
+  if (!esMovil()) { document.body.classList.remove("menu-ab", "sin-barra"); return; }
+  const lista = seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes";
+  $("tmTit").textContent = lista && carpeta ? ultimo(carpeta) : (SECCIONES[seccion] || "");
+  $("tmIzq").textContent = lista && carpeta ? "‹" : "☰";
+  $("tmMas").style.display = puedeEscribir ? "" : "none"; $("bmNew").style.display = puedeEscribir ? "" : "none";
+  document.body.classList.toggle("sin-barra", !(lista || seccion === "playbooks"));
+  if ($("bmQ") && document.activeElement !== $("bmQ")) $("bmQ").value = busqueda || "";
+  $("bmVis").textContent = vistaLista ? "▦" : "☰";
+  $("bmFil").style.display = lista ? "" : "none"; $("bmOrd").style.display = lista ? "" : "none"; $("bmVis").style.display = lista ? "" : "none";
+}
+function menuNuevoMovil(ev) {
+  const lista = seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes";
+  if (lista) {
+    const txt = seccion === "jugadas" ? "Nueva jugada" : seccion === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
+    abrirMenu(ev, [["＋ " + txt, () => nuevoElemento(seccion)], ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo: seccion, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
+  } else if (seccion === "playbooks") formPlaybook(null);
+  else if ($("bSubir")) $("bSubir").click();
+}
+$("tmIzq").addEventListener("click", () => {
+  const lista = seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes";
+  if (lista && carpeta) { carpeta = padreDe(carpeta); pintar(); } else document.body.classList.add("menu-ab");
+});
+$("veloMenu").addEventListener("click", () => document.body.classList.remove("menu-ab"));
+document.querySelector("aside").addEventListener("click", (e) => { if (e.target.closest(".grupo button") && esMovil()) document.body.classList.remove("menu-ab"); });
+$("tmMas").addEventListener("click", menuNuevoMovil); $("bmNew").addEventListener("click", menuNuevoMovil);
+$("bmFil").addEventListener("click", () => { const b = $("bFiltro"); if (b) b.click(); });
+$("bmOrd").addEventListener("click", () => { const b = $("bOrden"); if (b) b.click(); });
+$("bmVis").addEventListener("click", () => { const b = vistaLista ? $("vRej") : $("vLis"); if (b) b.click(); });
+$("bmQ").addEventListener("input", (e) => { busqueda = e.target.value; const v = $("vista"); if (!v) return; if (seccion === "playbooks") pintarPlaybooks(v); else if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") pintarCarpetas(v, seccion); else pintarArchivos(v, seccion); });
+{ const pintar0 = pintar; pintar = function () { pintar0.apply(this, arguments); pintarMovil(); }; }
+window.addEventListener("resize", pintarMovil);
+
+let marcoFases = null, marcoFasesListo = false, colaFases = [], detalleActual = null;
+function pedirFases(x, tipo, id) {
+  const diag = diagDe(x); if (!diag || !diag.pasos) return;
+  const enviar = () => marcoFases.contentWindow.postMessage({ fases: { id, jugada: diag } }, "*");
+  if (!marcoFases) {
+    marcoFases = document.createElement("iframe"); marcoFases.style.cssText = "position:fixed;left:-9999px;top:0;width:900px;height:700px;border:0;visibility:hidden;"; marcoFases.title = "fases";
+    marcoFases.src = "pizarra.html?visor=1&v=" + VERSION; document.body.appendChild(marcoFases);
+    window.addEventListener("message", (ev) => {
+      if (!ev.data) return;
+      if (ev.data.visorListo && ev.source === marcoFases.contentWindow) { marcoFasesListo = true; colaFases.splice(0).forEach(f => f()); }
+      if (ev.data.fasesListas && detalleActual && ev.data.fasesListas.id === detalleActual.id) { const sv = ev.data.fasesListas.svgs || []; document.querySelectorAll("#djCuerpo [data-f]").forEach(el => { const s = sv[Number(el.dataset.f)]; if (s) el.innerHTML = s; }); }
+    });
+  }
+  if (marcoFasesListo) enviar(); else colaFases.push(enviar);
+}
+function abrirDetalle(tipo, x) {
+  const d = diagDe(x) || { pasos: [] }, esJ = tipo === "jugadas", notas = esJ ? (d.notas || (x.data && x.data.notas) || "") : ((x.data && x.data.descripcion) || "");
+  detalleActual = { id: x.id + "|" + Date.now(), x, tipo };
+  $("djTit").textContent = x.nombre || ""; $("djPlay").style.display = (d.pasos && d.pasos.length) ? "" : "none";
+  const lineas = (t) => String(t || "").split("\n").map(s => s.trim()).filter(Boolean);
+  let h = `<h1>${esc(x.nombre || "(sin nombre)")}</h1>`;
+  if (!esJ && x.data && (x.data.minutos || x.data.categoria)) h += `<div class="meta">${esc(x.data.categoria || "")}${x.data.minutos ? " · " + x.data.minutos + " min" : ""}</div>`;
+  if (notas) h += `<p>${esc(notas)}</p>`;
+  if (d.pasos && d.pasos.length) {
+    h += `<button class="jug-btn" id="djAnim">▶ Reproducir animación completa</button>`;
+    d.pasos.forEach((q, i) => { const ls = lineas(q.texto); h += `<h4>${esc(q.titulo || (d.pasos.length > 1 ? "Fase " + (i + 1) : ""))}</h4><div class="pista" data-f="${i}"></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}`; });
+  } else h += '<p class="peq">Todavía no tiene dibujo. Pulsa ⋯ › «Editar en la pizarra».</p>';
+  $("djCuerpo").innerHTML = h; $("djCuerpo").scrollTop = 0; $("detalleJ").classList.add("ver");
+  if ($("djAnim")) $("djAnim").onclick = () => reproducirDetalle();
+  pedirFases(x, tipo, detalleActual.id);
+}
+function reproducirDetalle() {
+  const { x, tipo } = detalleActual; const diag = diagDe(x); if (!diag) return;
+  verJugada(tipo === "jugadas" ? x : { id: x.id, nombre: x.nombre, data: Object.assign({}, diag) });
+}
+$("djAtras").addEventListener("click", () => { $("detalleJ").classList.remove("ver"); detalleActual = null; });
+$("djPlay").addEventListener("click", reproducirDetalle);
+$("djMas").addEventListener("click", (ev) => { if (!detalleActual) return; const { tipo, x } = detalleActual; abrirMenu(ev, opcionesElemento(tipo, x).map(([t, f, c]) => [t, () => { if (/Eliminar/.test(t)) { $("detalleJ").classList.remove("ver"); } f(); }, c])); });
 
 /* ------------ arranque ------------ */
 function pantalla(msg, enlace) { $("main").innerHTML = `<div class="vacio" style="padding-top:60px;font-size:16px;">${msg}${enlace ? `<p><a href="index.html" style="color:var(--orange);font-weight:800;">${enlace}</a></p>` : ""}</div>`; }

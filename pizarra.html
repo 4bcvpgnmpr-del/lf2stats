@@ -159,7 +159,7 @@
   /* ventanas */
   body.editor .menu-ent,body.editor #enlaceVolver{display:none !important;}
   body.editor header{margin-bottom:6px;}
-  #modalPlant{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
+  #modalPlant{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:150;display:none;align-items:center;justify-content:center;padding:14px;}
   #modalPlant.ver{display:flex;}
   #modalPlant .caja{background:var(--white);border-radius:16px;width:100%;max-width:760px;max-height:94vh;overflow:auto;padding:16px;}
   #modalPlant h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 6px;}
@@ -167,7 +167,7 @@
   .plant{border:2px solid var(--line);border-radius:12px;padding:6px;background:var(--suave);cursor:pointer;text-align:center;font-size:12.5px;font-weight:700;}
   .plant svg{width:100%;height:auto;border-radius:8px;display:block;margin-bottom:5px;}
   .plant.on{border-color:var(--orange);background:#fde7da;}
-  #modalVer{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
+  #modalVer{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:150;display:none;align-items:center;justify-content:center;padding:14px;}
   #modalVer.ver{display:flex;}
   #modalVer .caja{background:var(--white);border-radius:16px;width:100%;max-width:900px;max-height:96vh;overflow:auto;padding:14px;}
   #modalVer h3,#visor h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 8px;}
@@ -240,6 +240,58 @@
     #zmLista.ver{display:block;} #zmLista button{display:block;width:100%;text-align:left;font-size:13px !important;}
     body.editor .lienzo.mano{cursor:grab;} body.editor .lienzo.mano .caja-pista{cursor:grab;} body.editor .lienzo.pan{cursor:grabbing !important;}
   }
+
+  /* ====== editor en el telefono (como The Hoops Geek): barra superior, fases, pista y herramientas abajo ====== */
+  @media (max-width:700px){
+    body.movil{overflow:hidden;background:#f3f4f6;}
+    body.movil .wrap{max-width:none;padding:0;}
+    body.movil header{display:none;}
+    body.movil .barra-ed{position:relative;top:auto;height:58px;margin:0;border:0;border-bottom:1px solid #e5e7eb;border-radius:0;padding:0 8px;gap:6px;flex-wrap:nowrap;overflow:visible;background:#fff;z-index:50;align-items:center;}
+    body.movil .barra-ed > div:not(.tabs){display:none;}
+    body.movil #btnDatos{display:none;}
+    body.movil .barra-ed .ic{background:transparent;border:0;font-size:20px;padding:8px 9px;color:var(--ink);} body.movil .barra-ed .ic:disabled{opacity:.3;}
+    body.movil #btnCerrarEd{display:inline-flex !important;background:#fff;border:1.5px solid #e5e7eb;border-radius:999px;width:44px;height:44px;padding:0;align-items:center;justify-content:center;font-size:18px;}
+    body.movil #tabSel{background:#fff;border:1.5px solid #e5e7eb;border-radius:999px;padding:0 14px;height:44px;font-size:15px;font-weight:600;color:var(--ink);}
+    body.movil .barra-ed .tabs{display:none;position:absolute;left:58px;top:52px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:6px;flex-direction:column;gap:2px;z-index:80;min-width:170px;flex:none;}
+    body.movil .barra-ed .tabs.abierto{display:flex;}
+    body.movil .barra-ed .tabs button{text-align:left;padding:12px 14px;font-size:15px;border-radius:10px;}
+    body.movil #btnMas{background:#fff;border:1.5px solid #e5e7eb;border-radius:999px;width:44px;height:44px;padding:0;font-size:20px;color:var(--ink);}
+    body.movil #btnGuardar{margin-left:auto;background:#fff;color:var(--ink);border:1.5px solid #e5e7eb;border-radius:999px;width:44px;height:44px;padding:0;font-size:0;}
+    body.movil #btnGuardar::before{content:"💾";font-size:19px;}
+    body.movil .datos-ed.plegado{display:none;}
+    body.movil .datos-ed:not(.plegado){position:fixed;left:8px;right:8px;top:62px;z-index:90;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 14px 40px rgba(0,0,0,.25);display:grid;grid-template-columns:1fr;gap:8px;max-height:calc(100dvh - 90px);overflow:auto;}
+    body.movil .datos-ed:not(.plegado) > div{max-width:none !important;min-width:0;} body.movil .datos-ed:not(.plegado) > div:first-child{flex-basis:auto;}
+    body.movil .datos-ed .chk{display:block;}
+    body.movil .panel-ed.on{height:calc(100dvh - 58px);overflow:auto;padding:14px;background:#fff;}
+    body.movil #pDraw.on{padding:0;overflow:hidden;background:#f3f4f6;}
+    body.movil .dib{display:flex;flex-direction:column;height:100%;gap:0;}
+    body.movil .col-pasos{display:none;}
+    body.movil .col-pista{flex:1;min-height:0;display:flex;flex-direction:column;order:0;width:100% !important;max-width:none !important;margin:0 !important;align-self:stretch;}
+    body.movil #filaFase{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;flex:none;}
+    body.movil #filaFase .nav{background:transparent;color:#2563eb;font-size:26px;padding:0 6px;line-height:1;} body.movil #filaFase .nav:disabled{color:#c9ced6;}
+    body.movil #filaFase .et{font-weight:800;font-size:15px;background:#f3f4f6;border-radius:8px;padding:9px 12px;white-space:nowrap;color:var(--ink);}
+    body.movil #filaFase .split{margin-left:auto;display:inline-flex;} body.movil #filaFase .split button{background:#12a483;color:#fff;font-size:14px;padding:10px 12px;border-radius:8px 0 0 8px;white-space:nowrap;} body.movil #filaFase .split button+button{border-radius:0 8px 8px 0;border-left:1px solid rgba(255,255,255,.4);padding:10px 10px;}
+    body.movil .lienzo{flex:1;min-height:0;overflow:auto;padding:8px 8px 96px;display:flex;}
+    body.movil .lienzo .caja-pista{margin:auto;width:min(100%, calc((100dvh - 58px - 62px - 110px) * 1.06));border:0;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.1);}
+    body.movil .lienzo .caja-pista svg{width:100%;height:auto;max-height:none;display:block;}
+    body.movil .zoombar,body.movil .col-pista .hint,body.movil .col-pista .leyenda{display:none;}
+    body.movil #barraHerr{display:none;position:fixed;left:50%;bottom:14px;transform:translateX(-50%);max-width:calc(100% - 16px);background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:6px 8px;gap:2px;z-index:60;}
+    body.movil[data-tab="Draw"] #barraHerr{display:flex;}
+    body.movil #barraHerr button{background:transparent;color:#2b3640;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;padding:8px 12px;border-radius:12px;min-width:58px;} body.movil #barraHerr button.on{background:#e6f4f0;color:#0e8f72;}
+    body.movil #barraHerr svg{width:22px;height:22px;}
+    body.movil .col-herr{display:none;position:fixed;left:0;right:0;top:auto !important;height:auto !important;bottom:88px;max-height:48dvh;overflow:auto;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:14px 14px 18px;z-index:55;border:0;}
+    body.movil .col-herr[data-s]{display:block;}
+    body.movil .col-herr[data-s="acc"] > :not(.sAcc),body.movil .col-herr[data-s="jug"] > :not(.sJug),body.movil .col-herr[data-s="obj"] > :not(.sObj){display:none !important;}
+    body.movil .col-herr[data-s="sel"] > .sAcc,body.movil .col-herr[data-s="sel"] > .sJug,body.movil .col-herr[data-s="sel"] > .sObj,body.movil .col-herr[data-s="sel"] > .sOtros{display:none !important;}
+    body.movil .col-herr .bloque{border:0;padding:0;margin:0;} body.movil .col-herr h3{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--soft);margin:0 0 8px;}
+    body.movil #panelFase{position:fixed;left:8px;right:8px;top:70px;z-index:90;background:#fff;border-radius:16px;padding:14px;box-shadow:0 14px 40px rgba(0,0,0,.25);display:none;}
+    body.movil #panelFase.abierto{display:block;}
+    body.movil .col-pasos .acc,body.movil .col-pasos .lista-fases{display:none;}
+    body.movil #menuMov{position:fixed;z-index:120;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:6px;min-width:200px;display:none;}
+    body.movil #menuMov button{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);padding:12px 14px;font-size:14.5px;border-radius:10px;font-weight:600;} body.movil #menuMov button:active{background:#f3f4f6;} body.movil #menuMov button.pel{color:#d12b3a;}
+  }
+  #filaFase,#barraHerr,#tabSel,#btnMas,#menuMov{display:none;}
+  @media (max-width:700px){ body.movil #tabSel,body.movil #btnMas{display:inline-flex;align-items:center;} body.movil #menuMov.ver{display:block;} }
   @media print{
     @page{size:A4 portrait;margin:12mm;}
     body{background:#fff;}
@@ -1592,6 +1644,60 @@ async function accionLista(id, a) {
   if (a === "dup") { const c = clonar(x); c.id = idNuevo(); c.nombre += " (copia)"; c.compartida = false; if (await guardarJugada(c)) { aviso("Duplicada"); recargarBib(); } return; }
   if (a === "borrar" && confirm("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) { if (await borrarJugada(id)) recargarBib(); }
 }
+
+/* ---------- editor en el telefono ---------- */
+function iniciarMovil() {
+  const B = document.body; B.classList.add("movil");
+  const bar = document.querySelector(".barra-ed"), tabs = $("tabsEd"), nombres = { Draw: "Dibujar", Anim: "Animar", Text: "Texto", Vid: "Vídeos", Out: "Salida" };
+  const cerrar = $("btnCerrarEd"); cerrar.textContent = "✕"; bar.prepend(cerrar);
+  const sel = document.createElement("button"); sel.id = "tabSel"; sel.type = "button"; sel.textContent = "Dibujar ▾"; bar.insertBefore(sel, tabs);
+  sel.addEventListener("click", (e) => { e.stopPropagation(); tabs.classList.toggle("abierto"); });
+  tabs.addEventListener("click", (e) => { const b = e.target.closest("button[data-p]"); if (b) { tabs.classList.remove("abierto"); } });
+  document.addEventListener("click", () => { tabs.classList.remove("abierto"); menu.classList.remove("ver"); });
+  const mas = document.createElement("button"); mas.id = "btnMas"; mas.type = "button"; mas.textContent = "⋯"; bar.insertBefore(mas, $("btnGuardar"));
+  const menu = document.createElement("div"); menu.id = "menuMov"; document.body.appendChild(menu);
+  const abrirMenu = (btn, items) => { menu.innerHTML = ""; items.forEach(([t, f, c]) => { const b = document.createElement("button"); b.textContent = t; if (c) b.className = c; b.addEventListener("click", (e) => { e.stopPropagation(); menu.classList.remove("ver"); f(); }); menu.appendChild(b); }); menu.classList.add("ver"); const r = btn.getBoundingClientRect(); menu.style.left = Math.max(8, Math.min(r.right - 210, innerWidth - 220)) + "px"; menu.style.top = (r.bottom + 6) + "px"; menu.style.bottom = "auto"; if (r.top > innerHeight / 2) { menu.style.top = "auto"; menu.style.bottom = (innerHeight - r.top + 6) + "px"; } };
+  mas.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(mas, [["⚙ Datos (nombre, carpeta…)", () => document.querySelector(".datos-ed").classList.toggle("plegado")], ["▶ Reproducir animación", () => $("btnPlayTodo").click()], ["🖼️ Imagen de esta fase", () => $("btnPng").click()], ["🖨️ Imprimir / PDF", () => $("btnImprimir").click()]]); });
+  document.querySelector(".datos-ed").classList.add("plegado");
+  // guardar sin nombre -> abre los datos
+  $("btnGuardar").addEventListener("click", (e) => { if (!$("nombre").value.trim()) { e.stopImmediatePropagation(); document.querySelector(".datos-ed").classList.remove("plegado"); $("nombre").focus(); aviso("Ponle un nombre para guardar."); } }, true);
+  // fila de fases
+  const fila = document.createElement("div"); fila.id = "filaFase";
+  fila.innerHTML = '<button class="nav" id="fAnt">‹</button><span class="et" id="fEt">FASE 1/1</span><button class="nav" id="fSig">›</button><span class="split"><button id="fNueva">Fase siguiente</button><button id="fMas">▾</button></span>';
+  document.querySelector(".col-pista").prepend(fila);
+  const irFase = (n) => { if (n < 0 || n >= jugada.pasos.length) return; paso = n; selLinea = -1; selFicha = null; selObj = -1; pintar(); };
+  $("fAnt").onclick = () => irFase(paso - 1); $("fSig").onclick = () => irFase(paso + 1);
+  $("fNueva").onclick = () => $("btnNuevoPaso").click();
+  const pf = $("panelFase"); document.body.appendChild(pf);
+  $("fMas").addEventListener("click", (e) => { e.stopPropagation(); abrirMenu($("fMas"), [["⧉ Clonar esta fase", () => $("btnDupPaso").click()], ["▢ Fase vacía", () => $("btnVacioPaso").click()], ["✏️ Título de la fase…", () => pf.classList.toggle("abierto")], ["↑ Subir fase", () => $("faseArriba").click()], ["↓ Bajar fase", () => $("faseAbajo").click()], ["🗑 Quitar fase", () => $("btnQuitarPaso").click(), "pel"]]); });
+  const cierraPF = document.createElement("button"); cierraPF.className = "gris"; cierraPF.textContent = "Cerrar"; cierraPF.style.marginTop = "8px"; cierraPF.onclick = () => pf.classList.remove("abierto"); pf.appendChild(cierraPF);
+  // barra de herramientas inferior + hoja
+  const herr = document.querySelector(".col-herr"), hojas = herr.children;
+  [...hojas].forEach(h => { if (h.id === "panelHerr") h.classList.add("sAcc"); });
+  const bl = [...herr.querySelectorAll(":scope > .bloque")].filter(x => !["panelObj", "panelFicha", "panelLinea"].includes(x.id)); // jugadoras, objetos, resto
+  if (bl[0]) bl[0].classList.add("sJug"); if (bl[1]) bl[1].classList.add("sObj"); if (bl[2]) bl[2].classList.add("sOtros");
+  const ic = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const bh = document.createElement("div"); bh.id = "barraHerr";
+  bh.innerHTML = `<button data-h="sel">${ic('<path d="M5 3l14 8-6 1.500L10.500 19z"/>')}Seleccionar</button><button data-h="jug">${ic('<circle cx="12" cy="5" r="2.500"/><path d="M9 21l2-7 3 2 2 5M7 10l5-2 4 3 3 1M11 14l-3-2"/>')}Jugadoras</button><button data-h="acc">${ic('<path d="M6 18L18 6M9 6h9v9"/>')}Acciones</button><button data-h="obj">${ic('<path d="M12 3l6 17H6zM5 20h14"/>')}Objetos</button><button data-h="ay">${ic('<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 114 2c-.8.6-1.500 1-1.500 2.200M12 17h.01"/>')}Ayuda</button>`;
+  document.body.appendChild(bh);
+  const cerrarHoja = () => { herr.removeAttribute("data-s"); bh.querySelectorAll("button").forEach(b => b.classList.remove("on")); };
+  const abrirHoja = (s) => { herr.setAttribute("data-s", s); bh.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.h === s)); };
+  bh.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return; const s = b.dataset.h;
+    if (s === "ay") { aviso($("ayuda").textContent || "Toca una ficha para colocarla; arrastra para dibujar."); return; }
+    if (s === "sel") { const t = $("toolsSec").querySelector('[data-t="mover"]'); if (t) t.click(); cerrarHoja(); abrirHoja("sel"); if (!hayInspector()) cerrarHoja(); return; }
+    if (herr.getAttribute("data-s") === s) cerrarHoja(); else abrirHoja(s);
+  });
+  const hayInspector = () => ["panelObj", "panelFicha", "panelLinea"].some(id => $(id).style.display === "block");
+  herr.addEventListener("click", (e) => { if (e.target.closest("#tools button, #toolsSec button, #toolsObj button")) setTimeout(cerrarHoja, 60); });
+  $("lienzo").addEventListener("pointerdown", () => { if (herr.getAttribute("data-s") !== "jug") cerrarHoja(); });
+  // enganchar pintar() e irPestana()
+  const pintar0 = pintar;
+  pintar = function () { pintar0.apply(this, arguments); $("fEt").textContent = "FASE " + (paso + 1) + "/" + jugada.pasos.length; $("fAnt").disabled = paso <= 0; $("fSig").disabled = paso >= jugada.pasos.length - 1; $("fNueva").textContent = paso >= jugada.pasos.length - 1 ? "Fase siguiente" : "Nueva fase"; if ((selLinea >= 0 || selObj >= 0) && hayInspector() && !herr.getAttribute("data-s")) abrirHoja("sel"); else if (herr.getAttribute("data-s") === "sel" && !hayInspector()) cerrarHoja(); };
+  const irP0 = irPestana;
+  irPestana = function (pp) { irP0.apply(this, arguments); B.dataset.tab = pp; sel.textContent = (nombres[pp] || pp) + " ▾"; cerrarHoja(); };
+  B.dataset.tab = tabActual || "Draw";
+}
 function mostrarVista(v) {
   $("vistaBib").style.display = v === "bib" ? "block" : "none";
   $("vistaEd").style.display = v === "ed" ? "block" : "none";
@@ -1716,6 +1822,11 @@ if (VISOR) {
   window.addEventListener("message", (ev) => { if (ev.data && ev.data.jugada && ev.data.jugada.pasos) { v.abrir(ev.data.jugada); setTimeout(altura, 120); } });
   // miniaturas: la biblioteca del Entrenador pide el dibujo de varias jugadas de una vez
   window.addEventListener("message", (ev) => {
+    if (ev.data && ev.data.fases && ev.data.fases.jugada) {
+      const out = []; try { const j = normalizar(JSON.parse(JSON.stringify(ev.data.fases.jugada))); j.pasos.forEach((q, i) => out.push(svgPaso(j, i, {}))); } catch (e) { /* nada */ }
+      try { parent.postMessage({ fasesListas: { id: ev.data.fases.id, svgs: out } }, "*"); } catch (e) { /* nada */ }
+      return;
+    }
     if (!ev.data || !Array.isArray(ev.data.miniaturas)) return;
     const out = {};
     ev.data.miniaturas.forEach(m => { try { const j = normalizar(JSON.parse(JSON.stringify(m.jugada))); out[m.id] = svgPaso(j, 0, { mini: true }); } catch (e) { out[m.id] = ""; } });
@@ -1864,6 +1975,7 @@ if (VISOR) {
       bar.insertBefore($("btnDatos"), $("btnGuardar"));
       document.querySelector(".datos-ed").classList.add("plegado");
     }
+    if (window.matchMedia("(max-width:700px)").matches) iniciarMovil();
     window.addEventListener("beforeunload", (e) => { if (instJugada() !== instGuardada) { e.preventDefault(); e.returnValue = ""; } });
     iniciarNube().then(recargarBib).then(() => {
       $("listaCarpetas").innerHTML = [...new Set(BIB.map(x => x.carpeta).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join("");
