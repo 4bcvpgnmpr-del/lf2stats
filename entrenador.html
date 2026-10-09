@@ -396,7 +396,7 @@
     .fila .peq{font-size:12.5px;}
   }
   @media (min-width:701px) and (max-width:900px){
-    .fila.c-jug,.fila.c-eje,.fila.c-pla{grid-template-columns:26px minmax(0,1fr) 36px !important;} .fila.c-jug>:nth-child(n+3):not(:last-child),.fila.c-eje>:nth-child(n+3):not(:last-child),.fila.c-pla>:nth-child(n+3):not(:last-child){display:none;}
+    .fila.c-eje,.fila.c-pla{grid-template-columns:26px minmax(0,1fr) 36px !important;} .fila.c-eje>:nth-child(n+3):not(:last-child),.fila.c-pla>:nth-child(n+3):not(:last-child){display:none;}
     .fila.c-pb{grid-template-columns:minmax(0,1fr) 36px !important;} .fila.c-pb>:nth-child(n+2):not(:last-child){display:none;}
   }
   @media (pointer:coarse){
@@ -412,11 +412,24 @@
   #app.col .marca .lg-t{display:none;} #app.col .marca .logo{justify-content:center;padding:0 !important;}
 
   @media (min-width:701px) and (max-width:1500px){ .mini-l{width:92px;height:84px;padding:2px;} .fila .nom{min-width:0;} .fila .nom .tc{min-width:0;} .fila .nom span.t{white-space:normal;overflow:hidden;overflow-wrap:anywhere;} }
-  @media (min-width:901px) and (max-width:1500px){
-    .tabla .fila.c-jug{grid-template-columns:26px minmax(190px,2.6fr) minmax(70px,.9fr) 80px minmax(70px,.9fr) 74px 44px 92px 36px !important;column-gap:8px;} .tabla .fila.c-jug .peq{font-size:12px;}
-    .fila.c-jug>*{min-width:0;} .fila.c-jug .nom{min-width:0;}
-    .fila.c-jug>:nth-child(4){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  @media (min-width:701px){
+    .tabla{container-type:inline-size;}
+    .tabla .fila.c-jug{grid-template-columns:26px minmax(190px,2.6fr) minmax(70px,1fr) 90px minmax(70px,1fr) 98px 54px 134px 36px !important;column-gap:10px;} .tabla .fila.c-jug .peq{font-size:12.5px;}
+    .tabla .fila.c-jug>*{min-width:0;} .tabla .fila.c-jug>div:not(.nom):not(.tags){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    @container (max-width:900px){
+      .tabla .fila.c-jug{grid-template-columns:26px minmax(160px,1.8fr) minmax(60px,.8fr) 84px minmax(60px,.9fr) 98px 36px !important;}
+      .tabla .fila.c-jug>:nth-child(7),.tabla .fila.c-jug>:nth-child(8){display:none !important;}
+    }
+    @container (max-width:640px){
+      .tabla .fila.c-jug{grid-template-columns:26px minmax(150px,1fr) 84px 98px 36px !important;}
+      .tabla .fila.c-jug>:nth-child(3),.tabla .fila.c-jug>:nth-child(5){display:none !important;}
+    }
+    @container (max-width:470px){
+      .tabla .fila.c-jug{grid-template-columns:26px minmax(0,1fr) 36px !important;}
+      .tabla .fila.c-jug>:nth-child(4),.tabla .fila.c-jug>:nth-child(6){display:none !important;}
+    }
   }
+
 </style>
 </head>
 <body>
