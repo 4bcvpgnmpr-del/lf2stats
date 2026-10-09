@@ -65,11 +65,11 @@
   .barra-ed .ic{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);padding:9px 12px;}
   .panel-ed{display:none;} .panel-ed.on{display:block;}
   .dib{display:grid;grid-template-columns:150px minmax(0,1fr) 300px;gap:14px;align-items:start;}
-  @media (max-width:1000px){.dib{grid-template-columns:minmax(0,1fr);} .dib .col-pasos{order:2;} .dib .col-pista{order:1;} .dib .col-herr{order:3;}}
+  @media (max-width:760px){.dib{grid-template-columns:minmax(0,1fr);} .dib .col-pasos{order:2;} .dib .col-pista{order:1;} .dib .col-herr{order:3;}}
   .col-pasos .acc{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;}
   .col-pasos .acc button{padding:8px 4px;font-size:12px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
   .lista-fases{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;}
-  @media (max-width:1000px){.lista-fases{flex-direction:row;overflow-x:auto;overflow-y:hidden;max-height:none;padding-bottom:6px;} .lista-fases .fase{width:120px;flex:none;}}
+  @media (max-width:760px){.lista-fases{flex-direction:row;overflow-x:auto;overflow-y:hidden;max-height:none;padding-bottom:6px;} .lista-fases .fase{width:120px;flex:none;}}
   .panel-fase{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px 12px;margin-bottom:10px;}
   .panel-fase label{margin:6px 0 4px;} .panel-fase label.chkl{display:flex;gap:7px;align-items:center;text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:700;color:var(--ink);margin:8px 0;line-height:1.25;}
   .panel-fase label.chkl input{width:auto;flex:none;} .panel-fase .fila button{flex:1;padding:7px 4px;font-size:12px;}
@@ -79,7 +79,7 @@
   .fase .fnom{flex:1;min-width:0;font-size:12px;padding:2px 5px;border-radius:5px;border:0;color:#111;background:#fff;}
   .fase.arrastrando{opacity:.45;} .fase.sobre{outline:3px dashed #2f7bd8;outline-offset:1px;}
   .fflecha{text-align:center;color:#9aa4ae;font-size:15px;line-height:1;margin:-2px 0;}
-  @media (max-width:1000px){.fflecha{display:none;}}
+  @media (max-width:760px){.fflecha{display:none;}}
   #menuFase{position:fixed;z-index:400;background:#fff;border:1px solid #e1e5ea;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.2);padding:6px;min-width:230px;display:none;} #menuFase.ver{display:block;}
   #menuFase button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:transparent;color:var(--ink);border:0;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:600;} #menuFase button:hover{background:#f1f3f5;} #menuFase button span{width:18px;text-align:center;} #menuFase hr{border:0;border-top:1px solid #eceff1;margin:4px 0;}
   body.editor:not(.movil) #panelFase,body.editor:not(.movil) #btnQuitarPaso{display:none;}
@@ -122,7 +122,7 @@
   .objs button{height:46px;padding:0;background:var(--white);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;}
   .objs button.on{background:#fde7da;border-color:var(--orange);}
   .caja-pista{background:#e6c9a0;}
-  @media (max-width:1000px){.col-herr{position:static;max-height:none;overflow:visible;}}
+  @media (max-width:760px){.col-herr{position:static;max-height:none;overflow:visible;}}
   .paleta{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px;}
   .paleta button{padding:0;height:36px;background:var(--white);color:var(--ink);border:1.5px solid #b9a07c;font-size:13px;font-family:Arial,sans-serif;}
   .paleta button.c{border-radius:50%;} .paleta button.q{border-radius:6px;}
@@ -214,7 +214,7 @@
   .pc.vm-dual .leyenda{max-height:12vh;}
   body.hay-pc{overflow:hidden;}
   #btnDatos{display:none;flex:none;}
-  @media (max-width:1000px){
+  @media (max-width:760px){
     .barra-ed{flex-wrap:nowrap;overflow-x:auto;gap:4px;padding:6px;-webkit-overflow-scrolling:touch;}
     .barra-ed .tabs{flex:none;flex-wrap:nowrap;justify-content:flex-start;}
     .barra-ed .tabs button{white-space:nowrap;padding:8px 10px;font-size:12.5px;}
@@ -233,7 +233,7 @@
 
   /* ====== editor a pantalla completa (escritorio): 3 columnas con margenes limpios y barra de zoom ====== */
   .zoombar{display:none;}
-  @media (min-width:1001px){
+  @media (min-width:761px){
     body.editor{overflow:hidden;background:#fff;}
     body.editor .wrap{max-width:none;padding:0;}
     body.editor header{display:none;}
@@ -334,6 +334,29 @@
     #hojaImp .pasoImp b{font-size:10pt;}
     #hojaImp .pasoImp ul{margin:1.5mm 0 0;padding-left:5mm;font-size:9.5pt;}
     #hojaImp .notas{margin-top:5mm;font-size:10.5pt;white-space:pre-wrap;}
+  }
+
+  /* ---- iPad: editor a pantalla completa con columnas más estrechas ---- */
+  @media (min-width:761px) and (max-width:1180px){
+    body.editor .dib{grid-template-columns:150px minmax(0,1fr) 280px;}
+    body.editor .col-herr{padding:12px 14px;} body.editor .col-pasos .acc{grid-template-columns:repeat(2,minmax(0,1fr));} body.editor .col-pasos .acc button{min-width:0;padding:8px 2px;}
+    body.editor .barra-ed{padding:0 8px;gap:4px;height:56px;}
+    body.editor .barra-ed #nombre{width:120px;}
+    body.editor .barra-ed .tabs button{padding:9px 8px;font-size:12.5px;white-space:nowrap;}
+    body.editor .barra-ed .ic,body.editor .barra-ed .naranja,body.editor #btnDatos,body.editor #btnCerrarEd{padding:9px 9px;font-size:12.5px;white-space:nowrap;}
+    body.editor .col-pasos{padding:8px;} body.editor .lista-fases .fase{width:auto;}
+    body.editor .col-herr .acciones button{padding:10px 4px;font-size:12px;}
+    body.editor .datos-ed:not(.plegado){width:min(470px,calc(100vw - 32px));}
+  }
+  @media (min-width:761px) and (max-width:900px){
+    body.editor .dib{grid-template-columns:118px minmax(0,1fr) 250px;}
+    body.editor .barra-ed #nombre{width:70px;} body.editor .barra-ed .tabs button{padding:8px 5px;font-size:12px;}
+    body.editor .barra-ed .ic,body.editor .barra-ed .naranja,body.editor #btnDatos,body.editor #btnCerrarEd{padding:8px 7px;font-size:12px;}
+    body.editor .col-herr{padding:10px;} body.editor .col-pasos .acc button{font-size:11px;}
+  }
+  @media (pointer:coarse){
+    button{min-height:40px;} .col-herr .acciones button{min-height:46px;} input,select,textarea{font-size:16px;}
+    body{-webkit-tap-highlight-color:transparent;} .caja-pista svg,.lienzo svg{touch-action:none;}
   }
 </style>
 </head>
@@ -1937,7 +1960,7 @@ function pintarSoloFases() {
   const q = jugada.pasos[paso]; el.textContent = (q.titulo || "Fase " + (paso + 1)) + (q.mostrarTitulo ? " 🏷" : "");
 }
 /* ---------- zoom y mano (editor de escritorio) ---------- */
-const ZOOM_ON = EDITOR && window.matchMedia("(min-width:1001px)").matches;
+const ZOOM_ON = EDITOR && window.matchMedia("(min-width:761px)").matches;
 let zoom = 1, manoPan = false, panIni = null;
 function fitAncho() { const L = $("lienzo"); const aw = L.clientWidth - 56, ah = L.clientHeight - 130; return Math.max(240, Math.min(aw, ah * (ANCHO * S + 20) / (FONDO * S + 20))); }
 function aplicarZoom() { if (!ZOOM_ON) return; const L = $("lienzo"); if (!L.clientWidth) return; $("pista").style.width = Math.round(fitAncho() * zoom) + "px"; $("zmPct").textContent = Math.round(zoom * 100) + "%"; }
@@ -1981,7 +2004,7 @@ function conectarPC(idBoton, idCaja) {
 document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && pcActivo && pcApi) salirPC(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pcActivo) salirPC(); });
 conectarPC("btnFsAni", "cajaAni"); conectarPC("mvFs", "mvCaja"); conectarPC("vsFs", "visor");
-if ($("btnDatos")) { $("btnDatos").addEventListener("click", () => document.querySelector(".datos-ed").classList.toggle("plegado")); if (window.innerWidth <= 1000) document.querySelector(".datos-ed").classList.add("plegado"); }
+if ($("btnDatos")) { $("btnDatos").addEventListener("click", () => document.querySelector(".datos-ed").classList.toggle("plegado")); if (window.innerWidth <= 760) document.querySelector(".datos-ed").classList.add("plegado"); }
 
 /* ============================================================
    ARRANQUE
@@ -2141,7 +2164,7 @@ if (VISOR) {
   if (EDITOR) {
     document.body.classList.add("editor");
     $("btnCerrarEd").style.display = ""; $("btnCerrarEd").addEventListener("click", cerrarEditor);
-    if (window.matchMedia("(min-width:1001px)").matches) {
+    if (window.matchMedia("(min-width:761px)").matches) {
       // barra superior: volver, nombre, pestanas, deshacer, datos y guardar (como en la otra app)
       const bar = document.querySelector(".barra-ed"), nom = $("nombre").parentElement;
       $("btnCerrarEd").textContent = "✕ Volver"; bar.prepend(nom); bar.prepend($("btnCerrarEd"));
@@ -2149,6 +2172,7 @@ if (VISOR) {
       document.querySelector(".datos-ed").classList.add("plegado");
     }
     if (window.matchMedia("(max-width:700px)").matches) iniciarMovil();
+    if (ZOOM_ON) { const ajustar = () => { try { fijarZoom(1, true); } catch (e) { /* sin zoom */ } }; setTimeout(ajustar, 400); setTimeout(ajustar, 1400); window.addEventListener("orientationchange", () => setTimeout(ajustar, 400)); }
     window.addEventListener("beforeunload", (e) => { if (instJugada() !== instGuardada) { e.preventDefault(); e.returnValue = ""; } });
     iniciarNube().then(recargarBib).then(() => {
       $("listaCarpetas").innerHTML = [...new Set(BIB.map(x => x.carpeta).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join("");
