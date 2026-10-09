@@ -184,6 +184,9 @@
   .pc .leyenda{max-height:22vh;overflow:auto;font-size:14px;}
   .pc .reprod{margin-top:8px;flex:none;} .pc #mvNotas,.pc #mvVideos,.pc #vsNotas,.pc #vsVideos{display:none;}
 
+  .panel-ops{margin:0 0 10px;} .panel-ops .tabs-op{display:flex;gap:6px;flex-wrap:wrap;} .panel-ops .tabs-op button{padding:7px 12px;border-radius:999px;font-size:13px;font-weight:700;background:#eef1f3;color:var(--ink);border:1.5px solid #dfe3e8;} .panel-ops .tabs-op button.on{background:#12a483;border-color:#12a483;color:#fff;} .panel-ops .tabs-op button.mas{background:#fff;border-style:dashed;}
+  .panel-ops .fila-op{display:flex;gap:6px;margin-top:8px;align-items:center;} .panel-ops .fila-op input{flex:1;min-width:0;}
+  .vopc{display:flex;gap:6px;align-items:center;margin:2px 0 8px;flex-wrap:wrap;} .vopc button{background:#fff;color:var(--ink);border:1.5px solid #12a483;padding:7px 13px;border-radius:999px;font-size:13px;font-weight:700;} .vopc button.on{background:#10151d;border-color:#10151d;color:#fff;} .pc .vopc button{background:#243041;border-color:#34425a;color:#e8edf4;} .pc .vopc button.on{background:#12a483;border-color:#12a483;}
   .vmodo{display:flex;gap:6px;align-items:center;margin:2px 0 8px;flex-wrap:wrap;} .vmodo button{background:#eef1f3;color:var(--ink);border:1.5px solid #dfe3e8;padding:8px 14px;border-radius:999px;font-size:13.5px;font-weight:700;} .vmodo button.on{background:#12a483;border-color:#12a483;color:#fff;}
   .vmodo select{width:auto;max-width:48%;padding:7px 10px;font-size:13px;margin-left:auto;}
   .vm-video .caja-pista,.vm-video .leyenda,.vm-video .reprod,.vm-video .hint{display:none !important;}
@@ -390,6 +393,7 @@
             <button id="btnVacioPaso" title="Nueva fase con las jugadoras donde están ahora, sin líneas">▢ Vacía</button>
             <button id="btnQuitarPaso" title="Quita esta fase">🗑 Quitar</button>
           </div>
+          <div class="panel-ops" id="panelOps"></div>
           <div class="panel-fase" id="panelFase">
             <label>Título de la fase</label>
             <input id="faseTitulo" placeholder="Ej: Bloqueo directo" maxlength="60">
@@ -421,6 +425,7 @@
           </div>
           <div class="bloque" id="panelFicha" style="display:none;">
             <h3 id="fiTitulo">Jugadora</h3>
+            <div class="lnfila"><span>Nº / nombre</span><input id="fiEtq" maxlength="12" placeholder="Ej: 7 o Ana" style="width:120px"></div>
             <div class="lnfila"><span>X</span><input type="number" id="fiX" step="0.1" style="width:70px"><span>Y</span><input type="number" id="fiY" step="0.1" style="width:70px"></div>
             <div class="fila"><button class="gris" id="fiBalon">🏀 Dar balón</button><button class="gris" id="fiQuitar" style="color:#c0392b;">🗑 Quitar</button></div>
           </div>
@@ -586,7 +591,9 @@ const clonar = (o) => JSON.parse(JSON.stringify(o));
 const idNuevo = () => "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
 /* ---------- fichas: o = circulo numerado, s = cuadrado numerado, d = X de defensa; numero 0 = "?" ---------- */
-const etiquetaFicha = (k) => (k.slice(1) === "0" ? "?" : k.slice(1));
+let ETQ = {};
+const fijarEtq = (j) => { ETQ = (j && j.etiquetas) || {}; };
+const etiquetaFicha = (k) => (ETQ[k] ? ETQ[k] : k.slice(1) === "0" ? "?" : k.slice(1));
 const esAtaque = (k) => k[0] === "o" || k[0] === "s";
 const FORMACIONES = {
   cinco:    { o1: [7.5, 9.4], o2: [12.6, 6.6], o3: [2.4, 6.6], o4: [13.4, 2.6], o5: [1.6, 2.6] },
@@ -625,6 +632,7 @@ function jugadaNueva(formacion) {
 /* Pone al dia jugadas guardadas con versiones anteriores */
 function normalizar(j) {
   if (!j || !j.pasos) return j;
+  if (j.opciones && j.opciones.length) { j.opciones[0].pasos = j.pasos; j.opAct = 0; j.opciones.forEach(o => { (o.pasos || []).forEach(p => { p.objs = p.objs || []; p.lineas = p.lineas || []; p.texto = p.texto || ""; }); }); } else { delete j.opciones; delete j.opAct; }
   if (j.v >= 3) { j.videos = j.videos || []; j.pasos.forEach(p => { p.objs = p.objs || []; }); return j; }
   j.videos = j.videos || [];
   j.pasos.forEach(p => {
@@ -639,7 +647,8 @@ function normalizar(j) {
 /* ---------- estado ---------- */
 let jugada = jugadaNueva(), paso = 0, herramienta = "mover", trazo = null, arrastre = null, arrastreObj = null, arrastreOH = null, selObj = -1, selOPaso = -1, selLinea = -1, selPaso = -1, arrastreH = null, selFicha = null, RESALTE = null, colorNuevo = "", portaLinea = null;
 let hist = [], rehacer = [];
-const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } return JSON.stringify({ jugada, paso }); };
+function sincOp(j) { j = j || jugada; if (j.opciones) j.opciones[j.opAct || 0].pasos = j.pasos; }
+const instantanea = () => { try { volcarCampos(); } catch (e) { /* visor */ } sincOp(); return JSON.stringify({ jugada, paso }); };
 function snap() { hist.push(instantanea()); if (hist.length > 80) hist.shift(); rehacer = []; botonesHistorial(); }
 function botonesHistorial() { const u = $("btnUndo"), r = $("btnRedo"); if (u) u.disabled = !hist.length; if (r) r.disabled = !rehacer.length; }
 function deshacerCambio() { if (!hist.length) return; rehacer.push(instantanea()); const e = JSON.parse(hist.pop()); jugada = e.jugada; paso = Math.min(e.paso, jugada.pasos.length - 1); refrescarTodo(); }
@@ -808,9 +817,9 @@ function fichaSvg(k, p, interactivo) {
   const x = (p.x * S).toFixed(1), y = (p.y * S).toFixed(1), n = etiquetaFicha(k), datos = interactivo ? `data-j="${k}" style="cursor:grab"` : "";
   const cx = p.x * S, cy = p.y * S, hit = (interactivo && k === RESALTE ? `<circle cx="${x}" cy="${y}" r="22" fill="rgba(255,255,255,.62)"/>` : "") + `<circle cx="${x}" cy="${y}" r="19" fill="transparent"/>`;
   if (k[0] === "d") return `<g ${datos}>${hit}<g stroke="#d9304f" stroke-width="3.8" stroke-linecap="round"><line x1="${(cx - 10).toFixed(1)}" y1="${(cy - 10).toFixed(1)}" x2="${(cx + 10).toFixed(1)}" y2="${(cy + 10).toFixed(1)}"/><line x1="${(cx + 10).toFixed(1)}" y1="${(cy - 10).toFixed(1)}" x2="${(cx - 10).toFixed(1)}" y2="${(cy + 10).toFixed(1)}"/></g>
-    <text x="${(cx + 12).toFixed(1)}" y="${(cy + 14).toFixed(1)}" font-family="Arial" font-weight="800" font-size="13" fill="#d9304f">${n}</text></g>`;
+    <text x="${(cx + 12).toFixed(1)}" y="${(cy + 14).toFixed(1)}" font-family="Arial" font-weight="800" font-size="13" fill="#d9304f">${esc(n)}</text></g>`;
   const marco = k[0] === "s" ? `<rect x="${(cx - 15).toFixed(1)}" y="${(cy - 15).toFixed(1)}" width="30" height="30" rx="5" fill="none" stroke="${TINTA}" stroke-width="2.2"/>` : "";
-  return `<g ${datos}>${hit}${marco}<text x="${x}" y="${(cy + 8).toFixed(1)}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="23" fill="${TINTA}">${n}</text></g>`;
+  return `<g ${datos}>${hit}${marco}<text x="${x}" y="${(cy + 8).toFixed(1)}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="${n.length <= 2 ? 23 : Math.max(9, Math.round(44 / n.length))}" fill="${TINTA}">${esc(n)}</text></g>`;
 }
 function jugadoresSvg(pos, balonPos, interactivo) {
   let s = "";
@@ -831,7 +840,7 @@ function rotuloSvg(txt, op) {
 /* todo el dibujo se recorta al rectangulo de la pista (la madera no se sale al ajustar a la pantalla) */
 const CLIP_INI = "", CLIP_FIN = "";
 function svgPaso(j, i, opciones) {
-  opciones = opciones || {};
+  opciones = opciones || {}; fijarEtq(j);
   const p = j.pasos[i];
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
@@ -988,6 +997,7 @@ function rotuloFase(j, i, t, dur) {
   return op > 0.02 ? rotuloSvg(f.titulo, op.toFixed(2)) : "";
 }
 function fotogramaAnim(j, caja, i, t, dur) {
+  fijarEtq(j);
   const E = estadoEn(j, i, t, dur);
   let lineas = ""; E.vis.forEach(v => { lineas += lineaSvg(recorteLinea(v.l, v.f), 1); });
   caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${CLIP_INI}${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}${rotuloFase(j, i, t, dur)}${CLIP_FIN}</svg>`;
@@ -1157,7 +1167,43 @@ function pintarHerramientas() {
   $("toolsSec").innerHTML = `<button data-t="mover" class="suave on">✋ Colocar</button><button data-t="balon" class="suave">🏀 Balón</button><button data-t="borrar" class="suave">🗑 Borrar</button>`;
   $("toolsObj").innerHTML = Object.keys(OBJETOS).map(t => `<button data-t="obj-${t}" title="${OBJETOS[t]}">${t === "texto" ? '<b style="font:800 22px Georgia,serif">T</b>' : iconoObjeto(t)}</button>`).join("");
 }
+function pintarOpciones() {
+  const c = $("panelOps"); if (!c) return;
+  const ops = jugada.opciones, act = jugada.opAct || 0;
+  let h = '<div class="tabs-op">';
+  if (ops) ops.forEach((o, k) => { h += `<button data-k="${k}" class="${k === act ? "on" : ""}">${esc(o.nombre || "Opción " + (k + 1))}</button>`; });
+  h += `<button class="mas" id="opMas">＋ ${ops ? "Opción" : "Añadir otra opción"}</button></div>`;
+  if (ops) h += `<div class="fila-op"><input id="opNombre" maxlength="30" placeholder="Nombre de la opción" value="${esc(ops[act].nombre || "")}"><button class="gris" id="opQuitar" style="color:#c0392b;">🗑 Quitar</button></div>`;
+  c.innerHTML = h;
+  c.querySelectorAll(".tabs-op button[data-k]").forEach(b => b.addEventListener("click", () => cambiarOpcion(Number(b.dataset.k))));
+  $("opMas").addEventListener("click", nuevaOpcion);
+  if (ops) {
+    $("opNombre").addEventListener("input", (e) => { ops[act].nombre = e.target.value; const t = c.querySelector(`.tabs-op button[data-k="${act}"]`); if (t) t.textContent = e.target.value || "Opción " + (act + 1); });
+    $("opQuitar").addEventListener("click", quitarOpcion);
+  }
+}
+function cambiarOpcion(k) {
+  if (!jugada.opciones || k === (jugada.opAct || 0)) return;
+  sincOp(); jugada.opAct = k; jugada.pasos = jugada.opciones[k].pasos; paso = 0; selLinea = -1; selFicha = null; selObj = -1; pintar();
+}
+function nuevaOpcion() {
+  snap();
+  if (!jugada.opciones) { jugada.opciones = [{ nombre: "Opción 1", pasos: jugada.pasos }]; jugada.opAct = 0; }
+  sincOp();
+  const base = clonar(jugada.pasos[0]); base.lineas = []; base.texto = ""; delete base.titulo; delete base.mostrarTitulo;
+  jugada.opciones.push({ nombre: "Opción " + (jugada.opciones.length + 1), pasos: [base] });
+  jugada.opAct = jugada.opciones.length - 1; jugada.pasos = jugada.opciones[jugada.opAct].pasos; paso = 0; selLinea = -1; selFicha = null; selObj = -1; pintar();
+}
+function quitarOpcion() {
+  if (!jugada.opciones) return;
+  if (!confirm("¿Quitar esta opción y sus fases?")) return;
+  snap(); const k = jugada.opAct || 0; jugada.opciones.splice(k, 1);
+  if (jugada.opciones.length < 2) { jugada.pasos = jugada.opciones[0].pasos; delete jugada.opciones; delete jugada.opAct; }
+  else { jugada.opAct = Math.min(k, jugada.opciones.length - 1); jugada.pasos = jugada.opciones[jugada.opAct].pasos; }
+  paso = 0; selLinea = -1; selFicha = null; selObj = -1; pintar();
+}
 function pintar() {
+  fijarEtq(jugada); pintarOpciones();
   if (!jugada.pasos[paso]) paso = 0;
   const act = jugada.pasos[paso];
   if (selPaso !== paso || selLinea >= act.lineas.length) selLinea = -1;
@@ -1269,6 +1315,7 @@ function pintarPanelFicha() {
   $("fiTitulo").textContent = (k[0] === "d" ? "DEFENSA " : "JUGADORA ") + etiquetaFicha(k);
   if (document.activeElement !== $("fiX")) $("fiX").value = q.x.toFixed(1);
   if (document.activeElement !== $("fiY")) $("fiY").value = q.y.toFixed(1);
+  if (document.activeElement !== $("fiEtq")) $("fiEtq").value = (jugada.etiquetas || {})[k] || "";
   $("fiBalon").style.display = esAtaque(k) ? "" : "none";
   $("fiBalon").disabled = act.balon === k;
 }
@@ -1536,11 +1583,23 @@ function crearVisor(ids, dur) {
     $(ids.titulo).textContent = v.j.nombre || "Jugada";
     $(ids.notas).textContent = v.j.notas || "";
     if (ids.videos) $(ids.videos).innerHTML = videosHtml(v.j);
+    prepararOpciones();
     if (ids.videos) prepararModos();
+    preparar();
+  };
+  const preparar = () => {
     const { segs, total } = segmentosAnim(v.j, dur, 0, v.j.pasos.length - 1);
     linea.innerHTML = segs.length ? segs.map(s => `<div class="seg" style="flex:${s.dur + PAUSA_FASE};"><i></i></div>`).join("") : `<div class="seg"><i></i></div>`;
     tiempo.textContent = "0:00 / " + tiempoTxt(total);
     mostrar();
+  };
+  const prepararOpciones = () => {
+    const viejo = cont.querySelector(":scope > .vopc"); if (viejo) viejo.remove();
+    const ops = v.j.opciones; v.op = 0; if (!ops || ops.length < 2) return;
+    const barra = document.createElement("div"); barra.className = "vopc";
+    barra.innerHTML = ops.map((o, k) => `<button data-k="${k}" class="${k === 0 ? "on" : ""}">${esc(o.nombre || "Opción " + (k + 1))}</button>`).join("");
+    cont.insertBefore(barra, pista);
+    barra.addEventListener("click", (e) => { const b = e.target.closest("button[data-k]"); if (!b) return; detener(); v.op = Number(b.dataset.k); v.j.pasos = ops[v.op].pasos; v.i = 0; barra.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); preparar(); });
   };
   /* modos cuando la jugada tiene video: pista (normal) / video / los dos a la vez (pista arriba, video abajo) */
   const cont = pista.parentElement;
@@ -1556,7 +1615,7 @@ function crearVisor(ids, dur) {
         if (m === "pista") cajaV.innerHTML = videosHtml(v.j);
         else { const x = vids[v.vsel || 0] || vids[0]; cajaV.innerHTML = `<div class="un-video">${videoHtml(x.url)}</div>`; }
       }
-      [...cont.children].forEach(el => { el.style.order = m === "ambos" ? (el.id === ids.titulo ? 0 : el.classList.contains("vmodo") ? 1 : el === pista ? 2 : el === cajaV ? 3 : 4) : ""; });
+      [...cont.children].forEach(el => { el.style.order = m === "ambos" ? (el.id === ids.titulo ? 0 : (el.classList.contains("vmodo") || el.classList.contains("vopc")) ? 1 : el === pista ? 2 : el === cajaV ? 3 : 4) : ""; });
       if (m !== "pista") { const mv = cajaV.querySelector("video,iframe"); void mv; }
     };
     v.modo = "pista"; v.vsel = 0; cont.classList.remove("vm-video", "vm-dual"); [...cont.children].forEach(el => { el.style.order = ""; });
@@ -1630,6 +1689,10 @@ function pintarEstado() {
   });
 }
 async function guardarJugada(j) {
+  sincOp(j); const sv = clonar(j); delete sv.opAct; if (sv.opciones) sv.pasos = sv.opciones[0].pasos;
+  const ok = await guardarJugada0(sv); if (ok) j.actualizada = sv.actualizada; return ok;
+}
+async function guardarJugada0(j) {
   j.actualizada = new Date().toISOString();
   if (EJ) {
     if (!modoNube) { aviso("Hace falta conexión con la nube para guardar ejercicios."); return false; }
@@ -1704,6 +1767,7 @@ function iniciarMovil() {
   const fila = document.createElement("div"); fila.id = "filaFase";
   fila.innerHTML = '<button class="nav" id="fAnt">‹</button><span class="et" id="fEt">FASE 1/1</span><button class="nav" id="fSig">›</button><span class="split"><button id="fNueva">Fase siguiente</button><button id="fMas">▾</button></span>';
   document.querySelector(".col-pista").prepend(fila);
+  fila.after($("panelOps")); $("panelOps").style.padding="0 10px";
   const irFase = (n) => { if (n < 0 || n >= jugada.pasos.length) return; paso = n; selLinea = -1; selFicha = null; selObj = -1; pintar(); };
   $("fAnt").onclick = () => irFase(paso - 1); $("fSig").onclick = () => irFase(paso + 1);
   $("fNueva").onclick = () => $("btnNuevoPaso").click();
@@ -1904,6 +1968,8 @@ if (VISOR) {
   });
   const cambiaXY = () => { const q = jugada.pasos[paso].pos[selFicha]; if (!q) return; const x = parseFloat($("fiX").value), y = parseFloat($("fiY").value); if (isFinite(x)) q.x = Math.max(0, Math.min(ANCHO, x)); if (isFinite(y)) q.y = Math.max(0, Math.min(FONDO, y)); pintar(); };
   ["fiX", "fiY"].forEach(id => { $(id).addEventListener("focus", snap); $(id).addEventListener("input", cambiaXY); });
+  $("fiEtq").addEventListener("input", (e) => { if (!selFicha) return; const val = e.target.value.trim(); jugada.etiquetas = jugada.etiquetas || {}; if (val) jugada.etiquetas[selFicha] = val; else delete jugada.etiquetas[selFicha]; if (!Object.keys(jugada.etiquetas).length) delete jugada.etiquetas; const f = document.activeElement; pintar(); });
+  $("fiEtq").addEventListener("focus", () => snap());
   $("fiBalon").addEventListener("click", () => { if (!selFicha) return; snap(); jugada.pasos[paso].balon = selFicha; pintar(); });
   $("fiQuitar").addEventListener("click", () => { if (!selFicha) return; const k = selFicha; selFicha = null; alternarFicha(k); });
   let plantElegida = "vacia";
