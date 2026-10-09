@@ -1768,6 +1768,14 @@ html.modo-partido main{padding:8px !important;}
 html.modo-partido .team{pointer-events:none;}
 html.modo-partido body{background:transparent;}
 body.rol-ayudante #btnPdfPagina{display:inline-block;}
+
+  /* selector de zona (Estadísticas / Entrenador) */
+  .zona-sel{cursor:pointer;-webkit-user-select:none;user-select:none;}
+  .zona-sel .chev{margin-left:auto;color:#8a95a1;font-size:12px;padding-left:6px;}
+  .zona-menu{position:fixed;z-index:9999;background:#fff;border:1px solid #e3e7ea;border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:240px;max-width:calc(100vw - 20px);font-family:'Archivo','Inter',system-ui,sans-serif;}
+  .zona-menu a{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;font-weight:700;font-size:14px;color:#2b3640;text-decoration:none;}
+  .zona-menu a small{display:block;font-weight:600;color:#8a95a1;font-size:11px;margin-top:1px;}
+  .zona-menu a:hover{background:#f1f3f5;} .zona-menu a.on{background:#e8f4f0;color:#2f8f78;} .zona-menu .ck{margin-left:auto;}
 </style>
 </head>
 <body>
@@ -1789,9 +1797,9 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
 </div>
 <div id="fondoMenu"></div>
 <aside id="barraLateral">
-  <div class="marca-app">
+  <div class="marca-app zona-sel" data-zona="estadisticas" title="Cambiar de zona">
     <span class="logo-bola">●</span>
-    <div><b>Scout<span>Flow</span></b><small id="marcaTemporada">Liga Femenina 2</small></div>
+    <div><b>Scout<span>Flow</span></b><small>Estadísticas</small><small id="marcaTemporada" style="display:none">Liga Femenina 2</small></div><span class="chev">▾</span>
   </div>
   <div class="sel-temporada">
     <label for="selTemporada">Temporada</label>
@@ -1811,7 +1819,7 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
   <button data-view="resultados">Resultados</button>
   <button data-view="records">Records</button>
   <button data-view="informes">Informes</button>
-  <button data-view="pizarra">🏀 Entrenador</button>
+  <button data-view="pizarra" style="display:none">🏀 Entrenador</button>
   </nav>
   <div class="pie-lateral">
     <button id="btnPanelApp" data-view="mis-jugadoras" title="Panel de control: jugadoras, accesos, lo que ven y lo que les envias">⚙️ Panel</button>
@@ -12490,6 +12498,28 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
     if (grupoActivo) setGrupo(grupoActivo); else renderTodo();
   });
 });
+
+// ---- selector de zona: Estadísticas / Entrenador ----
+(function () {
+  const sel = document.querySelector(".zona-sel"); if (!sel) return;
+  const ACTUAL = sel.dataset.zona;
+  let menu = null;
+  const cerrar = () => { if (menu) { menu.remove(); menu = null; const c = sel.querySelector(".chev"); if (c) c.textContent = "▾"; } };
+  sel.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (menu) { cerrar(); return; }
+    const v = (typeof VERSION_APP !== "undefined" ? "?v=" + VERSION_APP : "");
+    menu = document.createElement("div"); menu.className = "zona-menu";
+    const it = (z, ico, t, sub, href) => `<a href="${href}" class="${ACTUAL === z ? "on" : ""}" data-z="${z}"><span>${ico}</span><span>${t}<small>${sub}</small></span>${ACTUAL === z ? '<span class="ck">✓</span>' : ""}</a>`;
+    menu.innerHTML = it("estadisticas", "📊", "Estadísticas", "Partidos, equipos, informes", "index.html" + v) + it("entrenador", "🏀", "Entrenador", "Jugadas, playbooks, planes", "entrenador.html" + v);
+    document.body.appendChild(menu);
+    const r = sel.getBoundingClientRect();
+    menu.style.left = Math.max(10, Math.min(r.left, innerWidth - menu.offsetWidth - 10)) + "px"; menu.style.top = (r.bottom + 6) + "px";
+    const c = sel.querySelector(".chev"); if (c) c.textContent = "▴";
+    menu.querySelectorAll("a").forEach(a => a.addEventListener("click", (ev) => { if (a.dataset.z === ACTUAL) { ev.preventDefault(); cerrar(); } }));
+  });
+  document.addEventListener("click", cerrar); window.addEventListener("resize", cerrar);
+})();
 </script>
 </body>
 </html>

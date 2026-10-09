@@ -430,12 +430,21 @@
     }
   }
 
+
+  /* selector de zona (Estadísticas / Entrenador) */
+  .zona-sel{cursor:pointer;-webkit-user-select:none;user-select:none;}
+  .zona-sel .chev{margin-left:auto;color:#8a95a1;font-size:12px;padding-left:6px;}
+  .zona-menu{position:fixed;z-index:9999;background:#fff;border:1px solid #e3e7ea;border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:240px;max-width:calc(100vw - 20px);font-family:'Archivo','Inter',system-ui,sans-serif;}
+  .zona-menu a{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;font-weight:700;font-size:14px;color:#2b3640;text-decoration:none;}
+  .zona-menu a small{display:block;font-weight:600;color:#8a95a1;font-size:11px;margin-top:1px;}
+  .zona-menu a:hover{background:#f1f3f5;} .zona-menu a.on{background:#e8f4f0;color:#2f8f78;} .zona-menu .ck{margin-left:auto;}
+  #app.col .zona-sel .chev{display:none;}
 </style>
 </head>
 <body>
 <div id="app">
   <aside>
-    <div class="marca"><div class="logo"><span class="lg-bola">●</span><div class="lg-t"><b>Scout<span>Flow</span></b><small>Entrenador</small></div></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div><div class="perfil" id="perfil" title="Mi equipo"><span class="av" id="perfilAv">🏀</span><div class="tt"><b id="perfilEq">Mi equipo</b><small id="perfilTe">Añade tu escudo</small></div></div>
+    <div class="marca"><div class="logo zona-sel" data-zona="entrenador" title="Cambiar de zona"><span class="lg-bola">●</span><div class="lg-t"><b>Scout<span>Flow</span></b><small>Entrenador</small></div><span class="chev">▾</span></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div><div class="perfil" id="perfil" title="Mi equipo"><span class="av" id="perfilAv">🏀</span><div class="tt"><b id="perfilEq">Mi equipo</b><small id="perfilTe">Añade tu escudo</small></div></div>
     <div class="grupo"><h4>Jugadas</h4>
       <button data-s="jugadas"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
       <button data-s="playbooks"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.500-1.500-6-1.500-9 .5-3-2-6.500-2-9-.5z"/><path d="M12 6v13.500"/></svg></span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
@@ -449,7 +458,7 @@
       <button data-s="imagen"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="4" width="17" height="16" rx="2.500"/><circle cx="9" cy="9.500" r="1.600"/><path d="M4 17l5-4.500 4 3.500 3-2.500 4 3.500"/></svg></span><span class="tx">Imágenes</span><span class="n" id="n-imagen"></span></button>
       <button data-s="audio"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4.500" height="6" rx="1.500"/><rect x="16.500" y="14" width="4.500" height="6" rx="1.500"/></svg></span><span class="tx">Audio</span><span class="n" id="n-audio"></span></button>
     </div>
-    <div class="pie"><a href="index.html"><span class="i">←</span><span class="tx"> Volver a estadísticas</span></a></div>
+    <div class="pie" style="display:none"><a href="index.html"><span class="i">←</span><span class="tx"> Volver a estadísticas</span></a></div>
   </aside>
   <div id="topMov"><button id="tmIzq" aria-label="Menú">☰</button><b id="tmTit">Jugadas</b><button id="tmMas" aria-label="Nuevo">＋</button></div>
   <main id="main"><p class="vacio">Cargando…</p></main>
@@ -1464,6 +1473,28 @@ async function iniciar() {
   pintar();
 }
 iniciar();
+
+// ---- selector de zona: Estadísticas / Entrenador ----
+(function () {
+  const sel = document.querySelector(".zona-sel"); if (!sel) return;
+  const ACTUAL = sel.dataset.zona;
+  let menu = null;
+  const cerrar = () => { if (menu) { menu.remove(); menu = null; const c = sel.querySelector(".chev"); if (c) c.textContent = "▾"; } };
+  sel.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (menu) { cerrar(); return; }
+    const v = (typeof VERSION_APP !== "undefined" ? "?v=" + VERSION_APP : "");
+    menu = document.createElement("div"); menu.className = "zona-menu";
+    const it = (z, ico, t, sub, href) => `<a href="${href}" class="${ACTUAL === z ? "on" : ""}" data-z="${z}"><span>${ico}</span><span>${t}<small>${sub}</small></span>${ACTUAL === z ? '<span class="ck">✓</span>' : ""}</a>`;
+    menu.innerHTML = it("estadisticas", "📊", "Estadísticas", "Partidos, equipos, informes", "index.html" + v) + it("entrenador", "🏀", "Entrenador", "Jugadas, playbooks, planes", "entrenador.html" + v);
+    document.body.appendChild(menu);
+    const r = sel.getBoundingClientRect();
+    menu.style.left = Math.max(10, Math.min(r.left, innerWidth - menu.offsetWidth - 10)) + "px"; menu.style.top = (r.bottom + 6) + "px";
+    const c = sel.querySelector(".chev"); if (c) c.textContent = "▴";
+    menu.querySelectorAll("a").forEach(a => a.addEventListener("click", (ev) => { if (a.dataset.z === ACTUAL) { ev.preventDefault(); cerrar(); } }));
+  });
+  document.addEventListener("click", cerrar); window.addEventListener("resize", cerrar);
+})();
 </script>
 </body>
 </html>
