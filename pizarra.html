@@ -1077,7 +1077,7 @@ function manejadoresSvg() {
     return `<circle cx="${(q[0] * S).toFixed(1)}" cy="${(q[1] * S).toFixed(1)}" r="${fin ? 7 : 5.5}" fill="${fin ? "#1a73e8" : "#fff"}" stroke="${fin ? "#fff" : "#1a73e8"}" stroke-width="2.2" pointer-events="none"/>`; }).join("");
 }
 function pistaEdicion() {
-  return svgPaso(jugada, paso, { todas: true, interactivo: true }).replace(/<\/svg>$/, manejadoresSvg() + "</svg>");
+  return svgPaso(jugada, paso, { interactivo: true }).replace(/<\/svg>$/, manejadoresSvg() + "</svg>");
 }
 /* mueve un extremo y deforma el resto de la linea con ella (semejanza respecto a la cuerda) */
 function moverExtremo(l, orig, i, p) {
@@ -1501,7 +1501,7 @@ function png() {
     c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
     c.toBlob(b => descargar(nombreArchivo() + "_fase" + (paso + 1) + ".png", b), "image/png");
   };
-  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgPaso(jugada, paso, { todas: true, ancho: 1000 }));
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgPaso(jugada, paso, { ancho: 1000 }));
 }
 function imprimir() {
   volcarCampos();
