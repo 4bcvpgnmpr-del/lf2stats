@@ -84,7 +84,8 @@
   .lista-sel{border:1.5px solid var(--line);border-radius:12px;max-height:300px;overflow:auto;margin-top:6px;}
   .lista-sel label.it{display:flex;gap:10px;align-items:center;margin:0;padding:9px 12px;border-top:1px solid var(--line);text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;}
   .lista-sel label.it:first-child{border-top:0;}
-  .lista-sel input[type=checkbox]{width:auto;}
+  .lista-sel input[type=checkbox],.lista-sel input[type=radio]{width:auto;}
+  .lista-sel label.it span{display:flex;align-items:center;gap:8px;}
   #editorMarco,#visorMarco{position:fixed;inset:0;z-index:250;background:var(--bg);display:none;flex-direction:column;}
   #editorMarco.ver,#visorMarco.ver{display:flex;}
   #editorMarco iframe,#visorMarco iframe{flex:1;border:0;width:100%;}
@@ -398,7 +399,7 @@ function pintarCarpetas(v, tipo) {
     soltarEn(el, tipo, nombre);
     el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ car: nombre })); e.dataTransfer.effectAllowed = "move"; el.classList.add("arrastrando"); });
     el.addEventListener("dragend", () => el.classList.remove("arrastrando"));
-    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]]); });
+    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["📁 Mover…", () => elegirDestinoCarpeta(tipo, nombre)], ["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]]); });
   });
   v.querySelectorAll("[data-id]").forEach(el => {
     const x = D[tipo].find(y => y.id === el.dataset.id);
@@ -416,15 +417,7 @@ function soltarEn(el, tipo, nombre) {
     e.preventDefault(); e.stopPropagation(); el.classList.remove("sobre");
     let p = null; try { p = JSON.parse(e.dataTransfer.getData("text/plain")); } catch (x) { return; }
     if (!p) return;
-    if (p.car) {
-      const nuevo = (nombre ? nombre + "/" : "") + ultimo(p.car);
-      if (nuevo === p.car) return;
-      if (nombre && enRama(nombre, p.car)) { aviso("No se puede meter una carpeta dentro de sí misma"); return; }
-      if (rutasCarpetas(tipo).some(c => c.nombre === nuevo)) { aviso("Ya existe una carpeta llamada «" + ultimo(p.car) + "» ahí"); return; }
-      await moverCarpeta(tipo, p.car, nuevo);
-      aviso("Carpeta «" + ultimo(p.car) + "» movida" + (nombre ? " a «" + nombre + "»" : " a la raíz"));
-      await cargarTodo(); pintar(); return;
-    }
+    if (p.car) { await moverCarpetaA(tipo, p.car, nombre); return; }
     const lista = D[tipo].filter(x => (p.ids || []).includes(x.id) && (x.carpeta || "") !== nombre); if (!lista.length) return;
     for (const x of lista) await ponerCarpeta(tipo, x, nombre);
     seleccion.clear(); aviso(lista.length + (lista.length > 1 ? " elementos movidos" : " elemento movido") + (nombre ? " a «" + nombre + "»" : " a la raíz"));
@@ -467,6 +460,23 @@ async function moverCarpeta(tipo, de, a) {
     await guardarFila("carpetas", { tipo, nombre: nuevo });
   }
   for (const x of D[tipo].filter(y => y.carpeta && enRama(y.carpeta, de))) await ponerCarpeta(tipo, x, a + x.carpeta.slice(de.length));
+}
+/* mueve la carpeta `ruta` dentro de `destino` ("" = raiz) con las comprobaciones */
+async function moverCarpetaA(tipo, ruta, destino) {
+  const nuevo = (destino ? destino + "/" : "") + ultimo(ruta);
+  if (nuevo === ruta) return;
+  if (destino && enRama(destino, ruta)) { aviso("No se puede meter una carpeta dentro de sí misma"); return; }
+  if (rutasCarpetas(tipo).some(c => c.nombre === nuevo)) { aviso("Ya existe una carpeta llamada «" + ultimo(ruta) + "» ahí"); return; }
+  await moverCarpeta(tipo, ruta, nuevo);
+  if (carpeta && enRama(carpeta, ruta)) carpeta = nuevo + carpeta.slice(ruta.length);
+  aviso("Carpeta «" + ultimo(ruta) + "» movida" + (destino ? " a «" + destino + "»" : " a la raíz"));
+  await cargarTodo(); pintar();
+}
+function elegirDestinoCarpeta(tipo, ruta) {
+  const opciones = rutasCarpetas(tipo).map(c => c.nombre).filter(n => !enRama(n, ruta) && n !== padreDe(ruta)).sort((a, b) => a.localeCompare(b, "es"));
+  const m = ventana(`<h3>Mover la carpeta «${esc(ultimo(ruta))}»</h3><label>¿Dónde la quieres?</label><div class="lista-sel">${padreDe(ruta) ? `<label class="it"><input type="radio" name="dest" value="" checked><span>📂 Raíz (fuera de cualquier carpeta)</span></label>` : ""}${opciones.map((n, i) => `<label class="it"><input type="radio" name="dest" value="${esc(n)}" ${!padreDe(ruta) && i === 0 ? "checked" : ""}><span>${SVG_CARPETA(18)} ${esc(n.split("/").join(" › "))}</span></label>`).join("")}${!opciones.length && !padreDe(ruta) ? '<div class="vacio">No hay otras carpetas.</div>' : ""}</div><div class="pie-m"><button class="gris" id="dc1">Cancelar</button><button class="naranja" id="dc2">Mover aquí</button></div>`);
+  $("dc1").onclick = cerrarVentana;
+  $("dc2").onclick = async () => { const r = m.querySelector('input[name="dest"]:checked'); cerrarVentana(); if (r) await moverCarpetaA(tipo, ruta, r.value); };
 }
 async function renombrarCarpeta(tipo, ruta) {
   preguntar("Renombrar carpeta", "Nombre", ultimo(ruta), async (n) => {
