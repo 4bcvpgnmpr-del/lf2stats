@@ -885,7 +885,12 @@ function recorteLinea(l, f) {
 }
 function etapasDe(p) {
   const st = [];
-  p.lineas.forEach((l, i) => { if (!st.length || l.despues) st.push([i]); else st[st.length - 1].push(i); });
+  const esBalon = (l) => !l.opcional && (l.t === "pase" || l.t === "entrega" || l.t === "tiro");
+  p.lineas.forEach((l, i) => {
+    /* dos acciones de balon nunca van a la vez: cada pase espera a que el anterior llegue */
+    const choca = st.length && esBalon(l) && st[st.length - 1].some(k => esBalon(p.lineas[k]));
+    if (!st.length || l.despues || choca) st.push([i]); else st[st.length - 1].push(i);
+  });
   return st;
 }
 function puntoEn(pts, f) {
