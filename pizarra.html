@@ -172,6 +172,7 @@
   /* ventanas */
   body.editor .menu-ent,body.editor #enlaceVolver{display:none !important;}
   body.editor header{margin-bottom:6px;}
+  #modalImp{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:150;display:none;align-items:center;justify-content:center;padding:14px;} #modalImp.ver{display:flex;} #modalImp .caja{background:var(--white);border-radius:16px;width:100%;max-width:760px;max-height:94vh;overflow:auto;padding:16px;} #modalImp h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 6px;}
   #modalPlant{position:fixed;inset:0;background:rgba(15,23,35,.78);z-index:150;display:none;align-items:center;justify-content:center;padding:14px;}
   #modalPlant.ver{display:flex;}
   #modalPlant .caja{background:var(--white);border-radius:16px;width:100%;max-width:760px;max-height:94vh;overflow:auto;padding:16px;}
@@ -429,6 +430,7 @@
             <button id="btnNuevoPaso" title="Nueva fase donde acaba esta: cada jugadora aparece donde terminó su línea">➡ Siguiente</button>
             <button id="btnDupPaso" title="Copia esta fase tal cual">⧉ Clonar</button>
             <button id="btnVacioPaso" title="Nueva fase con las jugadoras donde están ahora, sin líneas">▢ Vacía</button>
+            <button id="btnImpPaso" title="Trae una fase de otra jugada y la añade después de esta">⤓ Importar</button>
             <button id="btnQuitarPaso" title="Quita esta fase">🗑 Quitar</button>
           </div>
           <div class="panel-ops" id="panelOps"></div>
@@ -578,6 +580,13 @@
   <p class="hint" style="margin:0 0 10px;">Punto de partida de la jugada. Luego puedes añadir o quitar jugadoras, defensas y objetos.</p>
   <div class="rejilla-plant" id="rejillaPlant"></div>
   <div class="fila" style="margin-top:12px;justify-content:flex-end;"><button class="gris" id="plantCancelar">Cancelar</button><button class="naranja" id="plantEmpezar">Empezar a dibujar</button></div>
+</div></div>
+<div id="modalImp"><div class="caja">
+  <h3>Importar fase</h3>
+  <p class="hint" style="margin:0 0 10px;">Elige una jugada y toca la fase que quieres traer. Se añade justo después de la fase actual.</p>
+  <select id="impSel" style="width:100%;margin-bottom:10px;"></select>
+  <div class="rejilla-plant" id="impRej"></div>
+  <div class="fila" style="margin-top:12px;justify-content:flex-end;"><button class="gris" id="impCerrar">Cerrar</button></div>
 </div></div>
 <div id="modalVer"><div class="caja" id="mvCaja">
   <h3 id="mvTitulo"></h3>
@@ -1316,8 +1325,11 @@ function lineaCerca(p, max) {
 function handleCerca(l, p) {
   let mejor = -1, dm = 0.55;
   l.pts.forEach((q, i) => { const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d <= dm) { dm = d; mejor = i; } });
+  // linea recta: el tirador del medio permite curvarla
+  if (mejor < 0 && l.pts.length === 2) { const m = puntoMedio(l.pts); if (Math.hypot(p.x - m[0], p.y - m[1]) <= 0.75 && Math.hypot(l.pts[1][0] - l.pts[0][0], l.pts[1][1] - l.pts[0][1]) > 1.4) return -2; }
   return mejor;
 }
+const puntoMedio = (pts) => [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2];
 function seleccionarLinea(i) {
   selLinea = i; selPaso = paso;
   const l = jugada.pasos[paso].lineas[i];
@@ -1335,8 +1347,9 @@ function manejadoresSvg() {
   }
   const l = selLinea >= 0 && selPaso === paso ? jugada.pasos[paso].lineas[selLinea] : null;
   if (!l) return "";
+  const mid = (l.pts.length === 2 && Math.hypot(l.pts[1][0] - l.pts[0][0], l.pts[1][1] - l.pts[0][1]) > 1.4) ? (() => { const m = puntoMedio(l.pts); return `<circle cx="${(m[0] * S).toFixed(1)}" cy="${(m[1] * S).toFixed(1)}" r="6.5" fill="#fff" fill-opacity=".9" stroke="#1a73e8" stroke-width="2.2" stroke-dasharray="3 2" pointer-events="none"/>`; })() : "";
   return l.pts.map((q, i) => { const fin = i === 0 || i === l.pts.length - 1;
-    return `<circle cx="${(q[0] * S).toFixed(1)}" cy="${(q[1] * S).toFixed(1)}" r="${fin ? 7 : 5.5}" fill="${fin ? "#1a73e8" : "#fff"}" stroke="${fin ? "#fff" : "#1a73e8"}" stroke-width="2.2" pointer-events="none"/>`; }).join("");
+    return `<circle cx="${(q[0] * S).toFixed(1)}" cy="${(q[1] * S).toFixed(1)}" r="${fin ? 7 : 5.5}" fill="${fin ? "#1a73e8" : "#fff"}" stroke="${fin ? "#fff" : "#1a73e8"}" stroke-width="2.2" pointer-events="none"/>`; }).join("") + mid;
 }
 function pistaEdicion() {
   return svgPaso(jugada, paso, { interactivo: true }).replace(/<\/svg>$/, manejadoresSvg() + "</svg>");
@@ -1402,6 +1415,7 @@ function alPulsar(ev) {
   }
   if (selLinea >= 0 && selPaso === paso && act.lineas[selLinea]) {
     let h = handleCerca(act.lineas[selLinea], p);
+    if (h === -2) { const lc = act.lineas[selLinea]; snap(); lc.pts.splice(1, 0, puntoMedio(lc.pts)); if (lc.forma === "recta") delete lc.forma; arrastreH = { i: 1, orig: clonar(lc.pts) }; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } return; }
     // con otra herramienta de dibujo activa, pulsar la punta de la linea elegida empieza una continuacion (no mueve el punto)
     const sel0 = act.lineas[selLinea];
     if (h >= 0 && h === sel0.pts.length - 1 && sel0.de && MOVEDORAS.includes(sel0.t) && ["bote", "corte", "pantalla", "mueve", "entrega", "pase", "tiro"].includes(herramienta) && herramienta !== sel0.t) h = -1;
@@ -1475,6 +1489,7 @@ function alSoltar() {
   if (arrastreH) {
     const act = jugada.pasos[paso], l = act.lineas[selLinea], i = arrastreH.i, n = l.pts.length; arrastreH = null;
     if (l) {
+      if (n === 3 && i === 1 && distSeg({ x: l.pts[1][0], y: l.pts[1][1] }, l.pts[0], l.pts[2]) < 0.15) l.pts.splice(1, 1);
       if (i === 0) { const k = fichaCerca({ x: l.pts[0][0], y: l.pts[0][1] }, 1.0); if (k) { l.de = k; l.pts[0] = [act.pos[k].x, act.pos[k].y]; } }
       if (i === n - 1) {
         if (l.t === "pase" || l.t === "entrega") resolverPase(act, l, false);
@@ -1522,6 +1537,22 @@ function nuevoPaso() {
   paso++; pintar();
 }
 function vaciarPaso() { snap(); const act = jugada.pasos[paso]; jugada.pasos.splice(paso + 1, 0, { pos: clonar(act.pos), balon: act.balon, lineas: [], texto: "", objs: clonar(act.objs || []) }); paso++; pintar(); }
+function importarFase() {
+  const m = $("modalImp"), sel = $("impSel"), rej = $("impRej");
+  const fuentes = [{ id: "__esta", nombre: "Esta jugada", j: jugada }].concat(BIB.filter(x => x.id !== (jugada.id || "")).map(x => ({ id: x.id, nombre: x.nombre || "(sin nombre)", j: x })));
+  sel.innerHTML = fuentes.map((f, i) => `<option value="${i}">${esc(f.nombre)}</option>`).join("");
+  const pintarFases = () => {
+    const f = fuentes[Number(sel.value) || 0], j = f && f.j;
+    const pasos = (j && j.pasos) || [];
+    rej.innerHTML = pasos.length ? pasos.map((_, i) => `<div class="plant" data-i="${i}">${svgPaso(j, i, { ancho: 300 })}Fase ${i + 1}${(pasos[i].titulo ? " · " + esc(pasos[i].titulo) : "")}</div>`).join("") : '<p class="hint">Esta jugada no tiene fases.</p>';
+    rej.querySelectorAll(".plant").forEach(el => el.addEventListener("click", () => {
+      const nuevo = clonar(pasos[Number(el.dataset.i)]); snap();
+      jugada.pasos.splice(paso + 1, 0, nuevo); paso++; selLinea = -1; selFicha = null; selObj = -1;
+      m.classList.remove("ver"); pintar(); aviso("Fase importada.");
+    }));
+  };
+  sel.onchange = pintarFases; pintarFases(); m.classList.add("ver");
+}
 function duplicarPaso() { snap(); jugada.pasos.splice(paso + 1, 0, clonar(jugada.pasos[paso])); paso++; pintar(); }
 function quitarPaso() { if (jugada.pasos.length < 2) return; snap(); jugada.pasos.splice(paso, 1); paso = Math.max(0, paso - 1); pintar(); }
 
@@ -1826,7 +1857,7 @@ function iniciarMovil() {
   $("fAnt").onclick = () => irFase(paso - 1); $("fSig").onclick = () => irFase(paso + 1);
   $("fNueva").onclick = () => $("btnNuevoPaso").click();
   const pf = $("panelFase"); document.body.appendChild(pf);
-  $("fMas").addEventListener("click", (e) => { e.stopPropagation(); abrirMenu($("fMas"), [["⧉ Clonar esta fase", () => $("btnDupPaso").click()], ["▢ Fase vacía", () => $("btnVacioPaso").click()], ["✏️ Título de la fase…", () => pf.classList.toggle("abierto")], ["↑ Subir fase", () => $("faseArriba").click()], ["↓ Bajar fase", () => $("faseAbajo").click()], ["🗑 Quitar fase", () => $("btnQuitarPaso").click(), "pel"]]); });
+  $("fMas").addEventListener("click", (e) => { e.stopPropagation(); abrirMenu($("fMas"), [["⧉ Clonar esta fase", () => $("btnDupPaso").click()], ["▢ Fase vacía", () => $("btnVacioPaso").click()], ["⤓ Importar fase de otra jugada", () => $("btnImpPaso").click()], ["✏️ Título de la fase…", () => pf.classList.toggle("abierto")], ["↑ Subir fase", () => $("faseArriba").click()], ["↓ Bajar fase", () => $("faseAbajo").click()], ["🗑 Quitar fase", () => $("btnQuitarPaso").click(), "pel"]]); });
   const cierraPF = document.createElement("button"); cierraPF.className = "gris"; cierraPF.textContent = "Cerrar"; cierraPF.style.marginTop = "8px"; cierraPF.onclick = () => pf.classList.remove("abierto"); pf.appendChild(cierraPF);
   // barra de herramientas inferior + hoja
   const herr = document.querySelector(".col-herr"), hojas = herr.children;
@@ -2114,6 +2145,7 @@ if (VISOR) {
   }));
   $("btnNuevoPaso").addEventListener("click", nuevoPaso);
   $("btnDupPaso").addEventListener("click", duplicarPaso);
+  $("btnImpPaso").addEventListener("click", importarFase); $("impCerrar").addEventListener("click", () => $("modalImp").classList.remove("ver")); $("modalImp").addEventListener("pointerdown", (e) => { if (e.target === $("modalImp")) $("modalImp").classList.remove("ver"); });
   $("btnVacioPaso").addEventListener("click", vaciarPaso);
   $("btnQuitarPaso").addEventListener("click", quitarPaso);
   $("btnDeshacer").addEventListener("click", () => { snap(); jugada.pasos[paso].lineas.pop(); pintar(); });
