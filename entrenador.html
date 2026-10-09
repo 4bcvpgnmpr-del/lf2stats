@@ -39,6 +39,7 @@
   .cab h2{font-size:24px;}
   .miga{font-size:13px;color:var(--soft);font-weight:700;}
   .miga a{color:var(--orange);cursor:pointer;text-decoration:none;}
+  .miga{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
   .cab .esp{flex:1;}
   .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
   .barra input[type=search]{max-width:300px;}
@@ -113,6 +114,41 @@
   .totales{display:flex;gap:18px;flex-wrap:wrap;font-weight:800;margin:12px 0;}
   .totales span b{color:var(--orange);}
 
+
+  /* carpetas verdes, etiquetas, filtros */
+  .c-jug{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 90px 60px 90px 150px 36px !important;}
+  .c-eje{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 130px 80px 150px 36px !important;}
+  .c-pla{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 100px 80px 80px 150px 36px !important;}
+  .ck{display:flex;align-items:center;} .ck input{width:auto;margin:0;opacity:0;cursor:pointer;} .fila:hover .ck input,.fila.sel .ck input,.tj:hover .ck input,.tj.sel .ck input{opacity:1;}
+  .fila.sel,.tj.sel{background:#e9f7f2 !important;}
+  svg.carp{flex:none;display:block;}
+  .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:800;margin:0 5px 4px 0;white-space:nowrap;}
+  .tag b{cursor:pointer;margin-left:3px;} a.tag{cursor:pointer;text-decoration:none;} a.tag.on{outline:2.5px solid var(--ink);}
+  .tags{display:flex;flex-wrap:wrap;min-width:0;overflow:hidden;max-height:50px;}
+  .tgbox{border:1.5px solid var(--line);border-radius:10px;min-height:42px;padding:8px 8px 4px;margin-bottom:8px;}
+  .activos{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:-4px 0 12px;} .tag.act{cursor:pointer;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
+  .limpiar{color:var(--orange);font-weight:800;cursor:pointer;font-size:12.5px;margin-left:6px;}
+  .barra .esp{flex:1;} .barra input[type=search]{max-width:280px;}
+  .bola{background:var(--orange);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:3px;}
+  .split{display:inline-flex;} .split button:first-child{border-radius:10px 0 0 10px;} .split button:last-child{border-radius:0 10px 10px 0;border-left:1.5px solid rgba(255,255,255,.4);padding:9px 11px;}
+  .vistas{display:inline-flex;} .vistas button{border-radius:0;padding:9px 11px;} .vistas button:first-child{border-radius:10px 0 0 10px;} .vistas button:last-child{border-radius:0 10px 10px 0;border-left:0;} .vistas button.on{background:var(--ink);color:#fff;}
+  .selbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#e9f7f2;border:1.5px solid #9ad8c4;border-radius:12px;padding:8px 12px;margin-bottom:12px;} .selbar .esp{flex:1;}
+  .fila.sobre,.tj.sobre,.miga a.sobre{background:#d6f3e8 !important;outline:2.5px dashed #15a37f;outline-offset:-3px;border-radius:8px;}
+  .arrastrando{opacity:.4;}
+  .tj{position:relative;background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;} .tj:hover{border-color:#15a37f;}
+  .tj .vista{background:var(--suave);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:44px;}
+  .tj .cu{padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-width:0;} .tj .nom .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tj .ck{position:absolute;top:8px;left:8px;background:#fff;border-radius:6px;padding:3px;}
+  #cajon{position:fixed;inset:0;background:rgba(15,23,35,.45);z-index:260;display:none;justify-content:flex-end;} #cajon.ver{display:flex;}
+  .cajon-c{background:#fff;width:100%;max-width:360px;height:100%;padding:18px;display:flex;flex-direction:column;overflow:auto;}
+  .nube{display:flex;flex-wrap:wrap;gap:2px;}
+  /* menu lateral plegable */
+  .marca{display:flex;align-items:flex-start;gap:6px;} .marca .tt{flex:1;} .colbtn{background:rgba(255,255,255,.1);padding:4px 9px;font-size:14px;border-radius:8px;}
+  .grupo button .i{width:22px;text-align:center;flex:none;}
+  #app{transition:grid-template-columns .15s;}
+  #app.col{grid-template-columns:64px minmax(0,1fr);} #app.col .tx,#app.col .n,#app.col .grupo h4,#app.col .marca small,#app.col .marca .tt span{display:none;} #app.col .marca{padding:14px 8px;flex-direction:column;align-items:center;} #app.col .grupo button{justify-content:center;padding:10px 4px;} #app.col .pie a{padding:10px 0;}
+  @media (max-width:900px){.colbtn{display:none;} #app.col{grid-template-columns:1fr;} #app.col .tx{display:inline;}
+    .fila.c-jug,.fila.c-eje,.fila.c-pla{grid-template-columns:26px minmax(0,1fr) 36px !important;} .fila.c-jug>:nth-child(n+3):not(:last-child),.fila.c-eje>:nth-child(n+3):not(:last-child),.fila.c-pla>:nth-child(n+3):not(:last-child){display:none;}}
   #hojaImp{display:none;}
   @media print{
     #app,#menuPop,.velo,#editorMarco,#visorMarco,#aviso{display:none !important;}
@@ -128,26 +164,27 @@
 <body>
 <div id="app">
   <aside>
-    <div class="marca">🏀 Entrenador<small>ScoutFlow · pizarra y planificación</small></div>
+    <div class="marca"><div class="tt"><span>🏀 Entrenador</span><small>ScoutFlow · pizarra y planificación</small></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div>
     <div class="grupo"><h4>Jugadas</h4>
-      <button data-s="jugadas">🏀 Jugadas<span class="n" id="n-jugadas"></span></button>
-      <button data-s="playbooks">📘 Playbooks<span class="n" id="n-playbooks"></span></button>
+      <button data-s="jugadas"><span class="i">🏀</span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
+      <button data-s="playbooks"><span class="i">📘</span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
     </div>
     <div class="grupo"><h4>Planificación</h4>
-      <button data-s="ejercicios">🎯 Ejercicios<span class="n" id="n-ejercicios"></span></button>
-      <button data-s="planes">📋 Planes de entrenamiento<span class="n" id="n-planes"></span></button>
+      <button data-s="ejercicios"><span class="i">🎯</span><span class="tx">Ejercicios</span><span class="n" id="n-ejercicios"></span></button>
+      <button data-s="planes"><span class="i">📋</span><span class="tx">Planes de entrenamiento</span><span class="n" id="n-planes"></span></button>
     </div>
     <div class="grupo"><h4>Archivos</h4>
-      <button data-s="video">🎬 Vídeos<span class="n" id="n-video"></span></button>
-      <button data-s="imagen">🖼️ Imágenes<span class="n" id="n-imagen"></span></button>
-      <button data-s="audio">🎧 Audio<span class="n" id="n-audio"></span></button>
+      <button data-s="video"><span class="i">🎬</span><span class="tx">Vídeos</span><span class="n" id="n-video"></span></button>
+      <button data-s="imagen"><span class="i">🖼️</span><span class="tx">Imágenes</span><span class="n" id="n-imagen"></span></button>
+      <button data-s="audio"><span class="i">🎧</span><span class="tx">Audio</span><span class="n" id="n-audio"></span></button>
     </div>
-    <div class="pie"><a href="index.html">← Volver a estadísticas</a></div>
+    <div class="pie"><a href="index.html"><span class="i">←</span><span class="tx"> Volver a estadísticas</span></a></div>
   </aside>
   <main id="main"><p class="vacio">Cargando…</p></main>
 </div>
 
 <div id="menuPop"></div>
+<div id="cajon"></div>
 <div id="aviso"></div>
 
 <!-- ventana generica (formularios) -->
@@ -202,7 +239,7 @@ async function guardarFila(tabla, fila) {
 async function borrarFila(tabla, id) { const { error } = await nube.from(tabla).delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } return true; }
 
 /* ------------ navegacion ------------ */
-function ir(s, c) { seccion = s; carpeta = c || ""; busqueda = ""; vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
+function ir(s, c) { seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; seleccion = new Set(); vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
 function pintar() {
   document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
   const m = $("main"); m.scrollTop = 0;
@@ -238,21 +275,64 @@ function preguntar(titulo, etiqueta, valor, ok) {
 }
 const botonNuevo = (txt, id) => puedeEscribir ? `<button class="naranja" id="${id}">${txt}</button>` : "";
 
+/* ------------ etiquetas ------------ */
+const tagsDe = (x) => (x && x.data && Array.isArray(x.data.tags)) ? x.data.tags : [];
+const todasTags = (tipo) => [...new Set(D[tipo].flatMap(tagsDe))].sort((a, b) => a.localeCompare(b, "es"));
+function estiloTag(t) { let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt(0)) % 360; return `background:hsl(${h} 70% 91%);color:hsl(${h} 55% 26%);`; }
+const chipsTags = (x) => tagsDe(x).map(t => `<span class="tag" style="${estiloTag(t)}">${esc(t)}</span>`).join("");
+async function fijarTags(tipo, x, tags) { const d = clonar(x.data || {}); d.tags = tags; const { error } = await nube.from(TABLA_DE[tipo]).update({ data: d }).eq("id", x.id); if (error) aviso("No se pudo guardar: " + error.message); }
+function editarTags(tipo, lista) {
+  let comunes = lista.length === 1 ? tagsDe(lista[0]).slice() : [];
+  const sug = todasTags(tipo);
+  const m = ventana(`<h3>🏷 Etiquetas${lista.length > 1 ? " (" + lista.length + " elementos)" : ""}</h3>${lista.length > 1 ? '<p class="peq" style="margin:4px 0 0;">Las etiquetas que añadas se suman a las que ya tienen.</p>' : ""}<label>Escribe y pulsa Intro</label><div id="tgBox" class="tgbox"></div><input id="tgIn" placeholder="Ej: zona, transición, 4 out" list="tgDl"><datalist id="tgDl">${sug.map(t => `<option value="${esc(t)}">`).join("")}</datalist>${sug.length ? `<div class="peq" style="margin-top:8px;">Usadas: ${sug.map(t => `<a class="tag sug" data-t="${esc(t)}" style="${estiloTag(t)}">${esc(t)}</a>`).join("")}</div>` : ""}<div class="pie-m"><button class="gris" id="tgX">Cancelar</button><button class="naranja" id="tgG">Guardar</button></div>`);
+  const pint = () => { $("tgBox").innerHTML = comunes.map(t => `<span class="tag" style="${estiloTag(t)}">${esc(t)} <b data-q="${esc(t)}">×</b></span>`).join("") || '<span class="peq">Sin etiquetas</span>'; $("tgBox").querySelectorAll("[data-q]").forEach(b => b.onclick = () => { comunes = comunes.filter(t => t !== b.dataset.q); pint(); }); };
+  const sumar = (t) => { t = t.trim().replace(/,/g, ""); if (t && !comunes.includes(t)) comunes.push(t); pint(); };
+  pint(); $("tgIn").focus();
+  $("tgIn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); sumar($("tgIn").value); $("tgIn").value = ""; } });
+  m.querySelectorAll(".sug").forEach(a => a.onclick = () => sumar(a.dataset.t));
+  $("tgX").onclick = cerrarVentana;
+  $("tgG").onclick = async () => {
+    if ($("tgIn").value.trim()) sumar($("tgIn").value);
+    cerrarVentana();
+    for (const x of lista) await fijarTags(tipo, x, lista.length === 1 ? comunes : [...new Set([...tagsDe(x), ...comunes])]);
+    await cargarTodo(); pintar();
+  };
+}
+
 /* ------------ carpetas genericas: jugadas, ejercicios, planes ------------ */
 const TABLA_DE = { jugadas: "jugadas", ejercicios: "ejercicios", planes: "planes" };
 const ICONO = { jugadas: "🏀", ejercicios: "🎯", planes: "📋" };
 const SINGULAR = { jugadas: "jugada", ejercicios: "ejercicio", planes: "plan" };
+const SVG_CARPETA = (t) => `<svg class="carp" viewBox="0 0 24 20" width="${t || 30}" height="${Math.round((t || 30) * 20 / 24)}"><path d="M1 3a2 2 0 0 1 2-2h6l2 2.5h10a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" fill="#15a37f"/></svg>`;
+let ordenar = "recientes", filtroTags = [], filtroTipo = "", vistaLista = true, seleccion = new Set();
+try { vistaLista = localStorage.getItem("ent_vista") !== "rejilla"; } catch (e) { /* nada */ }
 function carpetasDe(tipo) {
   const set = new Map();
   D.carpetas.filter(c => c.tipo === tipo).forEach(c => set.set(c.nombre, { nombre: c.nombre, n: 0, ult: c.creada }));
   D[tipo].forEach(x => { if (x.carpeta) { const e = set.get(x.carpeta) || { nombre: x.carpeta, n: 0, ult: "" }; e.n++; if (!e.ult || x.actualizada > e.ult) e.ult = x.actualizada; set.set(x.carpeta, e); } });
-  return [...set.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  return [...set.values()];
+}
+const textoDe = (tipo, x) => (x.nombre + " " + (x.carpeta || "") + " " + ((x.data && (x.data.categoria || x.data.descripcion)) || x.tipo || "") + " " + tagsDe(x).join(" ")).toLowerCase();
+const valorTipo = (tipo, x) => tipo === "jugadas" ? (x.tipo || "") : tipo === "ejercicios" ? ((x.data && x.data.categoria) || "") : "";
+function filtrar(tipo, plano) {
+  const q = busqueda.toLowerCase();
+  return D[tipo].filter(x => (plano || (x.carpeta || "") === carpeta) && (!q || textoDe(tipo, x).includes(q)) && filtroTags.every(t => tagsDe(x).includes(t)) && (!filtroTipo || valorTipo(tipo, x) === filtroTipo));
+}
+const hayFiltro = () => !!(busqueda || filtroTags.length || filtroTipo);
+function ordenarLista(arr, campoFecha, campoNombre) {
+  const f = {
+    recientes: (a, b) => String(b[campoFecha] || "").localeCompare(String(a[campoFecha] || "")),
+    antiguas: (a, b) => String(a[campoFecha] || "").localeCompare(String(b[campoFecha] || "")),
+    az: (a, b) => String(a[campoNombre] || "").localeCompare(String(b[campoNombre] || ""), "es"),
+    za: (a, b) => String(b[campoNombre] || "").localeCompare(String(a[campoNombre] || ""), "es")
+  }[ordenar];
+  return arr.slice().sort(f);
 }
 function pintarCarpetas(v, tipo) {
-  const q = busqueda.toLowerCase(), buscando = !!q;
-  const items = D[tipo].filter(x => (buscando || (x.carpeta || "") === carpeta) && (!q || (x.nombre + " " + (x.carpeta || "") + " " + ((x.data && (x.data.categoria || x.data.descripcion)) || x.tipo || "")).toLowerCase().includes(q)));
-  const cars = (carpeta || buscando) ? [] : carpetasDe(tipo);
-  const cab = { jugadas: ["Título", "Tipo", "Fases", "Jugadoras", "Última edición"], ejercicios: ["Título", "Categoría", "Duración", "Última edición"], planes: ["Título", "Fecha", "Duración", "Ejercicios", "Última edición"] }[tipo];
+  const plano = hayFiltro();
+  const items = ordenarLista(filtrar(tipo, plano), "actualizada", "nombre");
+  const cars = (carpeta || plano) ? [] : ordenarLista(carpetasDe(tipo), "ult", "nombre");
+  const extra = { jugadas: ["Tipo", "Fases", "Jugadoras"], ejercicios: ["Categoría", "Duración"], planes: ["Fecha", "Duración", "Ejercicios"] }[tipo];
   const clase = { jugadas: "c-jug", ejercicios: "c-eje", planes: "c-pla" }[tipo];
   const celdas = (x) => {
     if (tipo === "jugadas") return [x.tipo || "—", ((x.data && x.data.pasos) || []).length, x.compartida ? "📤 Sí" : "—"];
@@ -260,32 +340,100 @@ function pintarCarpetas(v, tipo) {
     const ej = (x.data && x.data.ejercicios) || [], min = ej.reduce((a, e) => a + (Number(e.min) || 0), 0);
     return [solofecha(x.fecha), min + " min", ej.length];
   };
-  const fila = (cols, extra) => `<div class="fila ${clase}${extra || ""}">${cols.join("")}</div>`;
-  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a> › 📁 ${esc(carpeta)}</span>` : ""}<span class="esp"></span>${puedeEscribir ? `<button class="gris" id="bNC">＋ Nueva carpeta</button>` : ""}${botonNuevo("＋ " + (tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan"), "bNuevo")}</div>
-    <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>`;
-  let filas = fila(cab.map((t, i) => `<div>${t}</div>`).concat(["<div></div>"]), " cabt");
-  cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.nombre)}"><div class="nom"><span class="ico">📁</span><span class="t">${esc(c.nombre)}</span></div>${tipo === "jugadas" ? '<div class="peq">Carpeta</div><div class="peq">' + c.n + '</div><div></div>' : tipo === "ejercicios" ? '<div class="peq">Carpeta</div><div class="peq">' + c.n + ' ej.</div>' : '<div class="peq">Carpeta</div><div class="peq">' + c.n + '</div><div></div><div></div>'}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
-  items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}" data-id="${esc(x.id)}"><div class="nom"><span class="ico">${ICONO[tipo]}</span><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span></div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
-  if (!cars.length && !items.length) filas += `<div class="vacio">${buscando ? "Nada coincide con la búsqueda." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + ". Empieza con «＋ Nueva " + SINGULAR[tipo] + "»."}</div>`;
-  v.innerHTML = h + `<div class="tabla">${filas}</div>`;
-  const raiz = v.querySelector('[data-a="raiz"]'); if (raiz) raiz.onclick = () => { carpeta = ""; pintar(); };
-  $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; pintarCarpetas(v, tipo); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
-  if ($("bNC")) $("bNC").onclick = () => preguntar("Nueva carpeta", "Nombre", "", async (n) => { if (!await guardarFila("carpetas", { tipo, nombre: n })) return; await cargarTodo(); pintar(); });
+  const nFiltros = filtroTags.length + (filtroTipo ? 1 : 0);
+  const nuevoTxt = tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
+  const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
+  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a> › ${SVG_CARPETA(16)} ${esc(carpeta)}</span>` : ""}<span class="esp"></span>${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
+    <div class="barra"><input type="search" id="bq" placeholder="🔍 Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
+      <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
+      <button class="gris" id="bOrden" title="Ordenar">⇅ ${ORDENES[ordenar]}</button>
+      <span class="vistas"><button class="gris ${vistaLista ? "" : "on"}" id="vRej" title="Rejilla">▦</button><button class="gris ${vistaLista ? "on" : ""}" id="vLis" title="Lista">☰</button></span></div>`;
+  if (hayFiltro()) h += `<div class="activos">${busqueda ? `<span class="tag act" data-q="b">“${esc(busqueda)}” ×</span>` : ""}${filtroTipo ? `<span class="tag act" data-q="t">${esc(filtroTipo)} ×</span>` : ""}${filtroTags.map(t => `<span class="tag act" data-q="g" data-t="${esc(t)}" style="${estiloTag(t)}">🏷 ${esc(t)} ×</span>`).join("")}<a class="limpiar" id="limpiaF">Quitar filtros</a><span class="peq"> · buscando en todas las carpetas</span></div>`;
+  if (seleccion.size) h += `<div class="selbar"><b>${seleccion.size} seleccionado${seleccion.size > 1 ? "s" : ""}</b><span class="esp"></span><button class="gris" id="sTag">🏷 Etiquetar</button><button class="gris" id="sMov">📁 Mover</button><button class="rojo" id="sDel">🗑 Eliminar</button><button class="gris" id="sNo">Cancelar</button></div>`;
+  const chk = (id) => puedeEscribir ? `<span class="ck"><input type="checkbox" class="selc" data-s="${esc(id)}" ${seleccion.has(id) ? "checked" : ""}></span>` : "<span></span>";
+  let cuerpo = "";
+  if (vistaLista) {
+    const fila = (cols, extraC) => `<div class="fila ${clase}${extraC || ""}">${cols.join("")}</div>`;
+    let filas = fila(["<div></div>", "<div>Título</div>", "<div>Etiquetas</div>"].concat(extra.map(t => `<div>${t}</div>`), ["<div>Última edición</div>", "<div></div>"]), " cabt");
+    cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.nombre)}"><div></div><div class="nom">${SVG_CARPETA(30)}<span class="t">${esc(c.nombre)}</span></div><div></div>${extra.map((_, i) => `<div class="peq">${i === 0 ? "Carpeta · " + c.n : ""}</div>`).join("")}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
+    items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="nom"><span class="ico">${ICONO[tipo]}</span><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span></div><div class="tags">${chipsTags(x)}</div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
+    if (!cars.length && !items.length) filas += `<div class="vacio">${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + ". Empieza con «＋ " + nuevoTxt + "»."}</div>`;
+    cuerpo = `<div class="tabla">${filas}</div>`;
+  } else {
+    let t = "";
+    cars.forEach(c => { t += `<div class="tj tcar" data-car="${esc(c.nombre)}"><div class="vista">${SVG_CARPETA(64)}</div><div class="cu"><div class="nom"><span class="t">${esc(c.nombre)}</span>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div><span class="peq">${c.n} elemento${c.n === 1 ? "" : "s"}</span></div></div>`; });
+    items.forEach(x => { const c = celdas(x); t += `<div class="tj${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="vista">${ICONO[tipo]}</div><div class="cu"><div class="nom"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}</span>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div><span class="peq">${esc(c.slice(0, 2).join(" · "))}</span><div class="tags">${chipsTags(x)}</div></div></div>`; });
+    cuerpo = t ? `<div class="rejilla">${t}</div>` : `<div class="tabla"><div class="vacio">${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + "."}</div></div>`;
+  }
+  v.innerHTML = h + cuerpo;
+  const redib = () => { pintarCarpetas(v, tipo); };
+  const raiz = v.querySelector('[data-a="raiz"]'); if (raiz) { raiz.onclick = () => { carpeta = ""; seleccion.clear(); pintar(); }; soltarEn(raiz, tipo, ""); }
+  $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; redib(); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
+  $("bFiltro").onclick = () => abrirFiltro(v, tipo);
+  $("bOrden").onclick = (e) => abrirMenu(e, Object.keys(ORDENES).map(k => [(k === ordenar ? "✓ " : "　") + ORDENES[k], () => { ordenar = k; redib(); }]));
+  $("vRej").onclick = () => { vistaLista = false; try { localStorage.setItem("ent_vista", "rejilla"); } catch (e) { /* nada */ } redib(); };
+  $("vLis").onclick = () => { vistaLista = true; try { localStorage.setItem("ent_vista", "lista"); } catch (e) { /* nada */ } redib(); };
+  const lf = $("limpiaF"); if (lf) lf.onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; redib(); };
+  v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
   if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
-  v.querySelectorAll(".fila[data-car]").forEach(el => {
-    el.addEventListener("click", () => { carpeta = el.dataset.car; pintar(); });
-    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📂 Abrir", () => { carpeta = el.dataset.car; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, el.dataset.car)], ["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, el.dataset.car), "pel"]]); });
+  if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [["📁 Nueva carpeta", () => preguntar("Nueva carpeta", "Nombre", "", async (n) => { if (!await guardarFila("carpetas", { tipo, nombre: n })) return; await cargarTodo(); pintar(); })]]);
+  if ($("sNo")) $("sNo").onclick = () => { seleccion.clear(); redib(); };
+  const selItems = () => D[tipo].filter(x => seleccion.has(x.id));
+  if ($("sTag")) $("sTag").onclick = () => editarTags(tipo, selItems());
+  if ($("sMov")) $("sMov").onclick = () => moverACarpeta(tipo, selItems());
+  if ($("sDel")) $("sDel").onclick = async () => { const l = selItems(); if (!confirm("¿Borrar " + l.length + " elemento" + (l.length > 1 ? "s" : "") + "? No se puede deshacer.")) return; for (const x of l) await borrarFila(TABLA_DE[tipo], x.id); seleccion.clear(); await cargarTodo(); pintar(); };
+  v.querySelectorAll(".selc").forEach(c => { c.addEventListener("click", (e) => e.stopPropagation()); c.addEventListener("change", () => { if (c.checked) seleccion.add(c.dataset.s); else seleccion.delete(c.dataset.s); redib(); }); });
+  v.querySelectorAll("[data-car]").forEach(el => {
+    const nombre = el.dataset.car;
+    el.addEventListener("click", () => { carpeta = nombre; seleccion.clear(); pintar(); });
+    soltarEn(el, tipo, nombre);
+    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]]); });
   });
-  v.querySelectorAll(".fila[data-id]").forEach(el => {
+  v.querySelectorAll("[data-id]").forEach(el => {
     const x = D[tipo].find(y => y.id === el.dataset.id);
     el.addEventListener("click", () => abrirElemento(tipo, x));
+    el.addEventListener("dragstart", (e) => { const ids = seleccion.has(x.id) ? [...seleccion] : [x.id]; e.dataTransfer.setData("text/plain", JSON.stringify(ids)); e.dataTransfer.effectAllowed = "move"; el.classList.add("arrastrando"); });
+    el.addEventListener("dragend", () => el.classList.remove("arrastrando"));
     const b = el.querySelector("[data-mi]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, opcionesElemento(tipo, x)); });
   });
+}
+/* soltar elementos arrastrados sobre una carpeta (o sobre la raiz) */
+function soltarEn(el, tipo, nombre) {
+  el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("sobre"); });
+  el.addEventListener("dragleave", () => el.classList.remove("sobre"));
+  el.addEventListener("drop", async (e) => {
+    e.preventDefault(); el.classList.remove("sobre");
+    let ids = []; try { ids = JSON.parse(e.dataTransfer.getData("text/plain")); } catch (x) { return; }
+    const lista = D[tipo].filter(x => ids.includes(x.id) && (x.carpeta || "") !== nombre); if (!lista.length) return;
+    for (const x of lista) await ponerCarpeta(tipo, x, nombre);
+    seleccion.clear(); aviso(lista.length + (lista.length > 1 ? " elementos movidos" : " elemento movido") + (nombre ? " a «" + nombre + "»" : " a la raíz"));
+    await cargarTodo(); pintar();
+  });
+}
+/* panel lateral de filtros */
+function abrirFiltro(v, tipo) {
+  const tags = todasTags(tipo);
+  const tipos = tipo === "jugadas" ? [...new Set(D.jugadas.map(x => x.tipo).filter(Boolean))].sort() : tipo === "ejercicios" ? CATEGORIAS : [];
+  const cont = () => filtrar(tipo, true).length;
+  const cp = $("cajon"); cp.classList.add("ver");
+  const pintaCajon = () => {
+    cp.innerHTML = `<div class="cajon-c"><div style="display:flex;align-items:center;"><h3 style="font-size:18px;">Filtrar ${SECCIONES[tipo].toLowerCase()}</h3><span class="esp" style="flex:1"></span><button class="gris" id="cjX">✕</button></div>
+      <label>Buscar</label><input type="search" id="cjQ" value="${esc(busqueda)}" placeholder="Nombre, etiqueta…">
+      ${tipos.length ? `<label>${tipo === "jugadas" ? "Tipo" : "Categoría"}</label><select id="cjT"><option value="">Todos</option>${tipos.map(t => `<option ${t === filtroTipo ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>` : ""}
+      <label>Etiquetas</label>${tags.length ? `<div class="nube">${tags.map(t => `<a class="tag ${filtroTags.includes(t) ? "on" : ""}" data-t="${esc(t)}" style="${estiloTag(t)}">${esc(t)}</a>`).join("")}</div>` : '<p class="peq">Aún no hay etiquetas. Añádelas desde el menú ⋮ de cada elemento.</p>'}
+      <div style="flex:1"></div><button class="verde" id="cjOk" style="width:100%;margin-top:18px;padding:13px;">Mostrar ${cont()}</button><button class="gris" id="cjLimp" style="width:100%;margin-top:8px;">Quitar filtros</button></div>`;
+    $("cjX").onclick = $("cjOk").onclick = () => cp.classList.remove("ver");
+    $("cjQ").oninput = (e) => { busqueda = e.target.value; $("cjOk").textContent = "Mostrar " + cont(); pintarCarpetas(v, tipo); };
+    if ($("cjT")) $("cjT").onchange = (e) => { filtroTipo = e.target.value; pintaCajon(); pintarCarpetas(v, tipo); };
+    cp.querySelectorAll(".nube .tag").forEach(a => a.onclick = () => { const t = a.dataset.t; filtroTags = filtroTags.includes(t) ? filtroTags.filter(y => y !== t) : filtroTags.concat(t); pintaCajon(); pintarCarpetas(v, tipo); });
+    $("cjLimp").onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; pintaCajon(); pintarCarpetas(v, tipo); };
+  };
+  pintaCajon();
 }
 function opcionesElemento(tipo, x) {
   const o = [["✏️ " + (tipo === "jugadas" ? "Editar en la pizarra" : "Abrir"), () => abrirElemento(tipo, x)]];
   if (tipo === "jugadas") o.push(["▶ Ver animada", () => verJugada(x)], [x.compartida ? "🙈 Ocultar a las jugadoras" : "📤 Mostrar a las jugadoras", () => alternarComp(x)]);
-  o.push(["📁 Mover a carpeta…", () => moverACarpeta(tipo, x)], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
+  o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
   return o;
 }
 async function renombrarCarpeta(tipo, nombre) {
@@ -304,15 +452,18 @@ async function borrarCarpeta(tipo, nombre) {
   for (const x of dentro) { if (tipo === "jugadas") { const d = clonar(x.data); d.carpeta = ""; await nube.from("jugadas").update({ carpeta: "", data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: "" }).eq("id", x.id); }
   await cargarTodo(); pintar();
 }
-function moverACarpeta(tipo, x) {
-  const cs = carpetasDe(tipo).map(c => c.nombre);
-  const m = ventana(`<h3>Mover «${esc(x.nombre)}»</h3><label>Carpeta (vacío = raíz)</label><input id="mvc" list="dlc" value="${esc(x.carpeta || "")}"><datalist id="dlc">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist><div class="pie-m"><button class="gris" id="mc1">Cancelar</button><button class="naranja" id="mc2">Mover</button></div>`);
+async function ponerCarpeta(tipo, x, n) {
+  if (tipo === "jugadas") { const d = clonar(x.data || {}); d.carpeta = n; await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: n }).eq("id", x.id);
+  if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) { await guardarFila("carpetas", { tipo, nombre: n }); D.carpetas.push({ tipo, nombre: n }); }
+}
+function moverACarpeta(tipo, lista) {
+  const cs = carpetasDe(tipo).map(c => c.nombre).sort((a, b) => a.localeCompare(b, "es"));
+  const m = ventana(`<h3>Mover ${lista.length === 1 ? "«" + esc(lista[0].nombre) + "»" : lista.length + " elementos"}</h3><label>Carpeta (vacío = raíz)</label><input id="mvc" list="dlc" value="${esc(lista.length === 1 ? (lista[0].carpeta || "") : "")}"><datalist id="dlc">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist><div class="pie-m"><button class="gris" id="mc1">Cancelar</button><button class="naranja" id="mc2">Mover</button></div>`);
   $("mc1").onclick = cerrarVentana;
   $("mc2").onclick = async () => {
     const n = $("mvc").value.trim(); cerrarVentana();
-    if (tipo === "jugadas") { const d = clonar(x.data); d.carpeta = n; await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: n }).eq("id", x.id);
-    if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) await guardarFila("carpetas", { tipo, nombre: n });
-    await cargarTodo(); pintar();
+    for (const x of lista) await ponerCarpeta(tipo, x, n);
+    seleccion.clear(); await cargarTodo(); pintar();
   };
 }
 async function duplicar(tipo, x) {
@@ -521,6 +672,9 @@ async function subir(files, tipo) {
 /* ------------ arranque ------------ */
 function pantalla(msg, enlace) { $("main").innerHTML = `<div class="vacio" style="padding-top:60px;font-size:16px;">${msg}${enlace ? `<p><a href="index.html" style="color:var(--orange);font-weight:800;">${enlace}</a></p>` : ""}</div>`; }
 async function iniciar() {
+  try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
+  $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
+  $("cajon").addEventListener("mousedown", (e) => { if (e.target === $("cajon")) $("cajon").classList.remove("ver"); });
   document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => ir(b.dataset.s)));
   if (!nube) { pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
   const { data } = await nube.auth.getSession();
