@@ -119,7 +119,7 @@
 
 
   /* carpetas verdes, etiquetas, filtros */
-  .c-jug{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 90px 60px 90px 150px 36px !important;}
+  .c-jug{grid-template-columns:26px minmax(0,2fr) minmax(0,1.2fr) 90px minmax(0,1fr) 90px 56px 130px 36px !important;}
   .c-eje{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 130px 80px 150px 36px !important;}
   .c-pla{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 100px 80px 80px 150px 36px !important;}
   .ck{display:flex;align-items:center;} .ck input{width:auto;margin:0;opacity:0;cursor:pointer;} .fila:hover .ck input,.fila.sel .ck input,.tj:hover .ck input,.tj.sel .ck input{opacity:1;}
@@ -411,9 +411,9 @@
   .marca .logo .lg-bola{color:#ff6a00;font-size:26px;line-height:1;} .marca .logo .lg-t b{font-family:'Archivo Black',sans-serif;font-size:17px;display:block;color:#2b3640;} .marca .logo .lg-t b span{color:#ff6a00;} .marca .logo .lg-t small{display:block;font-size:10.5px;color:#6b7683;font-weight:600;}
   #app.col .marca .lg-t{display:none;} #app.col .marca .logo{justify-content:center;padding:0 !important;}
 
-  @media (min-width:701px) and (max-width:1250px){ .mini-l{width:92px;height:84px;padding:2px;} }
-  @media (min-width:901px) and (max-width:1250px){
-    .tabla .fila.c-jug:not(.cabt){grid-template-columns:26px minmax(150px,2.4fr) minmax(0,.9fr) 84px 52px 80px minmax(96px,1fr) 40px !important;column-gap:10px;}
+  @media (min-width:701px) and (max-width:1500px){ .mini-l{width:92px;height:84px;padding:2px;} .fila .nom{min-width:0;} .fila .nom .tc{min-width:0;} .fila .nom span.t{white-space:normal;overflow:hidden;overflow-wrap:anywhere;} }
+  @media (min-width:901px) and (max-width:1500px){
+    .tabla .fila.c-jug{grid-template-columns:26px minmax(190px,2.6fr) minmax(70px,.9fr) 80px minmax(70px,.9fr) 74px 44px 92px 36px !important;column-gap:8px;} .tabla .fila.c-jug .peq{font-size:12px;}
     .fila.c-jug>*{min-width:0;} .fila.c-jug .nom{min-width:0;}
     .fila.c-jug>:nth-child(4){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   }
@@ -605,10 +605,10 @@ function pintarCarpetas(v, tipo) {
   const plano = hayFiltro();
   const items = ordenarLista(filtrar(tipo, plano), "actualizada", "nombre");
   const cars = plano ? [] : ordenarLista(carpetasDe(tipo), "ult", "nombre");
-  const extra = { jugadas: ["Tipo", "Fases", "Jugadoras"], ejercicios: ["Categoría", "Duración"], planes: ["Fecha", "Duración", "Ejercicios"] }[tipo];
+  const extra = { jugadas: ["Categoría", "Equipo", "Temporada", "Fases"], ejercicios: ["Categoría", "Duración"], planes: ["Fecha", "Duración", "Ejercicios"] }[tipo];
   const clase = { jugadas: "c-jug", ejercicios: "c-eje", planes: "c-pla" }[tipo];
   const celdas = (x) => {
-    if (tipo === "jugadas") return [x.tipo || "—", ((x.data && x.data.pasos) || []).length, x.compartida ? "📤 Sí" : "—"];
+    if (tipo === "jugadas") return [x.tipo || "—", (x.data && x.data.equipo) || "—", (x.data && x.data.temporada) || "—", ((x.data && x.data.pasos) || []).length];
     if (tipo === "ejercicios") return [(x.data && x.data.categoria) || "—", ((x.data && x.data.minutos) || 0) ? x.data.minutos + " min" : "—"];
     const ej = ((x.data && x.data.ejercicios) || []).filter(e => !e.sec), min = ej.reduce((a, e) => a + (Number(e.min) || 0), 0);
     return [solofecha(x.fecha), min + " min", ej.length];

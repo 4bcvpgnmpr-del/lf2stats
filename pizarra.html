@@ -396,7 +396,9 @@
     <div class="datos-ed">
       <div><label style="margin-top:0;">Nombre de la jugada</label><input id="nombre" placeholder="Ej: Cinco abierto, bloqueo directo"></div>
       <button class="gris" id="btnDatos" type="button">⚙ Datos</button>
-      <div style="max-width:200px;"><label style="margin-top:0;">Tipo</label><select id="tipo"></select></div>
+      <div style="max-width:200px;"><label style="margin-top:0;">Categoría</label><select id="tipo"></select></div>
+      <div id="boxEq" style="max-width:200px;"><label style="margin-top:0;">Equipo</label><input id="equipoJ" placeholder="Ej: Cadete A"></div>
+      <div id="boxTe" style="max-width:150px;"><label style="margin-top:0;">Temporada</label><input id="tempJ" placeholder="Ej: 2026/27"></div>
       <div id="boxMin" style="max-width:150px;display:none;"><label style="margin-top:0;">Duración (min)</label><input type="number" id="minEj" min="0" step="1" placeholder="10"></div>
       <div style="max-width:200px;"><label style="margin-top:0;">Carpeta</label><input id="carpetaJ" list="listaCarpetas" placeholder="Sin carpeta"><datalist id="listaCarpetas"></datalist></div>
       <div style="max-width:220px;"><label style="margin-top:0;">Etiquetas</label><input id="tagsJ" placeholder="separadas por comas"></div>
@@ -1616,8 +1618,8 @@ function pintarPestana() {
 function refrescarTodo() { cargarCampos(); pintarPestana(); }
 
 /* ---------- campos generales ---------- */
-function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.carpeta = $("carpetaJ").value.trim(); jugada.tags = $("tagsJ").value.split(",").map(t => t.trim()).filter(Boolean); jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; if (EJ) jugada.minutos = Number($("minEj").value) || 0; }
-function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("carpetaJ").value = jugada.carpeta || ""; $("tagsJ").value = (jugada.tags || []).join(", "); $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; if (EJ) $("minEj").value = jugada.minutos || ""; }
+function volcarCampos() { jugada.nombre = $("nombre").value.trim(); jugada.tipo = $("tipo").value; jugada.equipo = $("equipoJ").value.trim(); jugada.temporada = $("tempJ").value.trim(); jugada.carpeta = $("carpetaJ").value.trim(); jugada.tags = $("tagsJ").value.split(",").map(t => t.trim()).filter(Boolean); jugada.notas = $("notas").value; jugada.favorita = $("chkFav").checked; jugada.compartida = $("chkComp").checked; if (EJ) jugada.minutos = Number($("minEj").value) || 0; }
+function cargarCampos() { $("nombre").value = jugada.nombre || ""; $("tipo").value = jugada.tipo || "Ataque"; $("equipoJ").value = jugada.equipo || ""; $("tempJ").value = jugada.temporada || ""; $("carpetaJ").value = jugada.carpeta || ""; $("tagsJ").value = (jugada.tags || []).join(", "); $("notas").value = jugada.notas || ""; $("formacion").value = jugada.formacion || "cinco"; $("chkFav").checked = !!jugada.favorita; $("chkComp").checked = !!jugada.compartida; if (EJ) $("minEj").value = jugada.minutos || ""; }
 function guardarBorrador() { if (EDITOR) return; try { localStorage.setItem(BORRADOR, JSON.stringify({ jugada, paso })); } catch (e) { /* nada */ } }
 
 /* ============================================================
@@ -2033,7 +2035,7 @@ if (VISOR) {
   $("mvCerrar").addEventListener("click", cerrarModal);
   $("modalVer").addEventListener("click", (e) => { if (e.target === $("modalVer")) cerrarModal(); });
   $("tipo").innerHTML = (EJ ? CATEG : TIPOS).map(t => `<option>${t}</option>`).join("");
-  if (EJ) { $("boxMin").style.display = ""; $("chkFav").parentElement.style.display = "none"; $("chkComp").parentElement.style.display = "none"; $("nombre").placeholder = "Ej: 3 contra 2 en transición"; $("nombre").parentElement.querySelector("label").textContent = "Nombre del ejercicio"; $("tipo").parentElement.querySelector("label").textContent = "Categoría"; $("notas").placeholder = "Descripción: cómo se hace, puntos clave, variantes…"; }
+  if (EJ) { $("boxEq").style.display = "none"; $("boxTe").style.display = "none"; $("boxMin").style.display = ""; $("chkFav").parentElement.style.display = "none"; $("chkComp").parentElement.style.display = "none"; $("nombre").placeholder = "Ej: 3 contra 2 en transición"; $("nombre").parentElement.querySelector("label").textContent = "Nombre del ejercicio"; $("tipo").parentElement.querySelector("label").textContent = "Categoría"; $("notas").placeholder = "Descripción: cómo se hace, puntos clave, variantes…"; }
   $("filtroTipo").innerHTML = `<option value="">Todos los tipos</option>` + TIPOS.map(t => `<option>${t}</option>`).join("");
   // pista: un solo juego de eventos
   const pista = $("pista");
