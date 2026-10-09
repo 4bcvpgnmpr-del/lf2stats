@@ -341,7 +341,7 @@
     body.editor .dib{grid-template-columns:150px minmax(0,1fr) 280px;}
     body.editor .col-herr{padding:12px 14px;} body.editor .col-pasos .acc{grid-template-columns:repeat(2,minmax(0,1fr));} body.editor .col-pasos .acc button{min-width:0;padding:8px 2px;}
     body.editor .barra-ed{padding:0 8px;gap:4px;height:56px;}
-    body.editor .barra-ed #nombre{width:120px;}
+    body.editor .barra-ed > div:first-of-type:not(.tabs),body.editor .barra-ed > div:not(.tabs):has(#nombre){flex:1 1 150px;min-width:110px;max-width:none;} body.editor .barra-ed #nombre{width:100%;text-overflow:ellipsis;} body.editor .barra-ed .tabs{flex:none;}
     body.editor .barra-ed .tabs button{padding:9px 8px;font-size:12.5px;white-space:nowrap;}
     body.editor .barra-ed .ic,body.editor .barra-ed .naranja,body.editor #btnDatos,body.editor #btnCerrarEd{padding:9px 9px;font-size:12.5px;white-space:nowrap;}
     body.editor .col-pasos{padding:8px;} body.editor .lista-fases .fase{width:auto;}
@@ -350,7 +350,7 @@
   }
   @media (min-width:761px) and (max-width:900px){
     body.editor .dib{grid-template-columns:118px minmax(0,1fr) 250px;}
-    body.editor .barra-ed #nombre{width:70px;} body.editor .barra-ed .tabs button{padding:8px 5px;font-size:12px;}
+    body.editor .barra-ed #nombre{width:100%;} body.editor .barra-ed .tabs button{padding:8px 5px;font-size:12px;}
     body.editor .barra-ed .ic,body.editor .barra-ed .naranja,body.editor #btnDatos,body.editor #btnCerrarEd{padding:8px 7px;font-size:12px;}
     body.editor .col-herr{padding:10px;} body.editor .col-pasos .acc button{font-size:11px;}
   }
