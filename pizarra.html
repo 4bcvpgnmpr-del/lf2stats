@@ -197,6 +197,45 @@
     .acciones{grid-template-columns:repeat(3,1fr) !important;}
     .reprod .ctrl{flex-wrap:wrap;gap:6px;}
   }
+
+  /* ====== editor a pantalla completa (escritorio): 3 columnas con margenes limpios y barra de zoom ====== */
+  .zoombar{display:none;}
+  @media (min-width:1001px){
+    body.editor{overflow:hidden;background:#fff;}
+    body.editor .wrap{max-width:none;padding:0;}
+    body.editor header{display:none;}
+    body.editor .barra-ed{position:relative;top:auto;height:60px;margin:0;border:0;border-bottom:1px solid #e5e7eb;border-radius:0;padding:0 16px;gap:10px;flex-wrap:nowrap;background:#fff;z-index:30;}
+    body.editor .barra-ed .tabs{flex:1;justify-content:center;}
+    body.editor .barra-ed label{display:none;}
+    body.editor .barra-ed > div:not(.tabs){flex:none;min-width:0;max-width:none;}
+    body.editor .barra-ed #nombre{border:0;background:transparent;font-weight:800;font-size:15px;width:230px;padding:6px 4px;}
+    body.editor .barra-ed #nombre:focus{background:#f3f4f6;outline:0;}
+    body.editor #btnCerrarEd{flex:none;padding:8px 12px;}
+    body.editor #btnDatos{display:inline-block;}
+    body.editor .datos-ed.plegado{display:none;}
+    body.editor .datos-ed:not(.plegado){position:absolute;right:16px;top:64px;z-index:60;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;width:470px;box-shadow:0 14px 40px rgba(0,0,0,.18);display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0;}
+    body.editor .datos-ed:not(.plegado) > div{max-width:none;min-width:0;}
+    body.editor .datos-ed:not(.plegado) .chk{grid-column:1/-1;}
+    body.editor .panel-ed.on{height:calc(100vh - 60px);overflow:auto;padding:18px 28px;}
+    body.editor #pDraw.on{overflow:hidden;padding:0;}
+    body.editor .dib{height:100%;grid-template-columns:270px minmax(0,1fr) 370px;gap:0;align-items:stretch;}
+    body.editor .col-pasos{background:#fff;border-right:1px solid #e5e7eb;padding:18px 16px;overflow:auto;}
+    body.editor .col-herr{position:static;max-height:none;background:#fff;border-left:1px solid #e5e7eb;padding:18px 22px;overflow:auto;}
+    body.editor .col-pista{position:relative;background:#f3f4f6;display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;}
+    body.editor .lienzo{flex:1;min-height:0;overflow:auto;display:flex;padding:28px 28px 100px;}
+    body.editor .lienzo .caja-pista{margin:auto;flex:none;border:0;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.10);overflow:hidden;}
+    body.editor .lienzo .caja-pista svg{width:100%;height:auto;max-height:none;}
+    body.editor .col-pista .leyenda{position:absolute;left:16px;top:12px;max-width:42%;font-size:13px;}
+    body.editor .col-pista .hint{position:absolute;left:16px;bottom:10px;margin:0;font-size:12px;max-width:34%;}
+    body.editor .zoombar{display:flex;align-items:center;gap:2px;position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.14);padding:6px 10px;z-index:20;}
+    body.editor .zoombar button{background:transparent;color:var(--ink);padding:7px 10px;font-size:15px;border-radius:9px;}
+    body.editor .zoombar button:hover{background:#f3f4f6;} body.editor .zoombar button.on{background:var(--ink);color:#fff;}
+    body.editor .zoombar #zmAjustar{font-size:12.5px;}
+    .zoombar .sep{width:1px;height:22px;background:#e5e7eb;margin:0 6px;} .zoombar .pct{min-width:48px;text-align:center;font-weight:800;font-size:13px;}
+    #zmLista{display:none;position:absolute;bottom:52px;left:50%;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;min-width:110px;}
+    #zmLista.ver{display:block;} #zmLista button{display:block;width:100%;text-align:left;font-size:13px !important;}
+    body.editor .lienzo.mano{cursor:grab;} body.editor .lienzo.mano .caja-pista{cursor:grab;} body.editor .lienzo.pan{cursor:grabbing !important;}
+  }
   @media print{
     @page{size:A4 portrait;margin:12mm;}
     body{background:#fff;}
@@ -284,7 +323,14 @@
           <div class="lista-fases" id="fases"></div>
         </div>
         <div class="col-pista">
-          <div class="caja-pista" id="pista"></div>
+          <div class="lienzo" id="lienzo"><div class="caja-pista" id="pista"></div></div>
+          <div class="zoombar" id="zoombar">
+            <button id="zmMano" title="Mover el lienzo (mano)">✋</button><span class="sep"></span>
+            <button id="zmMenos" title="Alejar">−</button><span id="zmPct" class="pct">100%</span><button id="zmMas" title="Acercar">+</button>
+            <button id="zmMenu" title="Niveles de zoom">▾</button><span class="sep"></span>
+            <button id="zmAjustar" title="Ajustar la pista a la pantalla">⛶ Ajustar pista</button>
+            <div id="zmLista"></div>
+          </div>
           <div class="leyenda" id="leyenda"></div>
           <p class="hint" id="ayuda"></p>
         </div>
@@ -1159,6 +1205,7 @@ function pintarPanelLinea() {
 function alPulsar(ev) {
   if (ev.button > 0) return;
   ev.preventDefault();
+  if (typeof manoPan !== "undefined" && manoPan) { const L = $("lienzo"); panIni = { x: ev.clientX, y: ev.clientY, sl: L.scrollLeft, st: L.scrollTop }; L.classList.add("pan"); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } return; }
   const p = aMetros(ev), act = jugada.pasos[paso];
   if (selObj >= 0 && selOPaso === paso && act.objs[selObj]) {
     const h = objHandleCerca(act.objs[selObj], p);
@@ -1201,6 +1248,7 @@ function alPulsar(ev) {
   }
 }
 function alMover(ev) {
+  if (panIni) { const L = $("lienzo"); L.scrollLeft = panIni.sl - (ev.clientX - panIni.x); L.scrollTop = panIni.st - (ev.clientY - panIni.y); return; }
   if (!arrastre && !trazo && !arrastreObj && !arrastreH && !arrastreOH) return;
   const p = aMetros(ev);
   if (arrastreH) {
@@ -1233,6 +1281,7 @@ function simplificar(p, tol) {
   return simplificar(p.slice(0, mi + 1), tol).slice(0, -1).concat(simplificar(p.slice(mi), tol));
 }
 function alSoltar() {
+  if (panIni) { panIni = null; $("lienzo").classList.remove("pan"); return; }
   RESALTE = null;
   if (arrastreH) {
     const act = jugada.pasos[paso], l = act.lineas[selLinea], i = arrastreH.i, n = l.pts.length; arrastreH = null;
@@ -1559,6 +1608,29 @@ function importar(archivo) {
 let temporizador;
 function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporizador); temporizador = setTimeout(() => a.classList.remove("ver"), 2600); }
 
+/* ---------- zoom y mano (editor de escritorio) ---------- */
+const ZOOM_ON = EDITOR && window.matchMedia("(min-width:1001px)").matches;
+let zoom = 1, manoPan = false, panIni = null;
+function fitAncho() { const L = $("lienzo"); const aw = L.clientWidth - 56, ah = L.clientHeight - 130; return Math.max(240, Math.min(aw, ah * (ANCHO * S + 20) / (FONDO * S + 20))); }
+function aplicarZoom() { if (!ZOOM_ON) return; const L = $("lienzo"); if (!L.clientWidth) return; $("pista").style.width = Math.round(fitAncho() * zoom) + "px"; $("zmPct").textContent = Math.round(zoom * 100) + "%"; }
+function fijarZoom(z, centrar) { zoom = Math.max(0.4, Math.min(3.5, Math.round(z * 100) / 100)); aplicarZoom(); if (centrar) { const L = $("lienzo"); L.scrollLeft = (L.scrollWidth - L.clientWidth) / 2; L.scrollTop = (L.scrollHeight - L.clientHeight) / 2; } }
+if (ZOOM_ON) {
+  const L = $("lienzo");
+  $("zmMas").addEventListener("click", () => fijarZoom(zoom + 0.25));
+  $("zmMenos").addEventListener("click", () => fijarZoom(zoom - 0.25));
+  $("zmAjustar").addEventListener("click", () => fijarZoom(1, true));
+  $("zmMano").addEventListener("click", () => { manoPan = !manoPan; $("zmMano").classList.toggle("on", manoPan); L.classList.toggle("mano", manoPan); });
+  $("zmLista").innerHTML = [50, 75, 100, 125, 150, 200, 300].map(v => `<button data-z="${v}">${v}%</button>`).join("");
+  $("zmMenu").addEventListener("click", (e) => { e.stopPropagation(); $("zmLista").classList.toggle("ver"); });
+  $("zmLista").addEventListener("click", (e) => { const b = e.target.closest("[data-z]"); if (b) { fijarZoom(Number(b.dataset.z) / 100, true); $("zmLista").classList.remove("ver"); } });
+  document.addEventListener("click", () => $("zmLista").classList.remove("ver"));
+  L.addEventListener("wheel", (e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); fijarZoom(zoom * (e.deltaY < 0 ? 1.1 : 0.9)); } }, { passive: false });
+  new ResizeObserver(aplicarZoom).observe(L);
+  // la mano tambien funciona agarrando el fondo gris
+  L.addEventListener("pointerdown", (e) => { if (e.target === L && manoPan) { e.preventDefault(); alPulsar(e); } });
+  L.addEventListener("pointermove", (e) => { if (e.target === L) alMover(e); });
+  L.addEventListener("pointerup", (e) => { if (e.target === L) alSoltar(e); });
+}
 /* ---------- pantalla completa de la animacion ---------- */
 let pcActivo = null, pcApi = false;
 function salirPC() {
@@ -1733,6 +1805,13 @@ if (VISOR) {
   if (EDITOR) {
     document.body.classList.add("editor");
     $("btnCerrarEd").style.display = ""; $("btnCerrarEd").addEventListener("click", cerrarEditor);
+    if (window.matchMedia("(min-width:1001px)").matches) {
+      // barra superior: volver, nombre, pestanas, deshacer, datos y guardar (como en la otra app)
+      const bar = document.querySelector(".barra-ed"), nom = $("nombre").parentElement;
+      $("btnCerrarEd").textContent = "✕ Volver"; bar.prepend(nom); bar.prepend($("btnCerrarEd"));
+      bar.insertBefore($("btnDatos"), $("btnGuardar"));
+      document.querySelector(".datos-ed").classList.add("plegado");
+    }
     window.addEventListener("beforeunload", (e) => { if (instJugada() !== instGuardada) { e.preventDefault(); e.returnValue = ""; } });
     iniciarNube().then(recargarBib).then(() => {
       $("listaCarpetas").innerHTML = [...new Set(BIB.map(x => x.carpeta).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join("");
