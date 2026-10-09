@@ -938,7 +938,8 @@ function hgRuta(folders, id) {
 /* marcador (bookmarklet): se ejecuta dentro de Hoops Geek, con tu sesión, y descarga tus jugadas en un archivo */
 function hgMarcador() {
   (async () => {
-    const A = "/apiv2", J = async (u) => { const r = await fetch(A + u, { credentials: "include" }); if (!r.ok) throw new Error(u + " " + r.status); return r.json(); };
+    const A = "https://app.thehoopsgeek.com/apiv2", J = async (u) => { const r = await fetch(A + u, { credentials: "include" }); if (r.status === 401) throw new Error("no has iniciado sesión en app.thehoopsgeek.com (entra con tu cuenta y vuelve a pulsar)"); if (!r.ok) throw new Error(u + " " + r.status); return r.json(); };
+    if (location.hostname !== "app.thehoopsgeek.com") { alert("Abre primero app.thehoopsgeek.com, entra con tu cuenta y pulsa el marcador allí."); return; }
     const caja = document.createElement("div"); caja.style.cssText = "position:fixed;z-index:2147483647;left:50%;top:16px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font:600 15px system-ui;box-shadow:0 8px 30px #0006"; document.body.appendChild(caja);
     const di = (t) => { caja.textContent = t; };
     try {
