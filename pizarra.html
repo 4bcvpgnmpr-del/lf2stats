@@ -70,6 +70,10 @@
   .col-pasos .acc button{padding:8px 4px;font-size:12px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
   .lista-fases{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;}
   @media (max-width:1000px){.lista-fases{flex-direction:row;overflow-x:auto;overflow-y:hidden;max-height:none;padding-bottom:6px;} .lista-fases .fase{width:120px;flex:none;}}
+  .panel-fase{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px 12px;margin-bottom:10px;}
+  .panel-fase label{margin:6px 0 4px;} .panel-fase label.chkl{display:flex;gap:7px;align-items:center;text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:700;color:var(--ink);margin:8px 0;line-height:1.25;}
+  .panel-fase label.chkl input{width:auto;flex:none;} .panel-fase .fila button{flex:1;padding:7px 4px;font-size:12px;}
+  .fase .ft{display:block;font-size:11px;font-weight:800;padding:3px 6px 4px;background:#fff;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .fase{border:2.5px solid var(--line);border-radius:10px;background:#f3e6d2;cursor:pointer;position:relative;overflow:hidden;}
   .fase.on{border-color:#2f7bd8;}
   .fase svg{display:block;width:100%;height:auto;}
@@ -319,6 +323,12 @@
             <button id="btnDupPaso" title="Copia esta fase tal cual">⧉ Clonar</button>
             <button id="btnVacioPaso" title="Nueva fase con las jugadoras donde están ahora, sin líneas">▢ Vacía</button>
             <button id="btnQuitarPaso" title="Quita esta fase">🗑 Quitar</button>
+          </div>
+          <div class="panel-fase" id="panelFase">
+            <label>Título de la fase</label>
+            <input id="faseTitulo" placeholder="Ej: Bloqueo directo" maxlength="60">
+            <label class="chkl"><input type="checkbox" id="faseMostrar"> Mostrar el título al cambiar de fase</label>
+            <div class="fila"><button class="gris" id="faseArriba" type="button">↑ Subir</button><button class="gris" id="faseAbajo" type="button">↓ Bajar</button></div>
           </div>
           <div class="lista-fases" id="fases"></div>
         </div>
@@ -746,6 +756,11 @@ function posBalon(pos, dueno) {
   if (!p) { const k = Object.keys(pos).find(esAtaque); p = k ? pos[k] : null; }
   return p ? { x: p.x, y: p.y } : null;
 }
+/* titulo de la fase: aparece arriba de la pista al cambiar de fase */
+function rotuloSvg(txt, op) {
+  const fs = 21, W = ANCHO * S, w = Math.min(W - 20, txt.length * fs * 0.58 + 48), h = fs + 22, x = (W - w) / 2, y = 14;
+  return `<g opacity="${op}"><rect x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="${h}" rx="${h / 2}" fill="#10151d" fill-opacity=".88"/><text x="${W / 2}" y="${y + h / 2 + fs * 0.35}" text-anchor="middle" font-family="Archivo,system-ui,sans-serif" font-weight="800" font-size="${fs}" fill="#fff">${esc(txt)}</text></g>`;
+}
 /* todo el dibujo se recorta al rectangulo de la pista (la madera no se sale al ajustar a la pantalla) */
 const CLIP_INI = "", CLIP_FIN = "";
 function svgPaso(j, i, opciones) {
@@ -754,7 +769,7 @@ function svgPaso(j, i, opciones) {
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${CLIP_FIN}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${opciones.rotulo && p.mostrarTitulo && p.titulo ? rotuloSvg(p.titulo, 1) : ""}${CLIP_FIN}</svg>`;
 }
 const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
 
@@ -895,10 +910,18 @@ function estadoEn(j, i, t, dur) {
   });
   return { pos, balon: vuelo || posBalon(pos, holder), si, st, e, vis };
 }
+/* el titulo se ve al empezar la fase unos 2 segundos, con entrada y salida suaves */
+function rotuloFase(j, i, t, dur) {
+  const f = j.pasos[i]; if (!f || !f.mostrarTitulo || !f.titulo) return "";
+  const ms = Math.max(0, Math.min(1, t)) * msFase(f, dur || 1200), T = 2300;
+  if (ms >= T) return "";
+  const op = Math.min(1, ms / 250, (T - ms) / 450);
+  return op > 0.02 ? rotuloSvg(f.titulo, op.toFixed(2)) : "";
+}
 function fotogramaAnim(j, caja, i, t, dur) {
   const E = estadoEn(j, i, t, dur);
   let lineas = ""; E.vis.forEach(v => { lineas += lineaSvg(recorteLinea(v.l, v.f), 1); });
-  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${CLIP_INI}${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}${CLIP_FIN}</svg>`;
+  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${CLIP_INI}${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}${rotuloFase(j, i, t, dur)}${CLIP_FIN}</svg>`;
 }
 const PAUSA_FASE = 450;
 /* Segmentos de tiempo de una jugada (de la fase "desde" a la "hasta") */
@@ -1075,7 +1098,8 @@ function pintar() {
   if (selObj >= 0 && (selOPaso !== paso || selObj >= (act.objs || []).length)) selObj = -1;
   pintarPanelLinea(); pintarPanelFicha(); pintarPanelObj();
   if (trazo && trazo.pts.length > 1) $("pista").querySelector("svg").insertAdjacentHTML("beforeend", lineaSvg(trazo, 1));
-  $("fases").innerHTML = jugada.pasos.map((_, i) => `<div class="fase ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}</div>`).join("");
+  $("fases").innerHTML = jugada.pasos.map((q, i) => `<div class="fase ${i === paso ? "on" : ""}" data-i="${i}"><b>${i + 1}</b>${svgPaso(jugada, i, {})}${q.titulo ? `<span class="ft">${q.mostrarTitulo ? "🏷 " : ""}${esc(q.titulo)}</span>` : ""}</div>`).join("");
+  { const ft = $("faseTitulo"); if (document.activeElement !== ft) ft.value = act.titulo || ""; $("faseMostrar").checked = !!act.mostrarTitulo; $("faseArriba").disabled = paso < 1; $("faseAbajo").disabled = paso >= jugada.pasos.length - 1; }
   $("fases").querySelectorAll(".fase").forEach(el => el.addEventListener("click", () => { paso = Number(el.dataset.i); selLinea = -1; selFicha = null; selObj = -1; pintar(); }));
   $("btnQuitarPaso").disabled = jugada.pasos.length < 2;
   $("btnDeshacer").disabled = !act.lineas.length;
@@ -1341,7 +1365,7 @@ function etiquetaLinea(l, pos) {
 }
 function pintarAnim() {
   const n = jugada.pasos.length, ver = faseAnim < 0 ? 0 : Math.min(faseAnim, n - 1);
-  if (!pararAni) $("pistaAni").innerHTML = svgPaso(jugada, ver, {});
+  if (!pararAni) $("pistaAni").innerHTML = svgPaso(jugada, ver, { rotulo: true });
   $("leyendaAni").innerHTML = textoLista(jugada.pasos[ver].texto);
   $("chipsFase").innerHTML = `<button data-f="-1" class="${faseAnim < 0 ? "on" : ""}">Todas</button>` + jugada.pasos.map((_, i) => `<button data-f="${i}" class="${faseAnim === i ? "on" : ""}">${i + 1}</button>`).join("");
   $("chipsFase").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { detenerAni(); faseAnim = Number(b.dataset.f); pintarAnim(); }));
@@ -1381,7 +1405,7 @@ function reproducirAni() {
 }
 function pintarTexto() {
   $("notas").value = jugada.notas || "";
-  $("textosFases").innerHTML = jugada.pasos.map((p, i) => `<div class="card"><h2>Fase ${i + 1}</h2><div class="fila-texto"><div class="mini">${svgPaso(jugada, i, {})}</div>
+  $("textosFases").innerHTML = jugada.pasos.map((p, i) => `<div class="card"><h2>Fase ${i + 1}${p.titulo ? " · " + esc(p.titulo) : ""}</h2><div class="fila-texto"><div class="mini">${svgPaso(jugada, i, {})}</div>
     <div><textarea data-i="${i}" placeholder="Una idea por línea. Ej:&#10;El 1 pasa al 3&#10;El 5 sube a poner bloqueo">${esc(p.texto || "")}</textarea></div></div></div>`).join("");
   $("textosFases").querySelectorAll("textarea").forEach(t => {
     t.addEventListener("focus", snap);
@@ -1434,7 +1458,7 @@ function guardarBorrador() { if (EDITOR) return; try { localStorage.setItem(BORR
 function crearVisor(ids, dur) {
   const v = { j: null, i: 0, parar: null };
   const pista = $(ids.pista), ley = $(ids.leyenda), play = $(ids.play), linea = $(ids.linea), tiempo = $(ids.tiempo);
-  const mostrar = () => { pista.innerHTML = svgPaso(v.j, v.i, {}); ley.innerHTML = textoLista(v.j.pasos[v.i].texto); };
+  const mostrar = () => { pista.innerHTML = svgPaso(v.j, v.i, { rotulo: true }); ley.innerHTML = textoLista(v.j.pasos[v.i].texto); };
   const barras = () => linea.querySelectorAll(".seg i");
   const resetBarras = (hasta) => { barras().forEach((b, k) => { b.style.width = hasta != null && k < hasta ? "100%" : "0"; }); };
   const detener = () => { if (v.parar) { v.parar(); v.parar = null; } play.textContent = "▶"; };
@@ -1608,6 +1632,21 @@ function importar(archivo) {
 let temporizador;
 function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporizador); temporizador = setTimeout(() => a.classList.remove("ver"), 2600); }
 
+/* ---------- editar la fase: titulo, mostrarlo al cambiar de fase, orden ---------- */
+{
+  const ft = $("faseTitulo");
+  ft.addEventListener("focus", () => snap());
+  ft.addEventListener("input", () => { jugada.pasos[paso].titulo = ft.value; pintarSoloFases(); guardarBorrador(); });
+  $("faseMostrar").addEventListener("change", (e) => { snap(); jugada.pasos[paso].mostrarTitulo = e.target.checked; if (e.target.checked && !jugada.pasos[paso].titulo) { ft.focus(); aviso("Escribe el título que se mostrará"); } pintar(); });
+  const mover = (d) => { const j = paso + d; if (j < 0 || j >= jugada.pasos.length) return; snap(); [jugada.pasos[paso], jugada.pasos[j]] = [jugada.pasos[j], jugada.pasos[paso]]; paso = j; selLinea = -1; pintar(); };
+  $("faseArriba").addEventListener("click", () => mover(-1));
+  $("faseAbajo").addEventListener("click", () => mover(1));
+}
+function pintarSoloFases() {
+  const el = $("fases").querySelector(".fase.on"); if (!el) return;
+  const q = jugada.pasos[paso]; let s = el.querySelector(".ft");
+  if (q.titulo) { if (!s) { s = document.createElement("span"); s.className = "ft"; el.appendChild(s); } s.textContent = (q.mostrarTitulo ? "🏷 " : "") + q.titulo; } else if (s) s.remove();
+}
 /* ---------- zoom y mano (editor de escritorio) ---------- */
 const ZOOM_ON = EDITOR && window.matchMedia("(min-width:1001px)").matches;
 let zoom = 1, manoPan = false, panIni = null;
