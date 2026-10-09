@@ -166,42 +166,54 @@
   }
   @media (max-width:520px){ .cab .split button{font-size:12.5px;padding:9px 10px;} main{padding:14px 12px 60px !important;} }
 
-  #planEd{position:fixed;inset:0;z-index:150;background:var(--bg);display:none;flex-direction:column;}
+  #planEd{--pg:#3f9c86;--pgd:#34836f;--pbg:#f5f6f8;--pln:#e3e6ea;position:fixed;inset:0;z-index:150;background:var(--pbg);display:none;flex-direction:column;color:#1f2933;}
   #planEd.ver{display:flex;}
-  .pe-top{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border-bottom:1.5px solid var(--line);flex-wrap:wrap;}
-  .pe-top .esp{flex:1;} .pe-tit{flex:1 1 220px;max-width:380px;font-weight:800;font-size:16px;border-color:transparent;background:transparent;}
-  .pe-tit:focus,.pe-tit:hover{border-color:var(--line);background:#fff;}
-  .pe-tabs{display:inline-flex;background:var(--suave);border-radius:10px;padding:3px;gap:2px;}
-  .pe-tabs button{background:transparent;color:var(--soft);padding:7px 14px;}
-  .pe-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15);}
-  .pe-top button:disabled{opacity:.4;cursor:default;}
-  .pe-cuerpo{flex:1;overflow:auto;padding:18px 14px 80px;width:100%;max-width:860px;margin:0 auto;}
-  .pe-tot{font-size:15px;margin-bottom:12px;} .pe-tot b{color:var(--orange);}
-  .pe-lista{display:flex;flex-direction:column;gap:8px;}
-  .pe-seg,.pe-sec{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 10px;position:relative;}
-  .pe-sec{align-items:center;background:var(--suave);}
-  .pe-sec input{text-align:center;text-transform:uppercase;font-weight:800;letter-spacing:1.2px;border-color:transparent;background:transparent;}
-  .pe-sec input:focus{background:#fff;border-color:var(--line);}
-  .pe-asa{cursor:grab;color:#b5a88f;font-size:20px;line-height:1;padding:8px 2px;user-select:none;touch-action:none;}
-  .pe-seg.arr,.pe-sec.arr{opacity:.4;} .dst-a{box-shadow:0 -3px 0 var(--orange);} .dst-b{box-shadow:0 3px 0 var(--orange);}
-  .pe-min{background:var(--suave);color:var(--ink);border:1.5px solid var(--line);min-width:54px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;line-height:1.05;font-size:17px;font-family:'Archivo Black',sans-serif;font-weight:400;}
-  .pe-min small{font-family:'Archivo',sans-serif;font-size:10px;font-weight:700;color:var(--soft);}
-  .pe-cen{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
-  .pe-l1{display:flex;gap:6px;} .pe-l1 input{font-weight:800;}
-  .pe-nota{font-size:13px;color:var(--soft);}
-  .pe-vinc{padding:6px 11px;font-size:15px;}
-  .pe-hora{font-size:11.5px;color:var(--soft);font-weight:700;padding-top:12px;white-space:nowrap;}
-  .pe-mas{padding:6px 10px;}
-  .pe-add{margin-top:14px;}
-  .pe-card{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:18px;}
-  .pv-sec{display:flex;justify-content:space-between;align-items:center;background:var(--suave);border-radius:8px;padding:7px 12px;margin:14px 0 6px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;font-size:12.5px;} .pv-sec span{color:var(--orange);}
-  .pv-seg{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line);} .pv-seg:first-of-type{border-top:0;}
-  .pv-m{min-width:48px;text-align:center;font-family:'Archivo Black',sans-serif;font-size:18px;color:var(--orange);display:flex;flex-direction:column;line-height:1.05;} .pv-m small{font-family:'Archivo',sans-serif;font-size:10px;color:var(--soft);font-weight:700;}
-  .pv-n{margin-top:3px;} .pv-d{margin-top:3px;font-size:13px;color:var(--soft);}
+  #planEd button{font-weight:600;}
+  .pe-top{display:flex;align-items:center;gap:8px;padding:0 18px 0 8px;height:70px;background:#fff;border-bottom:1px solid var(--pln);flex:none;}
+  .pe-l{flex:1;display:flex;align-items:center;gap:6px;min-width:0;} .pe-c{display:flex;align-items:center;gap:6px;} .pe-r{flex:1;display:flex;align-items:center;gap:10px;justify-content:flex-end;}
+  .pe-ic{background:transparent;color:#4a5560;border:0;padding:8px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;line-height:0;}
+  .pe-ic:hover{background:#eef1f3;} .pe-ic:disabled{opacity:.35;cursor:default;}
+  .pe-tit{flex:1;min-width:0;max-width:420px;font-weight:700;font-size:16px;border:0;background:transparent;padding:8px 6px;border-radius:8px;color:#1f2933;}
+  .pe-tit:hover,.pe-tit:focus{background:#f0f2f4;outline:0;}
+  .pe-tabs{display:inline-flex;gap:4px;} .pe-tabs button{background:transparent;color:#4a5560;padding:11px 20px;border-radius:9px;font-size:15px;font-weight:700;}
+  .pe-tabs button.on{background:var(--pg);color:#fff;} .pe-tabs button:not(.on):hover{background:#eef1f3;}
+  .pe-sep{width:1px;height:34px;background:var(--pln);margin:0 10px;}
+  .pe-save{display:inline-flex;} .pe-save button{background:var(--pg);color:#fff;padding:12px 20px;font-size:15px;border-radius:9px 0 0 9px;} .pe-save button+button{border-radius:0 9px 9px 0;border-left:1px solid rgba(255,255,255,.35);padding:12px 12px;}
+  .pe-save button:hover{background:var(--pgd);}
+  .pe-cuerpo{flex:1;overflow:auto;padding:26px 24px 90px 60px;width:100%;max-width:1620px;margin:0 auto;}
+  .pe-h{display:flex;align-items:baseline;gap:12px;margin:6px 0 26px 34px;} .pe-h h2{font-size:21px;font-weight:700;margin:0;} .pe-h span{color:#5b6670;font-size:16px;}
+  .pe-lista{display:flex;flex-direction:column;gap:10px;}
+  .pe-fila{display:flex;align-items:center;gap:10px;} .pe-fila.arr{opacity:.4;} .dst-a{box-shadow:0 -3px 0 var(--pg);} .dst-b{box-shadow:0 3px 0 var(--pg);}
+  .pe-asa{cursor:grab;color:#6b7680;width:24px;flex:none;display:flex;justify-content:center;user-select:none;touch-action:none;line-height:0;}
+  .pe-tarj{flex:1;min-width:0;display:flex;align-items:stretch;background:#fff;border:1px solid var(--pln);border-radius:14px;min-height:62px;overflow:hidden;}
+  .pe-tarj>div{display:flex;align-items:center;min-width:0;}
+  .pe-c1{flex:0 0 180px;justify-content:center;border-right:1px solid var(--pln);}
+  .pe-min{background:transparent;color:#1f2933;font-size:15px;padding:10px 16px;border-radius:8px;width:100%;height:100%;font-weight:600;} .pe-min:hover{background:#f4f6f7;}
+  .pe-c2{flex:1.1;border-right:1px solid var(--pln);padding-right:10px;} .pe-c3{flex:1.5;}
+  .pe-tarj input{border:0;background:transparent;border-radius:0;padding:10px 18px;font-size:15px;height:100%;color:#1f2933;} .pe-tarj input:focus{outline:0;background:#fafbfb;}
+  .pe-tarj input::placeholder,#planEd input::placeholder,#planEd textarea::placeholder{color:#8b949c;}
+  .pe-tarj input[data-f=notas]{padding-left:68px;}
+  .pe-vinc{background:transparent;color:var(--pg);padding:6px;border-radius:8px;line-height:0;flex:none;} .pe-vinc:hover{background:#eaf5f2;}
+  .pe-c4{flex:0 0 auto;gap:2px;padding:0 10px;border-left:1px solid var(--pln);}
+  .pe-c4 button{background:transparent;color:#2b3640;padding:7px;border-radius:8px;line-height:0;} .pe-c4 button:hover{background:#eef1f3;}
+  .pe-sec{flex:1;display:flex;align-items:center;gap:6px;min-height:44px;margin-top:8px;}
+  .pe-sec input{flex:1;text-align:center;text-transform:uppercase;font-weight:800;letter-spacing:.8px;font-size:15px;border:0;background:transparent;} .pe-sec input:focus{background:#fff;outline:0;border-radius:8px;}
+  .pe-sec button{background:transparent;color:#2b3640;padding:7px;line-height:0;border-radius:8px;} .pe-sec button:hover{background:#eef1f3;}
+  .pe-add{margin:16px 0 0 34px;}
+  .pe-addb{display:inline-flex;box-shadow:0 6px 14px rgba(63,156,134,.35);border-radius:10px;} .pe-addb button{background:var(--pg);color:#fff;padding:12px 18px;font-size:15px;border-radius:10px 0 0 10px;display:inline-flex;gap:8px;align-items:center;}
+  .pe-addb button+button{border-radius:0 10px 10px 0;border-left:1px solid rgba(0,0,0,.25);padding:12px 16px;} .pe-addb button:hover{background:var(--pgd);}
+  .pe-card{background:#fff;border:1px solid var(--pln);border-radius:14px;padding:22px;max-width:860px;margin:0 auto;}
+  #planEd .pe-card label{font-size:12px;color:#5b6670;}
+  .pv-sec{display:flex;justify-content:space-between;align-items:center;margin:20px 0 6px;padding-bottom:6px;border-bottom:1px solid var(--pln);font-weight:800;letter-spacing:.8px;text-transform:uppercase;font-size:13px;} .pv-sec span{color:var(--pg);}
+  .pv-seg{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--pln);} .pv-seg:first-of-type{border-top:0;}
+  .pv-m{min-width:52px;font-weight:700;} .pv-m small{font-size:12px;font-weight:500;color:#5b6670;margin-left:2px;}
+  .pv-n{margin-top:3px;} .pv-d{margin-top:3px;font-size:13px;color:#5b6670;}
+  #planEd .naranja,#planEd .gris.pe-ref{background:var(--pg);}
   .pt{width:210px;padding:6px;} .pt-f{display:flex;gap:6px;margin:8px 0;} .pt-f input{text-align:center;font-weight:800;} .pt-r{display:flex;gap:6px;} .pt button{width:auto;display:inline-block;text-align:center;}
   .pt-r button{flex:1;padding:7px 0;} .pt-f button{padding:6px 14px;}
   .np{display:flex;flex-direction:column;gap:10px;margin-top:10px;} .np button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px;font-weight:600;text-align:left;font-size:14px;}
-  @media (max-width:640px){ .pe-top{padding:8px 10px;} .pe-tit{order:2;flex-basis:100%;max-width:none;} .pe-hora{display:none;} .pe-cuerpo{padding:12px 10px 80px;} }
+  @media (max-width:900px){ .pe-top{flex-wrap:wrap;height:auto;padding:8px;} .pe-l{flex:1 1 100%;order:1;} .pe-c{order:3;flex:1 1 auto;justify-content:center;} .pe-r{order:2;flex:0 0 auto;} .pe-tabs button{padding:9px 12px;font-size:14px;}
+    .pe-cuerpo{padding:16px 10px 90px;} .pe-h,.pe-add{margin-left:4px;} .pe-asa{width:16px;} .pe-tarj{flex-wrap:wrap;} .pe-c1{flex:0 0 90px;} .pe-c2{flex:1 1 calc(100% - 90px);border-right:0;} .pe-c3{flex:1 1 100%;border-top:1px solid var(--pln);} .pe-c4{margin-left:auto;border-left:0;} .pe-tarj input[data-f=notas]{padding-left:18px;} .pe-sep{display:none;} }
   #hojaImp{display:none;}
   @media print{
     #app,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#aviso{display:none !important;}
@@ -703,6 +715,7 @@ function formEjercicio(x) {
 }
 
 /* ------------ planes de entrenamiento (creador estilo Hoops Geek) ------------ */
+const IC = {"x": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "undo": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 14L4 9l5-5\"/><path d=\"M4 9h10a6 6 0 010 12h-3\"/></svg>", "redo": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 14l5-5-5-5\"/><path d=\"M20 9H10a6 6 0 000 12h3\"/></svg>", "mas": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"5\" cy=\"12\" r=\"1.3\" fill=\"currentColor\"/><circle cx=\"12\" cy=\"12\" r=\"1.3\" fill=\"currentColor\"/><circle cx=\"19\" cy=\"12\" r=\"1.3\" fill=\"currentColor\"/></svg>", "q": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.5 9.5a2.5 2.5 0 114 2c-.8.6-1.5 1-1.5 2.2M12 17h.01\"/></svg>", "dup": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"9\" y=\"9\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M5 15V6a2 2 0 012-2h9\"/></svg>", "del": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3\"/></svg>", "plus": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>", "asa": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><circle cx=\"9\" cy=\"6\" r=\"1.7\"/><circle cx=\"9\" cy=\"12\" r=\"1.7\"/><circle cx=\"9\" cy=\"18\" r=\"1.7\"/><circle cx=\"15\" cy=\"6\" r=\"1.7\"/><circle cx=\"15\" cy=\"12\" r=\"1.7\"/><circle cx=\"15\" cy=\"18\" r=\"1.7\"/></svg>", "chev": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 15l6-6 6 6\"/></svg>", "chevd": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 9l6 6 6-6\"/></svg>"};
 const hmDe = (inicio, min) => { const [h, m] = (inicio || "18:00").split(":").map(Number); const t = h * 60 + m + min; return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
 const ejDe = (e) => e.id ? D.ejercicios.find(y => y.id === e.id) : null;
 const tituloSeg = (e) => e.titulo != null && e.titulo !== "" ? e.titulo : (ejDe(e) ? ejDe(e).nombre : "");
@@ -733,25 +746,24 @@ async function guardarPlan(cerrar) {
 function pEd() {
   const root = $("planEd"), p = PL.p, d = p.data, lista = d.ejercicios, ro = !puedeEscribir, tab = PL.tab;
   const total = minPlan(d), nSeg = segmentos(d).length;
-  const cab = `<div class="pe-top"><button class="gris pe-x" id="peX" title="Cerrar">✕</button><input id="peT" class="pe-tit" value="${esc(p.nombre)}" placeholder="Título del plan…" ${ro ? "disabled" : ""}>
-    <div class="pe-tabs">${[["tl", "Cronograma"], ["det", "Detalles"], ["pre", "Vista previa"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-tab="${k}">${t}</button>`).join("")}</div>
-    <span class="esp"></span>${ro ? "" : `<button class="gris" id="peUn" title="Deshacer" ${PL.hist.length < 2 ? "disabled" : ""}>↶</button><button class="gris" id="peRe" title="Rehacer" ${PL.fut.length ? "" : "disabled"}>↷</button>`}
-    <button class="gris" id="peMas" title="Más">⋯</button>${ro ? "" : `<span class="split"><button class="naranja" id="peG">${PL.sucio ? "Guardar" : "Guardado ✓"}</button><button class="naranja" id="peG2" title="Guardar y salir">▾</button></span>`}</div>`;
+  const cab = `<div class="pe-top"><div class="pe-l"><button class="pe-ic" id="peX" title="Cerrar">${IC.x}</button><input id="peT" class="pe-tit" value="${esc(p.nombre)}" placeholder="Plan de entrenamiento sin título" ${ro ? "disabled" : ""}></div>
+    <div class="pe-c"><div class="pe-tabs">${[["tl", "Cronograma"], ["det", "Detalles"], ["pre", "Vista previa"]].map(([k, t]) => `<button class="${tab === k ? "on" : ""}" data-tab="${k}">${t}</button>`).join("")}</div>${ro ? "" : `<span class="pe-sep"></span><button class="pe-ic" id="peUn" title="Deshacer" ${PL.hist.length < 2 ? "disabled" : ""}>${IC.undo}</button><button class="pe-ic" id="peRe" title="Rehacer" ${PL.fut.length ? "" : "disabled"}>${IC.redo}</button>`}</div>
+    <div class="pe-r"><button class="pe-ic" id="peMas" title="Más">${IC.mas}</button>${ro ? "" : `<span class="pe-save"><button id="peG">${PL.sucio ? "Guardar" : "Guardado ✓"}</button><button id="peG2" title="Guardar y salir">${IC.chevd}</button></span>`}<button class="pe-ic" id="peAy" title="Ayuda">${IC.q}</button></div></div>`;
   let cuerpo = "";
   if (tab === "tl") {
     let acum = 0, n = 0;
     const filas = lista.map((e, i) => {
-      if (e.sec) return `<div class="pe-sec" data-i="${i}" draggable="false"><span class="pe-asa" title="Arrastrar">⠿</span><input data-f="sec" value="${esc(e.titulo || "")}" placeholder="TÍTULO DE SECCIÓN" ${ro ? "disabled" : ""}><button class="gris pe-mas" data-r="${i}">⋯</button></div>`;
-      const ini = hmDe(d.inicio, acum); acum += Number(e.min) || 0; n++;
+      const asa = `<span class="pe-asa" title="Arrastrar">${IC.asa}</span>`;
+      if (e.sec) return `<div class="pe-fila" data-i="${i}">${asa}<div class="pe-sec"><input data-f="sec" value="${esc(e.titulo || "")}" placeholder="TÍTULO DE SECCIÓN" ${ro ? "disabled" : ""}>${ro ? "" : `<button data-del="${i}" title="Eliminar">${IC.del}</button>`}</div></div>`;
       const ej = ejDe(e);
-      return `<div class="pe-seg" data-i="${i}"><span class="pe-asa" title="Arrastrar">⠿</span><button class="pe-min" data-min="${i}" title="Editar tiempo">${Number(e.min) || 0}<small>min</small></button>
-        <div class="pe-cen"><div class="pe-l1"><input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="gris pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio de la biblioteca" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : "＋"}</button>`}</div>
-        <input data-f="notas" class="pe-nota" value="${esc(e.notas || "")}" placeholder="Notas…" ${ro ? "disabled" : ""}></div>
-        <span class="pe-hora">${ini}–${hmDe(d.inicio, acum)}</span><button class="gris pe-mas" data-r="${i}">⋯</button></div>`;
+      return `<div class="pe-fila" data-i="${i}">${asa}<div class="pe-tarj"><div class="pe-c1"><button class="pe-min" data-min="${i}" title="Editar tiempo">${Number(e.min) || 0} min</button></div>
+        <div class="pe-c2"><input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio vinculado" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : IC.plus}</button>`}</div>
+        <div class="pe-c3"><input data-f="notas" value="${esc(e.notas || "")}" placeholder="Añade notas aquí…" ${ro ? "disabled" : ""}></div>
+        ${ro ? "" : `<div class="pe-c4"><button data-r="${i}" title="Más">${IC.mas}</button><button data-dup="${i}" title="Duplicar">${IC.dup}</button><button data-del="${i}" title="Eliminar">${IC.del}</button></div>`}</div></div>`;
     }).join("");
-    cuerpo = `<div class="pe-cuerpo"><div class="pe-tot"><b>${total} min</b> · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · termina a las <b>${hmDe(d.inicio, total)}</b></div>
+    cuerpo = `<div class="pe-cuerpo"><div class="pe-h"><h2>Cronograma</h2><span>${total} min</span></div>
       <div class="pe-lista" id="peLista">${filas || '<div class="vacio">Añade segmentos para montar la sesión.</div>'}</div>
-      ${ro ? "" : `<div class="pe-add"><span class="split"><button class="verde" id="peAdd">＋ Añadir segmento</button><button class="verde" id="peAddM" title="Más opciones">▾</button></span></div>`}</div>`;
+      ${ro ? "" : `<div class="pe-add"><span class="pe-addb"><button id="peAdd">${IC.plus.replace('width="24" height="24"','width="18" height="18"')} Añadir segmento</button><button id="peAddM" title="Más opciones">${IC.chev}</button></span></div>`}</div>`;
   } else if (tab === "det") {
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><div class="dos"><div><label style="margin-top:0;">Fecha</label><input type="date" id="pdF" value="${esc(p.fecha || "")}" ${ro ? "disabled" : ""}></div><div><label style="margin-top:0;">Hora de inicio</label><input type="time" id="pdH" value="${esc(d.inicio || "18:00")}" ${ro ? "disabled" : ""}></div></div>
       <label>Carpeta</label><input id="pdC" list="dlpl" value="${esc(p.carpeta || "")}" placeholder="Sin carpeta" ${ro ? "disabled" : ""}><datalist id="dlpl">${carpetasDe("planes").map(c => `<option value="${esc(c.nombre)}">`).join("")}</datalist>
@@ -776,9 +788,10 @@ function pEd() {
   $("peT").addEventListener("change", () => { histPlan(); });
   root.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { PL.tab = b.dataset.tab; pEd(); });
   if ($("peUn")) { $("peUn").onclick = deshacerPlan; $("peRe").onclick = rehacerPlan; $("peG").onclick = () => guardarPlan(false); $("peG2").onclick = (e) => abrirMenu(e, [["💾 Guardar y salir", () => guardarPlan(true)], ["🚪 Salir sin guardar", () => cerrarPlan(true)]]); }
+  $("peAy").onclick = () => ventana(`<h3>Cómo funciona</h3><p style="line-height:1.5;">• Arrastra <b>⠿</b> para reordenar.<br>• Pulsa los minutos para cambiar el tiempo.<br>• <b>＋</b> vincula un ejercicio de tu biblioteca.<br>• «Añadir segmento ▾»: segmento vacío, reutilizar anteriores o encabezado de sección.<br>• «Vista previa» muestra el plan como quedará.</p><div class="pie-m"><button class="gris" id="ayX">Cerrar</button></div>`) || ($("ayX").onclick = cerrarVentana);
   $("peMas").onclick = (e) => abrirMenu(e, [["🖨️ Imprimir / PDF", () => imprimirPlan(p)]].concat(ro ? [] : [["⧉ Duplicar plan", async () => { const c = clonar(p); c.id = idNuevo("p"); c.nombre = (c.nombre || "Plan") + " (copia)"; if (await guardarFila("planes", { id: c.id, nombre: c.nombre, carpeta: c.carpeta || "", fecha: c.fecha || null, data: c.data })) { aviso("Duplicado"); await cargarTodo(); PL = null; abrirPlan(D.planes.find(y => y.id === c.id) || c); } }], ...(p.nuevo ? [] : [["🗑 Eliminar plan", async () => { if (confirm("¿Borrar el plan «" + p.nombre + "»?") && await borrarFila("planes", p.id)) cerrarPlan(true); }, "pel"]])]));
   if (tab === "tl") {
-    root.querySelectorAll(".pe-seg,.pe-sec").forEach(el => {
+    root.querySelectorAll(".pe-fila").forEach(el => {
       const i = Number(el.dataset.i);
       el.querySelectorAll("input[data-f]").forEach(inp => {
         inp.addEventListener("input", () => { const f = inp.dataset.f; if (f === "sec") lista[i].titulo = inp.value; else lista[i][f] = inp.value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; });
@@ -786,7 +799,9 @@ function pEd() {
       });
       const mn = el.querySelector("[data-min]"); if (mn && !ro) mn.onclick = (ev) => popTiempo(ev, i);
       const vb = el.querySelector("[data-v]"); if (vb) vb.onclick = () => elegirEjercicio((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista[i].id = id; lista[i].titulo = ej.nombre; if (!Number(lista[i].min)) lista[i].min = (ej.data && ej.data.minutos) || 10; histPlan(); pEd(); });
-      const mb = el.querySelector("[data-r]"); mb.onclick = (ev) => abrirMenu(ev, ro ? [] : [["↑ Subir", () => mover(i, -1)], ["↓ Bajar", () => mover(i, 1)], ["⧉ Duplicar", () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); }]].concat(lista[i].id && ejDe(lista[i]) ? [["🔗 Quitar vínculo con el ejercicio", () => { lista[i].titulo = tituloSeg(lista[i]); delete lista[i].id; histPlan(); pEd(); }]] : []).concat([["🗑 Eliminar", () => { lista.splice(i, 1); histPlan(); pEd(); }, "pel"]]));
+      const dp = el.querySelector("[data-dup]"); if (dp) dp.onclick = () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); };
+      const dl = el.querySelector("[data-del]"); if (dl) dl.onclick = () => { lista.splice(i, 1); histPlan(); pEd(); };
+      const mb = el.querySelector("[data-r]"); if (mb) mb.onclick = (ev) => abrirMenu(ev, ro ? [] : [["↑ Subir", () => mover(i, -1)], ["↓ Bajar", () => mover(i, 1)], ["⧉ Duplicar", () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); }]].concat(lista[i].id && ejDe(lista[i]) ? [["🔗 Quitar vínculo con el ejercicio", () => { lista[i].titulo = tituloSeg(lista[i]); delete lista[i].id; histPlan(); pEd(); }]] : []).concat([["🗑 Eliminar", () => { lista.splice(i, 1); histPlan(); pEd(); }, "pel"]]));
       // arrastrar
       const asa = el.querySelector(".pe-asa");
       if (asa && !ro) {
@@ -799,9 +814,9 @@ function pEd() {
     });
     const mover = (i, dir) => { const j = i + dir; if (j < 0 || j >= lista.length) return; [lista[i], lista[j]] = [lista[j], lista[i]]; histPlan(); pEd(); };
     if ($("peAdd")) {
-      const nuevoSeg = () => { lista.push({ titulo: "", min: 10, notas: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-seg input[data-f=titulo]"); if (ins.length) ins[ins.length - 1].focus(); root.querySelector(".pe-cuerpo").scrollTop = 1e6; };
+      const nuevoSeg = () => { lista.push({ titulo: "", min: 10, notas: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=titulo]"); if (ins.length) ins[ins.length - 1].focus(); root.querySelector(".pe-cuerpo").scrollTop = 1e6; };
       $("peAdd").onclick = nuevoSeg;
-      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-sec input"); if (ins.length) ins[ins.length - 1].focus(); }]]);
+      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=sec]"); if (ins.length) ins[ins.length - 1].focus(); }]]);
     }
   } else if (tab === "det") {
     const volc = () => { p.fecha = $("pdF").value || null; d.inicio = $("pdH").value || "18:00"; p.carpeta = $("pdC").value.trim(); d.notas = $("pdN").value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; };
