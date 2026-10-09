@@ -678,7 +678,7 @@ function svgPaso(j, i, opciones) {
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}</svg>`;
 }
 const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
 
@@ -717,6 +717,51 @@ function puntoEn(pts, f) {
     acc += d;
   }
   return pts[pts.length - 1];
+}
+/* ---- continuaciones y pases a la flecha ---- */
+const idLinea = () => "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+const puntaDe = (l) => l.pts[l.pts.length - 1];
+/* linea de movimiento (de una jugadora) cuya punta esta cerca de p; "excl" = jugadora que no vale */
+function puntaCerca(act, p, r, excl) {
+  let mejor = null, dm = r;
+  act.lineas.forEach(x => { if (!x.de || x.de === excl || !MOVEDORAS.includes(x.t) || !x.pts || x.pts.length < 2) return; const q = puntaDe(x), d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < dm) { dm = d; mejor = x; } });
+  return mejor ? { l: mejor, d: dm } : null;
+}
+/* la ultima linea de movimiento de una jugadora cuya punta esta cerca de p (para encadenar: bloqueo -> continuacion) */
+function puntaPropiaCerca(act, p, r) {
+  let mejor = null, dm = r;
+  act.lineas.forEach(x => { if (!x.de || !MOVEDORAS.includes(x.t) || !x.pts || x.pts.length < 2) return; const q = puntaDe(x), d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < dm) { dm = d; mejor = x; } });
+  return mejor;
+}
+/* a quien va un pase / mano a mano: a la punta de la flecha de otra jugadora (el balon llega adelantado) o a la jugadora mas cercana */
+function resolverPase(act, l, acortar) {
+  delete l.a; delete l.aL;
+  const fin = puntaDe(l), A = l.pts[0];
+  const f = puntaCerca(act, fin, 1.0, l.de);
+  let rec = "", dp = 1.6;
+  Object.keys(act.pos).forEach(k => { if (!esAtaque(k) || k === l.de) return; const d = Math.hypot(act.pos[k].x - fin[0], act.pos[k].y - fin[1]); if (d < dp) { dp = d; rec = k; } });
+  if (f && (!rec || f.d <= dp)) {
+    const tl = f.l; if (!tl.id) tl.id = idLinea();
+    l.a = tl.de; l.aL = tl.id;
+    const q = puntaDe(tl), d = Math.hypot(q[0] - A[0], q[1] - A[1]);
+    if (d > 0.9) { const k = (d - 0.34) / d; l.pts[l.pts.length - 1] = [A[0] + (q[0] - A[0]) * k, A[1] + (q[1] - A[1]) * k]; }
+    return;
+  }
+  if (rec) {
+    l.a = rec;
+    if (acortar) { const q = act.pos[rec], d = Math.hypot(q.x - A[0], q.y - A[1]); if (d > 1.1) { const k = (d - 0.62) / d; l.pts = [A, [A[0] + (q.x - A[0]) * k, A[1] + (q.y - A[1]) * k]]; } }
+  }
+}
+/* si se mueve la punta de una flecha, los pases que van a ella la siguen */
+function sincronizarPases(act, l) {
+  if (!l.id) return;
+  act.lineas.forEach(x => { if (x.t === "pase" && x.aL === l.id) { const q = puntaDe(l), A = x.pts[0], d = Math.hypot(q[0] - A[0], q[1] - A[1]), k = d > 0.9 ? (d - 0.34) / d : 1; x.pts[x.pts.length - 1] = [A[0] + (q[0] - A[0]) * k, A[1] + (q[1] - A[1]) * k]; } });
+}
+/* anillos blancos en la punta de las flechas a las que va un pase */
+function anillosPase(p) {
+  let s = "";
+  p.lineas.forEach(l => { if (l.t === "pase" && l.aL) { const tl = p.lineas.find(x => x.id === l.aL); if (tl && tl.pts && tl.pts.length > 1) { const q = puntaDe(tl); s += `<circle cx="${q[0] * S}" cy="${q[1] * S}" r="${0.42 * S}" fill="#fff" fill-opacity=".6" stroke="#fff" stroke-opacity=".9" stroke-width="1.5"/>`; } } });
+  return s;
 }
 /* receptora de un pase / mano a mano: la que se guardo al dibujar o la mas cercana al final de la linea */
 function receptoraDe(l, pos) {
@@ -757,7 +802,14 @@ function estadoEn(j, i, t, dur) {
       const l = a.lineas[li], rec = (l.t === "pase" || l.t === "entrega") ? receptoraDe(l, a.pos) : "";
       if (l.t === "pase" && rec && pos[rec]) {
         if (s < si || f >= 1) { holder = rec; vuelo = null; }
-        else if (f > 0) { const o = posBalon(pos, l.de || holder), d = posBalon(pos, rec); if (o && d) vuelo = { x: o.x + (d.x - o.x) * f, y: o.y + (d.y - o.y) * f }; }
+        else if (f > 0) {
+          const o = posBalon(pos, l.de || holder);
+          let d = posBalon(pos, rec);
+          // pase a la flecha: si su receptora todavia no se ha movido, el balon va a la punta de su flecha
+          const tl = l.aL ? a.lineas.find(x => x.id === l.aL) : null;
+          if (tl) { const sTl = st.findIndex(ix => ix.includes(a.lineas.indexOf(tl))); if (sTl > s) d = { x: puntaDe(tl)[0], y: puntaDe(tl)[1] }; }
+          if (o && d) vuelo = { x: o.x + (d.x - o.x) * f, y: o.y + (d.y - o.y) * f };
+        }
       } else if (l.t === "entrega" && rec && pos[rec]) { if (s < si || f >= 0.5) holder = rec; }
       else if (l.t === "tiro") {
         const o = posBalon(pos, l.de || holder);
@@ -1083,7 +1135,10 @@ function alPulsar(ev) {
     if (h) { snap(); arrastreOH = { k: h.k, o0: clonar(act.objs[selObj]) }; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } return; }
   }
   if (selLinea >= 0 && selPaso === paso && act.lineas[selLinea]) {
-    const h = handleCerca(act.lineas[selLinea], p);
+    let h = handleCerca(act.lineas[selLinea], p);
+    // con otra herramienta de dibujo activa, pulsar la punta de la linea elegida empieza una continuacion (no mueve el punto)
+    const sel0 = act.lineas[selLinea];
+    if (h >= 0 && h === sel0.pts.length - 1 && sel0.de && MOVEDORAS.includes(sel0.t) && ["bote", "corte", "pantalla", "mueve", "entrega", "pase", "tiro"].includes(herramienta) && herramienta !== sel0.t) h = -1;
     if (h >= 0) { snap(); arrastreH = { i: h, orig: clonar(act.lineas[selLinea].pts) }; try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ } return; }
   }
   if (herramienta === "mover") {
@@ -1109,8 +1164,9 @@ function alPulsar(ev) {
   } else {
     if (selLinea >= 0 || selFicha || selObj >= 0) { selLinea = -1; selFicha = null; selObj = -1; pintar(); }
     const k = fichaCerca(p, 1.0);
-    const origen = k ? act.pos[k] : p;
-    trazo = { t: herramienta, de: k || "", pts: [[origen.x, origen.y]] };
+    const prev = k ? null : puntaPropiaCerca(act, p, 0.9); // empezar donde acaba otra linea (p. ej. el "roll" tras el bloqueo)
+    const origen = k ? act.pos[k] : prev ? { x: puntaDe(prev)[0], y: puntaDe(prev)[1] } : p;
+    trazo = { t: herramienta, de: k || (prev ? prev.de : ""), pts: [[origen.x, origen.y]], cont: !!prev };
     try { $("pista").setPointerCapture(ev.pointerId); } catch (e) { /* nada */ }
   }
 }
@@ -1118,7 +1174,7 @@ function alMover(ev) {
   if (!arrastre && !trazo && !arrastreObj && !arrastreH && !arrastreOH) return;
   const p = aMetros(ev);
   if (arrastreH) {
-    const l = jugada.pasos[paso].lineas[selLinea]; moverExtremo(l, arrastreH.orig, arrastreH.i, p);
+    const l = jugada.pasos[paso].lineas[selLinea]; moverExtremo(l, arrastreH.orig, arrastreH.i, p); sincronizarPases(jugada.pasos[paso], l);
     RESALTE = fichaCerca(p, 1.0); $("pista").innerHTML = pistaEdicion(); return;
   }
   if (arrastreOH) { moverManejadorObj(jugada.pasos[paso].objs[selObj], arrastreOH.k, p); $("pista").innerHTML = pistaEdicion(); return; }
@@ -1153,7 +1209,7 @@ function alSoltar() {
     if (l) {
       if (i === 0) { const k = fichaCerca({ x: l.pts[0][0], y: l.pts[0][1] }, 1.0); if (k) { l.de = k; l.pts[0] = [act.pos[k].x, act.pos[k].y]; } }
       if (i === n - 1) {
-        if (l.t === "pase" || l.t === "entrega") { delete l.a; const r = receptoraDe(l, act.pos); if (r) l.a = r; }
+        if (l.t === "pase" || l.t === "entrega") resolverPase(act, l, false);
         else if (l.t === "tiro" && Math.hypot(l.pts[n - 1][0] - ARO.x, l.pts[n - 1][1] - ARO.y) < 1.2) l.pts[n - 1] = [ARO.x, ARO.y];
       }
     }
@@ -1168,10 +1224,9 @@ function alSoltar() {
       const rectas = ["pase", "entrega", "pantalla", "tiro"].includes(trazo.t);
       let pts = rectas ? [trazo.pts[0], trazo.pts[trazo.pts.length - 1]] : simplificar(trazo.pts, 0.22);
       if (!rectas && pts.length === 3) { const a = pts[0], b = pts[2], m = pts[1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; if (Math.abs((m[0] - a[0]) * dy - (m[1] - a[1]) * dx) / L < 0.3) pts = [a, b]; }
-      const linea = { t: trazo.t, de: trazo.de, pts, despues: false }; if (colorNuevo) linea.color = colorNuevo;
+      const linea = { t: trazo.t, de: trazo.de, pts, despues: !!trazo.cont }; if (colorNuevo) linea.color = colorNuevo;
       if (trazo.t === "pase" || trazo.t === "entrega") {
-        const r = receptoraDe(linea, jugada.pasos[paso].pos);
-        if (r) { linea.a = r; const q = jugada.pasos[paso].pos[r], a = pts[0]; const d = Math.hypot(q.x - a[0], q.y - a[1]); if (d > 1.1) { const k = (d - 0.62) / d; linea.pts = [a, [a[0] + (q.x - a[0]) * k, a[1] + (q.y - a[1]) * k]]; } }
+        resolverPase(jugada.pasos[paso], linea, true);
       } else if (trazo.t === "tiro") {
         const f = pts[1]; if (Math.hypot(f[0] - ARO.x, f[1] - ARO.y) < 2.2) linea.pts = [pts[0], [ARO.x, ARO.y]];
       }
@@ -1552,7 +1607,7 @@ if (VISOR) {
     menu.style.display = "block";
     menu.style.left = Math.min(ev.clientX, innerWidth - 210) + "px"; menu.style.top = Math.min(ev.clientY, innerHeight - menu.offsetHeight - 10) + "px";
   });
-  $("lnTipo").addEventListener("change", () => { const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap(); l.t = $("lnTipo").value; if (l.t === "pase" || l.t === "entrega") { delete l.a; const r = receptoraDe(l, jugada.pasos[paso].pos); if (r) l.a = r; } pintar(); });
+  $("lnTipo").addEventListener("change", () => { const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap(); l.t = $("lnTipo").value; if (l.t === "pase" || l.t === "entrega") resolverPase(jugada.pasos[paso], l, false); pintar(); });
   $("lnForma").addEventListener("change", () => { const l = jugada.pasos[paso].lineas[selLinea]; if (!l) return; snap(); const f = $("lnForma").value; l.forma = f; l.pts = ptsForma(l.pts[0], l.pts[l.pts.length - 1], f); pintar(); });
   $("lnColor").addEventListener("click", () => { const q = $("lnPaleta"); q.style.display = q.style.display === "none" ? "" : "none"; });
   $("lnPaleta").innerHTML = COLORES.map(c => `<button data-c="${c}" style="background:${c}" title="${c}"></button>`).join("") + '<label class="libre" title="Otro color">+<input type="color" id="lnLibre" value="#23262d"></label>';
