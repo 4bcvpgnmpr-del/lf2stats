@@ -1492,10 +1492,30 @@ function reutilizarSegmentos() {
   $("rsOk").onclick = () => { const L = PL.p.data.ejercicios; todos.filter(t => sel.has(t.titulo.trim().toLowerCase())).forEach(t => { const o = { titulo: t.titulo, min: t.min, notas: t.notas }; if (t.id && D.ejercicios.some(y => y.id === t.id)) o.id = t.id; L.push(o); }); cerrarVentana(); histPlan(); pEd(); };
 }
 function elegirEjercicio(ok) {
-  let q = "";
-  ventana(`<h3>Vincular ejercicio de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en tu biblioteca…"><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
-  const pin = () => { const l = D.ejercicios.filter(e => !q || (e.nombre + " " + (e.carpeta || "") + " " + ((e.data && e.data.categoria) || "")).toLowerCase().includes(q)); $("elL").innerHTML = l.length ? l.map(e => `<label class="it" data-id="${esc(e.id)}"><span style="flex:1;">🎯 ${esc(e.nombre)}</span><span class="peq">${esc((e.data && e.data.categoria) || "")} ${e.data && e.data.minutos ? "· " + e.data.minutos + " min" : ""}</span></label>`).join("") : '<div class="vacio">Aún no tienes ejercicios. Crea alguno en «Ejercicios».</div>'; $("elL").querySelectorAll("[data-id]").forEach(el => el.addEventListener("click", () => { cerrarVentana(); ok(el.dataset.id); })); };
-  pin(); $("elQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase(); pin(); }); $("elX").onclick = cerrarVentana;
+  let q = "", cur = "";
+  ventana(`<h3>Elegir ejercicio de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en todas las carpetas…"><div id="elMig" class="peq" style="margin:8px 2px 4px;"></div><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
+  const ejs = () => D.ejercicios.slice().sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+  const fila = (e, ruta) => `<label class="it" data-id="${esc(e.id)}"><span style="flex:1;">🎯 ${esc(e.nombre)}${ruta && e.carpeta ? ` <span class="peq">· ${esc(e.carpeta)}</span>` : ""}</span><span class="peq">${esc((e.data && e.data.categoria) || "")} ${e.data && e.data.minutos ? "· " + e.data.minutos + " min" : ""}</span></label>`;
+  const pin = () => {
+    const box = $("elL"), mig = $("elMig");
+    if (q) {
+      mig.textContent = "Resultados en todas las carpetas";
+      const l = ejs().filter(e => (e.nombre + " " + (e.carpeta || "") + " " + ((e.data && e.data.categoria) || "")).toLowerCase().includes(q));
+      box.innerHTML = l.length ? l.map(e => fila(e, true)).join("") : '<div class="vacio">Nada coincide.</div>';
+    } else {
+      const partes = cur ? cur.split("/") : [];
+      mig.innerHTML = `<a data-c="" style="cursor:pointer;font-weight:700;">Ejercicios</a>` + partes.map((s0, i) => ` › <a data-c="${esc(partes.slice(0, i + 1).join("/"))}" style="cursor:pointer;font-weight:700;">${esc(s0)}</a>`).join("");
+      const todas = new Set(rutasCarpetas("ejercicios").map(c => c.nombre)); D.ejercicios.forEach(e => { let acc = ""; (e.carpeta ? e.carpeta.split("/") : []).forEach(s0 => { acc = acc ? acc + "/" + s0 : s0; todas.add(acc); }); });
+      const hijas = [...todas].filter(r => (r.includes("/") ? r.slice(0, r.lastIndexOf("/")) : "") === cur).sort((a, b) => a.localeCompare(b, "es"));
+      const cuenta = (r) => D.ejercicios.filter(e => e.carpeta === r || (e.carpeta || "").startsWith(r + "/")).length;
+      const propios = ejs().filter(e => (e.carpeta || "") === cur);
+      box.innerHTML = hijas.map(r => `<label class="it" data-car="${esc(r)}"><span style="flex:1;">📁 <b>${esc(ultimo(r))}</b></span><span class="peq">${cuenta(r)} ›</span></label>`).join("") + propios.map(e => fila(e, false)).join("") || '<div class="vacio">Esta carpeta está vacía.</div>';
+      mig.querySelectorAll("[data-c]").forEach(a => a.onclick = () => { cur = a.dataset.c; pin(); });
+      box.querySelectorAll("[data-car]").forEach(el => el.addEventListener("click", () => { cur = el.dataset.car; pin(); }));
+    }
+    box.querySelectorAll("[data-id]").forEach(el => el.addEventListener("click", () => { cerrarVentana(); ok(el.dataset.id); }));
+  };
+  pin(); $("elQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase().trim(); pin(); }); $("elX").onclick = cerrarVentana;
 }
 function nuevoPlanModal() {
   ventana(`<h3>Nuevo plan de entrenamiento</h3><div class="np"><button class="gris" id="npB"><b>＋ Empezar en blanco</b><span class="peq">Un plan vacío para montar tú mismo</span></button><button class="gris" id="npC"><b>⧉ Copiar un plan existente</b><span class="peq">Parte de uno que ya tienes</span></button></div><div class="pie-m"><button class="gris" id="npX">Cancelar</button></div>`);
