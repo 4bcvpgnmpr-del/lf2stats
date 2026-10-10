@@ -277,6 +277,9 @@
   .eq-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start;} .eq-card{background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:14px;} .eq-card h3{margin:0 0 8px;font-size:16px;}
   .eq-lista{max-height:60vh;overflow:auto;} .eq-jug{display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid #eef0f2;} .eq-jug:first-child{border-top:0;} .eq-jug.aus{opacity:.45;} .eq-jug input{width:auto;margin:0;} .eq-n{width:26px;text-align:right;font-weight:800;color:#e8590c;} .eq-nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .eq-st{color:#f08c00;font-size:11px;letter-spacing:-1px;}
   .eq-add{display:flex;gap:6px;margin-top:10px;} .eq-add input{margin:0;}
+  .mb-t{border-collapse:collapse;width:100%;background:#fff;border-radius:12px;overflow:hidden;} .mb-t th,.mb-t td{padding:6px 8px;text-align:center;border-bottom:1px solid #eef1f3;font-size:14px;} .mb-t th{background:#f4f6f8;font-size:12px;color:#5a6672;} .mb-t td.nm{text-align:left;font-weight:700;white-space:nowrap;} .mb-t td.nm{min-width:150px;} .mb-t td.nm input{width:auto;min-height:0;margin:0 8px 0 0;vertical-align:middle;} .mb-t .aus td.nm{opacity:.45;}
+  .mb-c{width:46px;height:40px;border-radius:10px;border:1.5px solid #cfd6dc;background:#fff;font-size:18px;cursor:pointer;color:#fff;} .mb-c.on{background:#15a37f;border-color:#15a37f;} .mb-t .bad{color:#c0392b;font-weight:800;} .mb-t .ok{color:#15a37f;font-weight:800;} .mb-aviso{background:#fff4d6;border:1px solid #f0c24b;color:#7a5a00;border-radius:10px;padding:8px 12px;margin:0 0 10px;font-size:13.5px;} .mb-reg{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px;} .mb-reg span{background:#e9f4f1;color:#2f8a74;border-radius:999px;padding:5px 12px;font-weight:700;font-size:13px;}
+  .eqp-mb{width:100%;border-collapse:collapse;font-size:11pt;} .eqp-mb th,.eqp-mb td{border:1px solid #cfd6dc;padding:6px 8px;text-align:center;} .eqp-mb th{background:#1d2630 !important;color:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;} .eqp-mb td.nm{text-align:left;font-weight:700;} .eqp-mb td.on{background:#15a37f !important;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-weight:800;}
   .eq-sets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;} .eq-sets .on{background:#e8590c;color:#fff;border-color:#e8590c;}
   .eq-tb{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;} .eq-tb input{flex:1;min-width:140px;margin:0;font-weight:800;} .eq-tb select{width:auto;margin:0;} .eq-k{display:flex;align-items:center;gap:6px;}
   .eq-eqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;} .eq-eq{border:2px solid var(--c);border-radius:12px;overflow:hidden;background:#fff;} .eq-h{background:var(--c);padding:6px 8px;} .eq-h input{width:100%;background:transparent;border:0;color:#fff;font-weight:800;font-size:15px;margin:0;padding:2px;}
@@ -1696,9 +1699,9 @@ const EQ_COL = ["#e8590c", "#1c7ed6", "#2f9e44", "#ae3ec9", "#f08c00", "#0c8599"
 const EQ_MODOS = { q5: ["Quinteto (5)", 5], c4: ["4 contra 4", 4], c3: ["3 contra 3", 3], c2: ["2 contra 2", 2], c1: ["1 contra 1", 1] };
 const EQ_POS = ["Base", "Escolta", "Alero", "Ala-pívot", "Pívot"];
 let EQ = null;
-function eqLeer() { const r = D.archivos.find(a => a.id === "_equipos"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } return { plantilla: o.plantilla || [], sets: o.sets || [], setId: o.setId || "" }; }
+function eqLeer() { const r = D.archivos.find(a => a.id === "_equipos"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } return { plantilla: o.plantilla || [], sets: o.sets || [], setId: o.setId || "", mini: o.mini || [], miniId: o.miniId || "" }; }
 async function eqGuardar() {
-  const nombre = JSON.stringify({ plantilla: EQ.plantilla, sets: EQ.sets, setId: EQ.setId });
+  const nombre = JSON.stringify({ plantilla: EQ.plantilla, sets: EQ.sets, setId: EQ.setId, mini: EQ.mini || [], miniId: EQ.miniId || "" });
   if (await guardarFila("archivos", { id: "_equipos", nombre, tipo: "ajustes", ruta: "", mime: "", tamano: 0 })) { const r = D.archivos.find(a => a.id === "_equipos"); if (r) r.nombre = nombre; else D.archivos.push({ id: "_equipos", nombre, tipo: "ajustes" }); }
 }
 const eqJug = (id) => EQ.plantilla.find(j => j.id === id);
@@ -1729,6 +1732,7 @@ function eqRepartir(s, equilibrar) {
 }
 function pintarEquipos(v) {
   if (!EQ) EQ = Object.assign(eqLeer(), { sel: null });
+  if (EQ.vista === "mini") return pintarMini(v);
   const set = eqSet(), ro = !puedeEscribir;
   const pres = eqPresentes(), asig = set ? eqAsignados(set) : new Set(), pool = pres.filter(j => !asig.has(j.id));
   const nivel = (j) => "★".repeat(Number(j.nivel) || 3);
@@ -1748,10 +1752,11 @@ function pintarEquipos(v) {
       <div class="eq-pool" data-pool="1"><b>Sin equipo</b> <span class="peq">(${pool.length})</span><div class="eq-chips">${pool.map(j => `<span class="eq-chip ${EQ.sel && EQ.sel.id === j.id ? "sel" : ""}" data-p="${esc(j.id)}">${eqEtq(j)}</span>`).join("") || '<span class="peq">Todos asignados ✓</span>'}</div></div>
       <p class="peq" style="margin:8px 2px 0;">Toca una persona y luego un hueco para colocarla; si el hueco está ocupado se intercambian. Toca «Sin equipo» para sacarla del equipo.</p></div>`;
   }
-  v.innerHTML = `<div class="cab"><h2>Quintetos y equipos</h2><span class="esp"></span>${ro ? "" : '<button class="naranja" id="eqNuevo">＋ Nuevo reparto</button>'}</div>
+  v.innerHTML = `<div class="cab"><h2>Quintetos y equipos</h2><span class="esp"></span><button class="verde" id="eqMini" title="Cuartos de mini basket: todas juegan lo mínimo">🏀 Mini basket</button>${ro ? "" : '<button class="naranja" id="eqNuevo">＋ Nuevo reparto</button>'}</div>
     <div class="eq-sets">${EQ.sets.map(s => `<button class="gris ${s.id === EQ.setId ? "on" : ""}" data-set="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${set && !ro ? '<button class="gris" id="eqDup" title="Duplicar">⧉</button><button class="gris" id="eqDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>
     <div class="eq-grid">${plant}${tablero}</div>`;
   const guardar = async (repintar) => { await eqGuardar(); if (repintar !== false) pintarEquipos(v); };
+  $("eqMini").onclick = () => { EQ.vista = "mini"; pintarEquipos(v); };
   v.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { EQ.setId = b.dataset.set; EQ.sel = null; pintarEquipos(v); });
   if (ro) { const p = $("eqPdf"); if (p) p.onclick = () => imprimirEquipos(set); return; }
   $("eqNuevo").onclick = () => ventana(`<h3>Nuevo reparto</h3><label>Formato</label><select id="nrM">${Object.keys(EQ_MODOS).map(k => `<option value="${k}" ${k === "c3" ? "selected" : ""}>${EQ_MODOS[k][0]}</option>`).join("")}</select><p class="peq">Presentes ahora: ${pres.length}. Luego puedes cambiar el número de equipos.</p><div class="pie-m"><button class="gris" id="nrX">Cancelar</button><button class="naranja" id="nrOk">Crear y sortear</button></div>`) && ($("nrX").onclick = cerrarVentana, $("nrOk").onclick = async () => { const s = eqNuevoSet($("nrM").value); eqRepartir(s, false); EQ.sets.push(s); EQ.setId = s.id; EQ.sel = null; cerrarVentana(); await guardar(); });
@@ -1835,6 +1840,98 @@ function imprimirLibro(r) {
   $("hojaImp").className = "pdf-plan";
   $("hojaImp").innerHTML = `<div class="pdf-cab"><div><small>PARTIDO</small><h1>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h1><div class="pdf-meta">${fechaTxt(r.fecha)}${q.equipo ? " · " + esc(q.equipo) : ""}</div></div></div>${libroHtml(r)}`;
   window.print();
+}
+/* ------------ mini basket: quién juega cada cuarto ------------ */
+const MB_PRE = { ext: ["Extremadura · 6 cuartos de 8′ · todas ≥ 2 cuartos", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }], c4: ["4 cuartos de 10′ · todas ≥ 1 cuarto", { cuartos: 4, min: 10, minJ: 1, maxJ: 0, pista: 5 }], libre: ["Personalizado", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }] };
+const mbFila = (pl, id) => { const r = (pl.g[id] = pl.g[id] || []); while (r.length < pl.r.cuartos) r.push(0); r.length = pl.r.cuartos; return r; };
+function mbAuto(pl, rehacer) {
+  const pres = eqPresentes(), Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ || Q;
+  const base = {}; pres.forEach(j => { base[j.id] = rehacer ? Array(Q).fill(0) : mbFila(pl, j.id).slice(); });
+  let mejor = null, mejorPen = 1e9;
+  const suma = (a, d, h) => a.slice(d, h).reduce((x, y) => x + y, 0);
+  for (let t = 0; t < 60 && mejorPen > 0; t++) {
+    const g = {}; pres.forEach(j => { g[j.id] = base[j.id].slice(); });
+    for (let q = 0; q < Q; q++) {
+      const need = P - pres.filter(j => g[j.id][q]).length; if (need <= 0) continue;
+      const cand = pres.filter(j => !g[j.id][q] && suma(g[j.id], 0, Q) < mx).map(j => { const r = g[j.id], antes = suma(r, 0, q), fut = suma(r, q + 1, Q), forzada = antes + (Q - q - 1) < mn; return { id: j.id, k: (forzada ? 0 : 1000) - (mn - antes - fut) * 10 + antes + fut + Math.random() }; }).sort((a, b) => a.k - b.k);
+      cand.slice(0, need).forEach(c => { g[c.id][q] = 1; });
+    }
+    let pen = 0; pres.forEach(j => { const tot = suma(g[j.id], 0, Q); pen += Math.max(0, mn - tot) * 10 + Math.max(0, tot - mx) * 10; });
+    for (let q = 0; q < Q; q++) pen += Math.abs(P - pres.filter(j => g[j.id][q]).length) * 5;
+    if (pen < mejorPen) { mejorPen = pen; mejor = g; }
+  }
+  if (mejor) Object.keys(mejor).forEach(id => { pl.g[id] = mejor[id]; });
+  return mejorPen;
+}
+function mbResumen(pl) {
+  const pres = eqPresentes(), Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, av = [];
+  if (pres.length < P) av.push("Hay solo " + pres.length + " jugadoras presentes: no se llega a " + P + " en pista.");
+  else if (pres.length * mn > Q * P) av.push("Con " + pres.length + " jugadoras y mínimo " + mn + " cuartos cada una hacen falta " + pres.length * mn + " puestos, pero solo hay " + Q * P + " (" + Q + " cuartos × " + P + "). Baja el mínimo o quita jugadoras.");
+  if (pl.r.maxJ && pres.length * pl.r.maxJ < Q * P) av.push("Con máximo " + pl.r.maxJ + " cuartos por jugadora no se cubren todos los puestos.");
+  return av;
+}
+function pintarMini(v) {
+  const ro = !puedeEscribir, pl = (EQ.mini || []).find(x => x.id === EQ.miniId) || null, pres = eqPresentes();
+  const guardar = () => { eqGuardar(); };
+  let cuerpo = "";
+  if (!pl) cuerpo = `<div class="eq-card eq-vacio"><h3>Cuartos de mini basket</h3><p class="peq">Crea un partido, elige el formato (por ejemplo Extremadura: 6 cuartos de 8′ y todas juegan al menos 2) y marca quién juega cada cuarto. «Autocompletar» reparte los cuartos por ti y respeta lo que ya hayas marcado. Las jugadoras son las presentes de «Quintetos y equipos».</p></div>`;
+  else {
+    const Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ, av = mbResumen(pl);
+    const filas = EQ.plantilla.map(j => { const r = mbFila(pl, j.id), ausente = j.pres === false, tot = ausente ? 0 : r.reduce((a, b) => a + b, 0), mal = !ausente && (tot < mn || (mx && tot > mx));
+      return `<tr class="${ausente ? "aus" : ""}"><td class="nm"><input type="checkbox" data-pr="${esc(j.id)}" ${ausente ? "" : "checked"} ${ro ? "disabled" : ""} title="Presente hoy">${eqEtq(j)}</td>${r.map((x, q) => `<td><button class="mb-c ${x && !ausente ? "on" : ""}" data-j="${esc(j.id)}" data-q="${q}" ${ro || ausente ? "disabled" : ""}>${x && !ausente ? "✓" : ""}</button></td>`).join("")}<td class="${mal ? "bad" : "ok"}">${tot}</td><td>${tot * pl.r.min}′</td></tr>`; }).join("");
+    const pie = Array.from({ length: Q }, (_, q) => { const n = pres.filter(j => mbFila(pl, j.id)[q]).length; return `<td class="${n === P ? "ok" : "bad"}">${n}/${P}</td>`; }).join("");
+    cuerpo = `<div class="eq-card">
+      <div class="eq-tb"><input id="mbN" value="${esc(pl.nombre)}" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="naranja" id="mbAuto" title="Reparte los cuartos que faltan, respetando lo que marcaste">🎲 Autocompletar</button><button class="verde" id="mbRe" title="Borra todo y lo reparte de nuevo">♻️ Rehacer</button><button class="gris" id="mbLim">Limpiar</button><button class="gris" id="mbReg">⚙ Reglas</button>`}<button class="gris" id="mbPdf">🖨 PDF</button></div>
+      <div class="mb-reg"><span>${Q} cuartos de ${pl.r.min}′</span><span>Todas ≥ ${mn} cuartos</span>${mx ? `<span>Máx. ${mx}</span>` : ""}<span>${P} en pista</span></div>
+      ${av.length ? av.map(a => `<div class="mb-aviso">⚠️ ${esc(a)}</div>`).join("") : ""}
+      <div style="overflow-x:auto;"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th>${Array.from({ length: Q }, (_, q) => `<th>${q + 1}º</th>`).join("")}<th>Cuartos</th><th>Min</th></tr></thead><tbody>${filas || `<tr><td colspan="${Q + 3}" class="peq">No hay jugadoras: añádelas en «Repartos».</td></tr>`}</tbody><tfoot><tr><th style="text-align:left;">En pista</th>${pie}<th></th><th></th></tr></tfoot></table></div>
+      <p class="peq" style="margin:8px 2px 0;">Toca una casilla para poner o quitar a una jugadora en ese cuarto. En rojo: cuartos sin las ${P} en pista, o jugadoras por debajo del mínimo.</p></div>`;
+  }
+  v.innerHTML = `<div class="cab"><h2>🏀 Mini basket</h2><span class="esp"></span><button class="gris" id="mbVolver">← Quintetos y equipos</button>${ro ? "" : '<button class="naranja" id="mbNuevo">＋ Nuevo partido</button>'}</div>
+    <div class="eq-sets">${(EQ.mini || []).map(s => `<button class="gris ${s.id === EQ.miniId ? "on" : ""}" data-mini="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${pl && !ro ? '<button class="gris" id="mbDup" title="Duplicar">⧉</button><button class="gris" id="mbDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>${cuerpo}`;
+  $("mbVolver").onclick = () => { EQ.vista = ""; pintarEquipos(v); };
+  v.querySelectorAll("[data-mini]").forEach(b => b.onclick = () => { EQ.miniId = b.dataset.mini; pintarMini(v); });
+  if (!pl) { if ($("mbNuevo")) $("mbNuevo").onclick = () => formMini(v, null); return; }
+  $("mbPdf").onclick = () => imprimirMini(pl);
+  if (ro) return;
+  $("mbNuevo").onclick = () => formMini(v, null);
+  $("mbReg").onclick = () => formMini(v, pl);
+  $("mbN").onchange = () => { pl.nombre = $("mbN").value.trim() || pl.nombre; guardar(); pintarMini(v); };
+  const aviso2 = (pen) => { if (pen > 0) aviso("No se pudo cumplir todo (revisa los avisos en rojo)"); };
+  $("mbAuto").onclick = () => { aviso2(mbAuto(pl, false)); guardar(); pintarMini(v); };
+  $("mbRe").onclick = () => { if (!confirm("¿Borrar lo marcado y repartir de nuevo?")) return; aviso2(mbAuto(pl, true)); guardar(); pintarMini(v); };
+  $("mbLim").onclick = () => { if (!confirm("¿Quitar todas las marcas?")) return; pl.g = {}; guardar(); pintarMini(v); };
+  $("mbDup").onclick = () => { const c = clonar(pl); c.id = idNuevo("m"); c.nombre += " (copia)"; EQ.mini.push(c); EQ.miniId = c.id; guardar(); pintarMini(v); };
+  $("mbDel").onclick = () => { if (!confirm("¿Borrar «" + pl.nombre + "»?")) return; EQ.mini = EQ.mini.filter(x => x !== pl); EQ.miniId = EQ.mini.length ? EQ.mini[0].id : ""; guardar(); pintarMini(v); };
+  v.querySelectorAll("[data-pr]").forEach(c => c.onchange = () => { const j = eqJug(c.dataset.pr); j.pres = c.checked; guardar(); pintarMini(v); });
+  v.querySelectorAll(".mb-c").forEach(b => b.onclick = () => { const r = mbFila(pl, b.dataset.j), q = Number(b.dataset.q); r[q] = r[q] ? 0 : 1; guardar(); pintarMini(v); });
+}
+function formMini(v, pl) {
+  const r0 = pl ? pl.r : MB_PRE.ext[1];
+  ventana(`<h3>${pl ? "Reglas del partido" : "Nuevo partido de mini basket"}</h3>
+    ${pl ? "" : `<label>Nombre</label><input id="fmN" placeholder="Ej: vs Cortegada" value=""><label>Formato</label><select id="fmP">${Object.keys(MB_PRE).map(k => `<option value="${k}">${esc(MB_PRE[k][0])}</option>`).join("")}</select>`}
+    <div class="dos"><div><label>Nº de cuartos</label><input id="fmQ" type="number" min="1" max="12" value="${r0.cuartos}"></div><div><label>Minutos por cuarto</label><input id="fmM" type="number" min="1" max="30" value="${r0.min}"></div></div>
+    <div class="dos"><div><label>Mínimo de cuartos por jugadora</label><input id="fmJ" type="number" min="0" max="12" value="${r0.minJ}"></div><div><label>Máximo (0 = sin límite)</label><input id="fmX" type="number" min="0" max="12" value="${r0.maxJ || 0}"></div></div>
+    <div><label>Jugadoras en pista</label><input id="fmE" type="number" min="1" max="5" value="${r0.pista}" style="max-width:120px;"></div>
+    <div class="pie-m"><button class="gris" id="fmX0">Cancelar</button><button class="naranja" id="fmOk">${pl ? "Guardar" : "Crear"}</button></div>`);
+  if (!pl) $("fmP").onchange = () => { const r = MB_PRE[$("fmP").value][1]; $("fmQ").value = r.cuartos; $("fmM").value = r.min; $("fmJ").value = r.minJ; $("fmX").value = r.maxJ; $("fmE").value = r.pista; };
+  $("fmX0").onclick = cerrarVentana;
+  $("fmOk").onclick = async () => {
+    const n = (id, d) => { const x = parseInt($(id).value, 10); return Number.isFinite(x) ? x : d; };
+    const r = { cuartos: Math.min(12, Math.max(1, n("fmQ", 6))), min: Math.max(1, n("fmM", 8)), minJ: Math.max(0, n("fmJ", 2)), maxJ: Math.max(0, n("fmX", 0)), pista: Math.min(5, Math.max(1, n("fmE", 5))) };
+    if (pl) { pl.r = r; Object.keys(pl.g).forEach(id => mbFila(pl, id)); }
+    else { EQ.mini = EQ.mini || []; const np = { id: idNuevo("m"), nombre: $("fmN").value.trim() || "Partido " + (EQ.mini.length + 1), r, g: {} }; EQ.mini.push(np); EQ.miniId = np.id; }
+    cerrarVentana(); await eqGuardar(); pintarMini(v);
+  };
+}
+async function imprimirMini(pl) {
+  const q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "", pres = eqPresentes(), Q = pl.r.cuartos;
+  const filas = pres.map(j => { const r = mbFila(pl, j.id), tot = r.reduce((a, b) => a + b, 0); return `<tr><td class="nm">${j.num !== "" && j.num != null ? esc(String(j.num)) + " · " : ""}${esc(j.nombre)}</td>${r.map(x => `<td class="${x ? "on" : ""}">${x ? "✓" : ""}</td>`).join("")}<td><b>${tot}</b></td><td>${tot * pl.r.min}′</td></tr>`; }).join("");
+  const pie = Array.from({ length: Q }, (_, i) => `<td>${pres.filter(j => mbFila(pl, j.id)[i]).length}</td>`).join("");
+  $("hojaImp").className = "pdf-eq";
+  $("hojaImp").innerHTML = `<div class="pdf-cab"><div><small>MINI BASKET · ${Q} CUARTOS DE ${pl.r.min}′</small><h1>${esc(pl.nombre)}</h1><div class="pdf-meta">${esc(q.equipo || "")}${q.equipo && q.temporada ? " · " : ""}${q.temporada ? "Temporada " + esc(q.temporada) : ""}${q.equipo || q.temporada ? " · " : ""}Todas juegan al menos ${pl.r.minJ} cuartos</div></div>${url ? `<img class="pdf-esc" src="${esc(url)}" alt="">` : ""}</div>
+    <table class="eqp-mb"><thead><tr><th style="text-align:left;">Jugadora</th>${Array.from({ length: Q }, (_, i) => `<th>${i + 1}º</th>`).join("")}<th>Cuartos</th><th>Min</th></tr></thead><tbody>${filas}</tbody><tfoot><tr><th style="text-align:left;">En pista</th>${pie}<th></th><th></th></tr></tfoot></table><div class="pdf-pie">ScoutFlow · ${esc(pl.nombre)}</div>`;
+  await esperaImgs($("hojaImp")); window.print();
 }
 async function imprimirEquipos(set) {
   if (!set) return;
