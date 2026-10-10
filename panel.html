@@ -1026,12 +1026,18 @@ function abrirPermisos(correo) {
   m.innerHTML = `<div style="background:#fff;border-radius:16px;padding:16px;width:min(720px,100%);max-height:100%;overflow:auto;"><h3 style="margin:0 0 4px;">Menús de ${esc(correo)}</h3><p style="margin:0;font-size:13px;opacity:.75;">Marca lo que puede ver. Solo lee: no puede cambiar nada. Se ve igual que tú, pero solo con esos menús.</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><button class="boton fina" data-pre="partido">Solo modo partido</button><button class="boton fina" data-pre="todo">Todo</button><button class="boton fina" data-pre="nada">Ninguno</button></div>
     ${grupo("ENTRENADOR", "e", MENUS_E, q.e)}${grupo("ESTADÍSTICAS", "s", MENUS_S, q.s)}
-    <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:14px;"><button class="boton borrar fina" id="pmQuita">Quitar permisos (ayudante normal)</button><span><button class="boton fina" id="pmNo">Cancelar</button> <button class="boton" id="pmOk">Guardar</button></span></div></div>`;
+    <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:14px;"><span><button class="boton borrar fina" id="pmQuita">Quitar permisos</button> <button class="boton fina" id="pmVer" style="background:#2b6cb0;color:#fff;">👁 Ver como este ayudante</button></span><span><button class="boton fina" id="pmNo">Cancelar</button> <button class="boton" id="pmOk">Guardar</button></span></div></div>`;
   document.body.appendChild(m);
   const marcar = (e, s) => m.querySelectorAll("input[data-k]").forEach(i => { i.checked = (i.dataset.k === "e" ? e : s).includes(i.value); });
   m.querySelectorAll("[data-pre]").forEach(b => b.onclick = () => { const p = b.dataset.pre; marcar(p === "partido" ? ["partido"] : p === "todo" ? MENUS_E.map(x => x[0]) : [], p === "todo" ? MENUS_S.map(x => x[0]) : []); });
   m.addEventListener("pointerdown", (ev) => { if (ev.target === m) m.remove(); });
   document.getElementById("pmNo").onclick = () => m.remove();
+  document.getElementById("pmVer").onclick = () => {
+    const e = [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), sv = [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value);
+    if (!e.length && !sv.length) { avisar("avisoEnt", "Marca algún menú para ver cómo queda.", "mal"); return; }
+    try { sessionStorage.setItem("sf_ver_como", JSON.stringify({ e, s: sv })); } catch (x) { /* nada */ }
+    location.href = sv.length ? "index.html" : "entrenador.html";
+  };
   document.getElementById("pmOk").onclick = async () => {
     permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value) };
     const er = await guardarPermisosAyu(); m.remove();

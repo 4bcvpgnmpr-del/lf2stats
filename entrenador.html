@@ -1999,6 +1999,14 @@ async function leerPermisosAyudante(sb, email) {
   } catch (e) { /* sin red o sin tabla */ }
   return null;
 }
+function bannerSim() {
+  if (document.getElementById("bannerSim")) return;
+  const b = document.createElement("div"); b.id = "bannerSim"; b.style.cssText = "position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;background:#c92a2a;color:#fff;border-radius:999px;padding:10px 18px;font:700 14px system-ui,sans-serif;box-shadow:0 6px 20px #0006;white-space:nowrap;";
+  b.innerHTML = '👁 Viendo como tu ayudante · <a href="panel.html" id="bannerSimX" style="color:#fff;text-decoration:underline;">Salir de esta vista</a>';
+  document.body.appendChild(b);
+  document.getElementById("bannerSimX").addEventListener("click", () => { try { sessionStorage.removeItem("sf_ver_como"); } catch (e) { /* nada */ } });
+}
+function permisosSimulados() { try { const q = JSON.parse(sessionStorage.getItem("sf_ver_como") || "null"); return q ? { e: q.e || [], s: q.s || [] } : null; } catch (e) { return null; } }
 let PERM_E = null;
 async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
@@ -2015,6 +2023,8 @@ async function iniciar() {
   } catch (e) { /* si falla la comprobacion, las reglas de la base de datos protegen igualmente */ }
   let PERMS = null;
   try { PERMS = await leerPermisosAyudante(nube, data.session.user.email); } catch (e) { /* sin red */ }
+  let SIM = false; if (!PERMS) { const q = permisosSimulados(); if (q) { PERMS = q; SIM = true; } }
+  if (SIM) bannerSim();
   if (PERMS) {
     const E = PERMS.e.filter(x => SECCIONES[x] || x === "partido");
     if (!E.length) { if (PERMS.s.length) { location.replace("index.html"); return; } pantalla("Todavía no tienes menús habilitados. Pídeselos al entrenador."); return; }
