@@ -480,7 +480,7 @@
 <div id="app">
   <aside>
     <div class="marca"><div class="logo zona-sel" data-zona="entrenador" title="Cambiar de zona"><span class="lg-bola">●</span><div class="lg-t"><b>Scout<span>Flow</span></b><small>Entrenador</small></div><span class="chev">▾</span></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div><div class="perfil" id="perfil" title="Mi equipo"><span class="av" id="perfilAv">🏀</span><div class="tt"><b id="perfilEq">Mi equipo</b><small id="perfilTe">Añade tu escudo</small></div></div>
-    <div class="grupo"><h4>Partido</h4><button data-s="partido" class="btn-partido"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><span class="tx">Modo partido</span></button></div>
+    <div class="grupo"><h4>Partido</h4><button data-s="partido" class="btn-partido"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><span class="tx">Modo partido</span></button><button data-s="libro"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg></span><span class="tx">Libro de partidos</span></button></div>
     <div class="grupo"><h4>Jugadas</h4>
       <button data-s="jugadas"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
       <button data-s="playbooks"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.500-1.500-6-1.500-9 .5-3-2-6.500-2-9-.5z"/><path d="M12 6v13.500"/></svg></span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
@@ -537,7 +537,7 @@ const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : n
 const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [] };
 let puedeEscribir = true, faltaSql = "", seccion = "jugadas", carpeta = "", busqueda = "", vistaDetalle = null;
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
-const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 const kv = {
@@ -586,6 +586,7 @@ function pintar() {
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
   if (seccion === "playbooks") return pintarPlaybooks(v);
   if (seccion === "equipos") return pintarEquipos(v);
+  if (seccion === "libro") return pintarLibro(v);
   return pintarArchivos(v, seccion);
 }
 
@@ -1739,6 +1740,47 @@ function elegirReparto(actual, ok) {
   eqAsegurar();
   ventana(`<h3>Vincular reparto de equipos</h3><p class="peq" style="margin:0 0 6px;">Aparecerá en el PDF dentro de este ejercicio.</p><div class="lista-sel" id="rpL" style="max-height:340px;"><label class="it" data-id=""><span style="flex:1;">— Ninguno —</span>${actual ? "" : "✓"}</label>${EQ.sets.map(x => `<label class="it" data-id="${esc(x.id)}"><span style="flex:1;">👥 <b>${esc(x.nombre)}</b></span><span class="peq">${x.equipos.length} equipos ${actual === x.id ? "✓" : ""}</span></label>`).join("") || '<div class="vacio">Aún no tienes repartos: créalos en «Quintetos y equipos».</div>'}</div><div class="pie-m"><button class="gris" id="rpX">Cerrar</button></div>`);
   $("rpX").onclick = cerrarVentana; $("rpL").querySelectorAll("[data-id]").forEach(el => el.onclick = () => { cerrarVentana(); ok(el.dataset.id); });
+}
+/* ------------ libro de partidos ------------ */
+function librosPartido() {
+  let loc = []; try { loc = JSON.parse(localStorage.getItem("scoutflow-libro") || "[]"); } catch (e) { loc = []; }
+  const nu = D.archivos.filter(a => a.tipo === "partido").map(a => { try { return JSON.parse(a.nombre); } catch (e) { return null; } }).filter(Boolean);
+  const m = new Map(); loc.concat(nu).forEach(r => m.set(r.id, r));
+  return [...m.values()].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+}
+const LB0 = () => ({ reb: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
+function lbSuma(o, v) { const r = LB0(); ["h1", "h2"].forEach(h => { if (v !== "tot" && v !== h) return; const d = o[h]; if (d) Object.keys(r).forEach(k => r[k] += d[k] || 0); }); return r; }
+function lbTabla(titulo, filas, v, conFaltas) {
+  const tot = LB0(); let fT = 0;
+  const f = filas.map(j => { const o = lbSuma(j, v); Object.keys(tot).forEach(k => tot[k] += o[k]); fT += j.f || 0; return { j, o }; });
+  const pts = (o) => o.t2m * 2 + o.t3m * 3 + o.tlm, tir = (m, a) => m + "/" + a;
+  const fila = (n, o, fa, cls) => `<tr class="${cls || ""}"><td>${n}</td><td><b>${pts(o)}</b></td><td>${o.reb}</td><td>${o.per}</td><td>${tir(o.t2m, o.t2a)}</td><td>${tir(o.t3m, o.t3a)}</td><td>${tir(o.tlm, o.tla)}</td>${conFaltas ? `<td>${fa}</td>` : ""}</tr>`;
+  return `<table class="pdf-res"><thead><tr><th>${titulo}</th><th>PTS</th><th>REB</th><th>PER</th><th>2P</th><th>3P</th><th>TL</th>${conFaltas ? "<th>F</th>" : ""}</tr></thead><tbody>${f.map(x => fila((x.j.num !== "" && x.j.num != null ? esc(String(x.j.num)) + " " : "") + esc(x.j.nombre), x.o, x.j.f || 0)).join("")}${fila("<b>Total</b>", tot, fT, "tot")}</tbody></table>`;
+}
+function libroHtml(r) {
+  const vs = [["h1", "1ª mitad"], ["h2", "2ª mitad"], ["tot", "Total"]];
+  return vs.map(([v, t]) => `<h3 style="margin:14px 0 4px;">${t}</h3>${lbTabla(esc(r.n[0] || "Nosotros"), r.jug || [], v, v === "tot")}${(r.riv || []).length ? lbTabla(esc(r.n[1] || "Rival"), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), v, false) : ""}`).join("");
+}
+function pintarLibro(v) {
+  const L = librosPartido();
+  v.innerHTML = `<div class="cab"><h2>${SECCIONES.libro}</h2><span class="esp"></span><button class="naranja" id="lbMod">🏀 Modo partido</button></div>
+    <p class="peq" style="margin:0 0 12px;">Se llena sola: en el modo partido, abre el marcador y pulsa «💾 Guardar partido».</p>
+    ${L.length ? `<div class="tabla">${L.map(r => `<div class="fila" style="grid-template-columns:1fr auto;padding:12px 14px;gap:10px;cursor:default;"><div><b style="font-size:17px;">${esc(r.n[0] || "Nosotros")} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1] || "Rival")}</b><div class="peq">${fechaTxt(r.fecha)}</div></div><div style="display:flex;gap:6px;"><button class="gris" data-ver="${esc(r.id)}">Ver</button><button class="gris" data-pdf="${esc(r.id)}">🖨 PDF</button>${puedeEscribir ? `<button class="gris" data-del="${esc(r.id)}">🗑</button>` : ""}</div></div>`).join("")}</div>` : '<div class="tabla"><div class="vacio">Todavía no hay partidos guardados.</div></div>'}`;
+  $("lbMod").onclick = abrirPartido;
+  const por = (id) => L.find(r => r.id === id);
+  v.querySelectorAll("[data-ver]").forEach(b => b.onclick = () => { const r = por(b.dataset.ver); const m = ventana(`<h3>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h3><div class="peq">${fechaTxt(r.fecha)}</div><div style="max-height:62vh;overflow:auto;">${libroHtml(r)}</div><div class="pie-m"><button class="gris" id="lbC">Cerrar</button><button class="naranja" id="lbP">🖨 PDF</button></div>`, true); $("lbC").onclick = cerrarVentana; $("lbP").onclick = () => { cerrarVentana(); imprimirLibro(r); }; });
+  v.querySelectorAll("[data-pdf]").forEach(b => b.onclick = () => imprimirLibro(por(b.dataset.pdf)));
+  v.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    if (!confirm("¿Borrar este partido del libro?")) return; const id = b.dataset.del;
+    try { const l = JSON.parse(localStorage.getItem("scoutflow-libro") || "[]").filter(r => r.id !== id); localStorage.setItem("scoutflow-libro", JSON.stringify(l)); } catch (e) { /* nada */ }
+    await borrarFila("archivos", id); await cargarTodo(); pintar();
+  });
+}
+function imprimirLibro(r) {
+  if (!r) return; const q = equipoDe();
+  $("hojaImp").className = "pdf-plan";
+  $("hojaImp").innerHTML = `<div class="pdf-cab"><div><small>PARTIDO</small><h1>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h1><div class="pdf-meta">${fechaTxt(r.fecha)}${q.equipo ? " · " + esc(q.equipo) : ""}</div></div></div>${libroHtml(r)}`;
+  window.print();
 }
 async function imprimirEquipos(set) {
   if (!set) return;

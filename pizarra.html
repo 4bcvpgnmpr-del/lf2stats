@@ -2331,7 +2331,7 @@ function iniciarPartido() {
       <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span><button id="mpEd" style="min-height:34px;padding:0 10px;">✏️ Editar</button></h4><div class="mp-pj" id="mpPj"></div></div>
       <div class="mp-per" id="mpPer">${[1, 2, 3, 4, 5].map(n => `<button data-p="${n}">${n === 5 ? "Prórroga" : "Cuarto " + n}</button>`).join("")}</div>
       <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpVes" style="background:#2b8a3e;">🚪 Vestuario 15:00</button><button id="mpMan" style="background:#2b8a3e;">⏱ Manual…</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
-      <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpEs" style="background:#2b8a3e;">📊 Estadísticas</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
+      <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpEs" style="background:#2b8a3e;">📊 Estadísticas</button><button id="mpGu" style="background:#1971c2;">💾 Guardar partido</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
     $("partido").appendChild(panel);
     const pill = document.createElement("button"); pill.id = "ptPill"; pill.textContent = "⏱ 1:00"; $("partido").appendChild(pill);
     const T = { dur: 60, rest: 60, run: false, fin: 0, tick: null };
@@ -2496,6 +2496,22 @@ function iniciarPartido() {
     /* ---- cronómetro manual (vestuario) ---- */
     $("mpVes").onclick = () => iniciarT(15 * 60);
     $("mpMan").onclick = () => { const v = prompt("Tiempo en minutos (ej. 10, o 2:30 para 2 min 30 s):", "10"); if (v == null) return; const m = String(v).trim().match(/^(\d+)(?:[:.,](\d{1,2}))?$/); if (!m) { aviso("Tiempo no válido"); return; } const sec = v.includes(":") ? Number(m[1]) * 60 + Number(m[2] || 0) : Number(m[1]) * 60 + (m[2] ? Math.round(Number("0." + m[2]) * 60) : 0); if (sec > 0) iniciarT(sec); };
+
+    /* ---- guardar el partido en el libro ---- */
+    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; UND.length = 0; guardarM(); pintarM(); };
+    $("mpGu").onclick = async () => {
+      const act = (k) => { const o = M.es[k] || {}, h1 = Object.assign(cero(), o.h1), h2 = Object.assign(cero(), o.h2); return { h1, h2, hay: Object.values(h1).concat(Object.values(h2)).some(x => x > 0) }; };
+      const ids = new Set(PLT.map(j => j.id).concat(Object.keys(M.es).filter(k => k.indexOf("rv") !== 0)).concat(Object.keys(M.fj || {})));
+      const jug = [...ids].map(k => { const j = PLT.find(x => x.id === k), a = act(k), f = (M.fj || {})[k] || 0; return a.hay || f ? { id: k, nombre: j ? j.nombre : k, num: j ? j.num : "", f, h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
+      const riv = Object.keys(M.es).filter(k => k.indexOf("rv") === 0).map(k => { const a = act(k); return a.hay ? { k, nombre: k === "rv" ? "Equipo" : "#" + k.slice(2), h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
+      if (!jug.length && !riv.length && !M.p[0] && !M.p[1]) { aviso("No hay nada que guardar todavía"); return; }
+      const rec = { id: "pt" + Date.now().toString(36), fecha: new Date().toISOString(), n: M.n.slice(), p: M.p.slice(), per: M.per, jug, riv };
+      let lib = []; try { lib = JSON.parse(localStorage.getItem("scoutflow-libro") || "[]"); } catch (e) { lib = []; }
+      lib.unshift(rec); try { localStorage.setItem("scoutflow-libro", JSON.stringify(lib.slice(0, 60))); } catch (e) { /* nada */ }
+      let nubeOk = false; if (modoNube) { try { const r = await nube.from("archivos").upsert({ id: rec.id, nombre: JSON.stringify(rec), tipo: "partido", ruta: "partido" }); nubeOk = !r.error; } catch (e) { /* sin red o sin permiso */ } }
+      aviso(nubeOk ? "💾 Partido guardado en el libro" : "💾 Guardado en este aparato (en la nube no se pudo)");
+      if (confirm("Partido guardado.\\n\\n¿Poner todo a cero para empezar el siguiente?")) reiniciaTodo();
+    };
     panel.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.s.split(":").map(Number); M.p[k] = Math.max(0, M.p[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });

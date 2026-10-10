@@ -995,7 +995,7 @@ async function cargarEntrenadores() {
   caja.querySelectorAll("button[data-perm]").forEach(b => b.addEventListener("click", () => abrirPermisos(b.getAttribute("data-perm"))));
   pintarAccesos();
 }
-const MENUS_E = [["jugadas", "Jugadas"], ["playbooks", "Playbooks"], ["ejercicios", "Ejercicios"], ["planes", "Planes de entrenamiento"], ["equipos", "Quintetos y equipos"], ["video", "Vídeos"], ["imagen", "Imágenes"], ["audio", "Audio"], ["partido", "🏀 Modo partido (pizarra, marcador, estadísticas)"]];
+const MENUS_E = [["jugadas", "Jugadas"], ["playbooks", "Playbooks"], ["ejercicios", "Ejercicios"], ["planes", "Planes de entrenamiento"], ["equipos", "Quintetos y equipos"], ["libro", "Libro de partidos"], ["video", "Vídeos"], ["imagen", "Imágenes"], ["audio", "Audio"], ["partido", "🏀 Modo partido (pizarra, marcador, estadísticas)"]];
 const MENUS_S = [["inicio", "Inicio"], ["mi-equipo", "Mi equipo"], ["clasificacion", "Clasificación"], ["equipos", "Equipos"], ["jugadoras", "Jugadoras"], ["rankings", "Rankings"], ["estadisticas", "Estadísticas"], ["quintetos", "Quintetos"], ["fichajes", "Fichajes"], ["comparador", "Comparador"], ["resultados", "Resultados"], ["records", "Récords"], ["informes", "Informes"]];
 async function cargarPermisosAyu() {
   permisosAyu = {}; legadoAyu = [];
