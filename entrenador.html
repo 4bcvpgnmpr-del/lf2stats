@@ -130,6 +130,7 @@
   .tag b{cursor:pointer;margin-left:3px;} a.tag{cursor:pointer;text-decoration:none;} a.tag.on{outline:2.5px solid var(--ink);}
   .tags{display:flex;flex-wrap:wrap;min-width:0;overflow:hidden;max-height:50px;}
   .tgbox{border:1.5px solid var(--line);border-radius:10px;min-height:42px;padding:8px 8px 4px;margin-bottom:8px;}
+  .rapidos{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 12px;} .rapidos a{cursor:pointer;padding:7px 13px;border-radius:999px;background:#f0f2f4;font-size:13px;font-weight:600;color:#4a5560;white-space:nowrap;user-select:none;} .rapidos a.on{background:#e9f4f1;color:#2f8a74;outline:1.5px solid #2f8a74;} .rapidos a.vg{background:#fff4e6;color:#c2570c;} .rapidos a.vg2{background:#fff;border:1.5px dashed #b8c0c8;} .rapidos a b{margin-left:4px;opacity:.6;}
   .activos{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:-4px 0 12px;} .tag.act{cursor:pointer;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);}
   .limpiar{color:var(--orange);font-weight:800;cursor:pointer;font-size:12.5px;margin-left:6px;}
   .barra .esp{flex:1;} .barra input[type=search]{max-width:280px;}
@@ -472,6 +473,7 @@
   .zona-menu a small{display:block;font-weight:600;color:#8a95a1;font-size:11px;margin-top:1px;}
   .zona-menu a:hover{background:#f1f3f5;} .zona-menu a.on{background:#e8f4f0;color:#2f8f78;} .zona-menu .ck{margin-left:auto;}
   #app.col .zona-sel .chev{display:none;}
+  .barra input[type=search]{max-width:320px;flex:1 1 200px;} .barra button.gris{padding:0 13px !important;} .barra{gap:8px !important;}
 </style>
 </head>
 <body>
@@ -573,7 +575,7 @@ async function guardarFila(tabla, fila) {
 async function borrarFila(tabla, id) { const { error } = await nube.from(tabla).delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } return true; }
 
 /* ------------ navegacion ------------ */
-function ir(s, c) { if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; seleccion = new Set(); vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
+function ir(s, c) { if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; seleccion = new Set(); vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
 function pintar() {
   document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
   const m = $("main"); m.scrollTop = 0;
@@ -638,7 +640,7 @@ const TABLA_DE = { jugadas: "jugadas", ejercicios: "ejercicios", planes: "planes
 const ICONO = { jugadas: "🏀", ejercicios: "🎯", planes: "📋" };
 const SINGULAR = { jugadas: "jugada", ejercicios: "ejercicio", planes: "plan" };
 const SVG_CARPETA = (t) => `<svg class="carp" viewBox="0 0 24 20" width="${t || 30}" height="${Math.round((t || 30) * 20 / 24)}"><path d="M1 3a2 2 0 0 1 2-2h6l2 2.5h10a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" fill="#15a37f"/></svg>`;
-let ordenar = "recientes", filtroTags = [], filtroTipo = "", vistaLista = true, seleccion = new Set();
+let fx = {}, ordenar = "recientes", filtroTags = [], filtroTipo = "", vistaLista = true, seleccion = new Set();
 try { vistaLista = localStorage.getItem("ent_vista") !== "rejilla"; } catch (e) { /* nada */ }
 const ultimo = (p) => p.split("/").pop();
 const padreDe = (p) => p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
@@ -658,9 +660,13 @@ const textoDe = (tipo, x) => (x.nombre + " " + (x.carpeta || "") + " " + ((x.dat
 const valorTipo = (tipo, x) => tipo === "jugadas" ? (x.tipo || "") : tipo === "ejercicios" ? ((x.data && x.data.categoria) || "") : "";
 function filtrar(tipo, plano) {
   const q = busqueda.toLowerCase();
-  return D[tipo].filter(x => (plano || (x.carpeta || "") === carpeta) && (!q || textoDe(tipo, x).includes(q)) && filtroTags.every(t => tagsDe(x).includes(t)) && (!filtroTipo || valorTipo(tipo, x) === filtroTipo));
+  const hace7 = Date.now() - 7 * 864e5, mins = (x) => Number(x.data && x.data.minutos) || 0;
+  return D[tipo].filter(x => (plano || (x.carpeta || "") === carpeta) && (!q || textoDe(tipo, x).includes(q)) && filtroTags.every(t => tagsDe(x).includes(t)) && (!filtroTipo || valorTipo(tipo, x) === filtroTipo)
+    && (!fx.fav || x.favorita || (x.data && x.data.favorita)) && (!fx.comp || x.compartida) && (!fx.sinTag || !tagsDe(x).length) && (!fx.rec || new Date(x.actualizada || 0).getTime() >= hace7)
+    && (!fx.equipo || (x.data && x.data.equipo) === fx.equipo) && (!fx.temp || (x.data && x.data.temporada) === fx.temp)
+    && (!fx.dur || (fx.dur === "c" ? mins(x) > 0 && mins(x) < 10 : fx.dur === "m" ? mins(x) >= 10 && mins(x) <= 20 : mins(x) > 20)));
 }
-const hayFiltro = () => !!(busqueda || filtroTags.length || filtroTipo);
+const hayFiltro = () => !!(busqueda || filtroTags.length || filtroTipo || Object.values(fx).some(Boolean));
 function ordenarLista(arr, campoFecha, campoNombre) {
   const f = {
     recientes: (a, b) => String(b[campoFecha] || "").localeCompare(String(a[campoFecha] || "")),
@@ -669,6 +675,19 @@ function ordenarLista(arr, campoFecha, campoNombre) {
     za: (a, b) => String(b[campoNombre] || "").localeCompare(String(a[campoNombre] || ""), "es")
   }[ordenar];
   return arr.slice().sort(f);
+}
+const VG_K = (t) => "ent_vistas_" + t;
+const vistasGuardadas = (t) => { try { return JSON.parse(localStorage.getItem(VG_K(t)) || "[]"); } catch (e) { return []; } };
+const guardarVistas = (t, l) => { try { localStorage.setItem(VG_K(t), JSON.stringify(l)); } catch (e) { /* nada */ } };
+const ETQ_FX = { fav: "⭐ Favoritas", comp: "📤 Compartidas con jugadoras", sinTag: "🏷 Sin etiquetas", rec: "🕒 Últimos 7 días" };
+const etiquetaFx = (k, v) => ETQ_FX[k] || (k === "dur" ? { c: "⏱ Menos de 10 min", m: "⏱ 10–20 min", l: "⏱ Más de 20 min" }[v] : k === "equipo" ? "Equipo: " + v : k === "temp" ? "Temporada: " + v : k);
+function rapidosHtml(tipo) {
+  const ch = (k, txt, v) => `<a class="${fx[k] && (v == null || fx[k] === v) ? "on" : ""}" data-fx="${k}" ${v != null ? `data-v="${v}"` : ""}>${txt}</a>`;
+  let r = tipo === "jugadas" ? ch("fav", ETQ_FX.fav) + ch("comp", "📤 Compartidas") + ch("rec", ETQ_FX.rec) + ch("sinTag", ETQ_FX.sinTag)
+    : tipo === "ejercicios" ? ch("rec", ETQ_FX.rec) + ch("sinTag", ETQ_FX.sinTag) + ch("dur", "⏱ <10 min", "c") + ch("dur", "⏱ 10–20", "m") + ch("dur", "⏱ >20", "l")
+    : ch("rec", ETQ_FX.rec);
+  const vg = vistasGuardadas(tipo).map((g, i) => `<a class="vg" data-vg="${i}">⭐ ${esc(g.n)} <b data-vx="1">×</b></a>`).join("");
+  return `<div class="rapidos">${r}${vg}${hayFiltro() ? '<a class="vg2" id="vgNueva">＋ Guardar esta vista</a>' : ""}</div>`;
 }
 function pintarCarpetas(v, tipo) {
   const plano = hayFiltro();
@@ -682,15 +701,17 @@ function pintarCarpetas(v, tipo) {
     const ej = ((x.data && x.data.ejercicios) || []).filter(e => !e.sec), min = ej.reduce((a, e) => a + (Number(e.min) || 0), 0);
     return [solofecha(x.fecha), min + " min", ej.length];
   };
-  const nFiltros = filtroTags.length + (filtroTipo ? 1 : 0);
+  const nFiltros = filtroTags.length + (filtroTipo ? 1 : 0) + Object.values(fx).filter(Boolean).length;
   const nuevoTxt = tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
   let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${tipo === "jugadas" ? '<button class="gris" id="bPartido" title="Pizarra en vivo para el banquillo">🏟 Modo partido</button>' : ""}${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
     <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
+      <button class="gris" id="bIr" title="Ir a una carpeta">📂 Carpetas</button>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
       <button class="gris" id="bOrden" title="Ordenar">⇅ ${ORDENES[ordenar]}</button>
       <span class="vistas"><button class="gris ${vistaLista ? "" : "on"}" id="vRej" title="Rejilla">▦</button><button class="gris ${vistaLista ? "on" : ""}" id="vLis" title="Lista">☰</button></span></div>`;
-  if (hayFiltro()) h += `<div class="activos">${busqueda ? `<span class="tag act" data-q="b">“${esc(busqueda)}” ×</span>` : ""}${filtroTipo ? `<span class="tag act" data-q="t">${esc(filtroTipo)} ×</span>` : ""}${filtroTags.map(t => `<span class="tag act" data-q="g" data-t="${esc(t)}" style="${estiloTag(t)}">🏷 ${esc(t)} ×</span>`).join("")}<a class="limpiar" id="limpiaF">Quitar filtros</a><span class="peq"> · buscando en todas las carpetas</span></div>`;
+  h += rapidosHtml(tipo);
+  if (hayFiltro()) h += `<div class="activos">${busqueda ? `<span class="tag act" data-q="b">“${esc(busqueda)}” ×</span>` : ""}${filtroTipo ? `<span class="tag act" data-q="t">${esc(filtroTipo)} ×</span>` : ""}${Object.keys(fx).filter(k => fx[k]).map(k => `<span class="tag act" data-q="x" data-k="${k}">${esc(etiquetaFx(k, fx[k]))} ×</span>`).join("")}${filtroTags.map(t => `<span class="tag act" data-q="g" data-t="${esc(t)}" style="${estiloTag(t)}">🏷 ${esc(t)} ×</span>`).join("")}<a class="limpiar" id="limpiaF">Quitar filtros</a><span class="peq"> · buscando en todas las carpetas</span></div>`;
   if (seleccion.size) h += `<div class="selbar"><b>${seleccion.size} seleccionado${seleccion.size > 1 ? "s" : ""}</b><span class="esp"></span><button class="gris" id="sTag">🏷 Etiquetar</button><button class="gris" id="sMov">📁 Mover</button><button class="rojo" id="sDel">🗑 Eliminar</button><button class="gris" id="sNo">Cancelar</button></div>`;
   const chk = (id) => puedeEscribir ? `<span class="ck"><input type="checkbox" class="selc" data-s="${esc(id)}" ${seleccion.has(id) ? "checked" : ""}></span>` : "<span></span>";
   let cuerpo = "";
@@ -713,11 +734,15 @@ function pintarCarpetas(v, tipo) {
   v.querySelectorAll("[data-r]").forEach(a => { a.onclick = () => { carpeta = a.dataset.r; seleccion.clear(); pintar(); }; soltarEn(a, tipo, a.dataset.r); });
   $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; redib(); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
   $("bFiltro").onclick = () => abrirFiltro(v, tipo);
+  $("bIr").onclick = (e) => { const rs = rutasCarpetas(tipo).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")); abrirMenu(e, [[(carpeta === "" ? "✓ " : "") + "📂 Todo (raíz)", () => { carpeta = ""; seleccion.clear(); pintar(); }]].concat(rs.map(c => [(carpeta === c.nombre ? "✓ " : "") + "　".repeat(c.nombre.split("/").length - 1) + "📁 " + ultimo(c.nombre) + " (" + c.n + ")", () => { carpeta = c.nombre; seleccion.clear(); pintar(); }]))); };
+  v.querySelectorAll("[data-fx]").forEach(a => a.onclick = () => { const k = a.dataset.fx, val = a.dataset.v || true; if (fx[k] && fx[k] === val) delete fx[k]; else fx[k] = val; redib(); });
+  v.querySelectorAll("[data-vg]").forEach(a => a.onclick = (e) => { const lst = vistasGuardadas(tipo), i = Number(a.dataset.vg); if (e.target.closest("[data-vx]")) { if (confirm("¿Quitar la vista «" + lst[i].n + "»?")) { lst.splice(i, 1); guardarVistas(tipo, lst); redib(); } return; } const g = lst[i]; busqueda = g.q || ""; filtroTags = (g.t || []).slice(); filtroTipo = g.ti || ""; fx = Object.assign({}, g.fx || {}); if (g.c != null) carpeta = g.c; redib(); });
+  if ($("vgNueva")) $("vgNueva").onclick = () => preguntar("Guardar esta vista", "Nombre (ej. Defensas de zona)", "", (n) => { n = (n || "").trim(); if (!n) return; const lst = vistasGuardadas(tipo); lst.push({ n, q: busqueda, t: filtroTags, ti: filtroTipo, fx: Object.assign({}, fx) }); guardarVistas(tipo, lst); redib(); });
   $("bOrden").onclick = (e) => abrirMenu(e, Object.keys(ORDENES).map(k => [(k === ordenar ? "✓ " : "　") + ORDENES[k], () => { ordenar = k; redib(); }]));
   $("vRej").onclick = () => { vistaLista = false; try { localStorage.setItem("ent_vista", "rejilla"); } catch (e) { /* nada */ } redib(); };
   $("vLis").onclick = () => { vistaLista = true; try { localStorage.setItem("ent_vista", "lista"); } catch (e) { /* nada */ } redib(); };
-  const lf = $("limpiaF"); if (lf) lf.onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; redib(); };
-  v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
+  const lf = $("limpiaF"); if (lf) lf.onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; redib(); };
+  v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else if (a.dataset.q === "x") delete fx[a.dataset.k]; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
   if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
   if ($("bPartido")) $("bPartido").onclick = abrirPartido;
   if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [...(tipo === "jugadas" || tipo === "ejercicios" ? [["⤓ Importar de Hoops Geek", () => dialogoHG(tipo)]] : []), ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
@@ -791,13 +816,15 @@ function abrirFiltro(v, tipo) {
     cp.innerHTML = `<div class="cajon-c"><div style="display:flex;align-items:center;"><h3 style="font-size:18px;">Filtrar ${SECCIONES[tipo].toLowerCase()}</h3><span class="esp" style="flex:1"></span><button class="gris" id="cjX">✕</button></div>
       <label>Buscar</label><input type="search" id="cjQ" value="${esc(busqueda)}" placeholder="Nombre, etiqueta…">
       ${tipos.length ? `<label>${tipo === "jugadas" ? "Tipo" : "Categoría"}</label><select id="cjT"><option value="">Todos</option>${tipos.map(t => `<option ${t === filtroTipo ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>` : ""}
+      ${tipo === "jugadas" ? ["equipo", "temp"].map(k => { const vals = [...new Set(D.jugadas.map(x => x.data && x.data[k === "temp" ? "temporada" : "equipo"]).filter(Boolean))].sort(); return vals.length ? `<label>${k === "temp" ? "Temporada" : "Equipo"}</label><select data-fxs="${k}"><option value="">Todos</option>${vals.map(t => `<option ${fx[k] === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>` : ""; }).join("") : ""}
       <label>Etiquetas</label>${tags.length ? `<div class="nube">${tags.map(t => `<a class="tag ${filtroTags.includes(t) ? "on" : ""}" data-t="${esc(t)}" style="${estiloTag(t)}">${esc(t)}</a>`).join("")}</div>` : '<p class="peq">Aún no hay etiquetas. Añádelas desde el menú ⋮ de cada elemento.</p>'}
       <div style="flex:1"></div><button class="verde" id="cjOk" style="width:100%;margin-top:18px;padding:13px;">Mostrar ${cont()}</button><button class="gris" id="cjLimp" style="width:100%;margin-top:8px;">Quitar filtros</button></div>`;
     $("cjX").onclick = $("cjOk").onclick = () => cp.classList.remove("ver");
     $("cjQ").oninput = (e) => { busqueda = e.target.value; $("cjOk").textContent = "Mostrar " + cont(); pintarCarpetas(v, tipo); };
     if ($("cjT")) $("cjT").onchange = (e) => { filtroTipo = e.target.value; pintaCajon(); pintarCarpetas(v, tipo); };
     cp.querySelectorAll(".nube .tag").forEach(a => a.onclick = () => { const t = a.dataset.t; filtroTags = filtroTags.includes(t) ? filtroTags.filter(y => y !== t) : filtroTags.concat(t); pintaCajon(); pintarCarpetas(v, tipo); });
-    $("cjLimp").onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; pintaCajon(); pintarCarpetas(v, tipo); };
+    cp.querySelectorAll("[data-fxs]").forEach(sl => sl.onchange = () => { if (sl.value) fx[sl.dataset.fxs] = sl.value; else delete fx[sl.dataset.fxs]; pintaCajon(); pintarCarpetas(v, tipo); });
+    $("cjLimp").onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; pintaCajon(); pintarCarpetas(v, tipo); };
   };
   pintaCajon();
 }
