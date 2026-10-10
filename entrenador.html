@@ -267,6 +267,22 @@
   .pbv-jug{margin:22px 0 28px;} .pbv-jug h3{margin:0 0 6px;font-size:1.3em;} .pbv-jug .jug-btn{background:var(--ac) !important;} .pbv-txt{margin:16px 0;line-height:1.6;} .pbv-salto{height:1px;}
   .pbv-fases{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:16px;margin-top:12px;} .pbv-fases figure{margin:0;} .pbv-fases figcaption{font-weight:800;font-size:.85em;margin-bottom:6px;color:var(--ac);text-transform:uppercase;letter-spacing:.5px;} .pbv-fases .pista svg{width:100%;height:auto;display:block;border-radius:8px;} .pbv-fases ul{margin:8px 0 0;padding-left:18px;font-size:.9em;}
   @media (max-width:640px){ .pbv-fases{grid-template-columns:minmax(0,1fr);} .pbv h1{font-size:22px;} }
+
+  .mini-s{flex:none;width:64px;height:48px;border:1px solid #d9dee3;border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:2px;font-size:18px;} .mini-s svg{width:100%;height:100%;display:block;}
+  .lista-sel label.it span.mini-s{display:flex;gap:0;}
+  .pe-mini{flex:none;width:68px;height:50px;border:1px solid var(--pln);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 8px 0 10px;padding:2px;font-size:18px;} .pe-mini svg{width:100%;height:100%;display:block;} .pe-mini.grande{width:150px;height:110px;margin:0 0 0 10px;}
+  .pe-c2{display:flex;align-items:center;}
+  .eq-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start;} .eq-card{background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:14px;} .eq-card h3{margin:0 0 8px;font-size:16px;}
+  .eq-lista{max-height:60vh;overflow:auto;} .eq-jug{display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid #eef0f2;} .eq-jug:first-child{border-top:0;} .eq-jug.aus{opacity:.45;} .eq-jug input{width:auto;margin:0;} .eq-n{width:26px;text-align:right;font-weight:800;color:#e8590c;} .eq-nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .eq-st{color:#f08c00;font-size:11px;letter-spacing:-1px;}
+  .eq-add{display:flex;gap:6px;margin-top:10px;} .eq-add input{margin:0;}
+  .eq-sets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;} .eq-sets .on{background:#e8590c;color:#fff;border-color:#e8590c;}
+  .eq-tb{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;} .eq-tb input{flex:1;min-width:140px;margin:0;font-weight:800;} .eq-tb select{width:auto;margin:0;} .eq-k{display:flex;align-items:center;gap:6px;}
+  .eq-eqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;} .eq-eq{border:2px solid var(--c);border-radius:12px;overflow:hidden;background:#fff;} .eq-h{background:var(--c);padding:6px 8px;} .eq-h input{width:100%;background:transparent;border:0;color:#fff;font-weight:800;font-size:15px;margin:0;padding:2px;}
+  .eq-slot{display:flex;align-items:center;gap:8px;padding:11px 10px;border-top:1px solid #eef0f2;cursor:pointer;min-height:44px;} .eq-slot.libre{color:#9aa5b0;background:repeating-linear-gradient(135deg,#fafbfc,#fafbfc 6px,#f3f5f7 6px,#f3f5f7 12px);} .eq-slot.sel,.eq-chip.sel{outline:3px solid #e8590c;background:#fff1e8;} .eq-p{width:16px;font-weight:800;color:#8a95a1;font-size:12px;text-align:center;} .eq-sn{font-weight:700;} .eq-sn b{color:var(--c);margin-right:2px;}
+  .eq-pool{margin-top:14px;padding:12px;border:2px dashed #cfd6dc;border-radius:12px;min-height:60px;} .eq-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;} .eq-chip{background:#eef1f4;border-radius:999px;padding:9px 14px;font-weight:700;cursor:pointer;}
+  @media (max-width:900px){ .eq-grid{grid-template-columns:1fr;} .eq-lista{max-height:none;} }
+  #hojaImp.pdf-plan,#hojaImp.pdf-eq{padding:0;font-family:'Archivo','Inter',system-ui,sans-serif;color:#1d2630;}
+  @page plan{size:A4;margin:12mm 12mm 16mm;} @page eqs{size:A4 landscape;margin:12mm;}
   #hojaImp{display:none;}
   @media print{
     #app,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#pbEd,#aviso{display:none !important;}
@@ -274,6 +290,18 @@
     #hojaImp{display:block;padding:10mm;font-size:12pt;}
     #hojaImp h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22pt;margin:0 0 4px;}
     #hojaImp .pbp .pbv-anim{display:none !important;} #hojaImp .pbp{-webkit-print-color-adjust:exact;print-color-adjust:exact;} #hojaImp .pbv-jug{break-inside:avoid;} #hojaImp .pbv-jug.pag{break-before:page;} #hojaImp .pbv-salto{break-after:page;} #hojaImp .pbv-ch{break-after:avoid;} #hojaImp .pbv-portada{height:125mm;min-height:0;padding:0;overflow:hidden;break-after:page;break-inside:avoid;} #hojaImp .pbv-portada img{width:90px;height:90px;} #hojaImp .pbv-portada h1{font-size:2.4em;} #hojaImp .pbv-toc{break-inside:avoid;margin-top:0;} #hojaImp .pbv-toc summary{list-style:none;} #hojaImp .pbv-toc summary::-webkit-details-marker{display:none;}
+
+    #hojaImp.pdf-plan{page:plan;} #hojaImp.pdf-eq{page:eqs;}
+    .pdf-cab{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:4px solid #e8590c;padding-bottom:10px;margin-bottom:12px;} .pdf-cab small{letter-spacing:2px;font-weight:800;color:#e8590c;font-size:9pt;} #hojaImp .pdf-cab h1{font-family:'Archivo Black',sans-serif;font-weight:400;margin:2px 0 4px;font-size:22pt;line-height:1.1;} .pdf-meta{color:#5d6b78;font-size:10pt;} .pdf-esc{width:60px;height:60px;object-fit:contain;}
+    .pdf-obj{background:#f6f7f9;border-left:4px solid #e8590c;border-radius:4px;padding:8px 12px;margin:0 0 12px;font-size:10.5pt;line-height:1.45;} .pdf-obj b{display:block;font-size:8pt;letter-spacing:1.5px;color:#8a95a1;margin-bottom:2px;}
+    #hojaImp table.pdf-res{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:10pt;} #hojaImp table.pdf-res th{background:#1d2630 !important;color:#fff;border:0;font-size:8.5pt;letter-spacing:1px;text-transform:uppercase;padding:5px 8px;} #hojaImp table.pdf-res td{border:0;border-bottom:1px solid #e3e7ea;padding:4px 8px;font-size:10pt;} #hojaImp table.pdf-res tr.s td{background:#fdeee3 !important;font-weight:800;letter-spacing:.5px;text-transform:uppercase;font-size:9pt;color:#b3410a;}
+    .pdf-sec{margin:14px 0 6px;padding:5px 10px;background:#1d2630 !important;color:#fff;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;font-size:10pt;border-radius:4px;display:flex;justify-content:space-between;break-after:avoid;}
+    .pdf-ej{display:flex;gap:12px;border:1px solid #d9dee3;border-radius:8px;margin:0 0 9px;break-inside:avoid;overflow:hidden;} .pdf-t{flex:none;width:21mm;background:#fdeee3 !important;padding:8px 6px;text-align:center;border-right:1px solid #f1d2bd;} .pdf-t b{display:block;font-size:12pt;} .pdf-t span{display:block;font-size:9pt;color:#b3410a;font-weight:800;margin-top:2px;} .pdf-t i{display:block;font-style:normal;font-size:8pt;color:#8a95a1;margin-top:6px;}
+    .pdf-c{flex:1;min-width:0;padding:8px 10px 8px 0;} .pdf-c h3{margin:0 0 3px;font-size:12.5pt;} .pdf-chips{font-size:8.5pt;color:#5d6b78;margin-bottom:4px;} .pdf-chips span{display:inline-block;background:#eef1f4 !important;border-radius:999px;padding:1px 8px;margin-right:4px;} .pdf-c p{margin:3px 0;font-size:10pt;line-height:1.4;} .pdf-nota{margin:5px 0 0;padding:4px 8px;background:#fff8db !important;border-left:3px solid #f0b400;font-size:9.5pt;border-radius:3px;}
+    .pdf-dib{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;} .pdf-dib figure{margin:0;width:44mm;} .pdf-dib figure>div{border:1px solid #cfd6dc;border-radius:4px;overflow:hidden;line-height:0;} .pdf-dib svg{width:100% !important;height:auto !important;display:block;} .pdf-dib figcaption{font-size:7.5pt;color:#667380;margin-top:1px;}
+    .pdf-pie{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:8pt;color:#8a95a1;border-top:1px solid #e3e7ea;padding-top:3px;} .pdf-refl{margin-top:14px;} .pdf-refl h3{margin:0 0 4px;font-size:11pt;}
+    #hojaImp *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .eqp-g{display:grid;gap:12px;grid-template-columns:repeat(2,1fr);} .eqp-g.n3{grid-template-columns:repeat(3,1fr);} .eqp-g.n4{grid-template-columns:repeat(4,1fr);} .eqp-eq{border:2px solid var(--c);border-radius:10px;overflow:hidden;break-inside:avoid;} .eqp-h{background:var(--c) !important;color:#fff;font-weight:800;font-size:14pt;padding:8px 12px;} .eqp-r{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid #e3e7ea;min-height:11mm;} .eqp-p{width:22mm;font-size:8.5pt;font-weight:800;color:#8a95a1;text-transform:uppercase;} .eqp-d{width:9mm;font-weight:800;font-size:14pt;color:var(--c);text-align:right;} .eqp-n{font-weight:700;font-size:13pt;} .eqp-b{margin-top:12px;font-size:11pt;padding:8px 12px;background:#f6f7f9 !important;border-radius:6px;}
     #hojaImp table{width:100%;border-collapse:collapse;margin-top:10px;}
     #hojaImp td,#hojaImp th{border:1px solid #888;padding:6px 8px;text-align:left;vertical-align:top;font-size:11pt;}
     #hojaImp th{background:#eee;}
@@ -455,6 +483,7 @@
     <div class="grupo"><h4>Planificación</h4>
       <button data-s="ejercicios"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Ejercicios</span><span class="n" id="n-ejercicios"></span></button>
       <button data-s="planes"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.01M8 17.500h2M12 17.500h2"/></svg></span><span class="tx">Planes de entreno</span><span class="n" id="n-planes"></span></button>
+      <button data-s="equipos"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.500"/><path d="M3.500 19c0-3 2.500-5 5.500-5s5.500 2 5.500 5M15 14.500c3 0 5.500 1.500 5.500 4.500"/></svg></span><span class="tx">Quintetos y equipos</span><span class="n" id="n-equipos"></span></button>
     </div>
     <div class="grupo"><h4>Archivos</h4>
       <button data-s="video"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2.500"/><path d="M16 10.500l5-3v9l-5-3"/></svg></span><span class="tx">Vídeos</span><span class="n" id="n-video"></span></button>
@@ -503,7 +532,7 @@ const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : n
 const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [] };
 let puedeEscribir = true, faltaSql = "", seccion = "jugadas", carpeta = "", busqueda = "", vistaDetalle = null;
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
-const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* ------------ datos ------------ */
 async function leer(tabla, orden) {
@@ -540,6 +569,7 @@ function pintar() {
   if (vistaDetalle && vistaDetalle.tipo === "playbook") return pintarPlaybook(v);
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
   if (seccion === "playbooks") return pintarPlaybooks(v);
+  if (seccion === "equipos") return pintarEquipos(v);
   return pintarArchivos(v, seccion);
 }
 
@@ -1143,7 +1173,7 @@ function pbCargar(root) {
     if (el.querySelector("[data-pbf]")) pedirFases(x, tipo, el.dataset.pbk, (sv) => { el.querySelectorAll("[data-pbf]").forEach(f => { const s = sv[Number(f.dataset.pbf)]; if (s) f.innerHTML = s; }); });
   });
 }
-function imprimirPb(root) { const h = $("hojaImp"); h.innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; h.querySelectorAll("details").forEach(d => { d.open = true; }); window.print(); }
+function imprimirPb(root) { const h = $("hojaImp"); h.className = ""; h.innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; h.querySelectorAll("details").forEach(d => { d.open = true; }); window.print(); }
 function pintarPlaybook(v) {
   const p = D.playbooks.find(y => y.id === vistaDetalle.id); if (!p) { vistaDetalle = null; return pintar(); }
   v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span></div><div class="pbv-acc"><button class="gris" id="impPb">🖨 Imprimir / PDF</button>${puedeEscribir ? '<button class="naranja" id="editPb">✏️ Editar playbook</button>' : ""}</div><div id="pbLect">${pbVistaHtml(p)}</div>`;
@@ -1395,7 +1425,7 @@ function pEd() {
       if (e.sec) return `<div class="pe-fila" data-i="${i}">${asa}<div class="pe-sec"><input data-f="sec" value="${esc(e.titulo || "")}" placeholder="TÍTULO DE SECCIÓN" ${ro ? "disabled" : ""}>${ro ? "" : `<button data-del="${i}" title="Eliminar">${IC.del}</button>`}</div></div>`;
       const ej = ejDe(e);
       return `<div class="pe-fila" data-i="${i}">${asa}<div class="pe-tarj"><div class="pe-c1"><button class="pe-min" data-min="${i}" title="Editar tiempo">${Number(e.min) || 0} min</button></div>
-        <div class="pe-c2"><input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio vinculado" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : IC.plus}</button>`}</div>
+        <div class="pe-c2">${ej ? `<span class="pe-mini" data-mini="${esc(ej.id)}">${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}<input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio vinculado" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : IC.plus}</button>`}</div>
         <div class="pe-c3"><input data-f="notas" value="${esc(e.notas || "")}" placeholder="Añade notas aquí…" ${ro ? "disabled" : ""}></div>
         ${ro ? "" : `<div class="pe-c4"><button data-r="${i}" title="Más">${IC.mas}</button><button data-dup="${i}" title="Duplicar">${IC.dup}</button><button data-del="${i}" title="Eliminar">${IC.del}</button></div>`}</div></div>`;
     }).join("");
@@ -1412,13 +1442,14 @@ function pEd() {
     lista.forEach((e) => {
       if (e.sec) { cierra(); sub = 0; secAbierta = true; filas += `<div class="pv-sec">${esc(e.titulo || "Sección")}<span>§SUB§</span></div>`; return; }
       const ini = hmDe(d.inicio, acum), ej = ejDe(e), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; sub += Number(e.min) || 0;
-      filas += `<div class="pv-seg"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}</div></div>`;
+      filas += `<div class="pv-seg"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}</div>${ej ? `<span class="pe-mini grande" data-mini="${esc(ej.id)}">${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}</div>`;
     });
     cierra();
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><h2 style="font-size:22px;">${esc(p.nombre || "Plan sin título")}</h2><p class="peq" style="margin:2px 0 12px;">${solofecha(p.fecha)} · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · ${total} min · ${d.inicio}–${hmDe(d.inicio, total)}</p>${d.notas ? `<p style="white-space:pre-wrap;margin:0 0 12px;">${esc(d.notas)}</p>` : ""}${filas || '<div class="vacio">Aún no hay segmentos.</div>'}
       ${d.reflexion != null ? `<label>Reflexión</label><textarea id="pvR" style="min-height:90px;" placeholder="¿Qué funcionó? ¿Qué cambiarías?" ${ro ? "disabled" : ""}>${esc(d.reflexion)}</textarea>` : (ro ? "" : '<div style="margin-top:14px;"><button class="gris" id="pvAddR">＋ Añadir reflexión</button></div>')}</div></div>`;
   }
   root.innerHTML = cab + cuerpo;
+  if (tab === "tl" || tab === "pre") pedirMiniaturas(D.ejercicios);
   // eventos
   const volcarCab = () => { p.nombre = $("peT").value; };
   $("peX").onclick = () => cerrarPlan(false);
@@ -1495,7 +1526,7 @@ function elegirEjercicio(ok) {
   let q = "", cur = "";
   ventana(`<h3>Elegir ejercicio de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en todas las carpetas…"><div id="elMig" class="peq" style="margin:8px 2px 4px;"></div><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
   const ejs = () => D.ejercicios.slice().sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
-  const fila = (e, ruta) => `<label class="it" data-id="${esc(e.id)}"><span style="flex:1;">🎯 ${esc(e.nombre)}${ruta && e.carpeta ? ` <span class="peq">· ${esc(e.carpeta)}</span>` : ""}</span><span class="peq">${esc((e.data && e.data.categoria) || "")} ${e.data && e.data.minutos ? "· " + e.data.minutos + " min" : ""}</span></label>`;
+  const fila = (e, ruta) => `<label class="it" data-id="${esc(e.id)}"><span class="mini-s" data-mini="${esc(e.id)}">${MINIS[e.id + "|" + e.actualizada] || "🎯"}</span><span style="flex:1;">${esc(e.nombre)}${ruta && e.carpeta ? ` <span class="peq">· ${esc(e.carpeta)}</span>` : ""}</span><span class="peq">${esc((e.data && e.data.categoria) || "")} ${e.data && e.data.minutos ? "· " + e.data.minutos + " min" : ""}</span></label>`;
   const pin = () => {
     const box = $("elL"), mig = $("elMig");
     if (q) {
@@ -1515,6 +1546,7 @@ function elegirEjercicio(ok) {
     }
     box.querySelectorAll("[data-id]").forEach(el => el.addEventListener("click", () => { cerrarVentana(); ok(el.dataset.id); }));
   };
+  pedirMiniaturas(D.ejercicios);
   pin(); $("elQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase().trim(); pin(); }); $("elX").onclick = cerrarVentana;
 }
 function nuevoPlanModal() {
@@ -1540,16 +1572,129 @@ function dibujosDePlan(p) {
 }
 async function imprimirPlan(p) {
   aviso("Preparando el PDF con los dibujos…");
-  const dib = await dibujosDePlan(p), d = p.data; let acum = 0, n = 0, filas = "";
+  const dib = await dibujosDePlan(p), d = p.data, q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
+  let acum = 0, n = 0, res = "", det = "", sub = 0, secAb = false;
+  const cierra = () => { if (secAb) det = det.replace("§SUB§", sub + " min"); };
   d.ejercicios.forEach((e) => {
-    if (e.sec) { filas += `<tr><th colspan="4" style="text-align:center;letter-spacing:1px;text-transform:uppercase;">${esc(e.titulo || "")}</th></tr>`; return; }
-    const ej = ejDe(e), ini = hmDe(d.inicio, acum), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; n++;
-    const svgs = (dib[e.id] || []).slice(0, 6), dibujo = svgs.length ? `<div class="ej-dib">${svgs.map((sv, i) => `<figure><div>${sv}</div>${svgs.length > 1 ? `<figcaption>Fase ${i + 1}</figcaption>` : ""}</figure>`).join("")}</div>` : "";
-    filas += `<tr><td>${n}</td><td>${ini}–${hmDe(d.inicio, acum)}<br>${e.min || 0} min</td><td><b>${esc(tituloSeg(e))}</b>${dd.categoria ? "<br>" + esc(dd.categoria) : ""}${dd.materiales ? "<br><i>Material: " + esc(dd.materiales) + "</i>" : ""}</td><td>${esc(dd.descripcion || "").replace(/\n/g, "<br>")}${e.notas ? (dd.descripcion ? "<br>" : "") + "<b>Notas:</b> " + esc(e.notas) : ""}${dibujo}</td></tr>`;
+    if (e.sec) { cierra(); sub = 0; secAb = true; res += `<tr class="s"><td colspan="3">${esc(e.titulo || "Sección")}</td></tr>`; det += `<div class="pdf-sec"><span>${esc(e.titulo || "Sección")}</span><span>§SUB§</span></div>`; return; }
+    const ej = ejDe(e), ini = hmDe(d.inicio, acum), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; sub += Number(e.min) || 0; n++;
+    const fin = hmDe(d.inicio, acum), svgs = (dib[e.id] || []).slice(0, 6);
+    res += `<tr><td>${ini}–${fin}</td><td><b>${esc(tituloSeg(e) || "(sin título)")}</b></td><td style="text-align:right;">${e.min || 0} min</td></tr>`;
+    const chips = [dd.categoria, dd.materiales ? "Material: " + dd.materiales : ""].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join("");
+    det += `<div class="pdf-ej"><div class="pdf-t"><b>${ini}</b><span>${e.min || 0} min</span><i>Ejercicio ${n}</i></div><div class="pdf-c"><h3>${esc(tituloSeg(e) || "(sin título)")}</h3>${chips ? `<div class="pdf-chips">${chips}</div>` : ""}${dd.descripcion ? `<p>${esc(dd.descripcion).replace(/\n/g, "<br>")}</p>` : ""}${e.notas ? `<div class="pdf-nota"><b>Notas:</b> ${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${svgs.length ? `<div class="pdf-dib">${svgs.map((sv, i) => `<figure><div>${sv}</div>${svgs.length > 1 ? `<figcaption>Fase ${i + 1}</figcaption>` : ""}</figure>`).join("")}</div>` : ""}</div></div>`;
   });
-  $("hojaImp").innerHTML = `<h1>${esc(p.nombre || "Plan de entrenamiento")}</h1><div>${solofecha(p.fecha)} · ${acum} min · ${n} ejercicios</div>${d.notas ? `<p>${esc(d.notas).replace(/\n/g, "<br>")}</p>` : ""}<table><tr><th>#</th><th>Horario</th><th>Ejercicio</th><th>Descripción</th></tr>${filas}</table>${d.reflexion ? `<h3>Reflexión</h3><p>${esc(d.reflexion).replace(/\n/g, "<br>")}</p>` : ""}`;
-  window.print();
+  cierra();
+  const h = $("hojaImp"); h.className = "pdf-plan";
+  h.innerHTML = `<div class="pdf-cab"><div><small>PLAN DE ENTRENAMIENTO</small><h1>${esc(p.nombre || "Plan de entrenamiento")}</h1><div class="pdf-meta">${solofecha(p.fecha)} · ${d.inicio}–${hmDe(d.inicio, acum)} · ${acum} min · ${n} ejercicios${q.equipo ? " · " + esc(q.equipo) : ""}</div></div>${url ? `<img class="pdf-esc" src="${esc(url)}" alt="">` : ""}</div>
+    ${d.notas ? `<div class="pdf-obj"><b>OBJETIVO</b>${esc(d.notas).replace(/\n/g, "<br>")}</div>` : ""}
+    <table class="pdf-res"><tr><th style="width:26mm;">Horario</th><th>Ejercicio</th><th style="width:20mm;text-align:right;">Duración</th></tr>${res}</table>
+    ${det}${d.reflexion ? `<div class="pdf-refl"><h3>Reflexión</h3><p>${esc(d.reflexion).replace(/\n/g, "<br>")}</p></div>` : ""}<div class="pdf-pie">ScoutFlow · ${esc(p.nombre || "Plan")}</div>`;
+  await esperaImgs(h); window.print();
 }
+
+/* ------------ quintetos y equipos (3c3, 4c4, quintetos…) ------------ */
+const EQ_COL = ["#e8590c", "#1c7ed6", "#2f9e44", "#ae3ec9", "#f08c00", "#0c8599", "#c92a2a", "#495057"];
+const EQ_MODOS = { q5: ["Quinteto (5)", 5], c4: ["4 contra 4", 4], c3: ["3 contra 3", 3], c2: ["2 contra 2", 2], c1: ["1 contra 1", 1] };
+const EQ_POS = ["Base", "Escolta", "Alero", "Ala-pívot", "Pívot"];
+let EQ = null;
+function eqLeer() { const r = D.archivos.find(a => a.id === "_equipos"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } return { plantilla: o.plantilla || [], sets: o.sets || [], setId: o.setId || "" }; }
+async function eqGuardar() {
+  const nombre = JSON.stringify({ plantilla: EQ.plantilla, sets: EQ.sets, setId: EQ.setId });
+  if (await guardarFila("archivos", { id: "_equipos", nombre, tipo: "ajustes", ruta: "", mime: "", tamano: 0 })) { const r = D.archivos.find(a => a.id === "_equipos"); if (r) r.nombre = nombre; else D.archivos.push({ id: "_equipos", nombre, tipo: "ajustes" }); }
+}
+const eqJug = (id) => EQ.plantilla.find(j => j.id === id);
+const eqEtq = (j) => (j.num !== "" && j.num != null ? "<b>" + esc(String(j.num)) + "</b> " : "") + esc(j.nombre);
+const eqSet = () => EQ.sets.find(s => s.id === EQ.setId) || null;
+const eqBarajar = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const eqPresentes = () => EQ.plantilla.filter(j => j.pres !== false);
+const eqAsignados = (s) => new Set(s.equipos.flatMap(e => e.s).filter(Boolean));
+function eqNuevoSet(modo, k) {
+  const tam = EQ_MODOS[modo][1], pres = eqPresentes().length;
+  k = k || Math.min(8, Math.max(2, Math.floor(pres / tam) || 2));
+  const s = { id: idNuevo("q"), nombre: EQ_MODOS[modo][0] + " · " + new Date().toLocaleDateString("es-ES", { day: "numeric", month: "short" }), modo, equipos: [] };
+  eqAjustar(s, k); return s;
+}
+function eqAjustar(s, k) {
+  const tam = EQ_MODOS[s.modo][1];
+  while (s.equipos.length < k) s.equipos.push({ n: "Equipo " + (s.equipos.length + 1), c: EQ_COL[s.equipos.length % EQ_COL.length], s: [] });
+  s.equipos.length = k;
+  s.equipos.forEach(e => { e.s = e.s.slice(0, tam); while (e.s.length < tam) e.s.push(null); });
+}
+function eqRepartir(s, equilibrar) {
+  const tam = EQ_MODOS[s.modo][1], k = s.equipos.length;
+  let l = eqBarajar(eqPresentes());
+  if (equilibrar) l.sort((a, b) => (Number(b.nivel) || 3) - (Number(a.nivel) || 3));
+  s.equipos.forEach(e => { e.s = Array(tam).fill(null); });
+  if (equilibrar) { let i = 0, dir = 1; l.forEach(j => { let intentos = 0; while (intentos++ < k * 2) { const e = s.equipos[i], hueco = e.s.indexOf(null); const paso = () => { if (dir === 1) { if (i === k - 1) dir = -1; else i++; } else { if (i === 0) dir = 1; else i--; } }; if (hueco >= 0) { e.s[hueco] = j.id; paso(); break; } paso(); } }); }
+  else { let e = 0; l.forEach(j => { while (e < k && s.equipos[e].s.indexOf(null) < 0) e++; if (e < k) s.equipos[e].s[s.equipos[e].s.indexOf(null)] = j.id; }); }
+}
+function pintarEquipos(v) {
+  if (!EQ) EQ = Object.assign(eqLeer(), { sel: null });
+  const set = eqSet(), ro = !puedeEscribir;
+  const pres = eqPresentes(), asig = set ? eqAsignados(set) : new Set(), pool = pres.filter(j => !asig.has(j.id));
+  const nivel = (j) => "★".repeat(Number(j.nivel) || 3);
+  const plant = `<div class="eq-card"><h3>Plantilla <span class="peq">${pres.length}/${EQ.plantilla.length} presentes</span></h3>
+    <div class="eq-lista">${EQ.plantilla.map(j => `<div class="eq-jug ${j.pres === false ? "aus" : ""}" data-j="${esc(j.id)}"><input type="checkbox" data-pres="${esc(j.id)}" ${j.pres === false ? "" : "checked"} ${ro ? "disabled" : ""} title="Presente hoy"><span class="eq-n">${esc(String(j.num ?? ""))}</span><span class="eq-nm">${esc(j.nombre)}</span><span class="eq-st" title="Nivel (para equilibrar)">${nivel(j)}</span>${ro ? "" : `<button class="mas" data-edj="${esc(j.id)}">⋮</button>`}</div>`).join("") || '<div class="vacio">Añade a tus jugadoras/es.</div>'}</div>
+    ${ro ? "" : `<div class="eq-add"><input id="eqNum" placeholder="Nº" inputmode="numeric" style="width:54px;"><input id="eqNom" placeholder="Nombre" style="flex:1;min-width:0;"><button class="naranja" id="eqAdd">＋</button></div><button class="gris" id="eqPegar" style="width:100%;margin-top:8px;">📋 Pegar lista de nombres</button>`}</div>`;
+  let tablero = "";
+  if (!set) tablero = `<div class="eq-card eq-vacio"><h3>Repartos</h3><p class="peq">Crea un reparto para formar quintetos o equipos de 3c3, 4c4, 2c2… El sorteo usa solo a las personas marcadas como presentes.</p>${EQ.sets.length ? "" : ""}</div>`;
+  else {
+    const tam = EQ_MODOS[set.modo][1];
+    tablero = `<div class="eq-card"><div class="eq-tb"><input id="eqSN" value="${esc(set.nombre)}" ${ro ? "disabled" : ""}>
+      ${ro ? "" : `<select id="eqMo">${Object.keys(EQ_MODOS).map(k => `<option value="${k}" ${k === set.modo ? "selected" : ""}>${EQ_MODOS[k][0]}</option>`).join("")}</select>
+      <span class="eq-k"><button class="gris" id="eqKm">−</button><b>${set.equipos.length}</b> eq.<button class="gris" id="eqKp">＋</button></span>
+      <button class="naranja" id="eqSor">🎲 Sorteo</button><button class="verde" id="eqEqu" title="Reparte en serpiente según el nivel">⚖️ Equilibrar</button><button class="gris" id="eqVac">Vaciar</button>`}
+      <button class="gris" id="eqPdf">🖨 PDF</button></div>
+      <div class="eq-eqs">${set.equipos.map((e, ei) => `<div class="eq-eq" style="--c:${e.c}"><div class="eq-h"><input data-en="${ei}" value="${esc(e.n)}" ${ro ? "disabled" : ""}></div>${e.s.map((id, si) => { const j = id && eqJug(id); const sel = EQ.sel && EQ.sel.e === ei && EQ.sel.s === si; return `<div class="eq-slot ${j ? "" : "libre"} ${sel ? "sel" : ""}" data-e="${ei}" data-s="${si}"><span class="eq-p">${set.modo === "q5" ? si + 1 : ""}</span><span class="eq-sn">${j ? eqEtq(j) : (set.modo === "q5" ? EQ_POS[si] : "libre")}</span></div>`; }).join("")}</div>`).join("")}</div>
+      <div class="eq-pool" data-pool="1"><b>Sin equipo</b> <span class="peq">(${pool.length})</span><div class="eq-chips">${pool.map(j => `<span class="eq-chip ${EQ.sel && EQ.sel.id === j.id ? "sel" : ""}" data-p="${esc(j.id)}">${eqEtq(j)}</span>`).join("") || '<span class="peq">Todos asignados ✓</span>'}</div></div>
+      <p class="peq" style="margin:8px 2px 0;">Toca una persona y luego un hueco para colocarla; si el hueco está ocupado se intercambian. Toca «Sin equipo» para sacarla del equipo.</p></div>`;
+  }
+  v.innerHTML = `<div class="cab"><h2>Quintetos y equipos</h2><span class="esp"></span>${ro ? "" : '<button class="naranja" id="eqNuevo">＋ Nuevo reparto</button>'}</div>
+    <div class="eq-sets">${EQ.sets.map(s => `<button class="gris ${s.id === EQ.setId ? "on" : ""}" data-set="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${set && !ro ? '<button class="gris" id="eqDup" title="Duplicar">⧉</button><button class="gris" id="eqDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>
+    <div class="eq-grid">${plant}${tablero}</div>`;
+  const guardar = async (repintar) => { await eqGuardar(); if (repintar !== false) pintarEquipos(v); };
+  v.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { EQ.setId = b.dataset.set; EQ.sel = null; pintarEquipos(v); });
+  if (ro) { const p = $("eqPdf"); if (p) p.onclick = () => imprimirEquipos(set); return; }
+  $("eqNuevo").onclick = () => ventana(`<h3>Nuevo reparto</h3><label>Formato</label><select id="nrM">${Object.keys(EQ_MODOS).map(k => `<option value="${k}" ${k === "c3" ? "selected" : ""}>${EQ_MODOS[k][0]}</option>`).join("")}</select><p class="peq">Presentes ahora: ${pres.length}. Luego puedes cambiar el número de equipos.</p><div class="pie-m"><button class="gris" id="nrX">Cancelar</button><button class="naranja" id="nrOk">Crear y sortear</button></div>`) && ($("nrX").onclick = cerrarVentana, $("nrOk").onclick = async () => { const s = eqNuevoSet($("nrM").value); eqRepartir(s, false); EQ.sets.push(s); EQ.setId = s.id; EQ.sel = null; cerrarVentana(); await guardar(); });
+  const addJ = async () => { const nm = $("eqNom").value.trim(); if (!nm) return; EQ.plantilla.push({ id: idNuevo("j"), nombre: nm, num: $("eqNum").value.trim(), nivel: 3, pres: true }); await guardar(); const n = $("eqNom"); if (n) n.focus(); };
+  $("eqAdd").onclick = addJ; $("eqNom").addEventListener("keydown", (e) => { if (e.key === "Enter") addJ(); });
+  $("eqPegar").onclick = () => { ventana(`<h3>Pegar lista</h3><p class="peq">Una persona por línea. Puedes poner el dorsal delante: «7 Lucía».</p><textarea id="pgT" style="min-height:200px;"></textarea><div class="pie-m"><button class="gris" id="pgX">Cancelar</button><button class="naranja" id="pgOk">Añadir</button></div>`); $("pgX").onclick = cerrarVentana; $("pgOk").onclick = async () => { $("pgT").value.split(/\n+/).map(x => x.trim()).filter(Boolean).forEach(l => { const m = l.match(/^#?(\d{1,3})[\s.\-:)]+(.+)$/); EQ.plantilla.push({ id: idNuevo("j"), nombre: (m ? m[2] : l).trim(), num: m ? m[1] : "", nivel: 3, pres: true }); }); cerrarVentana(); await guardar(); }; };
+  v.querySelectorAll("[data-pres]").forEach(c => c.onchange = async () => { const j = eqJug(c.dataset.pres); j.pres = c.checked; await guardar(); });
+  v.querySelectorAll("[data-edj]").forEach(b => b.onclick = (ev) => { ev.stopPropagation(); const j = eqJug(b.dataset.edj); abrirMenu(ev, [["✏️ Editar", () => { ventana(`<h3>Editar</h3><label>Nombre</label><input id="ejN" value="${esc(j.nombre)}"><div class="dos"><div><label>Dorsal</label><input id="ejD" value="${esc(String(j.num ?? ""))}"></div><div><label>Nivel (1-5)</label><select id="ejV">${[1, 2, 3, 4, 5].map(n => `<option ${n === (Number(j.nivel) || 3) ? "selected" : ""}>${n}</option>`).join("")}</select></div></div><div class="pie-m"><button class="gris" id="ejX">Cancelar</button><button class="naranja" id="ejOk">Guardar</button></div>`); $("ejX").onclick = cerrarVentana; $("ejOk").onclick = async () => { j.nombre = $("ejN").value.trim() || j.nombre; j.num = $("ejD").value.trim(); j.nivel = Number($("ejV").value) || 3; cerrarVentana(); await guardar(); }; }], ["🗑 Quitar de la plantilla", async () => { EQ.plantilla = EQ.plantilla.filter(x => x.id !== j.id); EQ.sets.forEach(s => s.equipos.forEach(e => { e.s = e.s.map(i => i === j.id ? null : i); })); await guardar(); }, "pel"]]); });
+  if (!set) return;
+  const tam = EQ_MODOS[set.modo][1];
+  $("eqSN").onchange = () => { set.nombre = $("eqSN").value.trim() || set.nombre; guardar(); };
+  $("eqMo").onchange = () => { set.modo = $("eqMo").value; eqAjustar(set, set.equipos.length); guardar(); };
+  $("eqKm").onclick = () => { if (set.equipos.length > 1) { eqAjustar(set, set.equipos.length - 1); guardar(); } };
+  $("eqKp").onclick = () => { if (set.equipos.length < 8) { eqAjustar(set, set.equipos.length + 1); guardar(); } };
+  $("eqSor").onclick = () => { eqRepartir(set, false); EQ.sel = null; guardar(); };
+  $("eqEqu").onclick = () => { eqRepartir(set, true); EQ.sel = null; guardar(); };
+  $("eqVac").onclick = () => { set.equipos.forEach(e => { e.s = Array(tam).fill(null); }); EQ.sel = null; guardar(); };
+  $("eqPdf").onclick = () => imprimirEquipos(set);
+  $("eqDup").onclick = () => { const c = clonar(set); c.id = idNuevo("q"); c.nombre += " (copia)"; EQ.sets.push(c); EQ.setId = c.id; guardar(); };
+  $("eqDel").onclick = () => { if (!confirm("¿Borrar «" + set.nombre + "»?")) return; EQ.sets = EQ.sets.filter(s => s !== set); EQ.setId = EQ.sets.length ? EQ.sets[0].id : ""; EQ.sel = null; guardar(); };
+  v.querySelectorAll("[data-en]").forEach(i => i.onchange = () => { set.equipos[Number(i.dataset.en)].n = i.value.trim() || "Equipo"; guardar(false); });
+  v.querySelectorAll("[data-p]").forEach(c => c.onclick = () => { EQ.sel = EQ.sel && EQ.sel.id === c.dataset.p ? null : { id: c.dataset.p, e: -1, s: -1 }; pintarEquipos(v); });
+  v.querySelectorAll(".eq-slot").forEach(el => el.onclick = () => {
+    const e = Number(el.dataset.e), s = Number(el.dataset.s), cur = set.equipos[e].s[s], sel = EQ.sel;
+    if (!sel) { if (cur) EQ.sel = { id: cur, e, s }; pintarEquipos(v); return; }
+    if (sel.e === e && sel.s === s) { EQ.sel = null; pintarEquipos(v); return; }
+    if (sel.e >= 0) set.equipos[sel.e].s[sel.s] = cur || null;
+    set.equipos[e].s[s] = sel.id; EQ.sel = null; guardar();
+  });
+  const po = v.querySelector("[data-pool]"); po.onclick = (ev) => { if (ev.target.closest("[data-p]")) return; if (EQ.sel && EQ.sel.e >= 0) { set.equipos[EQ.sel.e].s[EQ.sel.s] = null; EQ.sel = null; guardar(); } };
+}
+async function imprimirEquipos(set) {
+  if (!set) return;
+  const q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "", tam = EQ_MODOS[set.modo][1];
+  const asig = eqAsignados(set), banq = eqPresentes().filter(j => !asig.has(j.id));
+  const tarjetas = set.equipos.map(e => `<div class="eqp-eq" style="--c:${e.c}"><div class="eqp-h">${esc(e.n)}</div>${e.s.map((id, i) => { const j = id && eqJug(id); return `<div class="eqp-r"><span class="eqp-p">${set.modo === "q5" ? EQ_POS[i] : i + 1}</span><span class="eqp-d">${j && j.num !== "" && j.num != null ? esc(String(j.num)) : ""}</span><span class="eqp-n">${j ? esc(j.nombre) : ""}</span></div>`; }).join("")}</div>`).join("");
+  $("hojaImp").className = "pdf-eq";
+  $("hojaImp").innerHTML = `<div class="pdf-cab"><div><small>${esc(EQ_MODOS[set.modo][0].toUpperCase())}</small><h1>${esc(set.nombre)}</h1><div class="pdf-meta">${esc(q.equipo || "")}${q.equipo && q.temporada ? " · " : ""}${q.temporada ? "Temporada " + esc(q.temporada) : ""}${q.equipo || q.temporada ? " · " : ""}${new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div></div>${url ? `<img class="pdf-esc" src="${esc(url)}" alt="">` : ""}</div>
+    <div class="eqp-g n${Math.min(set.equipos.length, 4)}">${tarjetas}</div>${banq.length ? `<div class="eqp-b"><b>Sin equipo / banquillo:</b> ${banq.map(j => (j.num !== "" && j.num != null ? esc(String(j.num)) + " " : "") + esc(j.nombre)).join(" · ")}</div>` : ""}<div class="pdf-pie">ScoutFlow · ${esc(set.nombre)}</div>`;
+  await esperaImgs($("hojaImp")); window.print();
+}
+const esperaImgs = (el) => Promise.race([Promise.all([...el.querySelectorAll("img")].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))), new Promise(r => setTimeout(r, 2500))]);
 
 /* ------------ archivos: videos, imagenes, audio ------------ */
 const pubUrl = (a) => nube.storage.from("entrenador").getPublicUrl(a.ruta).data.publicUrl;
