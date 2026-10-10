@@ -1710,6 +1710,69 @@ async function imprimirEquipos(set) {
 }
 const esperaImgs = (el) => Promise.race([Promise.all([...el.querySelectorAll("img")].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))), new Promise(r => setTimeout(r, 2500))]);
 
+/* ------------ analisis de video: pausa, fotograma a fotograma, camara lenta y dibujo encima ------------ */
+function abrirAnalisis(url, titulo) {
+  const viejo = $("anaMarco"); if (viejo) viejo.remove();
+  if (!$("anaCss")) { const st = document.createElement("style"); st.id = "anaCss"; st.textContent = `
+    #anaMarco{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:#0e141b;color:#fff;display:flex;flex-direction:column;font-family:'Archivo','Inter',system-ui,sans-serif;}
+    #anaMarco button{font:inherit;font-size:15px;font-weight:700;border:0;border-radius:12px;background:#2c3947;color:#fff;padding:0 14px;min-height:46px;cursor:pointer;} #anaMarco button.on{background:#e8590c;} #anaMarco button:disabled{opacity:.4}
+    #anaMarco .a-top{display:flex;gap:10px;align-items:center;padding:8px 10px;background:#1b2530;flex:none;} #anaMarco .a-top b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;}
+    #anaMarco .a-zona{flex:1;min-height:0;position:relative;} #anaMarco .a-caja{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;touch-action:none;} #anaMarco video{width:100%;height:100%;display:block;} #anaMarco canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;} #anaMarco canvas.act{pointer-events:auto;cursor:crosshair;}
+    #anaMarco .a-ctl{flex:none;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;background:#1b2530;} #anaMarco .a-ctl input[type=range]{flex:1 1 220px;min-width:140px;height:30px;accent-color:#e8590c;} #anaMarco .a-t{font-variant-numeric:tabular-nums;font-weight:800;min-width:92px;text-align:center;font-size:14px;} #anaMarco .sep{width:1px;height:30px;background:#3a4958;margin:0 2px;}
+    #anaMarco .a-col{width:34px;min-height:34px !important;height:34px;border-radius:50%;padding:0 !important;border:3px solid #fff0 !important;} #anaMarco .a-col.on{border-color:#fff !important;} #anaMarco .a-dib{display:none;gap:6px;align-items:center;flex-wrap:wrap;}`; document.head.appendChild(st); }
+  const m = document.createElement("div"); m.id = "anaMarco";
+  const COLS = ["#ff4d4d", "#ffd24d", "#3fd0ff", "#ffffff", "#111111"];
+  m.innerHTML = `<div class="a-top"><button id="anX">✕ Cerrar</button><b>${esc(titulo || "Vídeo")}</b><button id="anCap" title="Guardar una imagen del fotograma con tus dibujos">📸 Captura</button></div>
+    <div class="a-zona" id="anZ"><div class="a-caja" id="anC"><video id="anV" playsinline preload="auto" crossorigin="anonymous" src="${esc(url)}"></video><canvas id="anD"></canvas></div></div>
+    <div class="a-ctl"><button id="anB5">⏪ 5s</button><button id="anBf" title="Fotograma anterior">◀|</button><button id="anP" style="min-width:96px;">▶ Play</button><button id="anFf" title="Fotograma siguiente">|▶</button><button id="anF5">5s ⏩</button><span class="a-t" id="anT">0:00</span><input type="range" id="anS" min="0" max="1000" value="0">
+      <button data-v="0.25">¼x</button><button data-v="0.5">½x</button><button data-v="1" class="on">1x</button><span class="sep"></span>
+      <button id="anL">✏️ Dibujar</button><span class="a-dib" id="anDib"><span id="anCols" style="display:inline-flex;gap:6px;"></span><button data-h="lapiz" class="on">✏️</button><button data-h="flecha">➚</button><button data-h="resalt">🖍</button><button data-w="1">•</button><button data-w="2.2" class="on">●</button><button data-w="3.2">⬤</button><button id="anU">↩︎</button><button id="anBo">🧽 Borrar</button></span></div>`;
+  document.body.appendChild(m);
+  const v = $("anV"), caja = $("anC"), cv = $("anD"), ctx = cv.getContext("2d"), E = { trazos: [], actual: null, lapiz: false, herr: "lapiz", w: 2.2, color: COLS[0] };
+  $("anCols").innerHTML = COLS.map((c, i) => `<button class="a-col ${i ? "" : "on"}" data-c="${c}" style="background:${c}"></button>`).join("");
+  const FPS = 30, tt = (s) => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") + "." + String(Math.floor((s % 1) * 10));
+  const medir = () => { const z = $("anZ"), w = z.clientWidth, h = z.clientHeight; if (!w || !h) return; const r = (v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 16 / 9, b = Math.min(w, h * r); caja.style.width = Math.floor(b) + "px"; caja.style.height = Math.floor(b / r) + "px"; const d = window.devicePixelRatio || 1, rc = caja.getBoundingClientRect(); cv.width = Math.max(1, Math.round(rc.width * d)); cv.height = Math.max(1, Math.round(rc.height * d)); dibuja(); };
+  const dibuja = () => {
+    ctx.clearRect(0, 0, cv.width, cv.height); ctx.lineJoin = "round";
+    [...E.trazos, ...(E.actual ? [E.actual] : [])].forEach(t => {
+      if (t.p.length < 2) return; const base = Math.max(3, cv.width / 170) * t.w * (t.h ? 2.4 : 1);
+      ctx.globalAlpha = t.h ? 0.38 : 1; ctx.strokeStyle = t.c; ctx.fillStyle = t.c; ctx.lineWidth = base; ctx.lineCap = t.h ? "butt" : "round";
+      ctx.beginPath(); t.p.forEach((q, k) => { const x = q[0] * cv.width, y = q[1] * cv.height; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke();
+      if (t.f) { const e = t.p[t.p.length - 1], ex = e[0] * cv.width, ey = e[1] * cv.height; let k = t.p.length - 2, bx = ex, by = ey; while (k >= 0) { bx = t.p[k][0] * cv.width; by = t.p[k][1] * cv.height; if (Math.hypot(ex - bx, ey - by) > base * 3) break; k--; } const a = Math.atan2(ey - by, ex - bx), L = base * 4.5; ctx.beginPath(); ctx.moveTo(ex + Math.cos(a) * base, ey + Math.sin(a) * base); ctx.lineTo(ex - Math.cos(a - 0.45) * L, ey - Math.sin(a - 0.45) * L); ctx.lineTo(ex - Math.cos(a + 0.45) * L, ey - Math.sin(a + 0.45) * L); ctx.closePath(); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    });
+  };
+  const pt = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+  cv.addEventListener("pointerdown", (e) => { if (!E.lapiz) return; cv.setPointerCapture(e.pointerId); E.actual = { c: E.color, p: [pt(e)], w: E.w, f: E.herr === "flecha", h: E.herr === "resalt" }; e.preventDefault(); });
+  cv.addEventListener("pointermove", (e) => { if (!E.actual) return; E.actual.p.push(pt(e)); dibuja(); e.preventDefault(); });
+  const fin = () => { if (!E.actual) return; if (E.actual.p.length > 1) E.trazos.push(E.actual); E.actual = null; dibuja(); };
+  cv.addEventListener("pointerup", fin); cv.addEventListener("pointercancel", fin);
+  const limpiar = () => { E.trazos = []; E.actual = null; dibuja(); };
+  const refrescar = () => { $("anT").textContent = tt(v.currentTime) + " / " + tt(v.duration || 0); if (v.duration) $("anS").value = Math.round(v.currentTime / v.duration * 1000); };
+  const pausar = () => { v.pause(); $("anP").textContent = "▶ Play"; };
+  const ir = (s) => { pausar(); v.currentTime = Math.max(0, Math.min(v.duration || 0, s)); };
+  $("anP").onclick = () => { if (v.paused) { limpiar(); v.play(); $("anP").textContent = "⏸ Pausa"; } else pausar(); };
+  $("anBf").onclick = () => { limpiar(); ir(v.currentTime - 1 / FPS); }; $("anFf").onclick = () => { limpiar(); ir(v.currentTime + 1 / FPS); };
+  $("anB5").onclick = () => { limpiar(); ir(v.currentTime - 5); }; $("anF5").onclick = () => { limpiar(); ir(v.currentTime + 5); };
+  $("anS").oninput = () => { limpiar(); ir($("anS").value / 1000 * (v.duration || 0)); };
+  m.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { v.playbackRate = Number(b.dataset.v); m.querySelectorAll("[data-v]").forEach(z => z.classList.toggle("on", z === b)); });
+  $("anL").onclick = () => { E.lapiz = !E.lapiz; cv.classList.toggle("act", E.lapiz); $("anL").classList.toggle("on", E.lapiz); $("anL").textContent = E.lapiz ? "✏️ Listo" : "✏️ Dibujar"; $("anDib").style.display = E.lapiz ? "inline-flex" : "none"; if (E.lapiz) pausar(); };
+  $("anCols").querySelectorAll("button").forEach(b => b.onclick = () => { E.color = b.dataset.c; $("anCols").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); });
+  m.querySelectorAll("[data-h]").forEach(b => b.onclick = () => { E.herr = b.dataset.h; m.querySelectorAll("[data-h]").forEach(z => z.classList.toggle("on", z === b)); });
+  m.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { E.w = Number(b.dataset.w); m.querySelectorAll("[data-w]").forEach(z => z.classList.toggle("on", z === b)); });
+  $("anU").onclick = () => { E.trazos.pop(); dibuja(); }; $("anBo").onclick = limpiar;
+  $("anCap").onclick = () => {
+    try { const c = document.createElement("canvas"); c.width = v.videoWidth || cv.width; c.height = v.videoHeight || cv.height; const x = c.getContext("2d"); x.drawImage(v, 0, 0, c.width, c.height); x.drawImage(cv, 0, 0, c.width, c.height);
+      c.toBlob((b) => { if (!b) { aviso("No se pudo guardar la captura."); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = (titulo || "captura").replace(/[^\w\-]+/g, "_") + "_" + Math.round(v.currentTime * 10) / 10 + "s.png"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); aviso("Captura guardada ✓"); }, "image/png");
+    } catch (e) { aviso("Este vídeo no permite capturas."); }
+  };
+  v.addEventListener("loadedmetadata", () => { medir(); refrescar(); }); v.addEventListener("timeupdate", refrescar); v.addEventListener("seeked", refrescar);
+  v.addEventListener("ended", () => { $("anP").textContent = "▶ Play"; });
+  let reint = false; v.addEventListener("error", () => { if (!reint) { reint = true; v.removeAttribute("crossorigin"); v.src = url; v.load(); return; } aviso("No se pudo cargar el vídeo."); });
+  new ResizeObserver(medir).observe($("anZ")); window.addEventListener("orientationchange", () => setTimeout(medir, 200)); medir();
+  $("anX").onclick = () => { v.pause(); m.remove(); };
+}
+
 /* ------------ archivos: videos, imagenes, audio ------------ */
 const pubUrl = (a) => nube.storage.from("entrenador").getPublicUrl(a.ruta).data.publicUrl;
 const ACEPTA = { video: "video/*", imagen: "image/*", audio: "audio/*" }, ICO_AR = { video: "🎬", imagen: "🖼️", audio: "🎧" };
@@ -1719,7 +1782,7 @@ function pintarArchivos(v, tipo) {
     ${puedeEscribir ? `<div id="soltar">Arrastra aquí tus archivos o pulsa «Subir». <span class="peq">(máx. 50 MB por archivo)</span></div><input type="file" id="fArch" accept="${ACEPTA[tipo]}" multiple style="display:none;">` : ""}
     <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>
     <div class="rejilla">${lista.map(a => { const u = pubUrl(a), vista = tipo === "imagen" ? `<img src="${esc(u)}" loading="lazy" alt="">` : tipo === "video" ? `<video src="${esc(u)}#t=0.5" preload="metadata" controls></video>` : `<audio src="${esc(u)}" controls preload="none"></audio>`;
-      return `<div class="tarj" data-id="${esc(a.id)}"><div class="vista">${vista}</div><div class="cu"><b title="${esc(a.nombre)}">${esc(a.nombre)}</b><span class="peq">${tamTxt(a.tamano)} · ${fechaTxt(a.creada)}</span><div class="acc"><button class="gris" data-a="copiar">🔗 Copiar enlace</button><button class="gris" data-a="abrir">↗ Abrir</button>${puedeEscribir ? '<button class="gris" data-a="ren">✏️</button><button class="gris" data-a="del" style="color:#c0392b;">🗑</button>' : ""}</div></div></div>`; }).join("") || `<p class="vacio" style="grid-column:1/-1;">${q ? "Nada coincide con la búsqueda." : "Aún no has subido nada aquí."}</p>`}</div>`;
+      return `<div class="tarj" data-id="${esc(a.id)}"><div class="vista">${vista}</div><div class="cu"><b title="${esc(a.nombre)}">${esc(a.nombre)}</b><span class="peq">${tamTxt(a.tamano)} · ${fechaTxt(a.creada)}</span><div class="acc"><button class="gris" data-a="copiar">🔗 Copiar enlace</button>${tipo === "video" ? '<button class="gris" data-a="ana">🖊 Analizar</button>' : ""}<button class="gris" data-a="abrir">↗ Abrir</button>${puedeEscribir ? '<button class="gris" data-a="ren">✏️</button><button class="gris" data-a="del" style="color:#c0392b;">🗑</button>' : ""}</div></div></div>`; }).join("") || `<p class="vacio" style="grid-column:1/-1;">${q ? "Nada coincide con la búsqueda." : "Aún no has subido nada aquí."}</p>`}</div>`;
   $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; pintarArchivos(v, tipo); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
   if (puedeEscribir) {
     const fi = $("fArch"), zona = $("soltar");
@@ -1734,6 +1797,7 @@ function pintarArchivos(v, tipo) {
     el.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", async () => {
       if (b.dataset.a === "copiar") { try { await navigator.clipboard.writeText(pubUrl(a)); aviso("Enlace copiado ✓"); } catch (e) { prompt("Copia el enlace:", pubUrl(a)); } }
       else if (b.dataset.a === "abrir") window.open(pubUrl(a), "_blank", "noopener");
+      else if (b.dataset.a === "ana") abrirAnalisis(pubUrl(a), a.nombre);
       else if (b.dataset.a === "ren") preguntar("Renombrar", "Nombre", a.nombre, async (n) => { if (await guardarFila("archivos", Object.assign({}, a, { nombre: n }))) { await cargarTodo(); pintar(); } });
       else if (b.dataset.a === "del" && confirm("¿Borrar «" + a.nombre + "»? Los enlaces que lo usen dejarán de funcionar.")) { await nube.storage.from("entrenador").remove([a.ruta]); if (await borrarFila("archivos", a.id)) { await cargarTodo(); pintar(); } }
     }));
