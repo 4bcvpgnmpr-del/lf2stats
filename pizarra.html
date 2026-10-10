@@ -2207,7 +2207,7 @@ function iniciarPartido() {
   new ResizeObserver(ajustarLienzo).observe(caja);
 
   /* ---- escena ---- */
-  const detener = () => { if (E.parar) { E.parar(); E.parar = null; } $("ptPlay").textContent = "▶ Animar"; };
+  const detener = () => { if (E.parar) { E.parar(); E.parar = null; } E.pausa = false; E.ms = 0; $("ptPlay").textContent = "▶ Animar"; };
   const mostrar = () => {
     const j = E.j; if (!j) return;
     pista.innerHTML = svgPaso(j, E.i, { rotulo: true });
@@ -2257,17 +2257,35 @@ function iniciarPartido() {
   $("ptJPrev").addEventListener("click", () => saltarJugada(-1)); $("ptJNext").addEventListener("click", () => saltarJugada(1));
   const irFase = (d) => { if (!E.j) return; detener(); limpiarDibujo(); E.i = Math.max(0, Math.min(E.j.pasos.length - 1, E.i + d)); mostrar(); };
   $("ptFPrev").addEventListener("click", () => irFase(-1)); $("ptFNext").addEventListener("click", () => irFase(1));
+  /* reproductor propio: pausa congela la jugada donde esta y "Seguir" continua */
+  const DUR = 1200;
+  const correr = (desde) => {
+    const { segs, total } = segmentosAnim(E.j, DUR, 0, E.j.pasos.length); let cancelar = false, t0 = performance.now() - desde, ultima = -1;
+    const marco = () => {
+      if (cancelar) return;
+      const ms = Math.min(total, performance.now() - t0); E.ms = ms;
+      const sg = segs.find(z => ms < z.fin) || segs[segs.length - 1], t = Math.min(1, (ms - sg.ini) / sg.dur);
+      if (sg.i !== ultima) { ultima = sg.i; E.i = sg.i; $("ptLey").innerHTML = textoLista(E.j.pasos[sg.i].texto); $("ptFase").textContent = (sg.i + 1) + " / " + E.j.pasos.length; $("ptFPrev").disabled = sg.i <= 0; $("ptFNext").disabled = sg.i >= E.j.pasos.length - 1; }
+      fotogramaAnim(E.j, pista, sg.i, t, DUR);
+      if (ms >= total) { E.parar = null; E.pausa = false; E.ms = 0; $("ptPlay").textContent = "▶ Animar"; E.i = E.j.pasos.length - 1; if (!(E.j.pasos[E.i].lineas || []).length) mostrar(); return; }
+      requestAnimationFrame(marco);
+    };
+    requestAnimationFrame(marco);
+    return () => { cancelar = true; };
+  };
   $("ptPlay").addEventListener("click", () => {
-    if (!E.j) return; if (E.parar) { detener(); mostrar(); return; }
-    const dur = 1200; if (!segmentosAnim(E.j, dur, 0, E.j.pasos.length).segs.length) return;
-    limpiarDibujo(); $("ptPlay").textContent = "■ Parar";
-    E.parar = animarJugada(E.j, pista, dur, { desde: 0, hasta: E.j.pasos.length, enFase: (k) => { E.i = k; $("ptLey").innerHTML = textoLista(E.j.pasos[k].texto); $("ptFase").textContent = (k + 1) + " / " + E.j.pasos.length; }, alAcabar: () => { E.parar = null; $("ptPlay").textContent = "▶ Animar"; E.i = E.j.pasos.length - 1; if (!(E.j.pasos[E.i].lineas || []).length) mostrar(); } });
+    if (!E.j) return;
+    if (E.parar) { const f = E.parar; E.parar = null; f(); E.pausa = true; $("ptPlay").textContent = "▶ Seguir"; return; }
+    if (!segmentosAnim(E.j, DUR, 0, E.j.pasos.length).segs.length) return;
+    if (!E.pausa) { limpiarDibujo(); E.ms = 0; }
+    E.pausa = false; $("ptPlay").textContent = "⏸ Pausa";
+    E.parar = correr(E.ms || 0);
   });
   /* lapiz */
   const ponerLapiz = (on) => {
     E.lapiz = on; caja.classList.toggle("lap", on); cv.classList.toggle("act", on); $("ptLapiz").classList.toggle("on", on); $("ptLapiz").textContent = on ? "✏️ Listo" : "✏️ Dibujar";
     $("ptCols").style.display = on ? "inline-flex" : "none"; $("ptHerr").style.display = on ? "inline-flex" : "none"; $("ptDeshacer").style.display = on ? "" : "none"; $("ptBorrar").style.display = on ? "" : "none";
-    if (on) detener();
+    if (on && E.parar) { const f = E.parar; E.parar = null; f(); E.pausa = true; $("ptPlay").textContent = "▶ Seguir"; }
   };
   $("ptLapiz").addEventListener("click", () => ponerLapiz(!E.lapiz));
   $("ptZoom").addEventListener("click", () => { zi = (zi + 1) % ZS.length; medir(); $("ptZoom").textContent = "🔍 x" + ZS[zi]; $("ptZoom").classList.toggle("on", zi > 0); caja.parentNode.classList.toggle("zm", zi > 0); if (zi === 0) caja.parentNode.scrollTo(0, 0); else { const z = caja.parentNode; z.scrollLeft = (z.scrollWidth - z.clientWidth) / 2; z.scrollTop = (z.scrollHeight - z.clientHeight) / 2; } });
