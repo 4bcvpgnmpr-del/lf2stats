@@ -210,8 +210,8 @@
   #partido .pt-it .pin{flex:none;min-height:40px;width:40px;padding:0;font-size:18px;background:transparent;} #partido .pt-it .pin.on{background:transparent;color:#ffd24d;}
   #partido .pt-escena{flex:1;min-width:0;display:flex;flex-direction:column;padding:8px 12px;gap:6px;}
   #partido #ptTitulo{margin:0;font-size:20px;font-weight:800;} #partido #ptOpc{display:flex;gap:6px;flex-wrap:wrap;} #partido #ptOpc button{min-height:40px;}
-  #partido .pt-zona{flex:1;min-height:0;display:flex;container-type:size;overflow:auto;} #partido .pt-zona.zm{-webkit-overflow-scrolling:touch;} #partido .pt-zona.zm .pt-caja{touch-action:pan-x pan-y;} #partido .pt-zona.zm .pt-caja.lap{touch-action:none;}
-  #partido .pt-caja{position:relative;flex:none;margin:auto;width:calc(min(100cqw,calc(100cqh * var(--r,1))) * var(--z,1));aspect-ratio:var(--r,1);background:#e9d3ad;border-radius:10px;overflow:hidden;touch-action:none;}
+  #partido .pt-zona{flex:1;min-height:0;min-width:0;position:relative;} #partido .pt-zi{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;overflow:auto;-webkit-overflow-scrolling:touch;} #partido .pt-zi.zm .pt-caja{touch-action:pan-x pan-y;} #partido .pt-zi.zm .pt-caja.lap{touch-action:none;}
+  #partido .pt-caja{position:relative;flex:none;margin:auto;width:100%;background:#e9d3ad;border-radius:10px;overflow:hidden;touch-action:none;}
   #partido #ptPista{width:100%;height:100%;line-height:0;} #partido #ptPista svg{width:100%;height:100%;display:block;}
   #partido #ptDib{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;} #partido #ptDib.act{pointer-events:auto;cursor:crosshair;}
   #partido #ptLey{font-size:16px;line-height:1.4;max-height:20vh;overflow:auto;color:#dbe6ef;} #partido #ptLey ul,#partido #ptLey ol{margin:0;padding-left:20px;}
@@ -666,7 +666,7 @@
     <div class="pt-escena">
       <h2 id="ptTitulo"></h2>
       <div id="ptOpc"></div>
-      <div class="pt-zona"><div class="pt-caja" id="ptCaja"><div id="ptPista"></div><canvas id="ptDib"></canvas></div></div>
+      <div class="pt-zona"><div class="pt-zi" id="ptZi"><div class="pt-caja" id="ptCaja"><div id="ptPista"></div><canvas id="ptDib"></canvas></div></div></div>
       <div id="ptLey"></div>
       <div class="pt-ctrl">
         <button id="ptJPrev" title="Jugada anterior">⏮</button>
@@ -2174,7 +2174,9 @@ function iniciarPartido() {
   const guardarPin = (st) => { try { localStorage.setItem(CLAVE_PIN, JSON.stringify([...st])); } catch (e) { /* sin almacenamiento */ } };
   const E = { lista: [], pin: leerPin(), q: "", filtro: "todas", j: null, i: 0, op: 0, parar: null, lapiz: false, color: "#ff4d4d", trazos: [], actual: null, herr: "lapiz", w: 2.2 };
   const caja = $("ptCaja"), pista = $("ptPista"), cv = $("ptDib"), ctx = cv.getContext("2d");
-  caja.style.setProperty("--r", ((ANCHO * S + 20) / (FONDO * S + 20)).toFixed(4));
+  const RAT = (ANCHO * S + 20) / (FONDO * S + 20); let zi = 0; const ZS = [1, 1.5, 2, 2.6];
+  const medir = () => { const z = caja.parentNode, w = z.clientWidth, h = z.clientHeight; if (!w || !h) return; const base = Math.min(w, h * RAT) * ZS[zi]; caja.style.width = Math.floor(base) + "px"; caja.style.height = Math.floor(base / RAT) + "px"; };
+  new ResizeObserver(medir).observe(caja.parentNode); window.addEventListener("resize", medir); window.addEventListener("orientationchange", () => setTimeout(medir, 200)); medir();
   const COLS = ["#ff4d4d", "#ffd24d", "#3fd0ff", "#ffffff", "#111111"];
   $("ptCols").innerHTML = COLS.map(c => `<button class="col" data-c="${c}" style="background:${c}"></button>`).join("");
 
@@ -2268,8 +2270,7 @@ function iniciarPartido() {
     if (on) detener();
   };
   $("ptLapiz").addEventListener("click", () => ponerLapiz(!E.lapiz));
-  const ZS = [1, 1.5, 2, 2.6]; let zi = 0;
-  $("ptZoom").addEventListener("click", () => { zi = (zi + 1) % ZS.length; caja.style.setProperty("--z", ZS[zi]); $("ptZoom").textContent = "🔍 x" + ZS[zi]; $("ptZoom").classList.toggle("on", zi > 0); caja.parentNode.classList.toggle("zm", zi > 0); if (zi === 0) caja.parentNode.scrollTo(0, 0); else { const z = caja.parentNode; z.scrollLeft = (z.scrollWidth - z.clientWidth) / 2; z.scrollTop = (z.scrollHeight - z.clientHeight) / 2; } });
+  $("ptZoom").addEventListener("click", () => { zi = (zi + 1) % ZS.length; medir(); $("ptZoom").textContent = "🔍 x" + ZS[zi]; $("ptZoom").classList.toggle("on", zi > 0); caja.parentNode.classList.toggle("zm", zi > 0); if (zi === 0) caja.parentNode.scrollTo(0, 0); else { const z = caja.parentNode; z.scrollLeft = (z.scrollWidth - z.clientWidth) / 2; z.scrollTop = (z.scrollHeight - z.clientHeight) / 2; } });
   $("ptCols").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { E.color = b.dataset.c; $("ptCols").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); }));
   $("ptCols").querySelector("button").classList.add("on");
   $("ptHerr").querySelectorAll("[data-h]").forEach(b => b.addEventListener("click", () => { E.herr = b.dataset.h; $("ptHerr").querySelectorAll("[data-h]").forEach(z => z.classList.toggle("on", z === b)); }));
