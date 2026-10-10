@@ -210,8 +210,8 @@
   #partido .pt-it .pin{flex:none;min-height:40px;width:40px;padding:0;font-size:18px;background:transparent;} #partido .pt-it .pin.on{background:transparent;color:#ffd24d;}
   #partido .pt-escena{flex:1;min-width:0;display:flex;flex-direction:column;padding:8px 12px;gap:6px;}
   #partido #ptTitulo{margin:0;font-size:20px;font-weight:800;} #partido #ptOpc{display:flex;gap:6px;flex-wrap:wrap;} #partido #ptOpc button{min-height:40px;}
-  #partido .pt-zona{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;container-type:size;}
-  #partido .pt-caja{position:relative;width:min(100cqw,calc(100cqh * var(--r,1)));aspect-ratio:var(--r,1);background:#e9d3ad;border-radius:10px;overflow:hidden;touch-action:none;}
+  #partido .pt-zona{flex:1;min-height:0;display:flex;container-type:size;overflow:auto;} #partido .pt-zona.zm{-webkit-overflow-scrolling:touch;} #partido .pt-zona.zm .pt-caja{touch-action:pan-x pan-y;} #partido .pt-zona.zm .pt-caja.lap{touch-action:none;}
+  #partido .pt-caja{position:relative;flex:none;margin:auto;width:calc(min(100cqw,calc(100cqh * var(--r,1))) * var(--z,1));aspect-ratio:var(--r,1);background:#e9d3ad;border-radius:10px;overflow:hidden;touch-action:none;}
   #partido #ptPista{width:100%;height:100%;line-height:0;} #partido #ptPista svg{width:100%;height:100%;display:block;}
   #partido #ptDib{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;} #partido #ptDib.act{pointer-events:auto;cursor:crosshair;}
   #partido #ptLey{font-size:16px;line-height:1.4;max-height:20vh;overflow:auto;color:#dbe6ef;} #partido #ptLey ul,#partido #ptLey ol{margin:0;padding-left:20px;}
@@ -673,6 +673,7 @@
         <button id="ptFPrev">◀</button><span class="pt-fase" id="ptFase"></span><button id="ptFNext">▶</button>
         <button id="ptJNext" title="Jugada siguiente">⏭</button>
         <button id="ptPlay" style="min-width:110px;">▶ Animar</button>
+        <button id="ptZoom" title="Agrandir la pista (arrastra para moverte)">🔍 x1</button>
         <span class="sep"></span>
         <button id="ptLapiz">✏️ Dibujar</button>
         <span id="ptCols" style="display:none;gap:8px;align-items:center;"></span>
@@ -2262,11 +2263,13 @@ function iniciarPartido() {
   });
   /* lapiz */
   const ponerLapiz = (on) => {
-    E.lapiz = on; cv.classList.toggle("act", on); $("ptLapiz").classList.toggle("on", on); $("ptLapiz").textContent = on ? "✏️ Listo" : "✏️ Dibujar";
+    E.lapiz = on; caja.classList.toggle("lap", on); cv.classList.toggle("act", on); $("ptLapiz").classList.toggle("on", on); $("ptLapiz").textContent = on ? "✏️ Listo" : "✏️ Dibujar";
     $("ptCols").style.display = on ? "inline-flex" : "none"; $("ptHerr").style.display = on ? "inline-flex" : "none"; $("ptDeshacer").style.display = on ? "" : "none"; $("ptBorrar").style.display = on ? "" : "none";
     if (on) detener();
   };
   $("ptLapiz").addEventListener("click", () => ponerLapiz(!E.lapiz));
+  const ZS = [1, 1.5, 2, 2.6]; let zi = 0;
+  $("ptZoom").addEventListener("click", () => { zi = (zi + 1) % ZS.length; caja.style.setProperty("--z", ZS[zi]); $("ptZoom").textContent = "🔍 x" + ZS[zi]; $("ptZoom").classList.toggle("on", zi > 0); caja.parentNode.classList.toggle("zm", zi > 0); if (zi === 0) caja.parentNode.scrollTo(0, 0); else { const z = caja.parentNode; z.scrollLeft = (z.scrollWidth - z.clientWidth) / 2; z.scrollTop = (z.scrollHeight - z.clientHeight) / 2; } });
   $("ptCols").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { E.color = b.dataset.c; $("ptCols").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); }));
   $("ptCols").querySelector("button").classList.add("on");
   $("ptHerr").querySelectorAll("[data-h]").forEach(b => b.addEventListener("click", () => { E.herr = b.dataset.h; $("ptHerr").querySelectorAll("[data-h]").forEach(z => z.classList.toggle("on", z === b)); }));
@@ -2274,7 +2277,7 @@ function iniciarPartido() {
   $("ptDeshacer").addEventListener("click", () => { E.trazos.pop(); redibujar(); });
   $("ptBorrar").addEventListener("click", limpiarDibujo);
   /* deslizar para cambiar de fase (con el lapiz apagado) */
-  let x0 = null; caja.addEventListener("pointerdown", (e) => { if (!E.lapiz) x0 = e.clientX; });
+  let x0 = null; caja.addEventListener("pointerdown", (e) => { if (!E.lapiz && zi === 0) x0 = e.clientX; });
   caja.addEventListener("pointerup", (e) => { if (x0 == null || E.lapiz) { x0 = null; return; } const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 70) irFase(dx < 0 ? 1 : -1); });
   /* salir y pantalla completa */
   $("ptSalir").addEventListener("click", () => { detener(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ } if (window.parent !== window) { try { parent.postMessage({ partidoCerrar: true }, "*"); } catch (e) { /* nada */ } } else history.length > 1 ? history.back() : (location.href = "entrenador.html"); });
