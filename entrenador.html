@@ -919,6 +919,17 @@ function hgConvertir(p, ruta) {
       if (de && !a.option && MOV.includes(t)) act[de] = [e[0], e[1]];
       if (!a.option && rec && t === "pase") tiene = rec;
     });
+    /* jugadas pasadas desde otros programas (FastDraw...) llegan sin ningun «a la vez»: todo seria secuencial. Se reagrupa: los movimientos van juntos, el pase espera a que acaben, y lo que viene tras el pase va despues */
+    if (flechas.length > 1 && flechas.every(a => a.sameTime === undefined || a.sameTime === null)) {
+      const BAL = ["pase", "entrega", "tiro"]; let jug2 = new Set(), conBalon = false, vacia = true;
+      lineas.forEach((l) => {
+        const bal = BAL.includes(l.t) && !l.opcional;
+        const nueva = vacia ? false : (bal || conBalon || (l.de && jug2.has(l.de)));
+        if (nueva) { jug2 = new Set(); conBalon = false; }
+        l.despues = !vacia && nueva; vacia = false;
+        if (l.de) jug2.add(l.de); if (bal) conBalon = true;
+      });
+    }
     /* pases a una jugadora que todavia no ha llegado: el balon va a la punta de su flecha */
     pendientes.forEach(({ l, e }) => {
       let mejor = null, dm = 1.1;
