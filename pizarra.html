@@ -201,6 +201,10 @@
   #partido #ptBuscar{flex:1;min-width:140px;max-width:340px;min-height:46px;border-radius:12px;border:0;padding:0 14px;font-size:16px;background:#2c3947;color:#fff;}
   #partido #ptBuscar::placeholder{color:#9fb0c0;}
   #partido .pt-chips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;} #partido .pt-chips button{flex:none;min-height:40px;font-size:14px;}
+  #partido #ptCarp{display:none;} #partido #ptCarp:empty{display:none !important;} #partido #ptCarp button{flex:none;min-height:40px;font-size:14px;background:#1f5f4f;} #partido #ptCarp button.on{background:var(--teal);} #partido #ptCarp button.sub{background:#2c4a43;} #partido #ptCarp button.mv{background:#e8590c;} #partido #ptCarp small{opacity:.7;}
+  body.pt-grande.pt-lista #partido #ptCarp{display:flex;flex-wrap:wrap;gap:6px;position:fixed;left:0;top:62px;width:min(330px,82vw);box-sizing:border-box;max-height:34vh;overflow-y:auto;z-index:8;background:#17202a;padding:8px;box-shadow:6px 0 24px #000a;}
+  body.pt-grande.pt-lista #partido #ptLista{top:calc(62px + var(--carp-h,0px)) !important;}
+  #ptCar{display:none;position:fixed;inset:0;z-index:33;background:#000c;align-items:center;justify-content:center;padding:10px;} #ptCar.ver{display:flex;} #ptCar .cr{background:#17202a;border-radius:18px;padding:14px;width:min(460px,100%);max-height:100%;overflow:auto;color:#fff;} #ptCar h4{margin:0 0 8px;font-size:16px;} #ptCar label.it{display:flex;gap:8px;align-items:center;padding:10px;border-radius:10px;background:#223040;margin-bottom:5px;font-size:15px;} #ptCar input[type=text]{width:100%;box-sizing:border-box;background:#223040;border:1px solid #3a4b5e;color:#fff;border-radius:10px;padding:0 10px;min-height:44px;font-size:16px;margin-top:6px;}
   #partido .pt-main{display:flex;flex:1;min-height:0;}
   #partido #ptLista{width:min(300px,30vw);flex:none;overflow-y:auto;background:#17202a;padding:8px;display:flex;flex-direction:column;gap:6px;}
   #partido .pt-it{display:flex;gap:8px;align-items:center;background:#223040;border-radius:12px;padding:6px;cursor:pointer;border:2px solid transparent;min-height:64px;}
@@ -666,6 +670,7 @@
   <button id="ptGrandeX" title="Pantalla completa">⛶</button><button id="ptJug" title="Elegir jugada">☰</button><button id="ptMarcF" title="Marcador, faltas, estadísticas y tiempo muerto">⏱
 0–0</button>
   <div class="pt-main">
+    <div id="ptCarp"></div>
     <div id="ptLista"></div>
     <div class="pt-escena">
       <h2 id="ptTitulo"></h2>
@@ -2240,11 +2245,12 @@ function iniciarPartido() {
   const visibles = () => {
     const q = E.q.trim().toLowerCase();
     return E.lista.filter(x => {
+      if (E.carp && !(x.carpeta === E.carp || String(x.carpeta || "").startsWith(E.carp + "/"))) return false;
       if (E.filtro === "pin" && !E.pin.has(x.id)) return false;
       if (E.filtro === "fav" && !x.favorita) return false;
       if (E.filtro.startsWith("t:") && !(x.tags || []).includes(E.filtro.slice(2))) return false;
       if (E.filtro.startsWith("k:") && (x.tipo || "") !== E.filtro.slice(2)) return false;
-      return !q || ((x.nombre || "") + " " + (x.tags || []).join(" ") + " " + (x.tipo || "")).toLowerCase().includes(q);
+      return !q || ((x.nombre || "") + " " + (x.tags || []).join(" ") + " " + (x.tipo || "") + " " + (x.carpeta || "")).toLowerCase().includes(q);
     });
   };
   const pintarLista = () => {
@@ -2256,11 +2262,57 @@ function iniciarPartido() {
       abrir(el.dataset.id);
     }));
   };
+  const NOM_TIPO = { "Saque de fondo": "Saque de fondo (BLOB)", "Saque de banda": "Saque de banda (SLOB)" };
+  E.carp = E.carp || ""; E.carpTabla = E.carpTabla || [];
+  const todasCarp = () => { const set = new Set(); E.carpTabla.concat(E.lista.map(x => x.carpeta || "")).forEach(p => { if (!p) return; const pt = p.split("/"); for (let i = 1; i <= pt.length; i++) set.add(pt.slice(0, i).join("/")); }); return [...set].sort((a, b) => a.localeCompare(b, "es")); };
   const pintarChips = () => {
     const tipos = [...new Set(E.lista.map(x => x.tipo).filter(Boolean))].sort(), tags = [...new Set(E.lista.flatMap(x => x.tags || []))].sort();
-    const ch = [["todas", "Todas"], ["pin", "★ Mi libro" + (E.pin.size ? " (" + E.pin.size + ")" : "")], ["fav", "⭐ Favoritas"]].concat(tipos.map(t => ["k:" + t, t])).concat(tags.map(t => ["t:" + t, "#" + t]));
-    $("ptChips").innerHTML = ch.map(([k, n]) => `<button data-f="${esc(k)}" class="${E.filtro === k ? "on" : ""}">${esc(n)}</button>`).join("");
-    $("ptChips").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { E.filtro = b.dataset.f; pintarChips(); pintarLista(); }));
+    const ch = [["todas", "Todas"], ["pin", "★ Mi libro" + (E.pin.size ? " (" + E.pin.size + ")" : "")], ["fav", "⭐ Favoritas"]].concat(tipos.map(t => ["k:" + t, NOM_TIPO[t] || t])).concat(tags.map(t => ["t:" + t, "#" + t]));
+    $("ptChips").innerHTML = ch.map(([k, n]) => `<button data-f="${esc(k)}" class="${E.filtro === k && !(k === "todas" && E.carp) ? "on" : ""}">${esc(n)}</button>`).join("");
+    $("ptChips").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { E.filtro = b.dataset.f; if (E.filtro === "todas") E.carp = ""; pintarChips(); pintarLista(); }));
+    /* fila de carpetas: las de arriba, y al elegir una salen sus subcarpetas */
+    const cs = todasCarp(), cuenta = (r) => E.lista.filter(x => x.carpeta === r || String(x.carpeta || "").startsWith(r + "/")).length;
+    const hijas = (pad) => cs.filter(r => (r.includes("/") ? r.slice(0, r.lastIndexOf("/")) : "") === pad);
+    let h = "";
+    if (cs.length) {
+      h += `<button data-c="" class="${E.carp ? "" : "on"}">📁 Todas</button>`;
+      const niveles = [""]; E.carp.split("/").filter(Boolean).forEach((_, i, arr) => niveles.push(arr.slice(0, i + 1).join("/")));
+      niveles.forEach((pad, nv) => { hijas(pad).forEach(r => { h += `<button data-c="${esc(r)}" class="${nv ? "sub " : ""}${E.carp === r || E.carp.startsWith(r + "/") ? "on" : ""}">${nv ? "↳ " : "📁 "}${esc(r.split("/").pop())} <small>${cuenta(r)}</small></button>`; }); });
+    }
+    h += `<button class="mv" id="ptCarMv" title="Guardar la jugada que tienes abierta en una carpeta (o crear una nueva)">📁 ${E.j ? "Mover esta jugada" : "＋ Carpeta"}</button>`;
+    $("ptCarp").innerHTML = h;
+    $("ptCarp").querySelectorAll("button[data-c]").forEach(b => b.addEventListener("click", () => { E.carp = b.dataset.c; if (!E.carp) E.filtro = "todas"; pintarChips(); pintarLista(); }));
+    $("ptCarMv").onclick = () => abrirCarp();
+    requestAnimationFrame(() => { try { document.documentElement.style.setProperty("--carp-h", $("ptCarp").offsetHeight + "px"); } catch (e) { /* nada */ } });
+  };
+  /* mover la jugada abierta a una carpeta (o crearla) */
+  const CR = document.createElement("div"); CR.id = "ptCar"; $("partido").appendChild(CR);
+  CR.addEventListener("pointerdown", (e) => { if (e.target === CR) CR.classList.remove("ver"); });
+  const abrirCarp = () => {
+    const cs = todasCarp(), act = E.j ? (E.lista.find(x => x.id === E.j.id) || {}).carpeta || "" : null;
+    CR.innerHTML = `<div class="cr"><h4>${E.j ? "Carpeta de «" + esc(E.j.nombre || "jugada") + "»" : "Nueva carpeta"}</h4>
+      ${E.j ? `<label class="it"><input type="radio" name="cd" value="" ${act === "" ? "checked" : ""}> 📂 Sin carpeta</label>${cs.map(n => `<label class="it"><input type="radio" name="cd" value="${esc(n)}" ${act === n ? "checked" : ""}> 📁 ${esc(n.split("/").join(" › "))}</label>`).join("")}` : ""}
+      <input type="text" id="cdN" placeholder="Nueva carpeta (ej. BLOB, SLOB, Cortegada o BLOB/Cortegada)">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;"><button id="cdX">Cancelar</button><button id="cdOk" style="background:#e8590c;">${E.j ? "Mover" : "Crear"}</button></div></div>`;
+    CR.classList.add("ver");
+    $("cdX").onclick = () => CR.classList.remove("ver");
+    $("cdOk").onclick = async () => {
+      const nuevo = $("cdN").value.trim().split("/").map(t => t.replace(/[\/]+/g, "-").trim()).filter(Boolean).join("/"), r = CR.querySelector('input[name="cd"]:checked');
+      const n = nuevo || (r ? r.value : null); if (n === null) { aviso("Elige una carpeta o escribe una nueva"); return; }
+      CR.classList.remove("ver");
+      if (!modoNube) { aviso("Hace falta conexión con la nube para guardar carpetas"); return; }
+      try {
+        if (n && !E.carpTabla.includes(n)) { await nube.from("carpetas").upsert({ tipo: "jugadas", nombre: n }); E.carpTabla.push(n); }
+        if (E.j) {
+          const { data } = await nube.from("jugadas").select("data").eq("id", E.j.id); const d = Object.assign({}, (data && data[0] && data[0].data) || {}, { carpeta: n });
+          const r2 = await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", E.j.id);
+          if (r2 && r2.error) throw r2.error;
+          const it = E.lista.find(x => x.id === E.j.id); if (it) it.carpeta = n;
+          if (E.filas) { const fr = E.filas.find(x => x.id === E.j.id); if (fr) { fr.carpeta = n; fr.data = Object.assign({}, fr.data, { carpeta: n }); } kv.put("partido_jugadas", E.filas); }
+        }
+        aviso(n ? "📁 Guardada en «" + n + "»" : "📂 Fuera de carpetas"); pintarChips(); pintarLista();
+      } catch (e) { aviso("No se pudo guardar la carpeta (¿permiso de solo lectura?)"); }
+    };
   };
   const saltarJugada = (d) => { const v = visibles(); if (!v.length) return; let k = v.findIndex(x => E.j && x.id === E.j.id); k = k < 0 ? 0 : Math.max(0, Math.min(v.length - 1, k + d)); abrir(v[k].id); };
   $("ptBuscar").addEventListener("input", (e) => { E.q = e.target.value; pintarLista(); });
@@ -2590,10 +2642,12 @@ function iniciarPartido() {
   async function recargarBib0() {
     let filas = null;
     if (modoNube) { const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false }); if (!error) { filas = data || []; kv.put("partido_jugadas", filas); } else modoNube = false; }
-    if (filas) E.lista = filas.map(deFila);
+    if (modoNube) { try { const { data } = await nube.from("carpetas").select("*"); E.carpTabla = (data || []).filter(c => c.tipo === "jugadas").map(c => c.nombre); } catch (e) { /* nada */ } }
+    const conCar = (r) => Object.assign(deFila(r), { carpeta: r.carpeta || (r.data && r.data.carpeta) || "" }); E.filas = filas || null;
+    if (filas) E.lista = filas.map(conCar);
     else {
       const snap = await kv.get("partido_jugadas"), loc = leerLocal();
-      if (snap && snap.length) { E.lista = snap.map(deFila).concat(loc.filter(x => !snap.some(r => r.id === x.id))); E.sinRed = true; setTimeout(() => aviso("📴 Sin conexión: usando las jugadas guardadas en este aparato."), 600); }
+      if (snap && snap.length) { E.filas = snap; E.lista = snap.map(conCar).concat(loc.filter(x => !snap.some(r => r.id === x.id))); E.sinRed = true; setTimeout(() => aviso("📴 Sin conexión: usando las jugadas guardadas en este aparato."), 600); }
       else E.lista = loc;
     }
     E.lista.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0) || String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
