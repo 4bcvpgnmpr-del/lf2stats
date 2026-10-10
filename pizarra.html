@@ -222,8 +222,10 @@
   #partido #ptHerr button{min-width:46px;padding:0 10px;} #partido #ptHerr button.on{background:var(--teal);} #partido #ptHerr .sep{width:1px;height:30px;background:#3a4958;margin:0 2px;}
   #partido #ptGrandeX,#partido #ptJug{display:none;position:fixed;left:8px;z-index:8;min-height:46px;width:46px;padding:0;opacity:.7;font-size:20px;background:#2c3947cc;} #partido #ptGrandeX{top:8px;} #partido #ptJug{top:60px;}
   body.pt-grande #partido #ptGrandeX,body.pt-grande #partido #ptJug{display:block;}
+  body.pt-grande.pt-lista #partido #ptGrandeX,body.pt-grande.pt-lista #partido #ptJug{display:none;}
   body.pt-grande #partido .pt-top,body.pt-grande #partido #ptLista{display:none;}
-  body.pt-grande.pt-lista #partido #ptLista{display:flex;position:fixed;left:0;top:0;bottom:0;width:min(330px,82vw);z-index:7;box-shadow:6px 0 24px #000a;padding-left:62px;}
+  body.pt-grande.pt-lista #partido .pt-top{display:flex;position:fixed;top:0;left:0;right:0;z-index:9;flex-wrap:nowrap;box-shadow:0 4px 18px #000a;}
+  body.pt-grande.pt-lista #partido #ptLista{display:flex;position:fixed;left:0;top:62px;bottom:0;width:min(330px,82vw);z-index:7;box-shadow:6px 0 24px #000a;}
   body.pt-grande #partido .pt-escena{padding:6px;gap:8px;display:grid;grid-template-columns:minmax(0,1fr) 190px;grid-template-rows:auto auto minmax(0,1fr) auto;}
   body.pt-grande #partido .pt-zona{grid-column:1;grid-row:1/5;} body.pt-grande #partido #ptTitulo{grid-column:2;grid-row:1;font-size:15px;line-height:1.2;} body.pt-grande #partido #ptOpc{grid-column:2;grid-row:2;} body.pt-grande #partido .pt-ctrl{grid-column:2;grid-row:3;align-content:flex-start;overflow-y:auto;gap:6px;} body.pt-grande #partido .pt-ctrl button{flex:1 1 74px;padding:0 6px;min-height:52px;} body.pt-grande #partido .pt-ctrl .sep{display:none;} body.pt-grande #partido #ptLey{grid-column:2;grid-row:4;font-size:13px;max-height:26vh;}
   body.pt-grande #partido #ptCols{flex-wrap:wrap;} body.pt-grande #partido #ptHerr{flex-wrap:wrap;}
@@ -658,7 +660,7 @@
     <div class="pt-chips" id="ptChips"></div>
     <button id="ptFs" title="Pantalla grande">⛶</button>
   </div>
-  <button id="ptGrandeX" title="Salir de pantalla grande">⛶</button><button id="ptJug" title="Elegir jugada">☰</button>
+  <button id="ptGrandeX" title="Pantalla completa">⛶</button><button id="ptJug" title="Elegir jugada">☰</button>
   <div class="pt-main">
     <div id="ptLista"></div>
     <div class="pt-escena">
@@ -2276,19 +2278,17 @@ function iniciarPartido() {
   caja.addEventListener("pointerup", (e) => { if (x0 == null || E.lapiz) { x0 = null; return; } const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 70) irFase(dx < 0 ? 1 : -1); });
   /* salir y pantalla completa */
   $("ptSalir").addEventListener("click", () => { detener(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ } if (window.parent !== window) { try { parent.postMessage({ partidoCerrar: true }, "*"); } catch (e) { /* nada */ } } else history.length > 1 ? history.back() : (location.href = "entrenador.html"); });
-  const grande = (on) => {
-    document.body.classList.toggle("pt-grande", on);
+  const pantallaCompleta = () => {
     try { const el = document.documentElement, fs = document.fullscreenElement || document.webkitFullscreenElement;
-      if (on && !fs) { const f = el.requestFullscreen || el.webkitRequestFullscreen; if (f) { const r = f.call(el); if (r && r.catch) r.catch(() => { /* sin API: queda el modo grande */ }); } }
-      if (!on && fs) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    } catch (e) { /* sin API: queda el modo grande */ }
+      if (fs) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else { const f = el.requestFullscreen || el.webkitRequestFullscreen; if (f) { const r = f.call(el); if (r && r.catch) r.catch(() => { aviso("Este navegador no permite pantalla completa aquí."); }); } else aviso("Este navegador no permite pantalla completa aquí."); }
+    } catch (e) { aviso("Este navegador no permite pantalla completa aquí."); }
   };
-  $("ptFs").addEventListener("click", () => grande(!document.body.classList.contains("pt-grande")));
-  $("ptGrandeX").addEventListener("click", () => grande(false));
+  document.body.classList.add("pt-grande");
+  $("ptFs").addEventListener("click", pantallaCompleta);
+  $("ptGrandeX").addEventListener("click", pantallaCompleta);
   $("ptJug").addEventListener("click", () => document.body.classList.toggle("pt-lista"));
   $("ptCaja").addEventListener("pointerdown", () => document.body.classList.remove("pt-lista"));
-  const finFs = () => { if (!document.fullscreenElement && !document.webkitFullscreenElement && document.body.classList.contains("pt-grande") && E._fsOn) document.body.classList.remove("pt-grande"); E._fsOn = !!(document.fullscreenElement || document.webkitFullscreenElement); };
-  document.addEventListener("fullscreenchange", finFs); document.addEventListener("webkitfullscreenchange", finFs);
   document.addEventListener("keydown", (e) => { if (e.target.tagName === "INPUT") return; if (e.key === "ArrowRight") irFase(1); if (e.key === "ArrowLeft") irFase(-1); if (e.key === "ArrowDown") saltarJugada(1); if (e.key === "ArrowUp") saltarJugada(-1); if (e.key === " ") { e.preventDefault(); $("ptPlay").click(); } });
   /* datos */
   iniciarNube().then(recargarBib0);
