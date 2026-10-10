@@ -6910,14 +6910,21 @@ function mostrarPuerta(msg, tipo) {
   document.documentElement.classList.add("sin-acceso");
 }
 
+const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
-    const { data } = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido"]);
+    const { data } = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido", "ligas_auto", "planes_precio"]);
     const f = {}; (data || []).forEach(r => { f[r.clave] = r.valor; });
-    if (f.permisos_ayudantes) { try { const o = JSON.parse(f.permisos_ayudantes), q = o && o[yo]; if (q) return { e: q.e || [], s: q.s || [] }; } catch (x) { /* nada */ } }
+    const J = (t, d) => { try { return JSON.parse(t) || d; } catch (x) { return d; } };
+    const q = J(f.permisos_ayudantes, {})[yo];
+    if (q) {
+      let s = q.s || [], lock = null; const ligas = J(f.ligas_auto, []).map(l => l.id);
+      if (q.plan) { if (q.plan !== "premium") { if (s.length) lock = "plan"; s = []; } else if (s.length && !ligas.includes(q.liga)) { lock = "liga"; s = []; } }
+      return { e: q.e || [], s, plan: q.plan || "", lock, precios: J(f.planes_precio, {}) };
+    }
     const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
-    if (lg.includes(yo)) return { e: ["partido"], s: [] };
+    if (lg.includes(yo)) return { e: ["partido"], s: [], plan: "", lock: null, precios: {} };
   } catch (e) { /* sin red o sin tabla */ }
   return null;
 }
@@ -6929,7 +6936,7 @@ function bannerSim() {
   document.body.appendChild(b);
   document.getElementById("bannerSimX").addEventListener("click", () => { try { sessionStorage.removeItem("sf_ver_como"); } catch (e) { /* nada */ } });
 }
-function permisosSimulados() { try { const q = JSON.parse(sessionStorage.getItem("sf_ver_como") || "null"); return q ? { e: q.e || [], s: q.s || [] } : null; } catch (e) { return null; } }
+function permisosSimulados() { try { const q = JSON.parse(sessionStorage.getItem("sf_ver_como") || "null"); return q ? { e: q.e || [], s: q.s || [], plan: q.plan || "", lock: q.lock || null, precios: q.precios || {} } : null; } catch (e) { return null; } }
 
 async function resolverRolApp(sb, user) {
   try {
