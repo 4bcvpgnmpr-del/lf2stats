@@ -914,6 +914,7 @@ async function borrarCarpeta(tipo, ruta) {
   await cargarTodo(); pintar();
 }
 async function ponerCarpeta(tipo, x, n) {
+  if (ACARP.includes(tipo)) { await setCarpArch([x.id], n); if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) { await guardarFila("carpetas", { tipo, nombre: n }); D.carpetas.push({ tipo, nombre: n }); } return; }
   if (tipo === "jugadas") { const d = clonar(x.data || {}); d.carpeta = n; await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: n }).eq("id", x.id);
   if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) { await guardarFila("carpetas", { tipo, nombre: n }); D.carpetas.push({ tipo, nombre: n }); }
 }
@@ -1913,13 +1914,29 @@ function abrirAnalisis(url, titulo) {
 /* ------------ archivos: videos, imagenes, audio ------------ */
 const pubUrl = (a) => nube.storage.from("entrenador").getPublicUrl(a.ruta).data.publicUrl;
 const ACEPTA = { video: "video/*", imagen: "image/*", audio: "audio/*" }, ICO_AR = { video: "🎬", imagen: "🖼️", audio: "🎧" };
+/* carpetas de videos / imágenes / audios: se guardan en una fila de ajustes {idArchivo: carpeta} (no hace falta tocar la base) */
+const ACARP = ["video", "imagen", "audio"], FILA_CARP = "_carp_archivos";
+const mapaCarpArch = () => { const r = D.archivos.find(a => a.id === FILA_CARP); try { return JSON.parse((r && r.nombre) || "{}") || {}; } catch (e) { return {}; } };
+async function setCarpArch(ids, n) {
+  const m = mapaCarpArch(), vivos = new Set(D.archivos.map(a => a.id));
+  ids.forEach(i => { if (n) m[i] = n; else delete m[i]; });
+  Object.keys(m).forEach(k => { if (!vivos.has(k) && !ids.includes(k)) delete m[k]; });
+  const fila = { id: FILA_CARP, nombre: JSON.stringify(m), tipo: "ajustes", ruta: "", mime: "", tamano: 0 };
+  if (await guardarFila("archivos", fila)) { const i = D.archivos.findIndex(a => a.id === FILA_CARP); if (i >= 0) D.archivos[i] = Object.assign({}, D.archivos[i], fila); else D.archivos.push(fila); return true; }
+  return false;
+}
+function derivarArch() { const m = mapaCarpArch(); ACARP.forEach(t => { D[t] = D.archivos.filter(a => a.tipo === t).map(a => ({ id: a.id, nombre: a.nombre, carpeta: m[a.id] || "", actualizada: a.creada || "" })); }); }
 function pintarArchivos(v, tipo) {
-  const q = busqueda.toLowerCase(), lista = D.archivos.filter(a => a.tipo === tipo && (!q || a.nombre.toLowerCase().includes(q)));
-  v.innerHTML = `<div class="cab"><h2>${SECCIONES[tipo]}</h2><span class="esp"></span>${puedeEscribir ? `<button class="naranja" id="bSubir">⬆ Subir ${tipo === "audio" ? "audios" : tipo === "video" ? "vídeos" : "imágenes"}</button>` : ""}</div>
+  derivarArch();
+  const q = busqueda.toLowerCase(), enCarp = new Set(D[tipo].filter(x => (x.carpeta || "") === carpeta).map(x => x.id)), cars = q ? [] : carpetasDe(tipo).sort((x, y) => x.nombre.localeCompare(y.nombre, "es"));
+  const lista = D.archivos.filter(a => a.tipo === tipo && (q ? a.nombre.toLowerCase().includes(q) : enCarp.has(a.id)));
+  const ruta = carpeta ? `<div class="barra" style="margin-bottom:6px;"><button class="gris" data-ac="raiz">📂 Todo</button>${carpeta.split("/").map((s0, i, arr) => `<button class="gris" data-ac="${esc(arr.slice(0, i + 1).join("/"))}">${esc(s0)}</button>`).join(" › ")}</div>` : "";
+  const tarjCarp = cars.map(c => `<div class="tarj" data-fc="${esc(c.ruta)}" style="cursor:pointer;"><div class="vista" style="display:flex;align-items:center;justify-content:center;">${SVG_CARPETA(64)}</div><div class="cu"><b>${esc(c.nombre)}</b><span class="peq">${c.n} archivo(s)</span>${puedeEscribir ? `<div class="acc"><button class="gris" data-fm="${esc(c.ruta)}">⋯ Carpeta</button></div>` : ""}</div></div>`).join("");
+  v.innerHTML = `<div class="cab"><h2>${SECCIONES[tipo]}</h2><span class="esp"></span>${puedeEscribir ? `<button class="gris" id="bCar">📁 Nueva carpeta</button><button class="naranja" id="bSubir">⬆ Subir ${tipo === "audio" ? "audios" : tipo === "video" ? "vídeos" : "imágenes"}</button>` : ""}</div>
     ${puedeEscribir ? `<div id="soltar">Arrastra aquí tus archivos o pulsa «Subir». <span class="peq">(máx. 50 MB por archivo)</span></div><input type="file" id="fArch" accept="${ACEPTA[tipo]}" multiple style="display:none;">` : ""}
-    <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>
-    <div class="rejilla">${lista.map(a => { const u = pubUrl(a), vista = tipo === "imagen" ? `<img src="${esc(u)}" loading="lazy" alt="">` : tipo === "video" ? `<video src="${esc(u)}#t=0.5" preload="metadata" controls></video>` : `<audio src="${esc(u)}" controls preload="none"></audio>`;
-      return `<div class="tarj" data-id="${esc(a.id)}"><div class="vista">${vista}</div><div class="cu"><b title="${esc(a.nombre)}">${esc(a.nombre)}</b><span class="peq">${tamTxt(a.tamano)} · ${fechaTxt(a.creada)}</span><div class="acc"><button class="gris" data-a="copiar">🔗 Copiar enlace</button>${tipo === "video" ? '<button class="gris" data-a="ana">🖊 Analizar</button>' : ""}<button class="gris" data-a="abrir">↗ Abrir</button>${puedeEscribir ? '<button class="gris" data-a="ren">✏️</button><button class="gris" data-a="del" style="color:#c0392b;">🗑</button>' : ""}</div></div></div>`; }).join("") || `<p class="vacio" style="grid-column:1/-1;">${q ? "Nada coincide con la búsqueda." : "Aún no has subido nada aquí."}</p>`}</div>`;
+    ${ruta}<div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>
+    <div class="rejilla">${tarjCarp}${lista.map(a => { const u = pubUrl(a), vista = tipo === "imagen" ? `<img src="${esc(u)}" loading="lazy" alt="">` : tipo === "video" ? `<video src="${esc(u)}#t=0.5" preload="metadata" controls></video>` : `<audio src="${esc(u)}" controls preload="none"></audio>`;
+      return `<div class="tarj" data-id="${esc(a.id)}"><div class="vista">${vista}</div><div class="cu"><b title="${esc(a.nombre)}">${esc(a.nombre)}</b><span class="peq">${tamTxt(a.tamano)} · ${fechaTxt(a.creada)}</span><div class="acc"><button class="gris" data-a="copiar">🔗 Copiar enlace</button>${tipo === "video" ? '<button class="gris" data-a="ana">🖊 Analizar</button>' : ""}<button class="gris" data-a="abrir">↗ Abrir</button>${puedeEscribir ? '<button class="gris" data-a="mov" title="Mover a carpeta">📁</button><button class="gris" data-a="ren">✏️</button><button class="gris" data-a="del" style="color:#c0392b;">🗑</button>' : ""}</div></div></div>`; }).join("") || `<p class="vacio" style="grid-column:1/-1;">${q ? "Nada coincide con la búsqueda." : (carpeta ? "Esta carpeta está vacía." : "Aún no has subido nada aquí.")}</p>`}</div>`;
   $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; pintarArchivos(v, tipo); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
   if (puedeEscribir) {
     const fi = $("fArch"), zona = $("soltar");
@@ -1935,14 +1952,36 @@ function pintarArchivos(v, tipo) {
       if (b.dataset.a === "copiar") { try { await navigator.clipboard.writeText(pubUrl(a)); aviso("Enlace copiado ✓"); } catch (e) { prompt("Copia el enlace:", pubUrl(a)); } }
       else if (b.dataset.a === "abrir") window.open(pubUrl(a), "_blank", "noopener");
       else if (b.dataset.a === "ana") abrirAnalisis(pubUrl(a), a.nombre);
+      else if (b.dataset.a === "mov") moverACarpeta(tipo, [D[tipo].find(x => x.id === a.id)].filter(Boolean));
       else if (b.dataset.a === "ren") preguntar("Renombrar", "Nombre", a.nombre, async (n) => { if (await guardarFila("archivos", Object.assign({}, a, { nombre: n }))) { await cargarTodo(); pintar(); } });
       else if (b.dataset.a === "del" && confirm("¿Borrar «" + a.nombre + "»? Los enlaces que lo usen dejarán de funcionar.")) { await nube.storage.from("entrenador").remove([a.ruta]); if (await borrarFila("archivos", a.id)) { await cargarTodo(); pintar(); } }
     }));
   });
+  v.querySelectorAll("[data-ac]").forEach(b => b.onclick = () => { carpeta = b.dataset.ac === "raiz" ? "" : b.dataset.ac; pintarArchivos(v, tipo); });
+  v.querySelectorAll("[data-fc]").forEach(el => el.addEventListener("click", (e) => { if (e.target.closest("[data-fm]")) return; carpeta = el.dataset.fc; busqueda = ""; pintarArchivos(v, tipo); }));
+  v.querySelectorAll("[data-fm]").forEach(b => b.onclick = (e) => { e.stopPropagation(); const r = b.dataset.fm; abrirMenu(e, [["📂 Abrir", () => { carpeta = r; pintarArchivos(v, tipo); }], ["✏️ Renombrar", () => preguntar("Renombrar carpeta", "Nombre", ultimo(r), async (n) => {
+    n = limpiaNombre(n); if (!n) return; const nuevo = (padreDe(r) ? padreDe(r) + "/" : "") + n; if (nuevo === r) return;
+    if (rutasCarpetas(tipo).some(c => c.nombre === nuevo)) { aviso("Ya existe una carpeta con ese nombre"); return; }
+    const m = mapaCarpArch(); Object.keys(m).forEach(k => { if (enRama(m[k], r)) m[k] = nuevo + m[k].slice(r.length); });
+    for (const c of D.carpetas.filter(c => c.tipo === tipo && enRama(c.nombre, r))) { await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", c.nombre); await guardarFila("carpetas", { tipo, nombre: nuevo + c.nombre.slice(r.length) }); }
+    await guardarFila("archivos", { id: FILA_CARP, nombre: JSON.stringify(m), tipo: "ajustes", ruta: "", mime: "", tamano: 0 });
+    if (carpeta && enRama(carpeta, r)) carpeta = nuevo + carpeta.slice(r.length);
+    await cargarTodo(); pintar(); })],
+    ["🗑 Eliminar carpeta", async () => {
+      const dentro = D[tipo].filter(x => x.carpeta && enRama(x.carpeta, r));
+      if (!confirm("¿Eliminar la carpeta «" + ultimo(r) + "»?" + (dentro.length ? " Los " + dentro.length + " archivos que contiene NO se borran: pasan a la raíz." : ""))) return;
+      if (dentro.length) await setCarpArch(dentro.map(x => x.id), "");
+      for (const c of D.carpetas.filter(c => c.tipo === tipo && enRama(c.nombre, r))) await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", c.nombre);
+      if (carpeta && enRama(carpeta, r)) carpeta = padreDe(r);
+      await cargarTodo(); pintar(); }]]); });
+  if ($("bCar")) $("bCar").onclick = () => preguntar("Nueva carpeta", "Nombre", "", async (n) => {
+    n = limpiaNombre(n); if (!n) return; const nom = (carpeta ? carpeta + "/" : "") + n;
+    if (rutasCarpetas(tipo).some(c => c.nombre === nom)) { aviso("Ya existe esa carpeta"); return; }
+    if (await guardarFila("carpetas", { tipo, nombre: nom })) { D.carpetas.push({ tipo, nombre: nom }); carpeta = nom; pintarArchivos(v, tipo); } });
 }
 async function subir(files, tipo) {
   if (!files.length) return;
-  let ok = 0;
+  let ok = 0; const subidos = [];
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
     if (f.size > 50 * 1024 * 1024) { aviso("«" + f.name + "» pesa más de 50 MB: no se sube."); continue; }
@@ -1950,8 +1989,9 @@ async function subir(files, tipo) {
     const id = idNuevo("a"), limpio = f.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_"), ruta = tipo + "/" + id + "-" + limpio;
     const { error } = await nube.storage.from("entrenador").upload(ruta, f, { contentType: f.type || undefined, upsert: false });
     if (error) { aviso("Error al subir «" + f.name + "»: " + error.message); continue; }
-    if (await guardarFila("archivos", { id, nombre: f.name, tipo, ruta, mime: f.type, tamano: f.size })) ok++;
+    if (await guardarFila("archivos", { id, nombre: f.name, tipo, ruta, mime: f.type, tamano: f.size })) { ok++; subidos.push(id); }
   }
+  if (subidos.length && carpeta) { D.archivos = D.archivos.concat(subidos.map(i => ({ id: i }))); await setCarpArch(subidos, carpeta); }
   if (ok) aviso(ok + " archivo(s) subido(s) ✓");
   await cargarTodo(); pintar();
 }
