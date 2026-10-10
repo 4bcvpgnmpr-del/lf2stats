@@ -146,6 +146,11 @@
   .chips-fase button{background:var(--white);color:var(--ink);border:1.5px solid var(--line);padding:8px 14px;}
   .chips-fase button.on{background:var(--ink);color:#fff;border-color:var(--ink);}
   .grupo-acc h4{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:15px;margin:14px 0 8px;}
+  #scrub{width:100%;margin:0 0 6px;accent-color:var(--teal);height:28px;}
+  .ctrl .paso-ani{width:42px;height:42px;border-radius:50%;padding:0;font-size:16px;background:var(--suave);color:var(--ink);border:1.5px solid var(--line);flex:none;}
+  .acc-fila.ahora{border-color:var(--teal);background:#e8f7f5;}
+  .acc-fila .et{cursor:pointer;}
+  .acc-fila button.ed{background:#fff3e0;border-color:#f0b35a;color:#8a5200;}
   .acc-fila{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:var(--white);border-radius:10px;padding:7px 8px;margin-bottom:6px;font-size:13.5px;font-weight:700;}
   .acc-fila .num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
   .acc-fila .et{flex:1;min-width:0;}
@@ -522,9 +527,12 @@
           <div class="caja-pista" id="pistaAni"></div>
           <div class="leyenda" id="leyendaAni"></div>
           <div class="reprod">
+            <input type="range" id="scrub" min="0" max="1000" value="0" step="1" aria-label="Posición de la animación">
             <div class="linea-tiempo" id="lineaTiempo"></div>
             <div class="ctrl">
+              <button class="paso-ani" id="btnAtras" type="button" title="Acción anterior">⏮</button>
               <button class="play" id="btnPlay">▶</button>
+              <button class="paso-ani" id="btnAdelante" type="button" title="Acción siguiente">⏭</button>
               <span class="tiempo" id="tiempoAni">0:00 / 0:00</span>
               <span class="tiempo" id="faseAni"></span>
               <select id="vel" style="flex:none;width:auto;margin-left:auto;"><option value="1800">Lenta</option><option value="1200" selected>Normal</option><option value="700">Rápida</option></select>
@@ -1565,24 +1573,27 @@ function etiquetaLinea(l, pos) {
 }
 function pintarAnim() {
   const n = jugada.pasos.length, ver = faseAnim < 0 ? 0 : Math.min(faseAnim, n - 1);
-  if (!pararAni) $("pistaAni").innerHTML = svgPaso(jugada, ver, { rotulo: true });
+  if (!aniPlay && aniMs <= 0) $("pistaAni").innerHTML = svgPaso(jugada, ver, { rotulo: true });
   $("leyendaAni").innerHTML = textoLista(jugada.pasos[ver].texto);
   $("chipsFase").innerHTML = `<button data-f="-1" class="${faseAnim < 0 ? "on" : ""}">Todas</button>` + jugada.pasos.map((_, i) => `<button data-f="${i}" class="${faseAnim === i ? "on" : ""}">${i + 1}</button>`).join("");
-  $("chipsFase").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { detenerAni(); faseAnim = Number(b.dataset.f); pintarAnim(); }));
+  $("chipsFase").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { detenerAni(); aniMs = 0; faseAnim = Number(b.dataset.f); pintarAnim(); }));
   const dur = Number($("vel").value), rango = rangoAnim();
   const { segs, total } = segmentosAnim(jugada, dur, rango.desde, rango.hasta);
   $("lineaTiempo").innerHTML = segs.length ? segs.map(s => `<div class="seg" style="flex:${s.dur + PAUSA_FASE};"><i></i></div>`).join("") : `<div class="seg"><i></i></div>`;
-  $("tiempoAni").textContent = "0:00 / " + tiempoTxt(total); $("faseAni").textContent = "";
-  $("btnPlay").textContent = pararAni ? "■" : "▶";
+  aniMs = Math.min(aniMs, total); $("scrub").max = Math.max(1, Math.round(total)); $("scrub").value = Math.round(aniMs);
+  $("tiempoAni").textContent = tiempoTxt(aniMs) + " / " + tiempoTxt(total); $("faseAni").textContent = "";
+  $("btnPlay").textContent = aniPlay ? "⏸" : "▶";
   const grupos = jugada.pasos.map((p, i) => ({ p, i })).filter(g => faseAnim < 0 || g.i === faseAnim);
   $("listaAcc").innerHTML = grupos.map(g => `<div class="grupo-acc"><h4>Fase ${g.i + 1}</h4>${g.p.lineas.length ? g.p.lineas.map((l, k) => `<div class="acc-fila" data-i="${g.i}" data-k="${k}">
-      <span class="num">${k + 1}</span><span class="et">${esc(etiquetaLinea(l, g.p.pos))}</span>
+      <span class="num">${k + 1}</span><span class="et" title="Pulsa para editar esta acción">${esc(etiquetaLinea(l, g.p.pos))}</span><button data-a="edit" class="ed" title="Editar esta acción en la pizarra">✏️</button>
       <button data-a="opc" class="${l.opcional ? "opc" : ""}" title="Acción opcional: dibuja la flecha pero no mueve jugadoras ni balón">⌥ ${l.opcional ? "Opcional" : ""}</button>
       ${k > 0 ? `<button data-a="dsp" class="${l.despues ? "dsp" : ""}" title="Cuándo empieza">${l.despues ? "⏱ Después" : "∥ A la vez"}</button>` : ""}
       <button data-a="up" ${k === 0 ? "disabled" : ""}>↑</button><button data-a="dn" ${k === g.p.lineas.length - 1 ? "disabled" : ""}>↓</button><button data-a="del">🗑</button></div>`).join("") : `<p class="hint" style="margin:0;">Esta fase no tiene acciones. Dibújalas en la pestaña Dibujar.</p>`}</div>`).join("");
+  $("listaAcc").querySelectorAll(".acc-fila").forEach(fila => fila.querySelectorAll(".et,.num").forEach(el => el.addEventListener("click", () => editarAccion(Number(fila.dataset.i), Number(fila.dataset.k)))));
   $("listaAcc").querySelectorAll(".acc-fila").forEach(fila => fila.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     const i = Number(fila.dataset.i), k = Number(fila.dataset.k), ls = jugada.pasos[i].lineas;
-    detenerAni(); snap();
+    if (b.dataset.a === "edit") { editarAccion(i, k); return; }
+    detenerAni(); aniMs = 0; snap();
     if (b.dataset.a === "dsp") ls[k].despues = !ls[k].despues;
     if (b.dataset.a === "opc") { if (ls[k].opcional) delete ls[k].opcional; else ls[k].opcional = true; }
     if (b.dataset.a === "up" && k > 0) [ls[k - 1], ls[k]] = [ls[k], ls[k - 1]];
@@ -1592,17 +1603,53 @@ function pintarAnim() {
   })));
 }
 const rangoAnim = () => faseAnim < 0 ? { desde: 0, hasta: jugada.pasos.length } : { desde: faseAnim, hasta: faseAnim + 1 };
-function detenerAni() { if (pararAni) { pararAni(); pararAni = null; } }
+let aniMs = 0, aniPlay = false, aniRaf = 0;
+function detenerAni() { aniPlay = false; if (aniRaf) { cancelAnimationFrame(aniRaf); aniRaf = 0; } pararAni = null; const bp = $("btnPlay"); if (bp) bp.textContent = "▶"; }
+/* momentos (ms) en que empieza cada accion o grupo de acciones: para saltar atras / adelante */
+function marcasAni(dur, r) {
+  const { segs, total } = segmentosAnim(jugada, dur, r.desde, r.hasta), m = [0];
+  segs.forEach(sg => { let t = sg.ini; etapasFase(jugada.pasos[sg.i]).forEach(idx => { m.push(t); t += msEtapa(idx.length, dur); }); m.push(sg.ini + sg.dur); });
+  m.push(total); return [...new Set(m.map(x => Math.round(x)))].sort((x, y) => x - y);
+}
+/* dibuja el momento "ms" de la animacion y actualiza barra, tiempo, texto y la accion que se ve */
+function verAni(ms) {
+  const dur = Number($("vel").value), r = rangoAnim(), { segs, total } = segmentosAnim(jugada, dur, r.desde, r.hasta);
+  if (!segs.length) return;
+  ms = Math.max(0, Math.min(total, ms)); aniMs = ms;
+  const sg = segs.find(x => ms < x.fin) || segs[segs.length - 1], t = Math.min(1, Math.max(0, (ms - sg.ini) / sg.dur));
+  fotogramaAnim(jugada, $("pistaAni"), sg.i, t, dur);
+  $("leyendaAni").innerHTML = textoLista(jugada.pasos[sg.i].texto); $("faseAni").textContent = "Fase " + (sg.i + 1);
+  $("tiempoAni").textContent = tiempoTxt(ms) + " / " + tiempoTxt(total);
+  const barras = $("lineaTiempo").querySelectorAll(".seg i"); segs.forEach((x, k) => { if (barras[k]) barras[k].style.width = Math.max(0, Math.min(1, (ms - x.ini) / (x.fin - x.ini))) * 100 + "%"; });
+  const sc = $("scrub"); if (sc && Number(sc.value) !== Math.round(ms)) sc.value = Math.round(ms);
+  const E = estadoEn(jugada, sg.i, t, dur), ahora = new Set((E.st[E.si] || []));
+  document.querySelectorAll("#listaAcc .acc-fila").forEach(f => f.classList.toggle("ahora", Number(f.dataset.i) === sg.i && ahora.has(Number(f.dataset.k))));
+}
 function reproducirAni() {
-  if (pararAni) { detenerAni(); pintarAnim(); return; }
-  const dur = Number($("vel").value), r = rangoAnim();
-  if (!segmentosAnim(jugada, dur, r.desde, r.hasta).segs.length) { aviso("Dibuja alguna acción (pase, corte…) para verla en movimiento."); return; }
-  const { segs, total } = segmentosAnim(jugada, dur, r.desde, r.hasta), barras = $("lineaTiempo").querySelectorAll(".seg i");
-  $("btnPlay").textContent = "■";
-  pararAni = animarJugada(jugada, $("pistaAni"), dur, { desde: r.desde, hasta: r.hasta,
-    enFase: (i) => { $("leyendaAni").innerHTML = textoLista(jugada.pasos[i].texto); $("faseAni").textContent = "Fase " + (i + 1); },
-    enProgreso: (el, tot) => { $("tiempoAni").textContent = tiempoTxt(el) + " / " + tiempoTxt(tot); segs.forEach((s, k) => { if (barras[k]) barras[k].style.width = Math.max(0, Math.min(1, (el - s.ini) / (s.fin - s.ini))) * 100 + "%"; }); },
-    alAcabar: () => { pararAni = null; pintarAnim(); } });
+  if (aniPlay) { detenerAni(); return; }
+  const dur = Number($("vel").value), r = rangoAnim(), { segs, total } = segmentosAnim(jugada, dur, r.desde, r.hasta);
+  if (!segs.length) { aviso("Dibuja alguna acción (pase, corte…) para verla en movimiento."); return; }
+  if (aniMs >= total - 20) aniMs = 0;
+  aniPlay = true; pararAni = detenerAni; $("btnPlay").textContent = "⏸";
+  const t0 = performance.now() - aniMs;
+  const marco = (ts) => {
+    if (!aniPlay) return;
+    const ms = Math.min(total, performance.now() - t0); verAni(ms);
+    if (ms >= total) { detenerAni(); return; }
+    aniRaf = requestAnimationFrame(marco);
+  };
+  aniRaf = requestAnimationFrame(marco);
+}
+function saltarAni(dir) {
+  const dur = Number($("vel").value), r = rangoAnim(); detenerAni();
+  const m = marcasAni(dur, r); let k;
+  if (dir < 0) { k = [...m].reverse().find(x => x < aniMs - 60); if (k == null) k = 0; }
+  else { k = m.find(x => x > aniMs + 60); if (k == null) k = m[m.length - 1]; }
+  verAni(k);
+}
+function editarAccion(i, k) {
+  detenerAni(); paso = i; selPaso = i; selLinea = k; selFicha = null; selObj = -1; irPestana("Draw");
+  aviso("Ajusta la acción: arrastra sus puntos. Vuelve a «Animar» para verla.");
 }
 function pintarTexto() {
   $("notas").value = jugada.notas || "";
@@ -1632,7 +1679,7 @@ function pintarSalida() {
     ${videosHtml(jugada)}`;
 }
 function irPestana(p) {
-  detenerAni(); tabActual = p;
+  detenerAni(); aniMs = 0; tabActual = p;
   document.querySelectorAll("#tabsEd button").forEach(b => b.classList.toggle("on", b.dataset.p === p));
   document.querySelectorAll(".panel-ed").forEach(x => x.classList.toggle("on", x.id === "p" + p));
   pintarPestana();
@@ -2157,7 +2204,9 @@ if (VISOR) {
     snap(); jugada.formacion = f; jugada.pasos = [{ pos: posicionesIniciales(f), balon: "o1", lineas: [], texto: "" }]; paso = 0; pintar();
   });
   $("btnPlay").addEventListener("click", reproducirAni);
-  $("vel").addEventListener("change", () => { detenerAni(); pintarAnim(); });
+  $("btnAtras").addEventListener("click", () => saltarAni(-1)); $("btnAdelante").addEventListener("click", () => saltarAni(1));
+  $("scrub").addEventListener("input", (e) => { detenerAni(); verAni(Number(e.target.value)); });
+  $("vel").addEventListener("change", () => { detenerAni(); aniMs = 0; pintarAnim(); });
   $("btnUndo").addEventListener("click", deshacerCambio); $("btnRedo").addEventListener("click", rehacerCambio);
   document.addEventListener("keydown", (e) => {
     if (!(e.ctrlKey || e.metaKey) || $("vistaEd").style.display === "none") return;
