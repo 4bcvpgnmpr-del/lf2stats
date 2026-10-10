@@ -829,10 +829,40 @@ function abrirFiltro(v, tipo) {
   };
   pintaCajon();
 }
+/* ------------ enlaces para compartir (solo lectura) ------------ */
+const TK_K = (id) => "ent_enlace_" + id;
+const enlaceDe = (t) => new URL("ver.html?c=" + t, location.href).href;
+function datosCompartir(tipo, x) {
+  if (tipo === "jugadas") return { t: "jugada", d: Object.assign({}, x.data || {}, { nombre: x.nombre }) };
+  if (tipo === "ejercicios") { const dd = x.data || {}; return { t: "ejercicio", d: { categoria: dd.categoria || "", minutos: dd.minutos || 0, descripcion: dd.descripcion || "", materiales: dd.materiales || "", diagrama: diagDe(x) || null } }; }
+  const d = x.data || {};
+  return { t: "plan", d: { fecha: x.fecha || "", inicio: d.inicio || "", notas: d.notas || "", items: (d.ejercicios || []).map(e => { if (e.sec) return { sec: true, titulo: e.titulo || "Sección" }; const ej = ejDe(e), dd = (ej && ej.data) || {}; return { titulo: tituloSeg(e) || "Ejercicio", min: e.min || 0, notas: e.notas || "", categoria: dd.categoria || "", descripcion: dd.descripcion || "", materiales: dd.materiales || "", diagrama: diagDe(ej) || null }; }) } };
+}
+async function compartirEnlace(tipo, x) {
+  let tk = ""; try { tk = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ }
+  if (!tk) { const a = new Uint8Array(9); crypto.getRandomValues(a); tk = [...a].map(b => b.toString(36).padStart(2, "0")).join("").slice(0, 14); }
+  const { t, d } = datosCompartir(tipo, x);
+  aviso("Creando el enlace…");
+  const { error } = await nube.from("compartidos").upsert({ token: tk, tipo: t, nombre: x.nombre || "", data: d });
+  if (error) { aviso(/compartidos|relation|schema/i.test(error.message) ? "Falta ejecutar compartir.sql en Supabase" : "No se pudo crear: " + error.message); return; }
+  try { localStorage.setItem(TK_K(x.id), tk); } catch (e) { /* nada */ }
+  const url = enlaceDe(tk);
+  if (navigator.share) { try { await navigator.share({ title: x.nombre || "ScoutFlow", url }); aviso("Enlace compartido (se actualiza al volver a compartir)"); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(url); aviso("🔗 Enlace copiado"); } catch (e) { prompt("Copia el enlace:", url); }
+}
+async function dejarDeCompartir(tipo, x) {
+  let tk = ""; try { tk = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ }
+  if (!tk || !confirm("¿Dejar de compartir «" + x.nombre + "»? El enlace dejará de funcionar.")) return;
+  const { error } = await nube.from("compartidos").delete().eq("token", tk);
+  if (error) { aviso("No se pudo: " + error.message); return; }
+  try { localStorage.removeItem(TK_K(x.id)); } catch (e) { /* nada */ }
+  aviso("Dejaste de compartirlo");
+}
 function opcionesElemento(tipo, x) {
   const o = [["✏️ " + (tipo === "jugadas" || tipo === "ejercicios" ? "Editar en la pizarra" : "Abrir"), () => editarElemento(tipo, x)]];
   if (tipo === "ejercicios") o.push(["📝 Editar datos (material, vídeo…)", () => formEjercicio(x)]);
   if (tipo === "jugadas") o.push(["▶ Ver animada", () => verJugada(x)], [x.compartida ? "🙈 Ocultar a las jugadoras" : "📤 Mostrar a las jugadoras", () => alternarComp(x)]);
+  if (puedeEscribir && (tipo === "jugadas" || tipo === "ejercicios" || tipo === "planes")) { o.push(["🔗 Compartir enlace (solo lectura)", () => compartirEnlace(tipo, x)]); let tk0 = ""; try { tk0 = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ } if (tk0) o.push(["🚫 Dejar de compartir", () => dejarDeCompartir(tipo, x)]); }
   o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
   return o;
 }

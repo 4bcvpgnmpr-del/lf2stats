@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ScoutFlow · Compartido</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icono-192.png">
+<link rel="apple-touch-icon" href="icono-180.png">
+<meta name="theme-color" content="#10171f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<style>
+  :root{--o:#e8590c;--ink:#1d2630;--line:#e3e7ea;--bg:#f5f6f7;}
+  *{box-sizing:border-box;} body{margin:0;background:var(--bg);color:var(--ink);font-family:'Archivo','Inter',system-ui,sans-serif;}
+  header{background:#10171f;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;} header b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:18px;} header b span{color:var(--o);} header small{opacity:.6;margin-left:auto;}
+  main{max-width:860px;margin:0 auto;padding:16px 16px 60px;}
+  h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:26px;margin:6px 0 4px;} .meta{color:#5b6670;font-size:14px;margin-bottom:14px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;}
+  .sec{font-family:'Archivo Black',sans-serif;font-weight:400;letter-spacing:1px;color:var(--o);font-size:13px;text-transform:uppercase;margin:18px 0 8px;}
+  .ej{display:flex;gap:10px;align-items:baseline;} .ej b{flex:1;font-size:17px;} .min{background:#fff4e6;color:#c2570c;border-radius:999px;padding:3px 10px;font-weight:800;font-size:13px;white-space:nowrap;}
+  .nota{color:#4a5560;font-size:14.5px;white-space:pre-wrap;margin-top:6px;}
+  button{font:inherit;font-weight:700;background:#fff;border:1.5px solid #d4d9de;border-radius:10px;padding:9px 14px;cursor:pointer;margin-top:8px;}
+  iframe{width:100%;border:0;display:block;min-height:480px;background:#fff;border-radius:12px;}
+  .vacio{text-align:center;padding:60px 16px;color:#5b6670;font-size:16px;}
+  footer{text-align:center;color:#8b949c;font-size:12px;padding:20px;}
+</style>
+</head>
+<body>
+<header><b>Scout<span>Flow</span></b><small>Solo lectura</small></header>
+<main id="m"><div class="vacio">Cargando…</div></main>
+<footer>Compartido con ScoutFlow</footer>
+<script>
+const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const fechaTxt = (f) => { if (!f) return ""; const d = new Date(f.length <= 10 ? f + "T12:00:00" : f); return isNaN(d) ? f : d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); };
+let esperando = null;
+/* un visor de pizarra dentro de un marco; recibe la jugada cuando está listo */
+function visor(cont, jugada) {
+  const f = document.createElement("iframe"); f.title = "Diagrama"; f.setAttribute("allowfullscreen", "");
+  const enviar = () => { try { f.contentWindow.postMessage({ jugada }, "*"); } catch (e) { /* nada */ } };
+  f.__enviar = enviar; f.onload = () => setTimeout(enviar, 250);
+  cont.appendChild(f); f.src = "pizarra.html?visor=1";
+  return f;
+}
+window.addEventListener("message", (ev) => {
+  const d = ev.data || {};
+  document.querySelectorAll("iframe").forEach(f => {
+    if (f.contentWindow !== ev.source) return;
+    if (d.visorListo && f.__enviar) f.__enviar();
+    if (d.visorAltura) f.style.height = Math.max(380, d.visorAltura + 10) + "px";
+  });
+});
+const diagOk = (d) => d && d.pasos && d.pasos.length;
+function ejercicioHtml(e, i) {
+  return `<div class="card"><div class="ej"><b>${esc(e.titulo || "Ejercicio")}</b>${e.min ? `<span class="min">${esc(e.min)} min</span>` : ""}</div>${e.categoria ? `<div class="meta" style="margin:2px 0 0;">${esc(e.categoria)}</div>` : ""}${e.descripcion ? `<div class="nota">${esc(e.descripcion)}</div>` : ""}${e.materiales ? `<div class="nota"><b>Material:</b> ${esc(e.materiales)}</div>` : ""}${e.notas ? `<div class="nota">${esc(e.notas)}</div>` : ""}${diagOk(e.diagrama) ? `<button data-d="${i}">▶ Ver diagrama</button><div id="d${i}"></div>` : ""}</div>`;
+}
+async function iniciar() {
+  const m = $("m"), token = new URLSearchParams(location.search).get("c") || "";
+  if (!token || !window.supabase) { m.innerHTML = '<div class="vacio">Este enlace no es válido.</div>'; return; }
+  const nube = window.supabase.createClient(SB.url, SB.anon);
+  let r; try { r = await nube.rpc("obtener_compartido", { p_token: token }); } catch (e) { r = { error: e }; }
+  const fila = r && r.data && r.data[0];
+  if (!fila) { m.innerHTML = '<div class="vacio">Este enlace ya no está disponible.<br><small>Puede que el entrenador haya dejado de compartirlo.</small></div>'; return; }
+  const d = fila.data || {}; document.title = (fila.nombre || "Compartido") + " · ScoutFlow";
+  if (fila.tipo === "jugada") {
+    m.innerHTML = `<h1>${esc(fila.nombre)}</h1><div class="meta">${esc([d.tipo, d.equipo].filter(Boolean).join(" · "))}</div><div id="v"></div>`;
+    visor($("v"), Object.assign({}, d, { nombre: fila.nombre }));
+  } else if (fila.tipo === "ejercicio") {
+    m.innerHTML = `<h1>${esc(fila.nombre)}</h1><div class="meta">${esc([d.categoria, d.minutos ? d.minutos + " min" : ""].filter(Boolean).join(" · "))}</div>${d.descripcion ? `<div class="card nota">${esc(d.descripcion)}</div>` : ""}${d.materiales ? `<div class="card nota"><b>Material:</b> ${esc(d.materiales)}</div>` : ""}<div id="v"></div>`;
+    if (diagOk(d.diagrama)) visor($("v"), Object.assign({}, d.diagrama, { nombre: fila.nombre }));
+  } else if (fila.tipo === "plan") {
+    const items = d.items || []; let n = 0, tot = 0;
+    const html = items.map((e, i) => { if (e.sec) return `<div class="sec">${esc(e.titulo)}</div>`; tot += Number(e.min) || 0; n++; return ejercicioHtml(e, i); }).join("");
+    m.innerHTML = `<h1>${esc(fila.nombre)}</h1><div class="meta">${esc(fechaTxt(d.fecha))}${d.inicio ? " · " + esc(d.inicio) : ""} · ${n} ejercicios · ${tot} min</div>${d.notas ? `<div class="card nota">${esc(d.notas)}</div>` : ""}${html}`;
+    m.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { const i = Number(b.dataset.d), c = $("d" + i); if (c.firstChild) { c.innerHTML = ""; b.textContent = "▶ Ver diagrama"; return; } visor(c, Object.assign({}, items[i].diagrama, { nombre: items[i].titulo })); b.textContent = "✕ Ocultar diagrama"; });
+  } else m.innerHTML = '<div class="vacio">Este enlace no es válido.</div>';
+}
+iniciar();
+</script>
+</body>
+</html>
