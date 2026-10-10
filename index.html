@@ -6945,6 +6945,12 @@ async function verificarAcceso() {
   if (!user) { mostrarPuerta(""); return; }
   const { data: soy, error } = await sb.rpc("es_entrenador");
   if (error || soy !== true) { mostrarPuerta("Tu correo (" + user.email + ") no tiene asiento de entrenador.", "mal"); return; }
+  // ayudante de partido: solo entra al modo partido del Entrenador
+  try {
+    const { data: ap } = await sb.from("ajustes").select("valor").eq("clave", "ayudantes_partido").limit(1);
+    const lp = String((ap && ap[0] && ap[0].valor) || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
+    if (lp.includes(String(user.email || "").toLowerCase())) { location.replace("entrenador.html#partido"); return; }
+  } catch (e) { /* sin lista: sigue */ }
   ROL_APP = await resolverRolApp(sb, user);
   const ERES_PROPIETARIO = ROL_APP === "propietario";
   let simulando = false;

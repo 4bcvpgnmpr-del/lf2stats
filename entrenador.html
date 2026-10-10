@@ -1976,19 +1976,38 @@ async function cargarOffline() {
   window.addEventListener("online", () => location.reload());
   contadores(); const h = (location.hash || "").replace("#", ""); if (SECCIONES[h]) seccion = h; pintar();
 }
+/* ayudante de partido: solo ve el modo partido */
+function soloPartido(email) {
+  try { localStorage.setItem("sf_solo_partido", "1"); } catch (e) { /* nada */ }
+  $("app").style.display = "none";
+  let d = $("soloPart"); if (!d) { d = document.createElement("div"); d.id = "soloPart"; document.body.appendChild(d); }
+  d.style.cssText = "position:fixed;inset:0;background:#10171f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px;z-index:300;";
+  d.innerHTML = `<div style="font-size:22px;font-weight:800;">🏀 Modo partido</div><div style="opacity:.7;font-size:14px;">${esc(email || "")} · ayudante</div><button id="spAb" style="background:#e8590c;color:#fff;border:0;border-radius:14px;padding:18px 34px;font-size:20px;font-weight:800;">Abrir modo partido</button><a href="#" id="spSal" style="color:#9fb0c3;font-size:14px;">Salir</a>`;
+  $("spAb").onclick = abrirPartido;
+  $("spSal").onclick = async (e) => { e.preventDefault(); try { localStorage.removeItem("sf_solo_partido"); if (nube) await nube.auth.signOut(); } catch (x) { /* nada */ } location.href = "index.html"; };
+  abrirPartido();
+}
+const flagSoloPartido = () => { try { return localStorage.getItem("sf_solo_partido") === "1"; } catch (e) { return false; } };
 async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
   $("cajon").addEventListener("mousedown", (e) => { if (e.target === $("cajon")) $("cajon").classList.remove("ver"); });
   document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => { if (b.dataset.s === "partido") { abrirPartido(); if (esMovil()) document.body.classList.remove("menu-ab"); } else ir(b.dataset.s); }));
   const hayCopia = !!(await kv.get("entrenador"));
-  if (!nube) { if (hayCopia) { window.addEventListener("online", () => location.reload()); OFFLINE = true; D.jugadas = []; await cargarOffline(); return; } pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
+  if (!nube) { if (flagSoloPartido()) { soloPartido(""); return; } if (hayCopia) { window.addEventListener("online", () => location.reload()); OFFLINE = true; D.jugadas = []; await cargarOffline(); return; } pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
   let data = null; try { data = (await nube.auth.getSession()).data; } catch (e) { /* sin red */ }
-  if (!data || !data.session) { if (hayCopia && !navigator.onLine) { await cargarOffline(); return; } pantalla("Entra con tu cuenta en la app de estadísticas para usar el Entrenador.", "← Ir a la app"); return; }
+  if (!data || !data.session) { if (flagSoloPartido() && !navigator.onLine) { soloPartido(""); return; } if (hayCopia && !navigator.onLine) { await cargarOffline(); return; } pantalla("Entra con tu cuenta en la app de estadísticas para usar el Entrenador.", "← Ir a la app"); return; }
   try {
     const r = await nube.rpc("es_entrenador");
     if (r && r.data === false) { pantalla("Esta sección es solo para entrenadores."); return; }
   } catch (e) { /* si falla la comprobacion, las reglas de la base de datos protegen igualmente */ }
+  try {
+    const yo = String(data.session.user.email || "").toLowerCase();
+    const r = await nube.from("ajustes").select("valor").eq("clave", "ayudantes_partido").limit(1);
+    const lista = String((r.data && r.data[0] && r.data[0].valor) || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
+    if (lista.includes(yo)) { soloPartido(data.session.user.email); return; }
+    try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
+  } catch (e) { /* sin red: sigue */ }
   try { const r = await nube.rpc("puede_escribir"); if (r && !r.error && r.data === false) puedeEscribir = false; } catch (e) { /* sin roles: se puede escribir */ }
   window.addEventListener("online", () => { if (OFFLINE) location.reload(); });
   await cargarTodo();

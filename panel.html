@@ -254,7 +254,7 @@
 
       <h3 class="sub">3 · Asientos de entrenador <span class="asiento ent" id="contEnt"></span></h3>
       <p class="expl" style="margin:0 0 8px;">Quien tenga asiento de entrenador entra a este panel y puede mandar y quitar cosas.
-        Las jugadoras solo ven su app.</p>
+        Las jugadoras solo ven su app. Marca «Solo modo partido» para un ayudante que únicamente debe ver el modo partido (pizarra, marcador y estadísticas).</p>
       <div id="entLista" class="cargando">Cargando...</div>
       <div class="fila" style="margin-top:8px;align-items:flex-end;">
         <div><label style="margin-top:0;">Correo del entrenador</label><input id="entCorreo" type="email" placeholder="segundo.entrenador@correo.com"></div>
@@ -970,7 +970,7 @@ function asignarCorreosPegados() {
 }
 
 /* ---------- asientos de entrenador ---------- */
-let entrenadoresCuenta = null, colCorreoEntrenador = "email";
+let ayudantesPartido = [], entrenadoresCuenta = null, colCorreoEntrenador = "email";
 async function cargarEntrenadores() {
   const caja = $("entLista");
   const { data, error } = await sb.from("entrenadores").select("*");
@@ -981,6 +981,7 @@ async function cargarEntrenadores() {
     entrenadoresCuenta = null; $("contEnt").textContent = ""; pintarAccesos(); return;
   }
   const filas = data || [];
+  try { const r = await sb.from("ajustes").select("valor").eq("clave", "ayudantes_partido").limit(1); ayudantesPartido = String((r.data && r.data[0] && r.data[0].valor) || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean); } catch (e) { /* nada */ }
   if (filas[0]) colCorreoEntrenador = ("email" in filas[0]) ? "email" : (Object.keys(filas[0]).find(k => /mail|correo/i.test(k)) || "email");
   entrenadoresCuenta = filas.length;
   $("contEnt").textContent = filas.length + (filas.length === 1 ? " entrenador" : " entrenadores");
@@ -988,10 +989,19 @@ async function cargarEntrenadores() {
   caja.innerHTML = filas.length ? filas.map(f => {
     const c = String(f[colCorreoEntrenador] || "");
     return `<div class="ent-fila"><span>${esc(c)}${c.toLowerCase() === yo ? " · tu" : ""}</span>
-      ${c.toLowerCase() === yo ? "" : `<button class="boton borrar fina" data-correo="${esc(c)}">Quitar</button>`}</div>`;
+      ${c.toLowerCase() === yo ? "" : `<label style="font-size:12px;font-weight:700;display:flex;gap:5px;align-items:center;white-space:nowrap;"><input type="checkbox" data-solop="${esc(c)}" ${ayudantesPartido.includes(c.toLowerCase()) ? "checked" : ""}> Solo modo partido</label><button class="boton borrar fina" data-correo="${esc(c)}">Quitar</button>`}</div>`;
   }).join("") : `<div class="vacio">No hay ningun entrenador en la lista.</div>`;
   caja.querySelectorAll("button[data-correo]").forEach(b => b.addEventListener("click", () => quitarEntrenador(b.getAttribute("data-correo"))));
+  caja.querySelectorAll("input[data-solop]").forEach(i => i.addEventListener("change", () => alternarSoloPartido(i)));
   pintarAccesos();
+}
+async function alternarSoloPartido(inp) {
+  const c = inp.getAttribute("data-solop").toLowerCase(), antes = ayudantesPartido.slice();
+  const nueva = inp.checked ? Array.from(new Set(antes.concat(c))) : antes.filter(x => x !== c);
+  const { error } = await sb.from("ajustes").upsert({ clave: "ayudantes_partido", valor: nueva.join(","), actualizado: new Date().toISOString() });
+  if (error) { inp.checked = !inp.checked; avisar("avisoEnt", "No se ha podido guardar: " + error.message, "mal"); return; }
+  ayudantesPartido = nueva;
+  avisar("avisoEnt", inp.checked ? `${c} ahora solo ve el modo partido.` : `${c} vuelve a ver todo lo de un ayudante.`, "ok");
 }
 async function anadirEntrenador() {
   const correo = $("entCorreo").value.trim().toLowerCase();
