@@ -254,7 +254,7 @@
 
       <h3 class="sub">3 · Asientos de entrenador <span class="asiento ent" id="contEnt"></span></h3>
       <p class="expl" style="margin:0 0 8px;">Quien tenga asiento de entrenador entra a este panel y puede mandar y quitar cosas.
-        Las jugadoras solo ven su app. Marca «Solo modo partido» para un ayudante que únicamente debe ver el modo partido (pizarra, marcador y estadísticas).</p>
+        Las jugadoras solo ven su app. Con «⚙ Menús» eliges qué menús ve cada ayudante (de Entrenador y de Estadísticas); solo lee, no cambia nada.</p>
       <div id="entLista" class="cargando">Cargando...</div>
       <div class="fila" style="margin-top:8px;align-items:flex-end;">
         <div><label style="margin-top:0;">Correo del entrenador</label><input id="entCorreo" type="email" placeholder="segundo.entrenador@correo.com"></div>
@@ -970,7 +970,7 @@ function asignarCorreosPegados() {
 }
 
 /* ---------- asientos de entrenador ---------- */
-let ayudantesPartido = [], entrenadoresCuenta = null, colCorreoEntrenador = "email";
+let permisosAyu = {}, legadoAyu = [], entrenadoresCuenta = null, colCorreoEntrenador = "email";
 async function cargarEntrenadores() {
   const caja = $("entLista");
   const { data, error } = await sb.from("entrenadores").select("*");
@@ -981,7 +981,7 @@ async function cargarEntrenadores() {
     entrenadoresCuenta = null; $("contEnt").textContent = ""; pintarAccesos(); return;
   }
   const filas = data || [];
-  try { const r = await sb.from("ajustes").select("valor").eq("clave", "ayudantes_partido").limit(1); ayudantesPartido = String((r.data && r.data[0] && r.data[0].valor) || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean); } catch (e) { /* nada */ }
+  await cargarPermisosAyu();
   if (filas[0]) colCorreoEntrenador = ("email" in filas[0]) ? "email" : (Object.keys(filas[0]).find(k => /mail|correo/i.test(k)) || "email");
   entrenadoresCuenta = filas.length;
   $("contEnt").textContent = filas.length + (filas.length === 1 ? " entrenador" : " entrenadores");
@@ -989,19 +989,60 @@ async function cargarEntrenadores() {
   caja.innerHTML = filas.length ? filas.map(f => {
     const c = String(f[colCorreoEntrenador] || "");
     return `<div class="ent-fila"><span>${esc(c)}${c.toLowerCase() === yo ? " · tu" : ""}</span>
-      ${c.toLowerCase() === yo ? "" : `<label style="font-size:12px;font-weight:700;display:flex;gap:5px;align-items:center;white-space:nowrap;"><input type="checkbox" data-solop="${esc(c)}" ${ayudantesPartido.includes(c.toLowerCase()) ? "checked" : ""}> Solo modo partido</label><button class="boton borrar fina" data-correo="${esc(c)}">Quitar</button>`}</div>`;
+      ${c.toLowerCase() === yo ? "" : `<button class="boton fina" data-perm="${esc(c)}" style="white-space:nowrap;">⚙ Menús · ${esc(resumenPermisos(c))}</button><button class="boton borrar fina" data-correo="${esc(c)}">Quitar</button>`}</div>`;
   }).join("") : `<div class="vacio">No hay ningun entrenador en la lista.</div>`;
   caja.querySelectorAll("button[data-correo]").forEach(b => b.addEventListener("click", () => quitarEntrenador(b.getAttribute("data-correo"))));
-  caja.querySelectorAll("input[data-solop]").forEach(i => i.addEventListener("change", () => alternarSoloPartido(i)));
+  caja.querySelectorAll("button[data-perm]").forEach(b => b.addEventListener("click", () => abrirPermisos(b.getAttribute("data-perm"))));
   pintarAccesos();
 }
-async function alternarSoloPartido(inp) {
-  const c = inp.getAttribute("data-solop").toLowerCase(), antes = ayudantesPartido.slice();
-  const nueva = inp.checked ? Array.from(new Set(antes.concat(c))) : antes.filter(x => x !== c);
-  const { error } = await sb.from("ajustes").upsert({ clave: "ayudantes_partido", valor: nueva.join(","), actualizado: new Date().toISOString() });
-  if (error) { inp.checked = !inp.checked; avisar("avisoEnt", "No se ha podido guardar: " + error.message, "mal"); return; }
-  ayudantesPartido = nueva;
-  avisar("avisoEnt", inp.checked ? `${c} ahora solo ve el modo partido.` : `${c} vuelve a ver todo lo de un ayudante.`, "ok");
+const MENUS_E = [["jugadas", "Jugadas"], ["playbooks", "Playbooks"], ["ejercicios", "Ejercicios"], ["planes", "Planes de entrenamiento"], ["equipos", "Quintetos y equipos"], ["video", "Vídeos"], ["imagen", "Imágenes"], ["audio", "Audio"], ["partido", "🏀 Modo partido (pizarra, marcador, estadísticas)"]];
+const MENUS_S = [["inicio", "Inicio"], ["mi-equipo", "Mi equipo"], ["clasificacion", "Clasificación"], ["equipos", "Equipos"], ["jugadoras", "Jugadoras"], ["rankings", "Rankings"], ["estadisticas", "Estadísticas"], ["quintetos", "Quintetos"], ["fichajes", "Fichajes"], ["comparador", "Comparador"], ["resultados", "Resultados"], ["records", "Récords"], ["informes", "Informes"]];
+async function cargarPermisosAyu() {
+  permisosAyu = {}; legadoAyu = [];
+  try {
+    const r = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido"]);
+    const f = {}; (r.data || []).forEach(x => { f[x.clave] = x.valor; });
+    try { permisosAyu = JSON.parse(f.permisos_ayudantes || "{}") || {}; } catch (e) { permisosAyu = {}; }
+    legadoAyu = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
+    legadoAyu.forEach(c => { if (!permisosAyu[c]) permisosAyu[c] = { e: ["partido"], s: [] }; });
+  } catch (e) { /* nada */ }
+}
+function resumenPermisos(c) {
+  const q = permisosAyu[String(c).toLowerCase()]; if (!q) return "ayudante normal";
+  if (q.e.length === 1 && q.e[0] === "partido" && !q.s.length) return "solo modo partido";
+  const n = q.e.length + q.s.length; return n ? n + (n === 1 ? " menú" : " menús") : "sin menús";
+}
+async function guardarPermisosAyu() {
+  const { error } = await sb.from("ajustes").upsert({ clave: "permisos_ayudantes", valor: JSON.stringify(permisosAyu), actualizado: new Date().toISOString() });
+  if (error) return error;
+  if (legadoAyu.length) { await sb.from("ajustes").upsert({ clave: "ayudantes_partido", valor: "", actualizado: new Date().toISOString() }); legadoAyu = []; }
+  return null;
+}
+function abrirPermisos(correo) {
+  const c = correo.toLowerCase(), q = permisosAyu[c] || { e: [], s: [] };
+  let m = document.getElementById("modPerm"); if (m) m.remove();
+  m = document.createElement("div"); m.id = "modPerm"; m.style.cssText = "position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;";
+  const grupo = (tit, k, lista, sel) => `<h4 style="margin:12px 0 6px;font-size:13px;opacity:.7;">${tit}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;">${lista.map(([id, t]) => `<label style="display:flex;gap:8px;align-items:center;background:#f4f1ea;border-radius:10px;padding:10px;font-weight:700;font-size:14px;"><input type="checkbox" data-k="${k}" value="${id}" ${sel.includes(id) ? "checked" : ""}> ${t}</label>`).join("")}</div>`;
+  m.innerHTML = `<div style="background:#fff;border-radius:16px;padding:16px;width:min(720px,100%);max-height:100%;overflow:auto;"><h3 style="margin:0 0 4px;">Menús de ${esc(correo)}</h3><p style="margin:0;font-size:13px;opacity:.75;">Marca lo que puede ver. Solo lee: no puede cambiar nada. Se ve igual que tú, pero solo con esos menús.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><button class="boton fina" data-pre="partido">Solo modo partido</button><button class="boton fina" data-pre="todo">Todo</button><button class="boton fina" data-pre="nada">Ninguno</button></div>
+    ${grupo("ENTRENADOR", "e", MENUS_E, q.e)}${grupo("ESTADÍSTICAS", "s", MENUS_S, q.s)}
+    <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:14px;"><button class="boton borrar fina" id="pmQuita">Quitar permisos (ayudante normal)</button><span><button class="boton fina" id="pmNo">Cancelar</button> <button class="boton" id="pmOk">Guardar</button></span></div></div>`;
+  document.body.appendChild(m);
+  const marcar = (e, s) => m.querySelectorAll("input[data-k]").forEach(i => { i.checked = (i.dataset.k === "e" ? e : s).includes(i.value); });
+  m.querySelectorAll("[data-pre]").forEach(b => b.onclick = () => { const p = b.dataset.pre; marcar(p === "partido" ? ["partido"] : p === "todo" ? MENUS_E.map(x => x[0]) : [], p === "todo" ? MENUS_S.map(x => x[0]) : []); });
+  m.addEventListener("pointerdown", (ev) => { if (ev.target === m) m.remove(); });
+  document.getElementById("pmNo").onclick = () => m.remove();
+  document.getElementById("pmOk").onclick = async () => {
+    permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value) };
+    const er = await guardarPermisosAyu(); m.remove();
+    if (er) { avisar("avisoEnt", "No se ha podido guardar: " + er.message, "mal"); await cargarPermisosAyu(); return; }
+    avisar("avisoEnt", `Guardado: ${c} → ${resumenPermisos(c)}.`, "ok"); cargarEntrenadores();
+  };
+  document.getElementById("pmQuita").onclick = async () => {
+    delete permisosAyu[c]; const er = await guardarPermisosAyu(); m.remove();
+    if (er) { avisar("avisoEnt", "No se ha podido guardar: " + er.message, "mal"); await cargarPermisosAyu(); return; }
+    avisar("avisoEnt", `${c} vuelve a ser ayudante normal.`, "ok"); cargarEntrenadores();
+  };
 }
 async function anadirEntrenador() {
   const correo = $("entCorreo").value.trim().toLowerCase();

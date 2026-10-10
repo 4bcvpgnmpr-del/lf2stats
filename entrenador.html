@@ -573,7 +573,7 @@ async function guardarFila(tabla, fila) {
 async function borrarFila(tabla, id) { const { error } = await nube.from(tabla).delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } return true; }
 
 /* ------------ navegacion ------------ */
-function ir(s, c) { seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; seleccion = new Set(); vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
+function ir(s, c) { if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; seleccion = new Set(); vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
 function pintar() {
   document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
   const m = $("main"); m.scrollTop = 0;
@@ -1974,7 +1974,7 @@ async function cargarOffline() {
   const snap = await kv.get("entrenador"); OFFLINE = true; puedeEscribir = false;
   if (snap) Object.keys(D).forEach(k => { D[k] = snap[k] || []; });
   window.addEventListener("online", () => location.reload());
-  contadores(); const h = (location.hash || "").replace("#", ""); if (SECCIONES[h]) seccion = h; pintar();
+  contadores(); const h = (location.hash || "").replace("#", ""); if (SECCIONES[h] && (!PERM_E || PERM_E.has(h))) seccion = h; if (h === "partido" && PERM_E && PERM_E.has("partido")) abrirPartido(); pintar();
 }
 /* ayudante de partido: solo ve el modo partido */
 function soloPartido(email) {
@@ -1988,6 +1988,18 @@ function soloPartido(email) {
   abrirPartido();
 }
 const flagSoloPartido = () => { try { return localStorage.getItem("sf_solo_partido") === "1"; } catch (e) { return false; } };
+async function leerPermisosAyudante(sb, email) {
+  const yo = String(email || "").toLowerCase();
+  try {
+    const { data } = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido"]);
+    const f = {}; (data || []).forEach(r => { f[r.clave] = r.valor; });
+    if (f.permisos_ayudantes) { try { const o = JSON.parse(f.permisos_ayudantes), q = o && o[yo]; if (q) return { e: q.e || [], s: q.s || [] }; } catch (x) { /* nada */ } }
+    const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
+    if (lg.includes(yo)) return { e: ["partido"], s: [] };
+  } catch (e) { /* sin red o sin tabla */ }
+  return null;
+}
+let PERM_E = null;
 async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
@@ -2001,13 +2013,18 @@ async function iniciar() {
     const r = await nube.rpc("es_entrenador");
     if (r && r.data === false) { pantalla("Esta sección es solo para entrenadores."); return; }
   } catch (e) { /* si falla la comprobacion, las reglas de la base de datos protegen igualmente */ }
-  try {
-    const yo = String(data.session.user.email || "").toLowerCase();
-    const r = await nube.from("ajustes").select("valor").eq("clave", "ayudantes_partido").limit(1);
-    const lista = String((r.data && r.data[0] && r.data[0].valor) || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
-    if (lista.includes(yo)) { soloPartido(data.session.user.email); return; }
-    try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
-  } catch (e) { /* sin red: sigue */ }
+  let PERMS = null;
+  try { PERMS = await leerPermisosAyudante(nube, data.session.user.email); } catch (e) { /* sin red */ }
+  if (PERMS) {
+    const E = PERMS.e.filter(x => SECCIONES[x] || x === "partido");
+    if (!E.length) { if (PERMS.s.length) { location.replace("index.html"); return; } pantalla("Todavía no tienes menús habilitados. Pídeselos al entrenador."); return; }
+    if (E.length === 1 && E[0] === "partido") { soloPartido(data.session.user.email); return; }
+    PERM_E = new Set(E); try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
+    document.querySelectorAll("aside .grupo button[data-s]").forEach(b => { if (!PERM_E.has(b.dataset.s)) b.style.display = "none"; });
+    document.querySelectorAll("aside .grupo").forEach(g => { if (![...g.querySelectorAll("button[data-s]")].some(b => b.style.display !== "none")) g.style.display = "none"; });
+    if (!PERMS.s.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="estadisticas"]{display:none !important;}'; document.head.appendChild(st); }
+    seccion = E.find(x => x !== "partido") || "jugadas";
+  } else { try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ } }
   try { const r = await nube.rpc("puede_escribir"); if (r && !r.error && r.data === false) puedeEscribir = false; } catch (e) { /* sin roles: se puede escribir */ }
   window.addEventListener("online", () => { if (OFFLINE) location.reload(); });
   await cargarTodo();

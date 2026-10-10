@@ -2752,7 +2752,7 @@ let vistaActual = null;
 const historialVistas = [];
 
 function showView(id, esVuelta) {
-  if (typeof ROL_APP !== "undefined" && ROL_APP === "ayudante" && !VISTAS_AYUDANTE.includes(id)) id = "inicio";
+  if (typeof ROL_APP !== "undefined" && ROL_APP === "ayudante" && !VISTAS_AYUDANTE.includes(id)) id = VISTAS_AYUDANTE.includes("inicio") ? "inicio" : (VISTAS_AYUDANTE[0] || "inicio");
   if (vistaActual && vistaActual !== id && !esVuelta) {
     historialVistas.push({ vista: vistaActual, scroll: window.scrollY });
     if (historialVistas.length > 30) historialVistas.shift();
@@ -6910,6 +6910,18 @@ function mostrarPuerta(msg, tipo) {
   document.documentElement.classList.add("sin-acceso");
 }
 
+async function leerPermisosAyudante(sb, email) {
+  const yo = String(email || "").toLowerCase();
+  try {
+    const { data } = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido"]);
+    const f = {}; (data || []).forEach(r => { f[r.clave] = r.valor; });
+    if (f.permisos_ayudantes) { try { const o = JSON.parse(f.permisos_ayudantes), q = o && o[yo]; if (q) return { e: q.e || [], s: q.s || [] }; } catch (x) { /* nada */ } }
+    const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
+    if (lg.includes(yo)) return { e: ["partido"], s: [] };
+  } catch (e) { /* sin red o sin tabla */ }
+  return null;
+}
+
 async function resolverRolApp(sb, user) {
   try {
     const { data, error } = await sb.from("ajustes").select("valor").eq("clave", "propietario").limit(1);
@@ -6945,13 +6957,15 @@ async function verificarAcceso() {
   if (!user) { mostrarPuerta(""); return; }
   const { data: soy, error } = await sb.rpc("es_entrenador");
   if (error || soy !== true) { mostrarPuerta("Tu correo (" + user.email + ") no tiene asiento de entrenador.", "mal"); return; }
-  // ayudante de partido: solo entra al modo partido del Entrenador
-  try {
-    const { data: ap } = await sb.from("ajustes").select("valor").eq("clave", "ayudantes_partido").limit(1);
-    const lp = String((ap && ap[0] && ap[0].valor) || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
-    if (lp.includes(String(user.email || "").toLowerCase())) { location.replace("entrenador.html#partido"); return; }
-  } catch (e) { /* sin lista: sigue */ }
-  ROL_APP = await resolverRolApp(sb, user);
+  // permisos por ayudante (los pone el propietario en el Panel)
+  let PERMS = null;
+  try { PERMS = await leerPermisosAyudante(sb, user.email); } catch (e) { /* sin lista: sigue */ }
+  if (PERMS && !PERMS.s.length) {
+    if (PERMS.e.length) { location.replace("entrenador.html" + (PERMS.e.length === 1 && PERMS.e[0] === "partido" ? "#partido" : "")); return; }
+    mostrarPuerta("Todavía no tienes menús habilitados. Pídeselos al entrenador.", "mal"); return;
+  }
+  ROL_APP = PERMS ? "ayudante" : await resolverRolApp(sb, user);
+  if (PERMS && ROL_APP === "ayudante") { VISTAS_AYUDANTE.length = 0; VISTAS_AYUDANTE.push(...PERMS.s, "equipo-detail", "jugadora-detail", "partido-detail", "scouting"); if (!PERMS.e.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="entrenador"]{display:none !important;}'; document.head.appendChild(st); } }
   const ERES_PROPIETARIO = ROL_APP === "propietario";
   let simulando = false;
   try { simulando = ERES_PROPIETARIO && sessionStorage.getItem("sf_ver_como_ayudante") === "1"; } catch (e) {}
@@ -6995,7 +7009,7 @@ function aplicarRolAyudante() {
   };
   ocultar();
   new MutationObserver(ocultar).observe(document.body, { childList: true, subtree: true });
-  if (typeof showView === "function") showView("inicio");
+  if (typeof showView === "function") showView(VISTAS_AYUDANTE.includes("inicio") ? "inicio" : (VISTAS_AYUDANTE[0] || "inicio"));
 }
 document.addEventListener("DOMContentLoaded", () => { verificarAcceso(); });
 
