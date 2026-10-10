@@ -866,6 +866,7 @@ window.addEventListener("message", (ev) => {
 
 /* ------------ importar de Hoops Geek ------------ */
 const HG_FT = 0.3048;
+const hgPlate = (n) => { const t = (x) => !x ? "" : Array.isArray(x) ? x.map(t).join("\n") : typeof x.text === "string" ? x.text : Array.isArray(x.children) ? x.children.map(t).join("") : ""; return Array.isArray(n) ? n.map(b => t(b)).join("\n").replace(/\n{2,}/g, "\n").trim() : ""; };
 const hgTexto = (html) => String(html || "").replace(/<\/(li|p|div|h\d)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<li[^>]*>/gi, "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/\n{2,}/g, "\n").trim();
 const HG_TIPOS = { pass: "pase", cut: "corte", dribble: "bote", screen: "pantalla", handoff: "entrega", move: "mueve", shot: "tiro" };
 function hgConvertir(p, ruta) {
@@ -879,7 +880,14 @@ function hgConvertir(p, ruta) {
     const pos = {}, claves = {}, etq = {}; let balon = "";
     const libre = (pre) => { for (let n = 1; n <= 5; n++) if (!pos[pre + n]) return pre + n; return ""; };
     const jug = (f.objects || []).filter(o => o.subType === "player" && o.pos);
-    const asig = new Map();
+    const asig = new Map(); let nuevaOp = false;
+    if (previo) {
+      /* si las jugadoras de esta fase no salen de donde acabo la anterior, es otra opcion de la jugada (FastDraw guarda varias en una) */
+      const E = Object.keys(previo).filter(k => k[0] === "o").map(k => previo[k]), N = jug.filter(o => !/defense/.test(o.team || "")).map(o => [X(o.pos[0]), Y(o.pos[1])]);
+      const pr = []; E.forEach((e, a) => N.forEach((n, b) => pr.push([dist(e, n), a, b]))); pr.sort((u, v) => u[0] - v[0]);
+      const ua = new Set(), ub = new Set(); let mx = 0; pr.forEach(([d, a, b]) => { if (ua.has(a) || ub.has(b)) return; ua.add(a); ub.add(b); mx = Math.max(mx, d); });
+      if (E.length && N.length && mx > 3) { nuevaOp = true; previo = null; }
+    }
     if (previo) {
       const pares = [];
       jug.forEach((o, io) => { const def = /defense/.test(o.team || ""); Object.keys(previo).forEach(k => { if ((k[0] === "d") !== def) return; pares.push([Math.hypot(X(o.pos[0]) - previo[k][0], Y(o.pos[1]) - previo[k][1]), io, k]); }); });
@@ -944,13 +952,16 @@ function hgConvertir(p, ruta) {
     const fin = {}; Object.keys(pos).forEach(k => { fin[k] = [pos[k].x, pos[k].y]; });
     lineas.forEach(l => { if (l.de && !l.opcional && ["bote", "corte", "pantalla", "mueve", "entrega"].includes(l.t) && fin[l.de]) fin[l.de] = l.pts[l.pts.length - 1]; });
     previo = fin;
-    const paso = { pos, balon: balon || (pos.o1 ? "o1" : Object.keys(pos).find(k => k[0] === "o") || ""), lineas, texto: hgTexto(f.note), objs };
+    const paso = { pos, balon: balon || (pos.o1 ? "o1" : Object.keys(pos).find(k => k[0] === "o") || ""), lineas, texto: hgTexto(f.note) || hgPlate(f.notePlatejs), objs };
     if (Object.keys(etq).length) paso.etq = etq;
+    if (nuevaOp) paso.nuevaOp = true;
     if (f.title) { paso.titulo = f.title; paso.mostrarTitulo = true; }
     return paso;
   });
+  const grupos = []; pasos.forEach((q, i) => { if (!i || q.nuevaOp) grupos.push([]); delete q.nuevaOp; grupos[grupos.length - 1].push(q); });
   const set = d.settings || {}, tags = (p.tags || []).map(t => (typeof t === "string" ? t : (t && (t.name || t.tag)) || "")).filter(Boolean);
-  const j = { v: 3, id: idNuevo("j"), nombre: p.title || "Jugada de Hoops Geek", tipo: "Ataque", notas: hgTexto(set.description), formacion: "cinco", favorita: false, compartida: false, videos: set.youtubeUrl ? [{ url: set.youtubeUrl }] : [], tags, pasos, hg: { id: p.play_id, code: p.code || "" } };
+  const j = { v: 3, id: idNuevo("j"), nombre: p.title || "Jugada de Hoops Geek", tipo: "Ataque", notas: hgTexto(set.description) || hgPlate(set.descriptionPlatejs), formacion: "cinco", favorita: false, compartida: false, videos: set.youtubeUrl ? [{ url: set.youtubeUrl }] : [], tags, pasos: grupos[0], hg: { id: p.play_id, code: p.code || "" } };
+  if (grupos.length > 1) { j.opciones = grupos.map((g, i) => ({ nombre: "Opción " + (i + 1), pasos: g })); j.opAct = 0; }
   return { j, fila: { id: j.id, nombre: j.nombre, tipo: j.tipo, carpeta: ruta || "", favorita: false, compartida: false, data: j }, omitidos };
 }
 /* lo que baja el marcador desde Hoops Geek (o un .har con jugadas dentro) -> lista de jugadas con su carpeta */
