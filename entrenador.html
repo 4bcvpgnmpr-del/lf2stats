@@ -492,6 +492,7 @@
       <button data-s="ejercicios"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Ejercicios</span><span class="n" id="n-ejercicios"></span></button>
       <button data-s="planes"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.01M8 17.500h2M12 17.500h2"/></svg></span><span class="tx">Planes de entreno</span><span class="n" id="n-planes"></span></button>
       <button data-s="equipos"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.500"/><path d="M3.500 19c0-3 2.500-5 5.500-5s5.500 2 5.500 5M15 14.500c3 0 5.500 1.500 5.500 4.500"/></svg></span><span class="tx">Quintetos y equipos</span><span class="n" id="n-equipos"></span></button>
+      <button data-s="mini"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><span class="tx">Mini basket</span></button>
     </div>
     <div class="grupo"><h4>Archivos</h4>
       <button data-s="video"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2.500"/><path d="M16 10.500l5-3v9l-5-3"/></svg></span><span class="tx">Vídeos</span><span class="n" id="n-video"></span></button>
@@ -540,7 +541,7 @@ const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : n
 const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [] };
 let puedeEscribir = true, faltaSql = "", seccion = "jugadas", carpeta = "", busqueda = "", vistaDetalle = null;
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
-const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 const kv = {
@@ -590,6 +591,7 @@ function pintar() {
   if (seccion === "playbooks") return pintarPlaybooks(v);
   if (seccion === "equipos") return pintarEquipos(v);
   if (seccion === "libro") return pintarLibro(v);
+  if (seccion === "mini") { if (!EQ) EQ = Object.assign(eqLeer(), { sel: null }); return pintarMini(v); }
   return pintarArchivos(v, seccion);
 }
 
@@ -1732,7 +1734,6 @@ function eqRepartir(s, equilibrar) {
 }
 function pintarEquipos(v) {
   if (!EQ) EQ = Object.assign(eqLeer(), { sel: null });
-  if (EQ.vista === "mini") return pintarMini(v);
   const set = eqSet(), ro = !puedeEscribir;
   const pres = eqPresentes(), asig = set ? eqAsignados(set) : new Set(), pool = pres.filter(j => !asig.has(j.id));
   const nivel = (j) => "★".repeat(Number(j.nivel) || 3);
@@ -1752,11 +1753,10 @@ function pintarEquipos(v) {
       <div class="eq-pool" data-pool="1"><b>Sin equipo</b> <span class="peq">(${pool.length})</span><div class="eq-chips">${pool.map(j => `<span class="eq-chip ${EQ.sel && EQ.sel.id === j.id ? "sel" : ""}" data-p="${esc(j.id)}">${eqEtq(j)}</span>`).join("") || '<span class="peq">Todos asignados ✓</span>'}</div></div>
       <p class="peq" style="margin:8px 2px 0;">Toca una persona y luego un hueco para colocarla; si el hueco está ocupado se intercambian. Toca «Sin equipo» para sacarla del equipo.</p></div>`;
   }
-  v.innerHTML = `<div class="cab"><h2>Quintetos y equipos</h2><span class="esp"></span><button class="verde" id="eqMini" title="Cuartos de mini basket: todas juegan lo mínimo">🏀 Mini basket</button>${ro ? "" : '<button class="naranja" id="eqNuevo">＋ Nuevo reparto</button>'}</div>
+  v.innerHTML = `<div class="cab"><h2>Quintetos y equipos</h2><span class="esp"></span>${ro ? "" : '<button class="naranja" id="eqNuevo">＋ Nuevo reparto</button>'}</div>
     <div class="eq-sets">${EQ.sets.map(s => `<button class="gris ${s.id === EQ.setId ? "on" : ""}" data-set="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${set && !ro ? '<button class="gris" id="eqDup" title="Duplicar">⧉</button><button class="gris" id="eqDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>
     <div class="eq-grid">${plant}${tablero}</div>`;
   const guardar = async (repintar) => { await eqGuardar(); if (repintar !== false) pintarEquipos(v); };
-  $("eqMini").onclick = () => { EQ.vista = "mini"; pintarEquipos(v); };
   v.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { EQ.setId = b.dataset.set; EQ.sel = null; pintarEquipos(v); });
   if (ro) { const p = $("eqPdf"); if (p) p.onclick = () => imprimirEquipos(set); return; }
   $("eqNuevo").onclick = () => ventana(`<h3>Nuevo reparto</h3><label>Formato</label><select id="nrM">${Object.keys(EQ_MODOS).map(k => `<option value="${k}" ${k === "c3" ? "selected" : ""}>${EQ_MODOS[k][0]}</option>`).join("")}</select><p class="peq">Presentes ahora: ${pres.length}. Luego puedes cambiar el número de equipos.</p><div class="pie-m"><button class="gris" id="nrX">Cancelar</button><button class="naranja" id="nrOk">Crear y sortear</button></div>`) && ($("nrX").onclick = cerrarVentana, $("nrOk").onclick = async () => { const s = eqNuevoSet($("nrM").value); eqRepartir(s, false); EQ.sets.push(s); EQ.setId = s.id; EQ.sel = null; cerrarVentana(); await guardar(); });
@@ -1843,9 +1843,10 @@ function imprimirLibro(r) {
 }
 /* ------------ mini basket: quién juega cada cuarto ------------ */
 const MB_PRE = { ext: ["Extremadura · 6 cuartos de 8′ · todas ≥ 2 cuartos", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }], c4: ["4 cuartos de 10′ · todas ≥ 1 cuarto", { cuartos: 4, min: 10, minJ: 1, maxJ: 0, pista: 5 }], libre: ["Personalizado", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }] };
+const mbJug = (pl) => eqPresentes().concat(pl.x || []);
 const mbFila = (pl, id) => { const r = (pl.g[id] = pl.g[id] || []); while (r.length < pl.r.cuartos) r.push(0); r.length = pl.r.cuartos; return r; };
 function mbAuto(pl, rehacer) {
-  const pres = eqPresentes(), Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ || Q;
+  const pres = mbJug(pl), Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ || Q;
   const base = {}; pres.forEach(j => { base[j.id] = rehacer ? Array(Q).fill(0) : mbFila(pl, j.id).slice(); });
   let mejor = null, mejorPen = 1e9;
   const suma = (a, d, h) => a.slice(d, h).reduce((x, y) => x + y, 0);
@@ -1864,32 +1865,32 @@ function mbAuto(pl, rehacer) {
   return mejorPen;
 }
 function mbResumen(pl) {
-  const pres = eqPresentes(), Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, av = [];
+  const pres = mbJug(pl), Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, av = [];
   if (pres.length < P) av.push("Hay solo " + pres.length + " jugadoras presentes: no se llega a " + P + " en pista.");
   else if (pres.length * mn > Q * P) av.push("Con " + pres.length + " jugadoras y mínimo " + mn + " cuartos cada una hacen falta " + pres.length * mn + " puestos, pero solo hay " + Q * P + " (" + Q + " cuartos × " + P + "). Baja el mínimo o quita jugadoras.");
   if (pl.r.maxJ && pres.length * pl.r.maxJ < Q * P) av.push("Con máximo " + pl.r.maxJ + " cuartos por jugadora no se cubren todos los puestos.");
   return av;
 }
 function pintarMini(v) {
-  const ro = !puedeEscribir, pl = (EQ.mini || []).find(x => x.id === EQ.miniId) || null, pres = eqPresentes();
+  const ro = !puedeEscribir, pl = (EQ.mini || []).find(x => x.id === EQ.miniId) || null, pres = pl ? mbJug(pl) : eqPresentes();
   const guardar = () => { eqGuardar(); };
   let cuerpo = "";
-  if (!pl) cuerpo = `<div class="eq-card eq-vacio"><h3>Cuartos de mini basket</h3><p class="peq">Crea un partido, elige el formato (por ejemplo Extremadura: 6 cuartos de 8′ y todas juegan al menos 2) y marca quién juega cada cuarto. «Autocompletar» reparte los cuartos por ti y respeta lo que ya hayas marcado. Las jugadoras son las presentes de «Quintetos y equipos».</p></div>`;
+  if (!pl) cuerpo = `<div class="eq-card eq-vacio"><h3>Cuartos de mini basket</h3><p class="peq">Crea un partido, elige el formato (por ejemplo Extremadura: 6 cuartos de 8′ y todas juegan al menos 2) y marca quién juega cada cuarto. «Autocompletar» reparte los cuartos por ti y respeta lo que ya hayas marcado. Las jugadoras son las presentes de «Quintetos y equipos», y puedes añadir otras a mano en cada partido.</p></div>`;
   else {
     const Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ, av = mbResumen(pl);
-    const filas = EQ.plantilla.map(j => { const r = mbFila(pl, j.id), ausente = j.pres === false, tot = ausente ? 0 : r.reduce((a, b) => a + b, 0), mal = !ausente && (tot < mn || (mx && tot > mx));
-      return `<tr class="${ausente ? "aus" : ""}"><td class="nm"><input type="checkbox" data-pr="${esc(j.id)}" ${ausente ? "" : "checked"} ${ro ? "disabled" : ""} title="Presente hoy">${eqEtq(j)}</td>${r.map((x, q) => `<td><button class="mb-c ${x && !ausente ? "on" : ""}" data-j="${esc(j.id)}" data-q="${q}" ${ro || ausente ? "disabled" : ""}>${x && !ausente ? "✓" : ""}</button></td>`).join("")}<td class="${mal ? "bad" : "ok"}">${tot}</td><td>${tot * pl.r.min}′</td></tr>`; }).join("");
+    const filas = EQ.plantilla.concat(pl.x || []).map(j => { const man = (pl.x || []).includes(j), r = mbFila(pl, j.id), ausente = j.pres === false, tot = ausente ? 0 : r.reduce((a, b) => a + b, 0), mal = !ausente && (tot < mn || (mx && tot > mx));
+      return `<tr class="${ausente ? "aus" : ""}"><td class="nm">${man ? (ro ? "" : `<button class="gris" data-xq="${esc(j.id)}" title="Quitar" style="min-height:0;padding:0 7px;margin-right:6px;">✕</button>`) : `<input type="checkbox" data-pr="${esc(j.id)}" ${ausente ? "" : "checked"} ${ro ? "disabled" : ""} title="Presente hoy">`}${eqEtq(j)}${man ? " <span class=\"peq\">(manual)</span>" : ""}</td>${r.map((x, q) => `<td><button class="mb-c ${x && !ausente ? "on" : ""}" data-j="${esc(j.id)}" data-q="${q}" ${ro || ausente ? "disabled" : ""}>${x && !ausente ? "✓" : ""}</button></td>`).join("")}<td class="${mal ? "bad" : "ok"}">${tot}</td><td>${tot * pl.r.min}′</td></tr>`; }).join("");
     const pie = Array.from({ length: Q }, (_, q) => { const n = pres.filter(j => mbFila(pl, j.id)[q]).length; return `<td class="${n === P ? "ok" : "bad"}">${n}/${P}</td>`; }).join("");
     cuerpo = `<div class="eq-card">
-      <div class="eq-tb"><input id="mbN" value="${esc(pl.nombre)}" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="naranja" id="mbAuto" title="Reparte los cuartos que faltan, respetando lo que marcaste">🎲 Autocompletar</button><button class="verde" id="mbRe" title="Borra todo y lo reparte de nuevo">♻️ Rehacer</button><button class="gris" id="mbLim">Limpiar</button><button class="gris" id="mbReg">⚙ Reglas</button>`}<button class="gris" id="mbPdf">🖨 PDF</button></div>
+      <div class="eq-tb"><input id="mbN" value="${esc(pl.nombre)}" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="naranja" id="mbAuto" title="Reparte los cuartos que faltan, respetando lo que marcaste">🎲 Autocompletar</button><button class="verde" id="mbRe" title="Borra todo y lo reparte de nuevo">♻️ Rehacer</button><button class="gris" id="mbAdd" title="Añadir una jugadora solo para este partido">＋ Jugadora</button><button class="gris" id="mbLim">Limpiar</button><button class="gris" id="mbReg">⚙ Reglas</button>`}<button class="gris" id="mbPdf">🖨 PDF</button></div>
       <div class="mb-reg"><span>${Q} cuartos de ${pl.r.min}′</span><span>Todas ≥ ${mn} cuartos</span>${mx ? `<span>Máx. ${mx}</span>` : ""}<span>${P} en pista</span></div>
       ${av.length ? av.map(a => `<div class="mb-aviso">⚠️ ${esc(a)}</div>`).join("") : ""}
       <div style="overflow-x:auto;"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th>${Array.from({ length: Q }, (_, q) => `<th>${q + 1}º</th>`).join("")}<th>Cuartos</th><th>Min</th></tr></thead><tbody>${filas || `<tr><td colspan="${Q + 3}" class="peq">No hay jugadoras: añádelas en «Repartos».</td></tr>`}</tbody><tfoot><tr><th style="text-align:left;">En pista</th>${pie}<th></th><th></th></tr></tfoot></table></div>
       <p class="peq" style="margin:8px 2px 0;">Toca una casilla para poner o quitar a una jugadora en ese cuarto. En rojo: cuartos sin las ${P} en pista, o jugadoras por debajo del mínimo.</p></div>`;
   }
-  v.innerHTML = `<div class="cab"><h2>🏀 Mini basket</h2><span class="esp"></span><button class="gris" id="mbVolver">← Quintetos y equipos</button>${ro ? "" : '<button class="naranja" id="mbNuevo">＋ Nuevo partido</button>'}</div>
+  v.innerHTML = `<div class="cab"><h2>🏀 Mini basket</h2><span class="esp"></span><button class="gris" id="mbVolver" title="Editar la plantilla">👥 Plantilla</button>${ro ? "" : '<button class="naranja" id="mbNuevo">＋ Nuevo partido</button>'}</div>
     <div class="eq-sets">${(EQ.mini || []).map(s => `<button class="gris ${s.id === EQ.miniId ? "on" : ""}" data-mini="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${pl && !ro ? '<button class="gris" id="mbDup" title="Duplicar">⧉</button><button class="gris" id="mbDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>${cuerpo}`;
-  $("mbVolver").onclick = () => { EQ.vista = ""; pintarEquipos(v); };
+  $("mbVolver").onclick = () => ir("equipos");
   v.querySelectorAll("[data-mini]").forEach(b => b.onclick = () => { EQ.miniId = b.dataset.mini; pintarMini(v); });
   if (!pl) { if ($("mbNuevo")) $("mbNuevo").onclick = () => formMini(v, null); return; }
   $("mbPdf").onclick = () => imprimirMini(pl);
@@ -1903,6 +1904,10 @@ function pintarMini(v) {
   $("mbLim").onclick = () => { if (!confirm("¿Quitar todas las marcas?")) return; pl.g = {}; guardar(); pintarMini(v); };
   $("mbDup").onclick = () => { const c = clonar(pl); c.id = idNuevo("m"); c.nombre += " (copia)"; EQ.mini.push(c); EQ.miniId = c.id; guardar(); pintarMini(v); };
   $("mbDel").onclick = () => { if (!confirm("¿Borrar «" + pl.nombre + "»?")) return; EQ.mini = EQ.mini.filter(x => x !== pl); EQ.miniId = EQ.mini.length ? EQ.mini[0].id : ""; guardar(); pintarMini(v); };
+  $("mbAdd").onclick = () => { ventana(`<h3>Añadir jugadora a este partido</h3><p class="peq">Solo cuenta en «${esc(pl.nombre)}»; no se añade a la plantilla.</p><div class="dos"><div><label>Dorsal</label><input id="mxD" inputmode="numeric"></div><div><label>Nombre</label><input id="mxN" placeholder="Nombre"></div></div><div class="pie-m"><button class="gris" id="mxX">Cancelar</button><button class="naranja" id="mxOk">Añadir</button></div>`); $("mxN").focus(); $("mxX").onclick = cerrarVentana;
+    const ok = () => { const nm = $("mxN").value.trim(); if (!nm) { aviso("Escribe un nombre"); return; } pl.x = pl.x || []; pl.x.push({ id: idNuevo("x"), nombre: nm, num: $("mxD").value.trim() }); cerrarVentana(); guardar(); pintarMini(v); };
+    $("mxOk").onclick = ok; $("mxN").addEventListener("keydown", (e) => { if (e.key === "Enter") ok(); }); };
+  v.querySelectorAll("[data-xq]").forEach(b => b.onclick = () => { const j = (pl.x || []).find(y => y.id === b.dataset.xq); if (!j || !confirm("¿Quitar a " + j.nombre + " de este partido?")) return; pl.x = pl.x.filter(y => y !== j); delete pl.g[j.id]; guardar(); pintarMini(v); });
   v.querySelectorAll("[data-pr]").forEach(c => c.onchange = () => { const j = eqJug(c.dataset.pr); j.pres = c.checked; guardar(); pintarMini(v); });
   v.querySelectorAll(".mb-c").forEach(b => b.onclick = () => { const r = mbFila(pl, b.dataset.j), q = Number(b.dataset.q); r[q] = r[q] ? 0 : 1; guardar(); pintarMini(v); });
 }
@@ -1925,7 +1930,7 @@ function formMini(v, pl) {
   };
 }
 async function imprimirMini(pl) {
-  const q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "", pres = eqPresentes(), Q = pl.r.cuartos;
+  const q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "", pres = mbJug(pl), Q = pl.r.cuartos;
   const filas = pres.map(j => { const r = mbFila(pl, j.id), tot = r.reduce((a, b) => a + b, 0); return `<tr><td class="nm">${j.num !== "" && j.num != null ? esc(String(j.num)) + " · " : ""}${esc(j.nombre)}</td>${r.map(x => `<td class="${x ? "on" : ""}">${x ? "✓" : ""}</td>`).join("")}<td><b>${tot}</b></td><td>${tot * pl.r.min}′</td></tr>`; }).join("");
   const pie = Array.from({ length: Q }, (_, i) => `<td>${pres.filter(j => mbFila(pl, j.id)[i]).length}</td>`).join("");
   $("hojaImp").className = "pdf-eq";
@@ -2247,7 +2252,7 @@ function soloPartido(email) {
   abrirPartido();
 }
 const flagSoloPartido = () => { try { return localStorage.getItem("sf_solo_partido") === "1"; } catch (e) { return false; } };
-const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
