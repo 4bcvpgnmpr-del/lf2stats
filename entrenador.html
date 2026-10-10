@@ -861,6 +861,7 @@ async function dejarDeCompartir(tipo, x) {
 function opcionesElemento(tipo, x) {
   const o = [["✏️ " + (tipo === "jugadas" || tipo === "ejercicios" ? "Editar en la pizarra" : "Abrir"), () => editarElemento(tipo, x)]];
   if (tipo === "ejercicios") o.push(["📝 Editar datos (material, vídeo…)", () => formEjercicio(x)]);
+  if (tipo === "jugadas" && puedeEscribir) o.push(["📝 Nombre, equipo y temporada…", () => formJugada(x)]);
   if (tipo === "jugadas") o.push(["▶ Ver animada", () => verJugada(x)], [x.compartida ? "🙈 Ocultar a las jugadoras" : "📤 Mostrar a las jugadoras", () => alternarComp(x)]);
   if (puedeEscribir && (tipo === "jugadas" || tipo === "ejercicios" || tipo === "planes")) { o.push(["🔗 Compartir enlace (solo lectura)", () => compartirEnlace(tipo, x)]); let tk0 = ""; try { tk0 = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ } if (tk0) o.push(["🚫 Dejar de compartir", () => dejarDeCompartir(tipo, x)]); }
   o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
@@ -1436,6 +1437,25 @@ function pbLibLista() {
 }
 
 /* ------------ ejercicios ------------ */
+const TIPOS_JUG = ["Ataque", "Saque de fondo", "Saque de banda", "Contra zona", "Presion", "Ultimos segundos", "Otra"];
+/* editar los datos de una jugada sin abrir la pizarra */
+function formJugada(x) {
+  const d = x.data || {}, vals = (k) => [...new Set(D.jugadas.map(y => y.data && y.data[k]).filter(Boolean))].sort();
+  const tipos = TIPOS_JUG.includes(x.tipo) || !x.tipo ? TIPOS_JUG : TIPOS_JUG.concat([x.tipo]);
+  ventana(`<h3>Datos de la jugada</h3>
+    <label>Nombre</label><input id="fjN" value="${esc(x.nombre || "")}">
+    <label>Categoría</label><select id="fjT">${tipos.map(t => `<option ${t === x.tipo ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
+    <div class="dos"><div><label>Equipo</label><input id="fjE" list="dlfe" value="${esc(d.equipo || "")}" placeholder="Ej: Cadete A"><datalist id="dlfe">${vals("equipo").map(v => `<option value="${esc(v)}">`).join("")}</datalist></div>
+    <div><label>Temporada</label><input id="fjS" list="dlfs" value="${esc(d.temporada || "")}" placeholder="Ej: 2026/27"><datalist id="dlfs">${vals("temporada").map(v => `<option value="${esc(v)}">`).join("")}</datalist></div></div>
+    <div class="pie-m"><button class="gris" id="fjX">Cancelar</button><button class="naranja" id="fjG">Guardar</button></div>`);
+  $("fjX").onclick = cerrarVentana; $("fjN").focus();
+  const ok = async () => {
+    const nombre = $("fjN").value.trim(); if (!nombre) { aviso("Ponle un nombre"); return; }
+    const tipoN = $("fjT").value, nd = Object.assign({}, clonar(d), { nombre, tipo: tipoN, equipo: $("fjE").value.trim(), temporada: $("fjS").value.trim() });
+    if (await guardarFila("jugadas", Object.assign({}, x, { nombre, tipo: tipoN, data: nd }))) { cerrarVentana(); aviso("Guardado ✓"); await cargarTodo(); pintar(); }
+  };
+  $("fjG").onclick = ok; ["fjN", "fjE", "fjS"].forEach(i => $(i).addEventListener("keydown", (e) => { if (e.key === "Enter") ok(); }));
+}
 function formEjercicio(x) {
   const nuevo = !x; x = x ? clonar(x) : { id: idNuevo("e"), nombre: "", carpeta: carpeta || "", data: {} };
   const d = x.data = x.data || {};
