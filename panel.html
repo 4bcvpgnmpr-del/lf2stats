@@ -261,6 +261,10 @@
         <div style="flex:none;"><button class="boton fina" id="btnEntAnadir">Dar asiento</button></div>
       </div>
       <div id="avisoEnt"></div>
+      <h3 class="sub" style="margin-top:22px;">4 · Planes, precios y ligas</h3>
+      <p class="expl" style="margin:0 0 8px;">Gratis: de muestra, máximo 5 jugadas, 5 ejercicios y 3 planes de entrenamiento. Pro: todo el Entrenador. Premium: Pro + Estadísticas (solo si su liga está automatizada). El precio es solo un texto que verán cuando algo esté bloqueado; el cobro lo haces tú.</p>
+      <div id="planesCfg"></div>
+      <div id="avisoPlanes"></div>
     </div>
 
     </div>
@@ -970,7 +974,7 @@ function asignarCorreosPegados() {
 }
 
 /* ---------- asientos de entrenador ---------- */
-let permisosAyu = {}, legadoAyu = [], entrenadoresCuenta = null, colCorreoEntrenador = "email";
+let ligasAuto = [], preciosPlan = {}, permisosAyu = {}, legadoAyu = [], entrenadoresCuenta = null, colCorreoEntrenador = "email";
 async function cargarEntrenadores() {
   const caja = $("entLista");
   const { data, error } = await sb.from("entrenadores").select("*");
@@ -981,7 +985,7 @@ async function cargarEntrenadores() {
     entrenadoresCuenta = null; $("contEnt").textContent = ""; pintarAccesos(); return;
   }
   const filas = data || [];
-  await cargarPermisosAyu();
+  await cargarPermisosAyu(); pintarPlanesCfg();
   if (filas[0]) colCorreoEntrenador = ("email" in filas[0]) ? "email" : (Object.keys(filas[0]).find(k => /mail|correo/i.test(k)) || "email");
   entrenadoresCuenta = filas.length;
   $("contEnt").textContent = filas.length + (filas.length === 1 ? " entrenador" : " entrenadores");
@@ -995,20 +999,34 @@ async function cargarEntrenadores() {
   caja.querySelectorAll("button[data-perm]").forEach(b => b.addEventListener("click", () => abrirPermisos(b.getAttribute("data-perm"))));
   pintarAccesos();
 }
+const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 const MENUS_E = [["jugadas", "Jugadas"], ["playbooks", "Playbooks"], ["ejercicios", "Ejercicios"], ["planes", "Planes de entrenamiento"], ["equipos", "Quintetos y equipos"], ["libro", "Libro de partidos"], ["video", "Vídeos"], ["imagen", "Imágenes"], ["audio", "Audio"], ["partido", "🏀 Modo partido (pizarra, marcador, estadísticas)"]];
 const MENUS_S = [["inicio", "Inicio"], ["mi-equipo", "Mi equipo"], ["clasificacion", "Clasificación"], ["equipos", "Equipos"], ["jugadoras", "Jugadoras"], ["rankings", "Rankings"], ["estadisticas", "Estadísticas"], ["quintetos", "Quintetos"], ["fichajes", "Fichajes"], ["comparador", "Comparador"], ["resultados", "Resultados"], ["records", "Récords"], ["informes", "Informes"]];
 async function cargarPermisosAyu() {
   permisosAyu = {}; legadoAyu = [];
   try {
-    const r = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido"]);
+    const r = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido", "ligas_auto", "planes_precio"]);
     const f = {}; (r.data || []).forEach(x => { f[x.clave] = x.valor; });
     try { permisosAyu = JSON.parse(f.permisos_ayudantes || "{}") || {}; } catch (e) { permisosAyu = {}; }
     legadoAyu = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
     legadoAyu.forEach(c => { if (!permisosAyu[c]) permisosAyu[c] = { e: ["partido"], s: [] }; });
+    try { ligasAuto = JSON.parse(f.ligas_auto || "[]") || []; } catch (e) { ligasAuto = []; } try { preciosPlan = JSON.parse(f.planes_precio || "{}") || {}; } catch (e) { preciosPlan = {}; }
   } catch (e) { /* nada */ }
+}
+function pintarPlanesCfg() {
+  const c = document.getElementById("planesCfg"); if (!c) return;
+  c.innerHTML = `<div class="fila" style="gap:8px;flex-wrap:wrap;">${Object.keys(PLANES_APP).map(k => `<div style="min-width:120px;"><label style="margin-top:0;">${PLANES_APP[k].n} · precio</label><input data-precio="${k}" placeholder="${k === "gratis" ? "0 €" : k === "pro" ? "9 €/mes" : "19 €/mes"}" value="${esc(preciosPlan[k] || "")}"></div>`).join("")}</div>
+    <label>Ligas con estadísticas automáticas (las que tienes cargadas en la hoja)</label>
+    <div id="ligasLista">${ligasAuto.length ? ligasAuto.map((l, i) => `<div class="ent-fila"><span>${esc(l.nombre)}</span><button class="boton borrar fina" data-ligax="${i}">Quitar</button></div>`).join("") : '<div class="vacio">Todavía no hay ninguna liga.</div>'}</div>
+    <div class="fila" style="margin-top:8px;align-items:flex-end;"><div><input id="ligaNueva" placeholder="Ej. Liga Femenina 2"></div><div style="flex:none;"><button class="boton fina" id="ligaAdd">Añadir liga</button></div></div>`;
+  c.querySelectorAll("[data-precio]").forEach(i => i.addEventListener("change", async () => { preciosPlan[i.dataset.precio] = i.value.trim(); const { error } = await sb.from("ajustes").upsert({ clave: "planes_precio", valor: JSON.stringify(preciosPlan), actualizado: new Date().toISOString() }); avisar("avisoPlanes", error ? "No se ha podido guardar: " + error.message : "Precio guardado.", error ? "mal" : "ok"); }));
+  const guardaLigas = async () => { const { error } = await sb.from("ajustes").upsert({ clave: "ligas_auto", valor: JSON.stringify(ligasAuto), actualizado: new Date().toISOString() }); avisar("avisoPlanes", error ? "No se ha podido guardar: " + error.message : "Ligas guardadas.", error ? "mal" : "ok"); pintarPlanesCfg(); };
+  c.querySelectorAll("[data-ligax]").forEach(b => b.addEventListener("click", () => { ligasAuto.splice(Number(b.dataset.ligax), 1); guardaLigas(); }));
+  document.getElementById("ligaAdd").addEventListener("click", () => { const n = document.getElementById("ligaNueva").value.trim(); if (!n) return; const id = n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); if (!id || ligasAuto.some(l => l.id === id)) return; ligasAuto.push({ id, nombre: n }); guardaLigas(); });
 }
 function resumenPermisos(c) {
   const q = permisosAyu[String(c).toLowerCase()]; if (!q) return "ayudante normal";
+  if (q.plan && PLANES_APP[q.plan]) return "plan " + PLANES_APP[q.plan].n;
   if (q.e.length === 1 && q.e[0] === "partido" && !q.s.length) return "solo modo partido";
   const n = q.e.length + q.s.length; return n ? n + (n === 1 ? " menú" : " menús") : "sin menús";
 }
@@ -1025,21 +1043,27 @@ function abrirPermisos(correo) {
   const grupo = (tit, k, lista, sel) => `<h4 style="margin:12px 0 6px;font-size:13px;opacity:.7;">${tit}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;">${lista.map(([id, t]) => `<label style="display:flex;gap:8px;align-items:center;background:#f4f1ea;border-radius:10px;padding:10px;font-weight:700;font-size:14px;"><input type="checkbox" data-k="${k}" value="${id}" ${sel.includes(id) ? "checked" : ""}> ${t}</label>`).join("")}</div>`;
   m.innerHTML = `<div style="background:#fff;border-radius:16px;padding:16px;width:min(720px,100%);max-height:100%;overflow:auto;"><h3 style="margin:0 0 4px;">Menús de ${esc(correo)}</h3><p style="margin:0;font-size:13px;opacity:.75;">Marca lo que puede ver. Solo lee: no puede cambiar nada. Se ve igual que tú, pero solo con esos menús.</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><button class="boton fina" data-pre="partido">Solo modo partido</button><button class="boton fina" data-pre="todo">Todo</button><button class="boton fina" data-pre="nada">Ninguno</button></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;"><label style="font-weight:700;font-size:13px;">Plan <select id="pmPlan" style="margin-left:4px;"><option value="">Personalizado</option>${Object.keys(PLANES_APP).map(k => `<option value="${k}" ${q.plan === k ? "selected" : ""}>${PLANES_APP[k].n}</option>`).join("")}</select></label><label style="font-weight:700;font-size:13px;">Liga con estadísticas <select id="pmLiga" style="margin-left:4px;"><option value="">— ninguna —</option>${ligasAuto.map(l => `<option value="${esc(l.id)}" ${q.liga === l.id ? "selected" : ""}>${esc(l.nombre)}</option>`).join("")}</select></label></div>
+    <p style="margin:6px 0 0;font-size:12px;opacity:.7;">Las estadísticas solo se activan con plan Premium y una liga automatizada. Si cambias el plan se marcan sus menús; luego puedes ajustarlos.</p>
     ${grupo("ENTRENADOR", "e", MENUS_E, q.e)}${grupo("ESTADÍSTICAS", "s", MENUS_S, q.s)}
     <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:14px;"><span><button class="boton borrar fina" id="pmQuita">Quitar permisos</button> <button class="boton fina" id="pmVer" style="background:#2b6cb0;color:#fff;">👁 Ver como este ayudante</button></span><span><button class="boton fina" id="pmNo">Cancelar</button> <button class="boton" id="pmOk">Guardar</button></span></div></div>`;
   document.body.appendChild(m);
   const marcar = (e, s) => m.querySelectorAll("input[data-k]").forEach(i => { i.checked = (i.dataset.k === "e" ? e : s).includes(i.value); });
-  m.querySelectorAll("[data-pre]").forEach(b => b.onclick = () => { const p = b.dataset.pre; marcar(p === "partido" ? ["partido"] : p === "todo" ? MENUS_E.map(x => x[0]) : [], p === "todo" ? MENUS_S.map(x => x[0]) : []); });
+  document.getElementById("pmPlan").onchange = (ev) => { const pl = PLANES_APP[ev.target.value]; if (pl) marcar(pl.e, pl.s); };
+  m.querySelectorAll("[data-pre]").forEach(b => b.onclick = () => { document.getElementById("pmPlan").value = ""; const p = b.dataset.pre; marcar(p === "partido" ? ["partido"] : p === "todo" ? MENUS_E.map(x => x[0]) : [], p === "todo" ? MENUS_S.map(x => x[0]) : []); });
   m.addEventListener("pointerdown", (ev) => { if (ev.target === m) m.remove(); });
   document.getElementById("pmNo").onclick = () => m.remove();
   document.getElementById("pmVer").onclick = () => {
     const e = [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), sv = [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value);
     if (!e.length && !sv.length) { avisar("avisoEnt", "Marca algún menú para ver cómo queda.", "mal"); return; }
-    try { sessionStorage.setItem("sf_ver_como", JSON.stringify({ e, s: sv })); } catch (x) { /* nada */ }
-    location.href = sv.length ? "index.html" : "entrenador.html";
+    const plan = document.getElementById("pmPlan").value, liga = document.getElementById("pmLiga").value; let s2 = sv, lock = null;
+    if (plan) { if (plan !== "premium") { if (sv.length) lock = "plan"; s2 = []; } else if (sv.length && !ligasAuto.some(l => l.id === liga)) { lock = "liga"; s2 = []; } }
+    if (!e.length && !s2.length) { avisar("avisoEnt", "Con ese plan no queda ningún menú que ver.", "mal"); return; }
+    try { sessionStorage.setItem("sf_ver_como", JSON.stringify({ e, s: s2, plan, lock, precios: preciosPlan })); } catch (x) { /* nada */ }
+    location.href = s2.length ? "index.html" : "entrenador.html";
   };
   document.getElementById("pmOk").onclick = async () => {
-    permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value) };
+    permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value), plan: document.getElementById("pmPlan").value, liga: document.getElementById("pmLiga").value };
     const er = await guardarPermisosAyu(); m.remove();
     if (er) { avisar("avisoEnt", "No se ha podido guardar: " + er.message, "mal"); await cargarPermisosAyu(); return; }
     avisar("avisoEnt", `Guardado: ${c} → ${resumenPermisos(c)}.`, "ok"); cargarEntrenadores();

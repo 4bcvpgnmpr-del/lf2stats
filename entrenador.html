@@ -705,7 +705,7 @@ function pintarCarpetas(v, tipo) {
   const nFiltros = filtroTags.length + (filtroTipo ? 1 : 0) + Object.values(fx).filter(Boolean).length;
   const nuevoTxt = tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
-  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${tipo === "jugadas" ? '<button class="gris" id="bPartido" title="Pizarra en vivo para el banquillo">🏟 Modo partido</button>' : ""}${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
+  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${PLAN_LIM && PLAN_LIM[tipo] != null ? `<span class="peq" style="background:#fff4e6;color:#c2570c;border-radius:999px;padding:4px 10px;font-weight:800;">Muestra: ${D[tipo].length}/${PLAN_LIM[tipo]}</span>` : ""}${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${tipo === "jugadas" ? '<button class="gris" id="bPartido" title="Pizarra en vivo para el banquillo">🏟 Modo partido</button>' : ""}${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
     <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
       <button class="gris" id="bIr" title="Ir a una carpeta">📂 Carpetas</button>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
@@ -746,7 +746,7 @@ function pintarCarpetas(v, tipo) {
   v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else if (a.dataset.q === "x") delete fx[a.dataset.k]; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
   if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
   if ($("bPartido")) $("bPartido").onclick = abrirPartido;
-  if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [...(tipo === "jugadas" || tipo === "ejercicios" ? [["⤓ Importar de Hoops Geek", () => dialogoHG(tipo)]] : []), ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
+  if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [...(HG_ACTIVO && (tipo === "jugadas" || tipo === "ejercicios") ? [["⤓ Importar de Hoops Geek", () => dialogoHG(tipo)]] : []), ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
   if ($("sNo")) $("sNo").onclick = () => { seleccion.clear(); redib(); };
   const selItems = () => D[tipo].filter(x => seleccion.has(x.id));
   if ($("sTag")) $("sTag").onclick = () => editarTags(tipo, selItems());
@@ -930,12 +930,14 @@ function moverACarpeta(tipo, lista) {
   };
 }
 async function duplicar(tipo, x) {
+  if (!puedeCrear(tipo)) return;
   const c = clonar(x); c.id = idNuevo(tipo[0]); c.nombre = (c.nombre || "") + " (copia)"; if (tipo === "jugadas") { c.compartida = false; c.data.id = c.id; c.data.nombre = c.nombre; c.data.compartida = false; }
   if (await guardarFila(TABLA_DE[tipo], c)) { aviso("Duplicado"); await cargarTodo(); pintar(); }
 }
 async function borrarElemento(tipo, x) { if (!confirm("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
 async function alternarComp(x) { const c = clonar(x); c.compartida = !c.compartida; c.data.compartida = c.compartida; if (await guardarFila("jugadas", c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); await cargarTodo(); pintar(); } }
 function nuevoElemento(tipo) {
+  if (!puedeCrear(tipo)) return;
   if (tipo === "jugadas") return abrirEditor("");
   if (tipo === "ejercicios") return abrirEditor("", "ejercicios");
   nuevoPlanModal();
@@ -1166,7 +1168,8 @@ function dialogoHG(tipo) {
     const act = () => { const n = caja.querySelectorAll("input:checked").length; $("hgImp").disabled = !n; $("hgImp").textContent = "Importar " + n; };
     caja.querySelectorAll("input").forEach(c => c.onchange = act); act();
     $("hgImp").onclick = async () => {
-      const sel = [...caja.querySelectorAll("input:checked")].map(c => cand[Number(c.dataset.i)]); $("hgImp").disabled = true;
+      const sel = [...caja.querySelectorAll("input:checked")].map(c => cand[Number(c.dataset.i)]);
+      if (!puedeCrear(tipo, sel.filter(x => !x.repetida).length)) return; $("hgImp").disabled = true;
       const rutas = new Set(); sel.forEach(x => { let acc = ""; (x.ruta ? x.ruta.split("/") : []).forEach(s => { acc = acc ? acc + "/" + s : s; rutas.add(acc); }); });
       for (const ruta of rutas) if (!D.carpetas.some(c => c.tipo === tipo && c.nombre === ruta)) await guardarFila("carpetas", { tipo, nombre: ruta });
       let n = 0; for (const x of sel) {
@@ -2087,14 +2090,21 @@ function soloPartido(email) {
   abrirPartido();
 }
 const flagSoloPartido = () => { try { return localStorage.getItem("sf_solo_partido") === "1"; } catch (e) { return false; } };
+const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
-    const { data } = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido"]);
+    const { data } = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido", "ligas_auto", "planes_precio"]);
     const f = {}; (data || []).forEach(r => { f[r.clave] = r.valor; });
-    if (f.permisos_ayudantes) { try { const o = JSON.parse(f.permisos_ayudantes), q = o && o[yo]; if (q) return { e: q.e || [], s: q.s || [] }; } catch (x) { /* nada */ } }
+    const J = (t, d) => { try { return JSON.parse(t) || d; } catch (x) { return d; } };
+    const q = J(f.permisos_ayudantes, {})[yo];
+    if (q) {
+      let s = q.s || [], lock = null; const ligas = J(f.ligas_auto, []).map(l => l.id);
+      if (q.plan) { if (q.plan !== "premium") { if (s.length) lock = "plan"; s = []; } else if (s.length && !ligas.includes(q.liga)) { lock = "liga"; s = []; } }
+      return { e: q.e || [], s, plan: q.plan || "", lock, precios: J(f.planes_precio, {}) };
+    }
     const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
-    if (lg.includes(yo)) return { e: ["partido"], s: [] };
+    if (lg.includes(yo)) return { e: ["partido"], s: [], plan: "", lock: null, precios: {} };
   } catch (e) { /* sin red o sin tabla */ }
   return null;
 }
@@ -2105,8 +2115,14 @@ function bannerSim() {
   document.body.appendChild(b);
   document.getElementById("bannerSimX").addEventListener("click", () => { try { sessionStorage.removeItem("sf_ver_como"); } catch (e) { /* nada */ } });
 }
-function permisosSimulados() { try { const q = JSON.parse(sessionStorage.getItem("sf_ver_como") || "null"); return q ? { e: q.e || [], s: q.s || [] } : null; } catch (e) { return null; } }
-let PERM_E = null;
+function permisosSimulados() { try { const q = JSON.parse(sessionStorage.getItem("sf_ver_como") || "null"); return q ? { e: q.e || [], s: q.s || [], plan: q.plan || "", lock: q.lock || null, precios: q.precios || {} } : null; } catch (e) { return null; } }
+const HG_ACTIVO = false; /* importar de Hoops Geek: oculto por ahora (poner true para volver a mostrarlo) */
+let PERM_E = null, PLAN_LIM = null;
+function puedeCrear(tipo, n) {
+  if (!PLAN_LIM || PLAN_LIM[tipo] == null) return true;
+  if (D[tipo].length + (n == null ? 1 : n) <= PLAN_LIM[tipo]) return true;
+  aviso("Plan Gratis: máximo " + PLAN_LIM[tipo] + " " + (tipo === "planes" ? "planes de entrenamiento" : tipo) + " de muestra. Pásate a Pro para tener más."); return false;
+}
 async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
@@ -2128,9 +2144,15 @@ async function iniciar() {
     const E = PERMS.e.filter(x => SECCIONES[x] || x === "partido");
     if (!E.length) { if (PERMS.s.length) { location.replace("index.html"); return; } pantalla("Todavía no tienes menús habilitados. Pídeselos al entrenador."); return; }
     if (E.length === 1 && E[0] === "partido") { soloPartido(data.session.user.email); return; }
-    PERM_E = new Set(E); try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
+    PLAN_LIM = (PLANES_APP[PERMS.plan] && PLANES_APP[PERMS.plan].lim) || null; PERM_E = new Set(E); try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
     document.querySelectorAll("aside .grupo button[data-s]").forEach(b => { if (!PERM_E.has(b.dataset.s)) b.style.display = "none"; });
     document.querySelectorAll("aside .grupo").forEach(g => { if (![...g.querySelectorAll("button[data-s]")].some(b => b.style.display !== "none")) g.style.display = "none"; });
+    if (PERMS.plan && !PERMS.s.length) {
+      const pie = document.querySelector("aside .pie"); const g = document.createElement("div"); g.className = "grupo";
+      g.innerHTML = '<h4>Estadísticas</h4><button id="btnLockStats"><span class="i">🔒</span><span class="tx">Estadísticas · Premium</span></button>';
+      pie ? pie.parentNode.insertBefore(g, pie) : document.querySelector("aside").appendChild(g);
+      $("btnLockStats").onclick = () => { const pr = (PERMS.precios || {}).premium; aviso(PERMS.lock === "liga" ? "Tu liga todavía no está automatizada: te avisaremos cuando esté lista." : "Las estadísticas están en el plan Premium" + (pr ? " (" + pr + ")" : "") + ". Pídelo al entrenador."); };
+    }
     if (!PERMS.s.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="estadisticas"]{display:none !important;}'; document.head.appendChild(st); }
     seccion = E.find(x => x !== "partido") || "jugadas";
   } else { try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ } }
