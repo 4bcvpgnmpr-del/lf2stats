@@ -219,6 +219,9 @@
   #partido .pt-ctrl .sep{width:1px;height:30px;background:#3a4958;margin:0 4px;}
   #partido .pt-ctrl .col{width:34px;min-height:34px;height:34px;border-radius:50%;padding:0;border:3px solid #fff0;} #partido .pt-ctrl .col.on{border-color:#fff;}
   #partido .pt-fase{font-weight:800;min-width:74px;text-align:center;}
+  #partido #ptHerr button{min-width:46px;padding:0 10px;} #partido #ptHerr button.on{background:var(--teal);} #partido #ptHerr .sep{width:1px;height:30px;background:#3a4958;margin:0 2px;}
+  #partido #ptGrandeX{display:none;position:fixed;top:8px;right:8px;z-index:5;min-height:38px;opacity:.55;font-size:13px;} body.pt-grande #partido #ptGrandeX{display:block;}
+  body.pt-grande #partido .pt-top,body.pt-grande #partido #ptLista,body.pt-grande #partido #ptOpc{display:none;} body.pt-grande #partido .pt-escena{padding:4px 6px;} body.pt-grande #partido #ptTitulo{font-size:15px;padding-right:90px;}
   #partido .pt-vacio{margin:auto;opacity:.6;font-size:18px;padding:30px;text-align:center;}
   @media (max-width:820px),(orientation:portrait){
     #partido .pt-main{flex-direction:column;} #partido #ptLista{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px;} #partido .pt-it{flex:none;width:210px;}
@@ -647,8 +650,9 @@
     <button id="ptSalir">✕ Salir</button>
     <input id="ptBuscar" type="search" placeholder="Buscar jugada…" autocomplete="off">
     <div class="pt-chips" id="ptChips"></div>
-    <button id="ptFs" title="Pantalla completa">⛶</button>
+    <button id="ptFs" title="Pantalla grande">⛶</button>
   </div>
+  <button id="ptGrandeX" title="Salir de pantalla grande">⛶ Salir</button>
   <div class="pt-main">
     <div id="ptLista"></div>
     <div class="pt-escena">
@@ -664,6 +668,7 @@
         <span class="sep"></span>
         <button id="ptLapiz">✏️ Dibujar</button>
         <span id="ptCols" style="display:none;gap:8px;align-items:center;"></span>
+        <span id="ptHerr" style="display:none;gap:6px;align-items:center;"><button data-h="lapiz" class="on" title="Lápiz">✏️</button><button data-h="flecha" title="Flecha">➚</button><button data-h="resalt" title="Resaltador">🖍</button><span class="sep"></span><button data-w="1" title="Fino"><i style="display:block;width:6px;height:6px;border-radius:50%;background:#fff;margin:auto"></i></button><button data-w="2.2" class="on" title="Medio"><i style="display:block;width:12px;height:12px;border-radius:50%;background:#fff;margin:auto"></i></button><button data-w="3.2" title="Grueso"><i style="display:block;width:20px;height:20px;border-radius:50%;background:#fff;margin:auto"></i></button></span>
         <button id="ptDeshacer" style="display:none;">↩︎</button><button id="ptBorrar" style="display:none;">🧽 Borrar</button>
       </div>
     </div>
@@ -2158,7 +2163,7 @@ function iniciarPartido() {
   const CLAVE_PIN = "scoutflow-libro-partido";
   const leerPin = () => { try { return new Set(JSON.parse(localStorage.getItem(CLAVE_PIN) || "[]")); } catch (e) { return new Set(); } };
   const guardarPin = (st) => { try { localStorage.setItem(CLAVE_PIN, JSON.stringify([...st])); } catch (e) { /* sin almacenamiento */ } };
-  const E = { lista: [], pin: leerPin(), q: "", filtro: "todas", j: null, i: 0, op: 0, parar: null, lapiz: false, color: "#ff4d4d", trazos: [], actual: null };
+  const E = { lista: [], pin: leerPin(), q: "", filtro: "todas", j: null, i: 0, op: 0, parar: null, lapiz: false, color: "#ff4d4d", trazos: [], actual: null, herr: "lapiz", w: 2.2 };
   const caja = $("ptCaja"), pista = $("ptPista"), cv = $("ptDib"), ctx = cv.getContext("2d");
   caja.style.setProperty("--r", ((ANCHO * S + 20) / (FONDO * S + 20)).toFixed(4));
   const COLS = ["#ff4d4d", "#ffd24d", "#3fd0ff", "#ffffff", "#111111"];
@@ -2168,10 +2173,22 @@ function iniciarPartido() {
   const ajustarLienzo = () => { const r = caja.getBoundingClientRect(), d = window.devicePixelRatio || 1; cv.width = Math.max(1, Math.round(r.width * d)); cv.height = Math.max(1, Math.round(r.height * d)); redibujar(); };
   const redibujar = () => {
     ctx.clearRect(0, 0, cv.width, cv.height); ctx.lineCap = "round"; ctx.lineJoin = "round";
-    [...E.trazos, ...(E.actual ? [E.actual] : [])].forEach(t => { if (t.p.length < 2) return; ctx.strokeStyle = t.c; ctx.lineWidth = Math.max(3, cv.width / 170); ctx.beginPath(); t.p.forEach((q, k) => { const x = q[0] * cv.width, y = q[1] * cv.height; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke(); });
+    [...E.trazos, ...(E.actual ? [E.actual] : [])].forEach(t => {
+      if (t.p.length < 2) return;
+      const base = Math.max(3, cv.width / 170) * (t.w || 1) * (t.h ? 2.4 : 1);
+      ctx.globalAlpha = t.h ? 0.38 : 1; ctx.strokeStyle = t.c; ctx.fillStyle = t.c; ctx.lineWidth = base; ctx.lineCap = t.h ? "butt" : "round";
+      ctx.beginPath(); t.p.forEach((q, k) => { const x = q[0] * cv.width, y = q[1] * cv.height; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke();
+      if (t.f) {
+        const e = t.p[t.p.length - 1], ex = e[0] * cv.width, ey = e[1] * cv.height; let k = t.p.length - 2, bx = ex, by = ey;
+        while (k >= 0) { bx = t.p[k][0] * cv.width; by = t.p[k][1] * cv.height; if (Math.hypot(ex - bx, ey - by) > base * 3) break; k--; }
+        const a = Math.atan2(ey - by, ex - bx), L = base * 4.5;
+        ctx.beginPath(); ctx.moveTo(ex + Math.cos(a) * base, ey + Math.sin(a) * base); ctx.lineTo(ex - Math.cos(a - 0.45) * L, ey - Math.sin(a - 0.45) * L); ctx.lineTo(ex - Math.cos(a + 0.45) * L, ey - Math.sin(a + 0.45) * L); ctx.closePath(); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
   };
   const pt = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
-  cv.addEventListener("pointerdown", (e) => { if (!E.lapiz) return; cv.setPointerCapture(e.pointerId); E.actual = { c: E.color, p: [pt(e)] }; e.preventDefault(); });
+  cv.addEventListener("pointerdown", (e) => { if (!E.lapiz) return; cv.setPointerCapture(e.pointerId); E.actual = { c: E.color, p: [pt(e)], w: E.w, f: E.herr === "flecha", h: E.herr === "resalt" }; e.preventDefault(); });
   cv.addEventListener("pointermove", (e) => { if (!E.actual) return; E.actual.p.push(pt(e)); redibujar(); e.preventDefault(); });
   const fin = () => { if (!E.actual) return; if (E.actual.p.length > 1) E.trazos.push(E.actual); E.actual = null; redibujar(); };
   cv.addEventListener("pointerup", fin); cv.addEventListener("pointercancel", fin);
@@ -2238,12 +2255,14 @@ function iniciarPartido() {
   /* lapiz */
   const ponerLapiz = (on) => {
     E.lapiz = on; cv.classList.toggle("act", on); $("ptLapiz").classList.toggle("on", on); $("ptLapiz").textContent = on ? "✏️ Listo" : "✏️ Dibujar";
-    $("ptCols").style.display = on ? "inline-flex" : "none"; $("ptDeshacer").style.display = on ? "" : "none"; $("ptBorrar").style.display = on ? "" : "none";
+    $("ptCols").style.display = on ? "inline-flex" : "none"; $("ptHerr").style.display = on ? "inline-flex" : "none"; $("ptDeshacer").style.display = on ? "" : "none"; $("ptBorrar").style.display = on ? "" : "none";
     if (on) detener();
   };
   $("ptLapiz").addEventListener("click", () => ponerLapiz(!E.lapiz));
   $("ptCols").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { E.color = b.dataset.c; $("ptCols").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); }));
   $("ptCols").querySelector("button").classList.add("on");
+  $("ptHerr").querySelectorAll("[data-h]").forEach(b => b.addEventListener("click", () => { E.herr = b.dataset.h; $("ptHerr").querySelectorAll("[data-h]").forEach(z => z.classList.toggle("on", z === b)); }));
+  $("ptHerr").querySelectorAll("[data-w]").forEach(b => b.addEventListener("click", () => { E.w = Number(b.dataset.w); $("ptHerr").querySelectorAll("[data-w]").forEach(z => z.classList.toggle("on", z === b)); }));
   $("ptDeshacer").addEventListener("click", () => { E.trazos.pop(); redibujar(); });
   $("ptBorrar").addEventListener("click", limpiarDibujo);
   /* deslizar para cambiar de fase (con el lapiz apagado) */
@@ -2251,7 +2270,17 @@ function iniciarPartido() {
   caja.addEventListener("pointerup", (e) => { if (x0 == null || E.lapiz) { x0 = null; return; } const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 70) irFase(dx < 0 ? 1 : -1); });
   /* salir y pantalla completa */
   $("ptSalir").addEventListener("click", () => { detener(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ } if (window.parent !== window) { try { parent.postMessage({ partidoCerrar: true }, "*"); } catch (e) { /* nada */ } } else history.length > 1 ? history.back() : (location.href = "entrenador.html"); });
-  $("ptFs").addEventListener("click", () => { try { const el = document.documentElement; if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } catch (e) { aviso("Este navegador no permite pantalla completa aquí."); } });
+  const grande = (on) => {
+    document.body.classList.toggle("pt-grande", on);
+    try { const el = document.documentElement, fs = document.fullscreenElement || document.webkitFullscreenElement;
+      if (on && !fs) { const f = el.requestFullscreen || el.webkitRequestFullscreen; if (f) { const r = f.call(el); if (r && r.catch) r.catch(() => { /* sin API: queda el modo grande */ }); } }
+      if (!on && fs) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } catch (e) { /* sin API: queda el modo grande */ }
+  };
+  $("ptFs").addEventListener("click", () => grande(!document.body.classList.contains("pt-grande")));
+  $("ptGrandeX").addEventListener("click", () => grande(false));
+  const finFs = () => { if (!document.fullscreenElement && !document.webkitFullscreenElement && document.body.classList.contains("pt-grande") && E._fsOn) document.body.classList.remove("pt-grande"); E._fsOn = !!(document.fullscreenElement || document.webkitFullscreenElement); };
+  document.addEventListener("fullscreenchange", finFs); document.addEventListener("webkitfullscreenchange", finFs);
   document.addEventListener("keydown", (e) => { if (e.target.tagName === "INPUT") return; if (e.key === "ArrowRight") irFase(1); if (e.key === "ArrowLeft") irFase(-1); if (e.key === "ArrowDown") saltarJugada(1); if (e.key === "ArrowUp") saltarJugada(-1); if (e.key === " ") { e.preventDefault(); $("ptPlay").click(); } });
   /* datos */
   iniciarNube().then(recargarBib0);
