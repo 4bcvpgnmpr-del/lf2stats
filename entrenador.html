@@ -861,10 +861,12 @@ async function ponerCarpeta(tipo, x, n) {
 }
 function moverACarpeta(tipo, lista) {
   const cs = rutasCarpetas(tipo).map(c => c.nombre).sort((a, b) => a.localeCompare(b, "es"));
-  const m = ventana(`<h3>Mover ${lista.length === 1 ? "«" + esc(lista[0].nombre) + "»" : lista.length + " elementos"}</h3><label>Carpeta (vacío = raíz)</label><input id="mvc" list="dlc" value="${esc(lista.length === 1 ? (lista[0].carpeta || "") : "")}"><datalist id="dlc">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist><div class="pie-m"><button class="gris" id="mc1">Cancelar</button><button class="naranja" id="mc2">Mover</button></div>`);
+  const act = lista.length === 1 ? (lista[0].carpeta || "") : null;
+  const m = ventana(`<h3>Mover ${lista.length === 1 ? "«" + esc(lista[0].nombre) + "»" : lista.length + " elementos"}</h3><label>¿A qué carpeta?</label><div class="lista-sel"><label class="it"><input type="radio" name="dest" value="" ${act === "" ? "checked" : ""}><span>📂 Raíz (fuera de cualquier carpeta)${act === "" ? " · estás aquí" : ""}</span></label>${cs.map(n => `<label class="it"><input type="radio" name="dest" value="${esc(n)}" ${act === n ? "checked" : ""}><span>${SVG_CARPETA(18)} ${esc(n.split("/").join(" › "))}${act === n ? " · estás aquí" : ""}</span></label>`).join("")}</div><label style="margin-top:8px;">…o crea una carpeta nueva (opcional)</label><input id="mvc" placeholder="Ej. Defensas/Zona"><div class="pie-m"><button class="gris" id="mc1">Cancelar</button><button class="naranja" id="mc2">Mover</button></div>`);
   $("mc1").onclick = cerrarVentana;
   $("mc2").onclick = async () => {
-    const n = $("mvc").value.trim(); cerrarVentana();
+    const nuevo = $("mvc").value.trim().split("/").map(limpiaNombre).filter(Boolean).join("/"), r = m.querySelector('input[name="dest"]:checked');
+    const n = nuevo || (r ? r.value : null); if (n === null) { aviso("Elige una carpeta"); return; } cerrarVentana();
     for (const x of lista) await ponerCarpeta(tipo, x, n);
     seleccion.clear(); await cargarTodo(); pintar();
   };
