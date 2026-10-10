@@ -294,17 +294,18 @@
     body.editor .col-pasos{background:#fff;border-right:1px solid #e5e7eb;padding:18px 16px;overflow:auto;}
     body.editor .col-herr{position:static;max-height:none;background:#fff;border-left:1px solid #e5e7eb;padding:18px 22px;overflow:auto;}
     body.editor .col-pista{position:relative;background:#f3f4f6;display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;}
-    body.editor .lienzo{flex:1;min-height:0;overflow:auto;display:flex;padding:28px 28px 100px;}
+    body.editor .lienzo{flex:1;min-height:0;overflow:auto;display:flex;padding:72px 28px 28px;}
     body.editor .lienzo .caja-pista{margin:auto;flex:none;border:0;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.10);overflow:hidden;}
     body.editor .lienzo .caja-pista svg{width:100%;height:auto;max-height:none;}
-    body.editor .col-pista .leyenda{position:absolute;left:16px;top:12px;max-width:42%;font-size:13px;}
-    body.editor .col-pista .hint{position:absolute;left:16px;bottom:10px;margin:0;font-size:12px;max-width:34%;}
-    body.editor .zoombar{display:flex;align-items:center;gap:2px;position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.14);padding:6px 10px;z-index:20;}
+    body.editor .col-pista .leyenda{position:static;flex:none;order:2;margin:0;max-height:86px;overflow:auto;border:0;border-top:1px solid #e5e7eb;border-radius:0;background:#fff;padding:8px 20px;font-size:13px;font-weight:600;}
+    body.editor .col-pista .leyenda:empty{display:none;}
+    body.editor .col-pista .hint{position:static;flex:none;order:3;margin:0;padding:6px 20px;font-size:12px;max-width:none;background:#fff;}
+    body.editor .zoombar{display:flex;align-items:center;gap:2px;position:absolute;left:50%;top:12px;transform:translateX(-50%);background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.14);padding:6px 10px;z-index:20;}
     body.editor .zoombar button{background:transparent;color:var(--ink);padding:7px 10px;font-size:15px;border-radius:9px;}
     body.editor .zoombar button:hover{background:#f3f4f6;} body.editor .zoombar button.on{background:var(--ink);color:#fff;}
     body.editor .zoombar #zmAjustar{font-size:12.5px;}
     .zoombar .sep{width:1px;height:22px;background:#e5e7eb;margin:0 6px;} .zoombar .pct{min-width:48px;text-align:center;font-weight:800;font-size:13px;}
-    #zmLista{display:none;position:absolute;bottom:52px;left:50%;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;min-width:110px;}
+    #zmLista{display:none;position:absolute;top:52px;left:50%;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;min-width:110px;}
     #zmLista.ver{display:block;} #zmLista button{display:block;width:100%;text-align:left;font-size:13px !important;}
     body.editor .lienzo.mano{cursor:grab;} body.editor .lienzo.mano .caja-pista{cursor:grab;} body.editor .lienzo.pan{cursor:grabbing !important;}
   }
