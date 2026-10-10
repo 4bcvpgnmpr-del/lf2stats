@@ -2408,10 +2408,10 @@ function iniciarPartido() {
       #ptEst .es-res{display:flex;gap:14px;flex-wrap:wrap;background:#223040;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:15px;} #ptEst .es-res b{font-size:20px;}
       #ptEst .es-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#223040;border-radius:12px;padding:6px 8px;margin-bottom:6px;} #ptEst .es-f .nm{width:130px;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       #ptEst .g{display:flex;gap:3px;align-items:center;background:#17202a;border-radius:10px;padding:3px;} #ptEst .g button{min-width:46px;padding:0 8px;font-size:15px;} #ptEst .g span{font-size:13px;min-width:46px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;} #ptEst .ok{background:#2b8a3e;} #ptEst .ko{background:#a61e1e;}
-      #ptEst .es-tot{background:#2c3947;}`;
+      #ptEst .es-tot{background:#2c3947;} #ptEst .corr .g button::before{content:'−';font-weight:900;margin-right:2px;} #ptEst .corr .g button{outline:2px solid #ff6b6b;}`;
     document.head.appendChild(est);
     const EP = document.createElement("div"); EP.id = "ptEst"; $("partido").appendChild(EP);
-    const ESV = { eq: 0, v: "auto" }, UND = [];
+    const ESV = { eq: 0, v: "auto", corr: false }, UND = [];
     const mitad = () => (M.per <= 2 ? "h1" : "h2");
     const cero = () => ({ reb: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
     const vista = () => (ESV.v === "auto" ? mitad() : ESV.v);
@@ -2425,7 +2425,7 @@ function iniciarPartido() {
       const tcm = tot.t2m + tot.t3m, tca = tot.t2a + tot.t3a, pts = tot.t2m * 2 + tot.t3m * 3 + tot.tlm;
       const nomV = { h1: "1ª mitad", h2: "2ª mitad", tot: "Total" };
       const g = (k, f, lab, ok) => `<button class="${ok || ""}" data-k="${k}" data-f="${f}">${lab}</button>`;
-      EP.innerHTML = `<div class="es"><div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
+      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta de la mitad que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
         <div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
         <div class="es-res"><span>${nomV[v]} · Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> (${pct(tcm, tca)})</span><span>2P <b>${tot.t2m}/${tot.t2a}</b></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Rebotes <b>${tot.reb}</b></span><span>Pérdidas <b>${tot.per}</b></span></div>
         ${fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
@@ -2439,11 +2439,20 @@ function iniciarPartido() {
       EP.querySelectorAll("[data-pp]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.pp); M.f = [0, 0]; guardarM(); pintarM(); pintarEs(); });
       EP.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { ESV.v = b.dataset.v; pintarEs(); });
       EP.querySelectorAll("[data-f]").forEach(b => b.onclick = () => {
-        const k = b.dataset.k, f = b.dataset.f, h = mitad(); const o = ((M.es[k] = M.es[k] || {})[h] = M.es[k][h] || cero());
-        if (f === "reb" || f === "per") o[f]++; else { const t = f.slice(0, 2 + (f[1] === "l" ? 0 : 0)); const tp = f.slice(0, -1); o[tp + "a"]++; if (f.slice(-1) === "m") o[tp + "m"]++; }
+        const k = b.dataset.k, f = b.dataset.f, h = mitad();
+        if (ESV.corr) {
+          const tp = f.slice(0, -1), u = f.slice(-1), disp = (o) => (!o ? 0 : (f === "reb" || f === "per") ? o[f] : u === "m" ? o[tp + "m"] : o[tp + "a"] - o[tp + "m"]);
+          const v0 = vista(), orden = v0 === "tot" ? [h, h === "h1" ? "h2" : "h1"] : [v0];
+          const hh = orden.find(x => disp((M.es[k] || {})[x]) > 0); if (!hh) { aviso("No hay nada que quitar ahí"); return; }
+          const o = M.es[k][hh]; if (f === "reb" || f === "per") o[f]--; else { o[tp + "a"]--; if (u === "m") o[tp + "m"]--; }
+          guardarM(); pintarEs(); try { navigator.vibrate && navigator.vibrate(15); } catch (e) { /* nada */ } return;
+        }
+        const o = ((M.es[k] = M.es[k] || {})[h] = M.es[k][h] || cero());
+        if (f === "reb" || f === "per") o[f]++; else { const tp = f.slice(0, -1); o[tp + "a"]++; if (f.slice(-1) === "m") o[tp + "m"]++; }
         UND.push([k, h, f]); guardarM(); pintarEs();
         try { navigator.vibrate && navigator.vibrate(15); } catch (e) { /* nada */ }
       });
+      $("esCo").onclick = () => { ESV.corr = !ESV.corr; pintarEs(); };
       $("esUn").onclick = () => { const u = UND.pop(); if (!u) return; const o = (M.es[u[0]] || {})[u[1]]; if (!o) return; const f = u[2]; if (f === "reb" || f === "per") o[f] = Math.max(0, o[f] - 1); else { const tp = f.slice(0, -1); o[tp + "a"] = Math.max(0, o[tp + "a"] - 1); if (f.slice(-1) === "m") o[tp + "m"] = Math.max(0, o[tp + "m"] - 1); } guardarM(); pintarEs(); };
       $("esEd").onclick = () => abrirEd();
       $("esX").onclick = () => EP.classList.remove("ver");
