@@ -875,7 +875,7 @@ function hgConvertir(p, ruta) {
   const X = (x) => Math.max(0.2, Math.min(14.8, 7.5 + x * HG_FT)), Y = (y) => Math.max(0.2, Math.min(13.8, y * HG_FT));
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   let omitidos = 0;
-  let previo = null; /* donde acaba cada jugadora la fase anterior: asi la identidad se mantiene aunque Hoops Geek renumere tras una rotacion */
+  let previo = null, balonPrev = ""; /* donde acaba cada jugadora la fase anterior: asi la identidad se mantiene aunque Hoops Geek renumere tras una rotacion */
   const pasos = fases.map((f) => {
     const pos = {}, claves = {}, etq = {}; let balon = "";
     const libre = (pre) => { for (let n = 1; n <= 5; n++) if (!pos[pre + n]) return pre + n; return ""; };
@@ -886,7 +886,7 @@ function hgConvertir(p, ruta) {
       const E = Object.keys(previo).filter(k => k[0] === "o").map(k => previo[k]), N = jug.filter(o => !/defense/.test(o.team || "")).map(o => [X(o.pos[0]), Y(o.pos[1])]);
       const pr = []; E.forEach((e, a) => N.forEach((n, b) => pr.push([dist(e, n), a, b]))); pr.sort((u, v) => u[0] - v[0]);
       const ua = new Set(), ub = new Set(); let mx = 0; pr.forEach(([d, a, b]) => { if (ua.has(a) || ub.has(b)) return; ua.add(a); ub.add(b); mx = Math.max(mx, d); });
-      if (E.length && N.length && mx > 3) { nuevaOp = true; previo = null; }
+      if (E.length && N.length && mx > 3) { nuevaOp = true; previo = null; balonPrev = ""; }
     }
     if (previo) {
       const pares = [];
@@ -903,6 +903,7 @@ function hgConvertir(p, ruta) {
       const lab = o.number == null || o.number === "" ? "?" : String(o.number); if (lab !== (k.slice(1) === "0" ? "?" : k.slice(1))) etq[k] = lab;
       if (o.team === "ball" && !def) balon = k;
     });
+    if (!balon && balonPrev && pos[balonPrev]) balon = balonPrev; /* sin balon dibujado (jugadas pasadas de FastDraw): lo tiene quien lo recibio al final de la fase anterior */
     /* posicion actual de cada jugadora segun avanzan las acciones: la segunda flecha de una jugadora empieza donde acabo la primera */
     const act = {}; Object.keys(pos).forEach(k => { act[k] = [pos[k].x, pos[k].y]; });
     const cerca = (pt, excl, r) => { let mk = "", dm = r || 0.9; Object.keys(act).forEach(k => { if (k === excl) return; const q = act[k], dd = Math.hypot(q[0] - pt[0], q[1] - pt[1]); if (dd < dm) { dm = dd; mk = k; } }); return mk; };
@@ -912,19 +913,20 @@ function hgConvertir(p, ruta) {
     flechas.forEach((a) => {
       const t = HG_TIPOS[a.subType]; if (!t) { omitidos++; return; }
       const s = [X(a.s[0]), Y(a.s[1])], e = [X(a.e[0]), Y(a.e[1])];
-      let de = enlace(a, "s") || cerca(s, "", 1.2), rec = "";
+      let de = enlace(a, "s") || cerca(s, "", 1.2), rec = "", alterna = false;
+      if (!de && t !== "pase" && t !== "tiro") { let dm = 1.2; Object.keys(pos).forEach(k => { const dd = Math.hypot(pos[k].x - s[0], pos[k].y - s[1]); if (dd < dm) { dm = dd; de = k; alterna = true; } }); }
       if (!de && (t === "pase" || t === "tiro" || t === "entrega") && tiene && act[tiene] && dist(act[tiene], s) < 3) de = tiene;
       if (!de && t !== "pase" && t !== "tiro") de = cerca(s, "", 2.2);
       if (t === "pase" || t === "entrega") rec = enlace(a, "e") || cerca(e, de, 0.9);
       let pts = [s, e];
       if (a.m && dist([X(a.m[0]), Y(a.m[1])], [(s[0] + e[0]) / 2, (s[1] + e[1]) / 2]) > 0.12) pts = [s, [X(a.m[0]), Y(a.m[1])], e];
-      if (de && act[de] && dist(act[de], s) < 2.2) pts[0] = [act[de][0], act[de][1]];
+      if (de && !alterna && act[de] && dist(act[de], s) < 2.2) pts[0] = [act[de][0], act[de][1]];
       if (rec && act[rec] && (t === "pase" || t === "entrega") && pts.length === 2) { const A = pts[0], q = act[rec], dd = Math.hypot(q[0] - A[0], q[1] - A[1]); if (dd > 1.1) { const k = (dd - 0.62) / dd; pts = [A, [A[0] + (q[0] - A[0]) * k, A[1] + (q[1] - A[1]) * k]]; } }
       const l = { id: "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) + lineas.length, t, de, pts: pts.map(q => [+q[0].toFixed(2), +q[1].toFixed(2)]), despues: lineas.length > 0 && !a.sameTime };
-      if (rec) l.a = rec; if (a.option) l.opcional = true;
+      if (rec) l.a = rec; if (a.option || alterna) l.opcional = true;
       if ((t === "pase" || t === "entrega") && !rec) pendientes.push({ l, e });
       lineas.push(l);
-      if (de && !a.option && MOV.includes(t)) act[de] = [e[0], e[1]];
+      if (de && !a.option && !alterna && MOV.includes(t)) act[de] = [e[0], e[1]];
       if (!a.option && rec && t === "pase") tiene = rec;
     });
     /* jugadas pasadas desde otros programas (FastDraw...) llegan sin ningun «a la vez»: todo seria secuencial. Se reagrupa: los movimientos van juntos, el pase espera a que acaben, y lo que viene tras el pase va despues */
@@ -946,6 +948,7 @@ function hgConvertir(p, ruta) {
       let r2 = "", d2 = 3.2; Object.keys(act).forEach(k => { if (k[0] !== "o" || k === l.de) return; const dd = Math.hypot(act[k][0] - e[0], act[k][1] - e[1]); if (dd < d2) { d2 = dd; r2 = k; } });
       if (r2) l.a = r2;
     });
+    { let h = balon; lineas.forEach(l => { if (!l.opcional && (l.t === "pase" || l.t === "entrega") && l.a) h = l.a; }); balonPrev = h; }
     const objs = [];
     (f.objects || []).filter(o => o.type === "object" && o.subType === "cone" && o.pos).forEach(o => objs.push({ t: "cono", x: +X(o.pos[0]).toFixed(2), y: +Y(o.pos[1]).toFixed(2) }));
     (f.objects || []).forEach(o => { if (o.type !== "court" && o.type !== "arrow" && o.subType !== "player" && o.subType !== "cone") omitidos++; });
