@@ -535,16 +535,27 @@ let puedeEscribir = true, faltaSql = "", seccion = "jugadas", carpeta = "", busq
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
 const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
+/* copia local (IndexedDB) para abrir sin internet */
+const kv = {
+  _db() { return this._p || (this._p = new Promise((ok, no) => { try { const r = indexedDB.open("scoutflow-offline", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } })); },
+  async put(k, v) { try { const db = await this._db(); await new Promise((ok, no) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = ok; t.onerror = () => no(t.error); }); } catch (e) { /* sin copia local */ } },
+  async get(k) { try { const db = await this._db(); return await new Promise((ok, no) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); } catch (e) { return undefined; } }
+};
+let OFFLINE = false;
+const sinRed = (m) => !navigator.onLine || /failed to fetch|networkerror|load failed|network request failed|fetch/i.test(String(m || ""));
 /* ------------ datos ------------ */
 async function leer(tabla, orden) {
-  const { data, error } = await nube.from(tabla).select("*").order(orden || "actualizada", { ascending: false });
-  if (error) { if (!faltaSql) faltaSql = tabla + ": " + error.message; return []; }
+  let res; try { res = await nube.from(tabla).select("*").order(orden || "actualizada", { ascending: false }); } catch (e) { res = { error: { message: String(e && e.message || e) } }; }
+  const { data, error } = res;
+  if (error) { if (sinRed(error.message)) { OFFLINE = true; return []; } if (!faltaSql) faltaSql = tabla + ": " + error.message; return []; }
   return data || [];
 }
 async function cargarTodo() {
-  faltaSql = "";
+  faltaSql = ""; OFFLINE = !navigator.onLine;
   const [j, pb, ej, pl, ar, ca] = await Promise.all([leer("jugadas"), leer("playbooks"), leer("ejercicios"), leer("planes"), leer("archivos", "creada"), leer("carpetas", "creada")]);
   D.jugadas = j; D.playbooks = pb; D.ejercicios = ej; D.planes = pl; D.archivos = ar; D.carpetas = ca;
+  if (OFFLINE) { const snap = await kv.get("entrenador"); if (snap) { Object.keys(D).forEach(k => { D[k] = snap[k] || []; }); puedeEscribir = false; } }
+  else if (!faltaSql) kv.put("entrenador", { jugadas: j, playbooks: pb, ejercicios: ej, planes: pl, archivos: ar, carpetas: ca, t: Date.now() });
   contadores();
 }
 function contadores() {
@@ -564,7 +575,7 @@ function ir(s, c) { seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = 
 function pintar() {
   document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
   const m = $("main"); m.scrollTop = 0;
-  const aviso0 = faltaSql ? `<div class="aviso-sql">⚠️ Falta preparar la base de datos: ejecuta <b>${/jugadas/.test(faltaSql) && !/playbooks|ejercicios|planes|archivos|carpetas/.test(faltaSql) ? "jugadas.sql" : "entrenador.sql"}</b> en Supabase › SQL Editor. <span class="peq">(${esc(faltaSql)})</span></div>` : "";
+  const aviso0 = OFFLINE ? '<div class="aviso-sql" style="background:#fff4d6;border-color:#f0c24b;color:#7a5a00;">📴 Sin conexión: ves lo último que se guardó en este aparato. Para editar, vuelve a tener internet.</div>' : faltaSql ? `<div class="aviso-sql">⚠️ Falta preparar la base de datos: ejecuta <b>${/jugadas/.test(faltaSql) && !/playbooks|ejercicios|planes|archivos|carpetas/.test(faltaSql) ? "jugadas.sql" : "entrenador.sql"}</b> en Supabase › SQL Editor. <span class="peq">(${esc(faltaSql)})</span></div>` : "";
   m.innerHTML = aviso0 + '<div id="vista"></div>';
   const v = $("vista");
   if (vistaDetalle && vistaDetalle.tipo === "playbook") return pintarPlaybook(v);
@@ -1955,22 +1966,30 @@ $("djMas").addEventListener("click", (ev) => { if (!detalleActual) return; const
 
 /* ------------ arranque ------------ */
 function pantalla(msg, enlace) { $("main").innerHTML = `<div class="vacio" style="padding-top:60px;font-size:16px;">${msg}${enlace ? `<p><a href="index.html" style="color:var(--orange);font-weight:800;">${enlace}</a></p>` : ""}</div>`; }
+async function cargarOffline() {
+  const snap = await kv.get("entrenador"); OFFLINE = true; puedeEscribir = false;
+  if (snap) Object.keys(D).forEach(k => { D[k] = snap[k] || []; });
+  window.addEventListener("online", () => location.reload());
+  contadores(); const h = (location.hash || "").replace("#", ""); if (SECCIONES[h]) seccion = h; pintar();
+}
 async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
   $("cajon").addEventListener("mousedown", (e) => { if (e.target === $("cajon")) $("cajon").classList.remove("ver"); });
   document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => ir(b.dataset.s)));
-  if (!nube) { pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
-  const { data } = await nube.auth.getSession();
-  if (!data || !data.session) { pantalla("Entra con tu cuenta en la app de estadísticas para usar el Entrenador.", "← Ir a la app"); return; }
+  const hayCopia = !!(await kv.get("entrenador"));
+  if (!nube) { if (hayCopia) { window.addEventListener("online", () => location.reload()); OFFLINE = true; D.jugadas = []; await cargarOffline(); return; } pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
+  let data = null; try { data = (await nube.auth.getSession()).data; } catch (e) { /* sin red */ }
+  if (!data || !data.session) { if (hayCopia && !navigator.onLine) { await cargarOffline(); return; } pantalla("Entra con tu cuenta en la app de estadísticas para usar el Entrenador.", "← Ir a la app"); return; }
   try {
     const r = await nube.rpc("es_entrenador");
     if (r && r.data === false) { pantalla("Esta sección es solo para entrenadores."); return; }
   } catch (e) { /* si falla la comprobacion, las reglas de la base de datos protegen igualmente */ }
   try { const r = await nube.rpc("puede_escribir"); if (r && !r.error && r.data === false) puedeEscribir = false; } catch (e) { /* sin roles: se puede escribir */ }
+  window.addEventListener("online", () => { if (OFFLINE) location.reload(); });
   await cargarTodo();
   const h = (location.hash || "").replace("#", ""); if (SECCIONES[h]) seccion = h;
-  if (!puedeEscribir) aviso("Modo lectura: solo el propietario puede editar.");
+  if (!puedeEscribir && !OFFLINE) aviso("Modo lectura: solo el propietario puede editar.");
   pintar();
 }
 iniciar();

@@ -3,15 +3,22 @@
    pero SIN guardar nunca datos viejos de Google Sheets ni de la FEB.
    Estrategia: red primero, y si no hay internet, lo guardado. */
 
-const CACHE = "scoutflow-2026-10-10zzzzzzzzzzzzzzzzzzzzzzz";
+const CACHE = "scoutflow-2026-10-10zzzzzzzzzzzzzzzzzzzzzzzzz";
 
 const BASICOS = [
   "./",
   "./index.html",
+  "./entrenador.html",
+  "./pizarra.html",
   "./manifest.json",
   "./icono-192.png",
   "./icono-512.png",
   "./icono-180.png"
+];
+
+// Librerias externas que la app necesita para abrir sin internet
+const EXTRAS = [
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"
 ];
 
 // Dominios que NUNCA se guardan en cache (datos que deben estar al dia)
@@ -26,7 +33,11 @@ function esDatosEnVivo(url) {
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(BASICOS).catch(() => {}))
+    caches.open(CACHE).then((c) => Promise.all(
+      BASICOS.map((u) => c.add(u).catch(() => {})).concat(
+        EXTRAS.map((u) => c.add(new Request(u, { mode: "cors" })).catch(() => {}))
+      )
+    ))
   );
   self.skipWaiting();
 });
@@ -48,20 +59,20 @@ self.addEventListener("fetch", (evento) => {
   if (esDatosEnVivo(peticion.url)) return;          // va directo a la red
   if (!peticion.url.startsWith("http")) return;
 
+  // Red primero, pero con limite de tiempo: si el wifi del pabellon va lento, se usa lo guardado
+  const guardada = () => caches.match(peticion).then((g) => g || caches.match(peticion, { ignoreSearch: true }));
+  const red = fetch(peticion, { cache: "no-cache" }).then((respuesta) => {
+    if (respuesta && respuesta.status === 200 &&
+        (respuesta.type === "basic" || respuesta.type === "cors")) {
+      const copia = respuesta.clone();
+      caches.open(CACHE).then((c) => c.put(peticion, copia)).catch(() => {});
+    }
+    return respuesta;
+  });
+  const limite = new Promise((_, no) => setTimeout(() => no(new Error("lento")), 5000));
   evento.respondWith(
-    fetch(peticion, { cache: "no-cache" })   // pregunta siempre al servidor: asi el ordenador no se queda con paginas viejas
-      .then((respuesta) => {
-        if (respuesta && respuesta.status === 200 &&
-            (respuesta.type === "basic" || respuesta.type === "cors")) {
-          const copia = respuesta.clone();
-          caches.open(CACHE).then((c) => c.put(peticion, copia)).catch(() => {});
-        }
-        return respuesta;
-      })
-      .catch(() =>
-        caches.match(peticion).then((guardada) =>
-          guardada || caches.match("./index.html")
-        )
-      )
+    Promise.race([red, limite]).catch(() =>
+      guardada().then((g) => g || red.catch(() => caches.match("./index.html")))
+    )
   );
 });

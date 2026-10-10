@@ -674,6 +674,7 @@
         <button id="ptJNext" title="Jugada siguiente">⏭</button>
         <button id="ptPlay" style="min-width:110px;">▶ Animar</button>
         <button id="ptZoom" title="Agrandir la pista (arrastra para moverte)">🔍 x1</button>
+        <button id="ptMarc" title="Marcador, faltas y tiempo muerto">⏱ 0–0</button>
         <span class="sep"></span>
         <button id="ptLapiz">✏️ Dibujar</button>
         <span id="ptCols" style="display:none;gap:8px;align-items:center;"></span>
@@ -1856,6 +1857,12 @@ function crearVisor(ids, dur) {
 /* ============================================================
    BIBLIOTECA (en la nube si hay sesion; si no, en este navegador)
    ============================================================ */
+/* copia local (IndexedDB) para abrir sin internet */
+const kv = {
+  _db() { return this._p || (this._p = new Promise((ok, no) => { try { const r = indexedDB.open("scoutflow-offline", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } })); },
+  async put(k, v) { try { const db = await this._db(); await new Promise((ok, no) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = ok; t.onerror = () => no(t.error); }); } catch (e) { /* sin copia local */ } },
+  async get(k) { try { const db = await this._db(); return await new Promise((ok, no) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); } catch (e) { return undefined; } }
+};
 let BIB = [], nube = null, modoNube = false, motivoLocal = "", visorGrande = null, soloFav = false;
 const leerLocal = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || "[]").map(normalizar); } catch (e) { return []; } };
 const escribirLocal = (l) => { try { localStorage.setItem(CLAVE, JSON.stringify(l)); } catch (e) { aviso("No se pudo guardar: el navegador no deja escribir."); } };
@@ -2298,6 +2305,57 @@ function iniciarPartido() {
   /* deslizar para cambiar de fase (con el lapiz apagado) */
   let x0 = null; caja.addEventListener("pointerdown", (e) => { if (!E.lapiz && zi === 0) x0 = e.clientX; });
   caja.addEventListener("pointerup", (e) => { if (x0 == null || E.lapiz) { x0 = null; return; } const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 70) irFase(dx < 0 ? 1 : -1); });
+  /* ---- marcador, faltas y cronometro de tiempo muerto ---- */
+  (() => {
+    const CL = "scoutflow-marcador";
+    const M = Object.assign({ n: ["Nosotros", "Rivales"], p: [0, 0], f: [0, 0], per: 1 }, (() => { try { return JSON.parse(localStorage.getItem(CL) || "{}"); } catch (e) { return {}; } })());
+    const guardarM = () => { try { localStorage.setItem(CL, JSON.stringify(M)); } catch (e) { /* nada */ } };
+    const st = document.createElement("style"); st.textContent = `
+      #ptMarc{background:#2c3947;} #ptPill{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9;min-height:42px !important;font-size:20px !important;font-variant-numeric:tabular-nums;background:#e8590c !important;}
+      #ptPanel{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:30;background:#000b;align-items:center;justify-content:center;padding:10px;} #ptPanel.ver{display:flex;}
+      #ptPanel .mp{background:#17202a;border-radius:18px;padding:14px;width:min(760px,100%);max-height:100%;overflow:auto;box-shadow:0 12px 40px #000c;}
+      #ptPanel .mp-eq{display:grid;grid-template-columns:1fr 1fr;gap:12px;} #ptPanel .mp-e{background:#223040;border-radius:14px;padding:10px;text-align:center;} #ptPanel .mp-e input{width:100%;background:transparent;border:0;color:#fff;font-weight:800;font-size:18px;text-align:center;}
+      #ptPanel .mp-n{font-size:84px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 8px;} #ptPanel .mp-b{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;} #ptPanel .mp-b button{min-width:58px;}
+      #ptPanel .mp-f{margin-top:10px;font-size:14px;opacity:.9;display:flex;gap:8px;align-items:center;justify-content:center;} #ptPanel .mp-f b{font-size:22px;min-width:24px;display:inline-block;}
+      #ptPanel .mp-per{display:flex;gap:6px;justify-content:center;margin:12px 0;} #ptPanel .mp-per button.on{background:#e8590c;}
+      #ptPanel .mp-t{background:#223040;border-radius:14px;padding:10px;text-align:center;} #ptPanel .mp-r{font-size:72px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;} #ptPanel .mp-r.fin{color:#ff4d4d;animation:parp .5s infinite;} @keyframes parp{50%{opacity:.25}}
+      #ptPanel .mp-pie{display:flex;gap:8px;justify-content:space-between;margin-top:12px;}`;
+    document.head.appendChild(st);
+    const panel = document.createElement("div"); panel.id = "ptPanel";
+    panel.innerHTML = `<div class="mp"><div class="mp-eq">${[0, 1].map(k => `<div class="mp-e"><input data-n="${k}" value="${esc(M.n[k])}"><div class="mp-n" id="mpN${k}">0</div><div class="mp-b"><button data-s="${k}:1">+1</button><button data-s="${k}:2">+2</button><button data-s="${k}:3">+3</button><button data-s="${k}:-1">−1</button></div><div class="mp-f">Faltas <button data-f="${k}:-1">−</button><b id="mpF${k}">0</b><button data-f="${k}:1">＋</button></div></div>`).join("")}</div>
+      <div class="mp-per" id="mpPer">${[1, 2, 3, 4, 5].map(n => `<button data-p="${n}">${n === 5 ? "Prórroga" : "Cuarto " + n}</button>`).join("")}</div>
+      <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
+      <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
+    $("partido").appendChild(panel);
+    const pill = document.createElement("button"); pill.id = "ptPill"; pill.textContent = "⏱ 1:00"; $("partido").appendChild(pill);
+    const T = { dur: 60, rest: 60, run: false, fin: 0, tick: null };
+    const fmt = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+    const pita = () => { try { const AC = window.AudioContext || window.webkitAudioContext, c = new AC(); [0, 0.35, 0.7].forEach(t => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 880; o.connect(g); g.connect(c.destination); g.gain.setValueAtTime(0.4, c.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + 0.28); o.start(c.currentTime + t); o.stop(c.currentTime + t + 0.3); }); } catch (e) { /* sin audio */ } try { navigator.vibrate && navigator.vibrate([300, 100, 300, 100, 300]); } catch (e) { /* nada */ } };
+    const pintarT = () => {
+      $("mpR").textContent = fmt(T.rest); pill.textContent = "⏱ " + fmt(T.rest); $("mpR").classList.toggle("fin", T.rest <= 0 && T.dur > 0 && !T.run && T.fired);
+      pill.style.display = (T.run || T.fired || T.rest < T.dur) && !panel.classList.contains("ver") ? "block" : "none"; $("mpPa").textContent = T.run ? "⏸ Pausa" : "▶ Seguir";
+    };
+    const bucle = () => { T.rest = Math.max(0, (T.fin - performance.now()) / 1000); if (T.rest <= 0) { T.run = false; clearInterval(T.tick); T.fired = true; pita(); } pintarT(); };
+    const iniciarT = (s) => { clearInterval(T.tick); T.dur = s; T.rest = s; T.fired = false; T.run = true; T.fin = performance.now() + s * 1000; T.tick = setInterval(bucle, 200); pintarT(); };
+    panel.querySelectorAll("[data-t]").forEach(b => b.onclick = () => iniciarT(Number(b.dataset.t)));
+    $("mpPa").onclick = () => { if (T.run) { T.run = false; clearInterval(T.tick); T.rest = Math.max(0, (T.fin - performance.now()) / 1000); } else if (T.rest > 0) { T.run = true; T.fin = performance.now() + T.rest * 1000; T.tick = setInterval(bucle, 200); } pintarT(); };
+    $("mpRe").onclick = () => { clearInterval(T.tick); T.run = false; T.fired = false; T.rest = T.dur; pintarT(); };
+    pill.onclick = () => { panel.classList.add("ver"); pintarT(); };
+    const pintarM = () => {
+      [0, 1].forEach(k => { $("mpN" + k).textContent = M.p[k]; $("mpF" + k).textContent = M.f[k]; $("mpF" + k).style.color = M.f[k] >= 5 ? "#ff4d4d" : ""; });
+      panel.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", Number(b.dataset.p) === M.per));
+      $("ptMarc").textContent = "⏱ " + M.p[0] + "–" + M.p[1];
+    };
+    panel.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.s.split(":").map(Number); M.p[k] = Math.max(0, M.p[k] + d); guardarM(); pintarM(); });
+    panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
+    panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
+    panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; guardarM(); pintarM(); };
+    $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
+    panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
+    $("ptMarc").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };
+    pintarM(); pintarT();
+  })();
   /* salir y pantalla completa */
   $("ptSalir").addEventListener("click", () => { detener(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ } if (window.parent !== window) { try { parent.postMessage({ partidoCerrar: true }, "*"); } catch (e) { /* nada */ } } else history.length > 1 ? history.back() : (location.href = "entrenador.html"); });
   const pantallaCompleta = () => {
@@ -2315,8 +2373,14 @@ function iniciarPartido() {
   /* datos */
   iniciarNube().then(recargarBib0);
   async function recargarBib0() {
-    if (modoNube) { const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false }); if (!error) E.lista = (data || []).map(deFila); else modoNube = false; }
-    if (!modoNube) E.lista = leerLocal();
+    let filas = null;
+    if (modoNube) { const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false }); if (!error) { filas = data || []; kv.put("partido_jugadas", filas); } else modoNube = false; }
+    if (filas) E.lista = filas.map(deFila);
+    else {
+      const snap = await kv.get("partido_jugadas"), loc = leerLocal();
+      if (snap && snap.length) { E.lista = snap.map(deFila).concat(loc.filter(x => !snap.some(r => r.id === x.id))); E.sinRed = true; setTimeout(() => aviso("📴 Sin conexión: usando las jugadas guardadas en este aparato."), 600); }
+      else E.lista = loc;
+    }
     E.lista.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0) || String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
     if (E.pin.size && E.lista.some(x => E.pin.has(x.id))) E.filtro = "pin";
     pintarChips(); pintarLista();
