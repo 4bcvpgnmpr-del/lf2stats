@@ -2352,7 +2352,7 @@ function iniciarPartido() {
     let PLT = [];
     const pintarPl = () => {
       const box = $("mpPj"); if (!box) return;
-      if (!PLT.length) { box.innerHTML = '<div style="opacity:.65;font-size:14px;grid-column:1/-1;">Añade tu plantilla en «Quintetos y equipos» (en el Entrenador) y aparecerá aquí.</div>'; return; }
+      if (!PLT.length) { box.innerHTML = '<div style="opacity:.65;font-size:14px;grid-column:1/-1;">Elige «Mi equipo» en la app de estadísticas (o añade tu plantilla en «Quintetos y equipos») y aparecerá aquí.</div>'; return; }
       box.innerHTML = PLT.map(j => { const n = (M.fj || {})[j.id] || 0; return `<div class="mp-j ${n >= 5 ? "f5" : n === 4 ? "f4" : ""}"><button class="jb" data-j="${esc(j.id)}"><span class="jn">${j.num !== "" && j.num != null ? esc(String(j.num)) : ""}</span><span class="jt">${esc(j.nombre)}</span><span class="jc" style="color:${n >= 5 ? "#ff4d4d" : n === 4 ? "#f08c00" : "#fff"}">${n}</span></button><button class="jm" data-jm="${esc(j.id)}" title="Quitar una falta">−</button></div>`; }).join("");
       box.querySelectorAll("[data-j],[data-jm]").forEach(b => b.onclick = () => {
         const id = b.dataset.j || b.dataset.jm, d = b.dataset.j ? 1 : -1; M.fj = M.fj || {}; const n = M.fj[id] || 0, nn = Math.max(0, n + d); if (nn === n) return;
@@ -2360,7 +2360,34 @@ function iniciarPartido() {
         if (d > 0 && nn >= 5) { try { navigator.vibrate && navigator.vibrate([200, 80, 200]); } catch (e) { /* nada */ } aviso("⚠️ " + (PLT.find(x => x.id === id) || {}).nombre + " llega a 5 faltas"); }
       });
     };
+    /* plantilla = «Mi equipo» de la app de estadísticas (hoja de Google); si no hay, la de Quintetos */
+    const SHEET_ID = "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94", TEMPS = { "2026": "_2026", "2025": "" };
+    const normEq = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(p => p && !["CB","BC","CD","CLUB","BALONCESTO","BASKET","FEMENINO","FEM","SAD","DE","DEL","LA","EL","LAS","LOS"].includes(p)).join(" ");
+    const bonito = (t) => { t = String(t || "").trim(); if (t.includes(",")) { const [a, b] = t.split(","); t = b.trim() + " " + a.trim(); } return t.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()); };
+    const sheetTab = (tab, suf) => new Promise((ok, ko) => {
+      const cb = "__ptCb" + Math.random().toString(36).slice(2), sc = document.createElement("script");
+      const fin = () => { clearTimeout(t); delete window[cb]; sc.remove(); }, t = setTimeout(() => { fin(); ko(new Error("t")); }, 8000);
+      window[cb] = (j) => { fin(); try { const cols = j.table.cols.map(c => (c.label || c.id || "").trim()); ok((j.table.rows || []).map(r => { const o = {}; cols.forEach((c, i) => { const x = r.c && r.c[i]; o[c] = x ? (x.f != null ? x.f : x.v) : ""; }); return o; })); } catch (e) { ko(e); } };
+      sc.src = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=" + encodeURIComponent("out:json;responseHandler:" + cb) + "&sheet=" + encodeURIComponent(tab + suf) + "&headers=1";
+      sc.onerror = () => { fin(); ko(new Error("e")); }; document.body.appendChild(sc);
+    });
+    const miEquipoPlantilla = async () => {
+      let eq = "", te = "2026"; try { eq = localStorage.getItem("lf2_mi_equipo") || ""; te = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
+      const n = normEq(eq); if (!n) return null;
+      const ck = "partido_miequipo_" + n + "_" + te;
+      try {
+        const filas = await sheetTab("Plantillas", TEMPS[te] != null ? TEMPS[te] : "_2026");
+        const mias = filas.filter(f => { const e = normEq(f.Equipo); return e && (e === n || e.includes(n) || n.includes(e)); });
+        const vistos = new Set(), lista = [];
+        mias.forEach(f => { const nom = bonito(f.Jugadora || f.Jugador); if (!nom || vistos.has(nom)) return; vistos.add(nom); lista.push({ id: "me_" + normEq(nom).replace(/ /g, "_"), nombre: nom, num: f.Dorsal !== "" && f.Dorsal != null ? String(f.Dorsal) : "" }); });
+        lista.sort((a, b) => (parseInt(a.num) || 999) - (parseInt(b.num) || 999));
+        if (lista.length) { kv.put(ck, lista); return lista; }
+      } catch (e) { /* sin red */ }
+      return (await kv.get(ck)) || null;
+    };
     E.cargarPlantilla = async () => {
+      const me = await miEquipoPlantilla();
+      if (me && me.length) { PLT = me; pintarPl(); return; }
       let r = null;
       if (modoNube) { try { const { data, error } = await nube.from("archivos").select("*").eq("id", "_equipos"); if (!error && data && data[0]) { r = JSON.parse(data[0].nombre || "{}"); kv.put("partido_plantilla", r); } } catch (e) { /* sin red */ } }
       if (!r) r = await kv.get("partido_plantilla");

@@ -34,6 +34,7 @@
   .grupo button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;background:transparent;color:#dfe5ee;padding:10px 12px;border-radius:10px;font-weight:600;font-size:14px;}
   .grupo button:hover{background:rgba(255,255,255,.07);}
   .grupo button.on{background:var(--orange);color:#fff;}
+  .grupo button.btn-partido{background:#e8590c !important;color:#fff !important;font-weight:700;} .grupo button.btn-partido .i{color:#fff !important;}
   .grupo button .n{margin-left:auto;font-size:11px;opacity:.7;font-weight:700;}
   .pie{margin-top:auto;padding:14px;}
   .pie a{display:block;text-align:center;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.25);}
@@ -477,6 +478,7 @@
 <div id="app">
   <aside>
     <div class="marca"><div class="logo zona-sel" data-zona="entrenador" title="Cambiar de zona"><span class="lg-bola">●</span><div class="lg-t"><b>Scout<span>Flow</span></b><small>Entrenador</small></div><span class="chev">▾</span></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div><div class="perfil" id="perfil" title="Mi equipo"><span class="av" id="perfilAv">🏀</span><div class="tt"><b id="perfilEq">Mi equipo</b><small id="perfilTe">Añade tu escudo</small></div></div>
+    <div class="grupo"><h4>Partido</h4><button data-s="partido" class="btn-partido"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><span class="tx">Modo partido</span></button></div>
     <div class="grupo"><h4>Jugadas</h4>
       <button data-s="jugadas"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
       <button data-s="playbooks"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.500-1.500-6-1.500-9 .5-3-2-6.500-2-9-.5z"/><path d="M12 6v13.500"/></svg></span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
@@ -1976,7 +1978,7 @@ async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
   $("cajon").addEventListener("mousedown", (e) => { if (e.target === $("cajon")) $("cajon").classList.remove("ver"); });
-  document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => ir(b.dataset.s)));
+  document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => { if (b.dataset.s === "partido") { abrirPartido(); if (esMovil()) document.body.classList.remove("menu-ab"); } else ir(b.dataset.s); }));
   const hayCopia = !!(await kv.get("entrenador"));
   if (!nube) { if (hayCopia) { window.addEventListener("online", () => location.reload()); OFFLINE = true; D.jugadas = []; await cargarOffline(); return; } pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
   let data = null; try { data = (await nube.auth.getSession()).data; } catch (e) { /* sin red */ }
