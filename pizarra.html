@@ -2308,7 +2308,7 @@ function iniciarPartido() {
   /* ---- marcador, faltas y cronometro de tiempo muerto ---- */
   (() => {
     const CL = "scoutflow-marcador";
-    const M = Object.assign({ n: ["Nosotros", "Rivales"], p: [0, 0], f: [0, 0], per: 1 }, (() => { try { return JSON.parse(localStorage.getItem(CL) || "{}"); } catch (e) { return {}; } })());
+    const M = Object.assign({ n: ["Nosotros", "Rivales"], p: [0, 0], f: [0, 0], per: 1, fj: {} }, (() => { try { return JSON.parse(localStorage.getItem(CL) || "{}"); } catch (e) { return {}; } })());
     const guardarM = () => { try { localStorage.setItem(CL, JSON.stringify(M)); } catch (e) { /* nada */ } };
     const st = document.createElement("style"); st.textContent = `
       #ptMarc{background:#2c3947;} #ptPill{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9;min-height:42px !important;font-size:20px !important;font-variant-numeric:tabular-nums;background:#e8590c !important;}
@@ -2317,12 +2317,15 @@ function iniciarPartido() {
       #ptPanel .mp-eq{display:grid;grid-template-columns:1fr 1fr;gap:12px;} #ptPanel .mp-e{background:#223040;border-radius:14px;padding:10px;text-align:center;} #ptPanel .mp-e input{width:100%;background:transparent;border:0;color:#fff;font-weight:800;font-size:18px;text-align:center;}
       #ptPanel .mp-n{font-size:84px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 8px;} #ptPanel .mp-b{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;} #ptPanel .mp-b button{min-width:58px;}
       #ptPanel .mp-f{margin-top:10px;font-size:14px;opacity:.9;display:flex;gap:8px;align-items:center;justify-content:center;} #ptPanel .mp-f b{font-size:22px;min-width:24px;display:inline-block;}
+      #ptPanel .mp-pl{margin-top:12px;background:#223040;border-radius:14px;padding:10px;} #ptPanel .mp-pl h4{margin:0 0 8px;font-size:14px;opacity:.85;display:flex;justify-content:space-between;gap:8px;} #ptPanel .mp-pj{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+      #ptPanel .mp-j{display:flex;align-items:stretch;background:#17202a;border-radius:12px;overflow:hidden;border:2px solid transparent;} #ptPanel .mp-j.f4{border-color:#f08c00;} #ptPanel .mp-j.f5{border-color:#ff4d4d;background:#3a1d1d;} #ptPanel .mp-j .jb{flex:1;min-width:0;background:transparent;border-radius:0;display:flex;align-items:center;gap:8px;padding:0 8px;text-align:left;} #ptPanel .mp-j .jn{font-size:12px;opacity:.7;min-width:20px;font-weight:800;} #ptPanel .mp-j .jt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;} #ptPanel .mp-j .jc{font-size:26px;font-weight:900;min-width:22px;text-align:right;} #ptPanel .mp-j .jm{width:38px;border-radius:0;background:#2c3947;padding:0;font-size:18px;}
       #ptPanel .mp-per{display:flex;gap:6px;justify-content:center;margin:12px 0;} #ptPanel .mp-per button.on{background:#e8590c;}
       #ptPanel .mp-t{background:#223040;border-radius:14px;padding:10px;text-align:center;} #ptPanel .mp-r{font-size:72px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;} #ptPanel .mp-r.fin{color:#ff4d4d;animation:parp .5s infinite;} @keyframes parp{50%{opacity:.25}}
       #ptPanel .mp-pie{display:flex;gap:8px;justify-content:space-between;margin-top:12px;}`;
     document.head.appendChild(st);
     const panel = document.createElement("div"); panel.id = "ptPanel";
     panel.innerHTML = `<div class="mp"><div class="mp-eq">${[0, 1].map(k => `<div class="mp-e"><input data-n="${k}" value="${esc(M.n[k])}"><div class="mp-n" id="mpN${k}">0</div><div class="mp-b"><button data-s="${k}:1">+1</button><button data-s="${k}:2">+2</button><button data-s="${k}:3">+3</button><button data-s="${k}:-1">−1</button></div><div class="mp-f">Faltas <button data-f="${k}:-1">−</button><b id="mpF${k}">0</b><button data-f="${k}:1">＋</button></div></div>`).join("")}</div>
+      <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span></h4><div class="mp-pj" id="mpPj"></div></div>
       <div class="mp-per" id="mpPer">${[1, 2, 3, 4, 5].map(n => `<button data-p="${n}">${n === 5 ? "Prórroga" : "Cuarto " + n}</button>`).join("")}</div>
       <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
       <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
@@ -2344,17 +2347,34 @@ function iniciarPartido() {
     const pintarM = () => {
       [0, 1].forEach(k => { $("mpN" + k).textContent = M.p[k]; $("mpF" + k).textContent = M.f[k]; $("mpF" + k).style.color = M.f[k] >= 5 ? "#ff4d4d" : ""; });
       panel.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", Number(b.dataset.p) === M.per));
-      $("ptMarc").textContent = "⏱ " + M.p[0] + "–" + M.p[1];
+      $("ptMarc").textContent = "⏱ " + M.p[0] + "–" + M.p[1]; if (typeof pintarPl === "function") pintarPl();
+    };
+    let PLT = [];
+    const pintarPl = () => {
+      const box = $("mpPj"); if (!box) return;
+      if (!PLT.length) { box.innerHTML = '<div style="opacity:.65;font-size:14px;grid-column:1/-1;">Añade tu plantilla en «Quintetos y equipos» (en el Entrenador) y aparecerá aquí.</div>'; return; }
+      box.innerHTML = PLT.map(j => { const n = (M.fj || {})[j.id] || 0; return `<div class="mp-j ${n >= 5 ? "f5" : n === 4 ? "f4" : ""}"><button class="jb" data-j="${esc(j.id)}"><span class="jn">${j.num !== "" && j.num != null ? esc(String(j.num)) : ""}</span><span class="jt">${esc(j.nombre)}</span><span class="jc" style="color:${n >= 5 ? "#ff4d4d" : n === 4 ? "#f08c00" : "#fff"}">${n}</span></button><button class="jm" data-jm="${esc(j.id)}" title="Quitar una falta">−</button></div>`; }).join("");
+      box.querySelectorAll("[data-j],[data-jm]").forEach(b => b.onclick = () => {
+        const id = b.dataset.j || b.dataset.jm, d = b.dataset.j ? 1 : -1; M.fj = M.fj || {}; const n = M.fj[id] || 0, nn = Math.max(0, n + d); if (nn === n) return;
+        M.fj[id] = nn; M.f[0] = Math.max(0, M.f[0] + d); guardarM(); pintarM();
+        if (d > 0 && nn >= 5) { try { navigator.vibrate && navigator.vibrate([200, 80, 200]); } catch (e) { /* nada */ } aviso("⚠️ " + (PLT.find(x => x.id === id) || {}).nombre + " llega a 5 faltas"); }
+      });
+    };
+    E.cargarPlantilla = async () => {
+      let r = null;
+      if (modoNube) { try { const { data, error } = await nube.from("archivos").select("*").eq("id", "_equipos"); if (!error && data && data[0]) { r = JSON.parse(data[0].nombre || "{}"); kv.put("partido_plantilla", r); } } catch (e) { /* sin red */ } }
+      if (!r) r = await kv.get("partido_plantilla");
+      PLT = ((r && r.plantilla) || []).filter(j => j.pres !== false); pintarPl();
     };
     panel.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.s.split(":").map(Number); M.p[k] = Math.max(0, M.p[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
     panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
-    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; guardarM(); pintarM(); };
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; guardarM(); pintarM(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };
-    pintarM(); pintarT();
+    pintarM(); pintarT(); kv.get("partido_plantilla").then(r => { if (r && !PLT.length) { PLT = (r.plantilla || []).filter(j => j.pres !== false); pintarPl(); } });
   })();
   /* salir y pantalla completa */
   $("ptSalir").addEventListener("click", () => { detener(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ } if (window.parent !== window) { try { parent.postMessage({ partidoCerrar: true }, "*"); } catch (e) { /* nada */ } } else history.length > 1 ? history.back() : (location.href = "entrenador.html"); });
@@ -2383,7 +2403,7 @@ function iniciarPartido() {
     }
     E.lista.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0) || String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
     if (E.pin.size && E.lista.some(x => E.pin.has(x.id))) E.filtro = "pin";
-    pintarChips(); pintarLista();
+    pintarChips(); pintarLista(); if (E.cargarPlantilla) E.cargarPlantilla();
     let ult = ""; try { ult = localStorage.getItem("scoutflow-partido-ultima") || ""; } catch (e) { /* nada */ }
     const v = visibles(), pri = v.find(x => x.id === ult) || v[0];
     if (pri) abrir(pri.id); else $("ptTitulo").textContent = modoNube ? "No hay jugadas" : "No se pudieron cargar las jugadas (" + (motivoLocal || "sin conexión") + ")";
