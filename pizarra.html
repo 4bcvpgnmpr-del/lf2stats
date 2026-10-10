@@ -2422,14 +2422,61 @@ function iniciarPartido() {
     const clavesEq = () => Object.keys(M.es).filter(k => (ESV.eq === 1) === (k.indexOf("rv") === 0));
     const filas = () => ESV.eq === 0 ? PLT.map(j => ({ k: j.id, t: (j.num !== "" && j.num != null ? j.num + " " : "") + j.nombre })) : [{ k: "rv", t: "Rival (equipo)" }].concat(M.rvn.map(n => ({ k: "rv" + n, t: "Rival #" + n })));
     const pct = (m, a) => a ? Math.round(100 * m / a) + "%" : "–";
+    /* ---- datos de la FEB (función feb-directo en Supabase) ---- */
+    const FEB = { auto: false, t: null, msg: "" };
+    const nzero = () => ({ reb: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
+    const febAplicar = (d) => {
+      const eqs = d.equipos || []; if (eqs.length < 2) throw new Error("La FEB aún no da datos de jugadoras");
+      let mi = -1; try { const g = localStorage.getItem("scoutflow-feb-mi-" + d.id); mi = g === "0" ? 0 : g === "1" ? 1 : -1; } catch (e) { mi = -1; }
+      if (mi < 0) {
+        let eq = ""; try { eq = localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { /* nada */ }
+        const cand = [eq, M.n[0]].map(normEq).filter(Boolean);
+        eqs.forEach((t, i) => { const n = normEq(t.nombre); if (mi < 0 && n && cand.some(c => c === n || c.includes(n) || n.includes(c))) mi = i; });
+        if (mi < 0) mi = confirm("¿«" + eqs[0].nombre + "» es tu equipo?\n\nAceptar = sí · Cancelar = el otro") ? 0 : 1;
+        try { localStorage.setItem("scoutflow-feb-mi-" + d.id, String(mi)); } catch (e) { /* nada */ }
+      }
+      M.febH1 = M.febH1 || {}; const h1c = M.per <= 2; let sin = 0, n = 0;
+      const poner = (k, p) => {
+        const tot = { reb: p.reb, per: p.per, t2m: p.t2m, t2a: p.t2a, t3m: p.t3m, t3a: p.t3a, tlm: p.tlm, tla: p.tla };
+        let h1 = tot, h2 = nzero();
+        if (h1c) M.febH1[k] = tot;
+        else if (M.febH1[k]) { h1 = M.febH1[k]; Object.keys(h2).forEach(f => h2[f] = Math.max(0, tot[f] - (h1[f] || 0))); }
+        M.es[k] = { h1, h2 }; n++;
+      };
+      eqs[mi].jug.forEach(p => {
+        const nm = normEq(bonito(p.nombre)), j = PLT.find(x => (p.no !== "" && String(x.num) === String(p.no)) || (nm && normEq(x.nombre) === nm));
+        if (!j) { sin++; return; } poner(j.id, p); if (p.f) (M.fj = M.fj || {})[j.id] = p.f;
+      });
+      eqs[1 - mi].jug.forEach(p => { if (p.no === "") return; const k = "rv" + p.no; poner(k, p); if (!M.rvn.includes(p.no)) M.rvn.push(p.no); });
+      guardarM();
+      const q = d.cuartos && d.cuartos.length ? " · cuarto " + d.cuartos[d.cuartos.length - 1].n : "";
+      FEB.msg = "📡 FEB actualizada " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "");
+    };
+    const febTraer = async (callado) => {
+      let id = ""; try { id = localStorage.getItem("scoutflow-feb-partido") || ""; } catch (e) { /* nada */ }
+      if (!callado) {
+        const v = prompt("Enlace o número del partido en baloncestoenvivo.feb.es\n(ej. https://baloncestoenvivo.feb.es/partido/2524708)", id);
+        if (v == null) return; const m = String(v).match(/(\d{5,})/); if (!m) { aviso("No encuentro el número del partido"); return; } id = m[1];
+        try { localStorage.setItem("scoutflow-feb-partido", id); } catch (e) { /* nada */ }
+      }
+      if (!id) return;
+      if (!nube) { aviso("Hace falta conexión con la nube para traer datos de la FEB"); return; }
+      FEB.msg = "📡 Pidiendo datos a la FEB…"; if (EP.classList.contains("ver")) pintarEs();
+      try {
+        const r = await nube.functions.invoke("clever-endpoint", { body: { id } });
+        if (r.error) throw new Error(r.error.message || "sin respuesta"); if (r.data && r.data.error) throw new Error(r.data.error);
+        febAplicar(r.data);
+      } catch (e) { FEB.msg = "⚠️ No se pudo traer de la FEB (" + (e.message || e) + "). Sigue con el panel manual."; if (!callado) aviso("FEB no disponible: usa el panel manual"); }
+      if (EP.classList.contains("ver")) pintarEs();
+    };
     const pintarEs = () => {
       const v = vista(), fl = filas(), tot = cero();
       new Set(clavesEq().concat(fl.map(f => f.k))).forEach(k => { const o = suma(k, v); Object.keys(tot).forEach(f => tot[f] += o[f]); });
       const tcm = tot.t2m + tot.t3m, tca = tot.t2a + tot.t3a, pts = tot.t2m * 2 + tot.t3m * 3 + tot.tlm;
       const nomV = { h1: "1ª mitad", h2: "2ª mitad", tot: "Total" };
       const g = (k, f, lab, ok) => `<button class="${ok || ""}" data-k="${k}" data-f="${f}">${lab}</button>`;
-      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta de la mitad que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
-        <div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
+      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta de la mitad que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span><button id="esFeb" title="Trae rebotes, pérdidas y tiros de los dos equipos desde la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar solo cada 30 s">${FEB.auto ? "⏱ Auto" : "⏱"}</button>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
+        ${FEB.msg ? `<div style="background:#223040;border-radius:10px;padding:6px 10px;margin-bottom:8px;font-size:13px;">${FEB.msg}</div>` : ""}<div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
         <div class="es-res"><span>${nomV[v]} · Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> (${pct(tcm, tca)})</span><span>2P <b>${tot.t2m}/${tot.t2a}</b></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Rebotes <b>${tot.reb}</b></span><span>Pérdidas <b>${tot.per}</b></span></div>
         ${fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
           <div class="g">${g(kk, "reb", "REB")}<span>${o.reb}</span></div><div class="g">${g(kk, "per", "PER")}<span>${o.per}</span></div>
@@ -2456,6 +2503,8 @@ function iniciarPartido() {
         try { navigator.vibrate && navigator.vibrate(15); } catch (e) { /* nada */ }
       });
       $("esCo").onclick = () => { ESV.corr = !ESV.corr; pintarEs(); };
+      $("esFeb").onclick = () => febTraer(false);
+      $("esFebA").onclick = () => { FEB.auto = !FEB.auto; clearInterval(FEB.t); if (FEB.auto) { febTraer(false); FEB.t = setInterval(() => { if (EP.classList.contains("ver")) febTraer(true); }, 30000); } pintarEs(); };
       $("esUn").onclick = () => { const u = UND.pop(); if (!u) return; const o = (M.es[u[0]] || {})[u[1]]; if (!o) return; const f = u[2]; if (f === "reb" || f === "per") o[f] = Math.max(0, o[f] - 1); else { const tp = f.slice(0, -1); o[tp + "a"] = Math.max(0, o[tp + "a"] - 1); if (f.slice(-1) === "m") o[tp + "m"] = Math.max(0, o[tp + "m"] - 1); } guardarM(); pintarEs(); };
       $("esEd").onclick = () => abrirEd();
       $("esX").onclick = () => EP.classList.remove("ver");
@@ -2498,7 +2547,7 @@ function iniciarPartido() {
     $("mpMan").onclick = () => { const v = prompt("Tiempo en minutos (ej. 10, o 2:30 para 2 min 30 s):", "10"); if (v == null) return; const m = String(v).trim().match(/^(\d+)(?:[:.,](\d{1,2}))?$/); if (!m) { aviso("Tiempo no válido"); return; } const sec = v.includes(":") ? Number(m[1]) * 60 + Number(m[2] || 0) : Number(m[1]) * 60 + (m[2] ? Math.round(Number("0." + m[2]) * 60) : 0); if (sec > 0) iniciarT(sec); };
 
     /* ---- guardar el partido en el libro ---- */
-    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; UND.length = 0; guardarM(); pintarM(); };
+    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; UND.length = 0; guardarM(); pintarM(); };
     $("mpGu").onclick = async () => {
       const act = (k) => { const o = M.es[k] || {}, h1 = Object.assign(cero(), o.h1), h2 = Object.assign(cero(), o.h2); return { h1, h2, hay: Object.values(h1).concat(Object.values(h2)).some(x => x > 0) }; };
       const ids = new Set(PLT.map(j => j.id).concat(Object.keys(M.es).filter(k => k.indexOf("rv") !== 0)).concat(Object.keys(M.fj || {})));
@@ -2516,7 +2565,7 @@ function iniciarPartido() {
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
     panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
-    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; guardarM(); pintarM(); };
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; guardarM(); pintarM(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = $("ptMarcF").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };
