@@ -220,8 +220,14 @@
   #partido .pt-ctrl .col{width:34px;min-height:34px;height:34px;border-radius:50%;padding:0;border:3px solid #fff0;} #partido .pt-ctrl .col.on{border-color:#fff;}
   #partido .pt-fase{font-weight:800;min-width:74px;text-align:center;}
   #partido #ptHerr button{min-width:46px;padding:0 10px;} #partido #ptHerr button.on{background:var(--teal);} #partido #ptHerr .sep{width:1px;height:30px;background:#3a4958;margin:0 2px;}
-  #partido #ptGrandeX{display:none;position:fixed;top:8px;right:8px;z-index:5;min-height:38px;opacity:.55;font-size:13px;} body.pt-grande #partido #ptGrandeX{display:block;}
-  body.pt-grande #partido .pt-top,body.pt-grande #partido #ptLista,body.pt-grande #partido #ptOpc{display:none;} body.pt-grande #partido .pt-escena{padding:4px 6px;} body.pt-grande #partido #ptTitulo{font-size:15px;padding-right:90px;}
+  #partido #ptGrandeX,#partido #ptJug{display:none;position:fixed;left:8px;z-index:8;min-height:46px;width:46px;padding:0;opacity:.7;font-size:20px;background:#2c3947cc;} #partido #ptGrandeX{top:8px;} #partido #ptJug{top:60px;}
+  body.pt-grande #partido #ptGrandeX,body.pt-grande #partido #ptJug{display:block;}
+  body.pt-grande #partido .pt-top,body.pt-grande #partido #ptLista{display:none;}
+  body.pt-grande.pt-lista #partido #ptLista{display:flex;position:fixed;left:0;top:0;bottom:0;width:min(330px,82vw);z-index:7;box-shadow:6px 0 24px #000a;padding-left:62px;}
+  body.pt-grande #partido .pt-escena{padding:6px;gap:8px;display:grid;grid-template-columns:minmax(0,1fr) 190px;grid-template-rows:auto auto minmax(0,1fr) auto;}
+  body.pt-grande #partido .pt-zona{grid-column:1;grid-row:1/5;} body.pt-grande #partido #ptTitulo{grid-column:2;grid-row:1;font-size:15px;line-height:1.2;} body.pt-grande #partido #ptOpc{grid-column:2;grid-row:2;} body.pt-grande #partido .pt-ctrl{grid-column:2;grid-row:3;align-content:flex-start;overflow-y:auto;gap:6px;} body.pt-grande #partido .pt-ctrl button{flex:1 1 74px;padding:0 6px;min-height:52px;} body.pt-grande #partido .pt-ctrl .sep{display:none;} body.pt-grande #partido #ptLey{grid-column:2;grid-row:4;font-size:13px;max-height:26vh;}
+  body.pt-grande #partido #ptCols{flex-wrap:wrap;} body.pt-grande #partido #ptHerr{flex-wrap:wrap;}
+  @media (max-aspect-ratio:1/1){ body.pt-grande #partido .pt-escena{display:flex;flex-direction:column;} body.pt-grande #partido #ptTitulo{display:none;} body.pt-grande #partido .pt-ctrl button{flex:0 0 auto;min-height:46px;} body.pt-grande #partido #ptLey{max-height:14vh;} }
   #partido .pt-vacio{margin:auto;opacity:.6;font-size:18px;padding:30px;text-align:center;}
   @media (max-width:820px),(orientation:portrait){
     #partido .pt-main{flex-direction:column;} #partido #ptLista{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px;} #partido .pt-it{flex:none;width:210px;}
@@ -652,7 +658,7 @@
     <div class="pt-chips" id="ptChips"></div>
     <button id="ptFs" title="Pantalla grande">⛶</button>
   </div>
-  <button id="ptGrandeX" title="Salir de pantalla grande">⛶ Salir</button>
+  <button id="ptGrandeX" title="Salir de pantalla grande">⛶</button><button id="ptJug" title="Elegir jugada">☰</button>
   <div class="pt-main">
     <div id="ptLista"></div>
     <div class="pt-escena">
@@ -2206,7 +2212,7 @@ function iniciarPartido() {
   };
   const abrir = (id) => {
     const x = E.lista.find(y => y.id === id); if (!x) return;
-    detener(); limpiarDibujo(); E.j = normalizar(clonar(x)); E.i = 0; E.op = 0;
+    document.body.classList.remove("pt-lista"); detener(); limpiarDibujo(); E.j = normalizar(clonar(x)); E.i = 0; E.op = 0;
     $("ptTitulo").textContent = E.j.nombre || "Jugada";
     const ops = E.j.opciones;
     $("ptOpc").innerHTML = ops && ops.length > 1 ? ops.map((o, k) => `<button data-k="${k}" class="${k === 0 ? "on" : ""}">${esc(o.nombre || "Opción " + (k + 1))}</button>`).join("") : "";
@@ -2279,6 +2285,8 @@ function iniciarPartido() {
   };
   $("ptFs").addEventListener("click", () => grande(!document.body.classList.contains("pt-grande")));
   $("ptGrandeX").addEventListener("click", () => grande(false));
+  $("ptJug").addEventListener("click", () => document.body.classList.toggle("pt-lista"));
+  $("ptCaja").addEventListener("pointerdown", () => document.body.classList.remove("pt-lista"));
   const finFs = () => { if (!document.fullscreenElement && !document.webkitFullscreenElement && document.body.classList.contains("pt-grande") && E._fsOn) document.body.classList.remove("pt-grande"); E._fsOn = !!(document.fullscreenElement || document.webkitFullscreenElement); };
   document.addEventListener("fullscreenchange", finFs); document.addEventListener("webkitfullscreenchange", finFs);
   document.addEventListener("keydown", (e) => { if (e.target.tagName === "INPUT") return; if (e.key === "ArrowRight") irFase(1); if (e.key === "ArrowLeft") irFase(-1); if (e.key === "ArrowDown") saltarJugada(1); if (e.key === "ArrowUp") saltarJugada(-1); if (e.key === " ") { e.preventDefault(); $("ptPlay").click(); } });
