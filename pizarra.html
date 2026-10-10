@@ -223,6 +223,8 @@
   #partido #ptGrandeX,#partido #ptJug{display:none;position:fixed;left:8px;z-index:8;min-height:46px;width:46px;padding:0;opacity:.7;font-size:20px;background:#2c3947cc;} #partido #ptGrandeX{top:8px;} #partido #ptJug{top:60px;}
   body.pt-grande #partido #ptGrandeX,body.pt-grande #partido #ptJug{display:block;}
   body.pt-grande.pt-lista #partido #ptGrandeX,body.pt-grande.pt-lista #partido #ptJug{display:none;}
+  #partido #ptMarcF{display:none;position:fixed;left:8px;top:112px;z-index:8;min-height:56px;width:46px;padding:0;font-size:13px;line-height:1.2;white-space:pre-line;text-align:center;font-weight:800;background:#e8590c;font-variant-numeric:tabular-nums;box-shadow:0 4px 14px #0008;} body.pt-grande:not(.pt-lista) #partido #ptMarcF{display:block;}
+  #partido #ptMarc{background:#e8590c;font-weight:800;white-space:nowrap;}
   body.pt-grande #partido .pt-top,body.pt-grande #partido #ptLista{display:none;}
   body.pt-grande.pt-lista #partido .pt-top{display:flex;position:fixed;top:0;left:0;right:0;z-index:9;flex-wrap:nowrap;box-shadow:0 4px 18px #000a;}
   body.pt-grande.pt-lista #partido #ptLista{display:flex;position:fixed;left:0;top:62px;bottom:0;width:min(330px,82vw);z-index:7;box-shadow:6px 0 24px #000a;}
@@ -657,10 +659,12 @@
   <div class="pt-top">
     <button id="ptSalir">✕ Salir</button>
     <input id="ptBuscar" type="search" placeholder="Buscar jugada…" autocomplete="off">
+    <button id="ptMarc" title="Marcador, faltas, estadísticas y tiempo muerto">⏱ 0–0</button>
     <div class="pt-chips" id="ptChips"></div>
     <button id="ptFs" title="Pantalla grande">⛶</button>
   </div>
-  <button id="ptGrandeX" title="Pantalla completa">⛶</button><button id="ptJug" title="Elegir jugada">☰</button>
+  <button id="ptGrandeX" title="Pantalla completa">⛶</button><button id="ptJug" title="Elegir jugada">☰</button><button id="ptMarcF" title="Marcador, faltas, estadísticas y tiempo muerto">⏱
+0–0</button>
   <div class="pt-main">
     <div id="ptLista"></div>
     <div class="pt-escena">
@@ -674,7 +678,6 @@
         <button id="ptJNext" title="Jugada siguiente">⏭</button>
         <button id="ptPlay" style="min-width:110px;">▶ Animar</button>
         <button id="ptZoom" title="Agrandir la pista (arrastra para moverte)">🔍 x1</button>
-        <button id="ptMarc" title="Marcador, faltas y tiempo muerto">⏱ 0–0</button>
         <span class="sep"></span>
         <button id="ptLapiz">✏️ Dibujar</button>
         <span id="ptCols" style="display:none;gap:8px;align-items:center;"></span>
@@ -2311,7 +2314,7 @@ function iniciarPartido() {
     const M = Object.assign({ n: ["Nosotros", "Rivales"], p: [0, 0], f: [0, 0], per: 1, fj: {} }, (() => { try { return JSON.parse(localStorage.getItem(CL) || "{}"); } catch (e) { return {}; } })());
     const guardarM = () => { try { localStorage.setItem(CL, JSON.stringify(M)); } catch (e) { /* nada */ } };
     const st = document.createElement("style"); st.textContent = `
-      #ptMarc{background:#2c3947;} #ptPill{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9;min-height:42px !important;font-size:20px !important;font-variant-numeric:tabular-nums;background:#e8590c !important;}
+      #ptPill{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9;min-height:42px !important;font-size:20px !important;font-variant-numeric:tabular-nums;background:#e8590c !important;}
       #ptPanel{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:30;background:#000b;align-items:center;justify-content:center;padding:10px;} #ptPanel.ver{display:flex;}
       #ptPanel .mp{background:#17202a;border-radius:18px;padding:14px;width:min(760px,100%);max-height:100%;overflow:auto;box-shadow:0 12px 40px #000c;}
       #ptPanel .mp-eq{display:grid;grid-template-columns:1fr 1fr;gap:12px;} #ptPanel .mp-e{background:#223040;border-radius:14px;padding:10px;text-align:center;} #ptPanel .mp-e input{width:100%;background:transparent;border:0;color:#fff;font-weight:800;font-size:18px;text-align:center;}
@@ -2347,7 +2350,7 @@ function iniciarPartido() {
     const pintarM = () => {
       [0, 1].forEach(k => { $("mpN" + k).textContent = M.p[k]; $("mpF" + k).textContent = M.f[k]; $("mpF" + k).style.color = M.f[k] >= 5 ? "#ff4d4d" : ""; });
       panel.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", Number(b.dataset.p) === M.per));
-      $("ptMarc").textContent = "⏱ " + M.p[0] + "–" + M.p[1]; if (typeof pintarPl === "function") pintarPl();
+      { const tx = "⏱ " + M.p[0] + "–" + M.p[1] + (M.f[0] || M.f[1] ? " · F " + M.f[0] + "/" + M.f[1] : ""); $("ptMarc").textContent = tx; $("ptMarcF").textContent = "⏱\n" + M.p[0] + "–" + M.p[1]; } if (typeof pintarPl === "function") pintarPl();
     };
     let PLT = [], RAW = [];
     const LS_ED = "scoutflow-plantilla-edit";
@@ -2500,7 +2503,7 @@ function iniciarPartido() {
     $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; guardarM(); pintarM(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
-    $("ptMarc").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };
+    $("ptMarc").onclick = $("ptMarcF").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };
     pintarM(); pintarT(); kv.get("partido_plantilla").then(r => { if (r && !RAW.length) setPlt((r.plantilla || []).filter(j => j.pres !== false)); });
   })();
   /* salir y pantalla completa */
