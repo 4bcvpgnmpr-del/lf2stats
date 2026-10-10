@@ -874,37 +874,67 @@ function hgConvertir(p, ruta) {
   const X = (x) => Math.max(0.2, Math.min(14.8, 7.5 + x * HG_FT)), Y = (y) => Math.max(0.2, Math.min(13.8, y * HG_FT));
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   let omitidos = 0;
+  let previo = null; /* donde acaba cada jugadora la fase anterior: asi la identidad se mantiene aunque Hoops Geek renumere tras una rotacion */
   const pasos = fases.map((f) => {
-    const pos = {}, claves = {}; let balon = "";
+    const pos = {}, claves = {}, etq = {}; let balon = "";
     const libre = (pre) => { for (let n = 1; n <= 5; n++) if (!pos[pre + n]) return pre + n; return ""; };
-    (f.objects || []).filter(o => o.subType === "player" && o.pos).forEach((o) => {
+    const jug = (f.objects || []).filter(o => o.subType === "player" && o.pos);
+    const asig = new Map();
+    if (previo) {
+      const pares = [];
+      jug.forEach((o, io) => { const def = /defense/.test(o.team || ""); Object.keys(previo).forEach(k => { if ((k[0] === "d") !== def) return; pares.push([Math.hypot(X(o.pos[0]) - previo[k][0], Y(o.pos[1]) - previo[k][1]), io, k]); }); });
+      pares.sort((a, b) => a[0] - b[0]); const usadas = new Set();
+      pares.forEach(([d, io, k]) => { if (d > 2.5 || asig.has(io) || usadas.has(k)) return; asig.set(io, k); usadas.add(k); });
+    }
+    jug.forEach((o, io) => {
       const def = /defense/.test(o.team || ""), pre = def ? "d" : "o", n = Number(o.number);
-      let k = (n >= 1 && n <= 5 && !pos[pre + n]) ? pre + n : (!def && (o.number === "?" || o.number === "" || o.number == null) && !pos.o0 ? "o0" : libre(pre));
-      if (!k) { omitidos++; return; }
+      let k = asig.get(io);
+      if (!k || pos[k]) k = (n >= 1 && n <= 5 && !pos[pre + n] && !(previo && [...asig.values()].includes(pre + n))) ? pre + n : (!def && (o.number === "?" || o.number === "" || o.number == null) && !pos.o0 ? "o0" : libre(pre));
+      if (!k || pos[k]) { omitidos++; return; }
       pos[k] = { x: +X(o.pos[0]).toFixed(2), y: +Y(o.pos[1]).toFixed(2) }; claves[o.id] = k;
+      const lab = o.number == null || o.number === "" ? "?" : String(o.number); if (lab !== (k.slice(1) === "0" ? "?" : k.slice(1))) etq[k] = lab;
       if (o.team === "ball" && !def) balon = k;
     });
-    const cerca = (pt, excl) => { let mk = "", dm = 0.9; Object.keys(pos).forEach(k => { if (k === excl) return; const q = pos[k], dd = Math.hypot(q.x - pt[0], q.y - pt[1]); if (dd < dm) { dm = dd; mk = k; } }); return mk; };
+    /* posicion actual de cada jugadora segun avanzan las acciones: la segunda flecha de una jugadora empieza donde acabo la primera */
+    const act = {}; Object.keys(pos).forEach(k => { act[k] = [pos[k].x, pos[k].y]; });
+    const cerca = (pt, excl, r) => { let mk = "", dm = r || 0.9; Object.keys(act).forEach(k => { if (k === excl) return; const q = act[k], dd = Math.hypot(q[0] - pt[0], q[1] - pt[1]); if (dd < dm) { dm = dd; mk = k; } }); return mk; };
     const enlace = (flecha, punto) => { const l = (f.links || []).find(z => z.object && z.object.id === flecha.id && z.point === punto); return l && l.player ? claves[l.player.id] || "" : ""; };
     const flechas = (f.objects || []).filter(o => o.type === "arrow" && o.s && o.e).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-    const lineas = [];
+    const lineas = [], MOV = ["bote", "corte", "pantalla", "mueve", "entrega"], pendientes = []; let tiene = balon || (pos.o1 ? "o1" : "");
     flechas.forEach((a) => {
       const t = HG_TIPOS[a.subType]; if (!t) { omitidos++; return; }
       const s = [X(a.s[0]), Y(a.s[1])], e = [X(a.e[0]), Y(a.e[1])];
-      let de = enlace(a, "s") || cerca(s, ""), rec = "";
-      if (t === "pase" || t === "entrega") rec = enlace(a, "e") || cerca(e, de);
+      let de = enlace(a, "s") || cerca(s, "", 1.2), rec = "";
+      if (!de && (t === "pase" || t === "tiro" || t === "entrega") && tiene && act[tiene] && dist(act[tiene], s) < 3) de = tiene;
+      if (!de && t !== "pase" && t !== "tiro") de = cerca(s, "", 2.2);
+      if (t === "pase" || t === "entrega") rec = enlace(a, "e") || cerca(e, de, 0.9);
       let pts = [s, e];
       if (a.m && dist([X(a.m[0]), Y(a.m[1])], [(s[0] + e[0]) / 2, (s[1] + e[1]) / 2]) > 0.12) pts = [s, [X(a.m[0]), Y(a.m[1])], e];
-      if (de && pos[de]) pts[0] = [pos[de].x, pos[de].y];
-      if (rec && pos[rec] && (t === "pase" || t === "entrega") && pts.length === 2) { const A = pts[0], q = pos[rec], dd = Math.hypot(q.x - A[0], q.y - A[1]); if (dd > 1.1) { const k = (dd - 0.62) / dd; pts = [A, [A[0] + (q.x - A[0]) * k, A[1] + (q.y - A[1]) * k]]; } }
-      const l = { id: "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t, de, pts: pts.map(q => [+q[0].toFixed(2), +q[1].toFixed(2)]), despues: lineas.length > 0 && !a.sameTime };
+      if (de && act[de] && dist(act[de], s) < 2.2) pts[0] = [act[de][0], act[de][1]];
+      if (rec && act[rec] && (t === "pase" || t === "entrega") && pts.length === 2) { const A = pts[0], q = act[rec], dd = Math.hypot(q[0] - A[0], q[1] - A[1]); if (dd > 1.1) { const k = (dd - 0.62) / dd; pts = [A, [A[0] + (q[0] - A[0]) * k, A[1] + (q[1] - A[1]) * k]]; } }
+      const l = { id: "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) + lineas.length, t, de, pts: pts.map(q => [+q[0].toFixed(2), +q[1].toFixed(2)]), despues: lineas.length > 0 && !a.sameTime };
       if (rec) l.a = rec; if (a.option) l.opcional = true;
+      if ((t === "pase" || t === "entrega") && !rec) pendientes.push({ l, e });
       lineas.push(l);
+      if (de && !a.option && MOV.includes(t)) act[de] = [e[0], e[1]];
+      if (!a.option && rec && t === "pase") tiene = rec;
+    });
+    /* pases a una jugadora que todavia no ha llegado: el balon va a la punta de su flecha */
+    pendientes.forEach(({ l, e }) => {
+      let mejor = null, dm = 1.1;
+      lineas.forEach(x => { if (x === l || !x.de || x.de === l.de || x.opcional || !MOV.includes(x.t)) return; const q = x.pts[x.pts.length - 1], dd = Math.hypot(q[0] - e[0], q[1] - e[1]); if (dd < dm) { dm = dd; mejor = x; } });
+      if (mejor) { l.a = mejor.de; l.aL = mejor.id; return; }
+      let r2 = "", d2 = 3.2; Object.keys(act).forEach(k => { if (k[0] !== "o" || k === l.de) return; const dd = Math.hypot(act[k][0] - e[0], act[k][1] - e[1]); if (dd < d2) { d2 = dd; r2 = k; } });
+      if (r2) l.a = r2;
     });
     const objs = [];
     (f.objects || []).filter(o => o.type === "object" && o.subType === "cone" && o.pos).forEach(o => objs.push({ t: "cono", x: +X(o.pos[0]).toFixed(2), y: +Y(o.pos[1]).toFixed(2) }));
     (f.objects || []).forEach(o => { if (o.type !== "court" && o.type !== "arrow" && o.subType !== "player" && o.subType !== "cone") omitidos++; });
+    const fin = {}; Object.keys(pos).forEach(k => { fin[k] = [pos[k].x, pos[k].y]; });
+    lineas.forEach(l => { if (l.de && !l.opcional && ["bote", "corte", "pantalla", "mueve", "entrega"].includes(l.t) && fin[l.de]) fin[l.de] = l.pts[l.pts.length - 1]; });
+    previo = fin;
     const paso = { pos, balon: balon || (pos.o1 ? "o1" : Object.keys(pos).find(k => k[0] === "o") || ""), lineas, texto: hgTexto(f.note), objs };
+    if (Object.keys(etq).length) paso.etq = etq;
     if (f.title) { paso.titulo = f.title; paso.mostrarTitulo = true; }
     return paso;
   });
@@ -994,16 +1024,20 @@ function dialogoHG() {
     const f = ev.target.files[0]; if (!f) return;
     const r = hgLeerArchivo(await f.text()), caja = $("hgLista");
     if (!r || !r.plays.length) { caja.innerHTML = '<p class="peq">No he encontrado jugadas en ese archivo.</p>'; $("hgImp").disabled = true; return; }
-    const ya = new Set(D.jugadas.map(x => x.data && x.data.hg && x.data.hg.id).filter(Boolean));
-    cand = r.plays.map(p => { const ruta = hgRuta(r.folders, p.folder_id), c = hgConvertir(p, ruta); return { p, ruta, c, repetida: ya.has(p.play_id) }; });
-    caja.innerHTML = '<div style="max-height:260px;overflow:auto;border:1px solid #e3e7ea;border-radius:10px;padding:6px;">' + cand.map((x, i) => `<label style="display:flex;gap:8px;align-items:center;padding:6px;"><input type="checkbox" data-i="${i}" ${x.c.error || x.repetida ? "disabled" : "checked"}><span><b>${esc(x.p.title || "(sin nombre)")}</b><br><small class="peq">${esc(x.ruta || "Sin carpeta")} · ${x.c.error ? "no se puede leer (" + esc(x.c.error) + ")" : (x.c.j.pasos.length + " fases") + (x.repetida ? " · ya importada" : "") + (x.c.omitidos ? " · " + x.c.omitidos + " elementos sin traducir" : "")}</small></span></label>`).join("") + "</div>";
+    const ya = new Map(D.jugadas.filter(x => x.data && x.data.hg && x.data.hg.id).map(x => [x.data.hg.id, x]));
+    cand = r.plays.map(p => { const ruta = hgRuta(r.folders, p.folder_id), c = hgConvertir(p, ruta); return { p, ruta, c, repetida: ya.get(p.play_id) || null }; });
+    caja.innerHTML = '<div style="max-height:260px;overflow:auto;border:1px solid #e3e7ea;border-radius:10px;padding:6px;">' + cand.map((x, i) => `<label style="display:flex;gap:8px;align-items:center;padding:6px;"><input type="checkbox" data-i="${i}" ${x.c.error ? "disabled" : "checked"}><span><b>${esc(x.p.title || "(sin nombre)")}</b><br><small class="peq">${esc(x.ruta || "Sin carpeta")} · ${x.c.error ? "no se puede leer (" + esc(x.c.error) + ")" : (x.c.j.pasos.length + " fases") + (x.repetida ? " · ya importada (se actualiza)" : "") + (x.c.omitidos ? " · " + x.c.omitidos + " elementos sin traducir" : "")}</small></span></label>`).join("") + "</div>";
     const act = () => { const n = caja.querySelectorAll("input:checked").length; $("hgImp").disabled = !n; $("hgImp").textContent = "Importar " + n; };
     caja.querySelectorAll("input").forEach(c => c.onchange = act); act();
     $("hgImp").onclick = async () => {
       const sel = [...caja.querySelectorAll("input:checked")].map(c => cand[Number(c.dataset.i)]); $("hgImp").disabled = true;
       const rutas = new Set(); sel.forEach(x => { let acc = ""; (x.ruta ? x.ruta.split("/") : []).forEach(s => { acc = acc ? acc + "/" + s : s; rutas.add(acc); }); });
       for (const ruta of rutas) if (!D.carpetas.some(c => c.tipo === "jugadas" && c.nombre === ruta)) await guardarFila("carpetas", { tipo: "jugadas", nombre: ruta });
-      let n = 0; for (const x of sel) if (await guardarFila("jugadas", x.c.fila)) n++;
+      let n = 0; for (const x of sel) {
+        const f = x.c.fila, v = x.repetida;
+        if (v) { f.id = v.id; f.data.id = v.id; f.carpeta = v.carpeta || f.carpeta; f.favorita = !!v.favorita; f.compartida = !!v.compartida; f.data.favorita = f.favorita; f.data.compartida = f.compartida; f.data.tags = [...new Set([...(v.data.tags || []), ...(f.data.tags || [])])]; }
+        if (await guardarFila("jugadas", f)) n++;
+      }
       cerrarVentana(); await cargarTodo(); pintar(); aviso(n + " jugada" + (n === 1 ? "" : "s") + " importada" + (n === 1 ? "" : "s"));
     };
   };

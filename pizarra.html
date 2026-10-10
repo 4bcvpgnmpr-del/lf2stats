@@ -639,7 +639,7 @@ const idNuevo = () => "j" + Date.now().toString(36) + Math.random().toString(36)
 
 /* ---------- fichas: o = circulo numerado, s = cuadrado numerado, d = X de defensa; numero 0 = "?" ---------- */
 let ETQ = {};
-const fijarEtq = (j) => { ETQ = (j && j.etiquetas) || {}; };
+const fijarEtq = (j, p) => { ETQ = Object.assign({}, (j && j.etiquetas) || {}, (p && p.etq) || {}); };
 const etiquetaFicha = (k) => (ETQ[k] ? ETQ[k] : k.slice(1) === "0" ? "?" : k.slice(1));
 const esAtaque = (k) => k[0] === "o" || k[0] === "s";
 const FORMACIONES = {
@@ -887,8 +887,8 @@ function rotuloSvg(txt, op) {
 /* todo el dibujo se recorta al rectangulo de la pista (la madera no se sale al ajustar a la pantalla) */
 const CLIP_INI = "", CLIP_FIN = "";
 function svgPaso(j, i, opciones) {
-  opciones = opciones || {}; fijarEtq(j);
-  const p = j.pasos[i];
+  opciones = opciones || {};
+  const p = j.pasos[i]; fijarEtq(j, p);
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
@@ -1049,7 +1049,7 @@ function rotuloFase(j, i, t, dur) {
   return op > 0.02 ? rotuloSvg(f.titulo, op.toFixed(2)) : "";
 }
 function fotogramaAnim(j, caja, i, t, dur) {
-  fijarEtq(j);
+  fijarEtq(j, j.pasos[i]);
   const E = estadoEn(j, i, t, dur);
   let lineas = ""; E.vis.forEach(v => { lineas += lineaSvg(recorteLinea(v.l, v.f), 1); });
   caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${CLIP_INI}${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}${rotuloFase(j, i, t, dur)}${CLIP_FIN}</svg>`;
@@ -1258,7 +1258,7 @@ function quitarOpcion() {
   paso = 0; selLinea = -1; selFicha = null; selObj = -1; pintar();
 }
 function pintar() {
-  fijarEtq(jugada); pintarOpciones();
+  fijarEtq(jugada, jugada.pasos[paso]); pintarOpciones();
   if (!jugada.pasos[paso]) paso = 0;
   const act = jugada.pasos[paso];
   if (selPaso !== paso || selLinea >= act.lineas.length) selLinea = -1;
@@ -1375,7 +1375,7 @@ function pintarPanelFicha() {
   $("fiTitulo").textContent = (k[0] === "d" ? "DEFENSA " : "JUGADORA ") + etiquetaFicha(k);
   if (document.activeElement !== $("fiX")) $("fiX").value = q.x.toFixed(1);
   if (document.activeElement !== $("fiY")) $("fiY").value = q.y.toFixed(1);
-  if (document.activeElement !== $("fiEtq")) $("fiEtq").value = (jugada.etiquetas || {})[k] || "";
+  if (document.activeElement !== $("fiEtq")) $("fiEtq").value = ETQ[k] || "";
   $("fiBalon").style.display = esAtaque(k) ? "" : "none";
   $("fiBalon").disabled = act.balon === k;
 }
@@ -2092,7 +2092,7 @@ if (VISOR) {
   });
   const cambiaXY = () => { const q = jugada.pasos[paso].pos[selFicha]; if (!q) return; const x = parseFloat($("fiX").value), y = parseFloat($("fiY").value); if (isFinite(x)) q.x = Math.max(0, Math.min(ANCHO, x)); if (isFinite(y)) q.y = Math.max(0, Math.min(FONDO, y)); pintar(); };
   ["fiX", "fiY"].forEach(id => { $(id).addEventListener("focus", snap); $(id).addEventListener("input", cambiaXY); });
-  $("fiEtq").addEventListener("input", (e) => { if (!selFicha) return; const val = e.target.value.trim(); jugada.etiquetas = jugada.etiquetas || {}; if (val) jugada.etiquetas[selFicha] = val; else delete jugada.etiquetas[selFicha]; if (!Object.keys(jugada.etiquetas).length) delete jugada.etiquetas; const f = document.activeElement; pintar(); });
+  $("fiEtq").addEventListener("input", (e) => { if (!selFicha) return; const val = e.target.value.trim(); jugada.etiquetas = jugada.etiquetas || {}; if (val) jugada.etiquetas[selFicha] = val; else delete jugada.etiquetas[selFicha]; if (!Object.keys(jugada.etiquetas).length) delete jugada.etiquetas; const pe = jugada.pasos[paso] && jugada.pasos[paso].etq; if (pe && selFicha in pe) { if (val) pe[selFicha] = val; else delete pe[selFicha]; } const f = document.activeElement; pintar(); });
   $("fiEtq").addEventListener("focus", () => snap());
   $("fiBalon").addEventListener("click", () => { if (!selFicha) return; snap(); jugada.pasos[paso].balon = selFicha; pintar(); });
   $("fiQuitar").addEventListener("click", () => { if (!selFicha) return; const k = selFicha; selFicha = null; alternarFicha(k); });
