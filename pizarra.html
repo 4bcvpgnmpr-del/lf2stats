@@ -2328,7 +2328,7 @@ function iniciarPartido() {
       <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span></h4><div class="mp-pj" id="mpPj"></div></div>
       <div class="mp-per" id="mpPer">${[1, 2, 3, 4, 5].map(n => `<button data-p="${n}">${n === 5 ? "Prórroga" : "Cuarto " + n}</button>`).join("")}</div>
       <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
-      <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
+      <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpEs" style="background:#2b8a3e;">📊 Estadísticas</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
     $("partido").appendChild(panel);
     const pill = document.createElement("button"); pill.id = "ptPill"; pill.textContent = "⏱ 1:00"; $("partido").appendChild(pill);
     const T = { dur: 60, rest: 60, run: false, fin: 0, tick: null };
@@ -2393,11 +2393,63 @@ function iniciarPartido() {
       if (!r) r = await kv.get("partido_plantilla");
       PLT = ((r && r.plantilla) || []).filter(j => j.pres !== false); pintarPl();
     };
+
+    /* ---- estadísticas a mano: rebotes, pérdidas y tiros (nosotros y rival) ---- */
+    M.es = M.es || {}; M.rvn = M.rvn || [];
+    const est = document.createElement("style"); est.textContent = `
+      #ptEst{display:none;position:fixed;inset:0;z-index:31;background:#000b;align-items:center;justify-content:center;padding:10px;} #ptEst.ver{display:flex;}
+      #ptEst .es{background:#17202a;border-radius:18px;padding:14px;width:min(980px,100%);max-height:100%;overflow:auto;box-shadow:0 12px 40px #000c;color:#fff;}
+      #ptEst .es-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;} #ptEst button{min-height:42px;} #ptEst .on{background:#e8590c;}
+      #ptEst .es-res{display:flex;gap:14px;flex-wrap:wrap;background:#223040;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:15px;} #ptEst .es-res b{font-size:20px;}
+      #ptEst .es-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#223040;border-radius:12px;padding:6px 8px;margin-bottom:6px;} #ptEst .es-f .nm{width:130px;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      #ptEst .g{display:flex;gap:3px;align-items:center;background:#17202a;border-radius:10px;padding:3px;} #ptEst .g button{min-width:46px;padding:0 8px;font-size:15px;} #ptEst .g span{font-size:13px;min-width:46px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;} #ptEst .ok{background:#2b8a3e;} #ptEst .ko{background:#a61e1e;}
+      #ptEst .es-tot{background:#2c3947;}`;
+    document.head.appendChild(est);
+    const EP = document.createElement("div"); EP.id = "ptEst"; $("partido").appendChild(EP);
+    const ESV = { eq: 0, v: "auto" }, UND = [];
+    const mitad = () => (M.per <= 2 ? "h1" : "h2");
+    const cero = () => ({ reb: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
+    const vista = () => (ESV.v === "auto" ? mitad() : ESV.v);
+    const suma = (k, v) => { const o = cero(); ((M.es[k] || {}));  ["h1", "h2"].forEach(h => { if (v !== "tot" && v !== h) return; const d = (M.es[k] || {})[h]; if (d) Object.keys(o).forEach(f => o[f] += d[f] || 0); }); return o; };
+    const clavesEq = () => Object.keys(M.es).filter(k => (ESV.eq === 1) === (k.indexOf("rv") === 0));
+    const filas = () => ESV.eq === 0 ? PLT.map(j => ({ k: j.id, t: (j.num !== "" && j.num != null ? j.num + " " : "") + j.nombre })) : [{ k: "rv", t: "Rival (equipo)" }].concat(M.rvn.map(n => ({ k: "rv" + n, t: "Rival #" + n })));
+    const pct = (m, a) => a ? Math.round(100 * m / a) + "%" : "–";
+    const pintarEs = () => {
+      const v = vista(), fl = filas(), tot = cero();
+      new Set(clavesEq().concat(fl.map(f => f.k))).forEach(k => { const o = suma(k, v); Object.keys(tot).forEach(f => tot[f] += o[f]); });
+      const tcm = tot.t2m + tot.t3m, tca = tot.t2a + tot.t3a, pts = tot.t2m * 2 + tot.t3m * 3 + tot.tlm;
+      const nomV = { h1: "1ª mitad", h2: "2ª mitad", tot: "Total" };
+      const g = (k, f, lab, ok) => `<button class="${ok || ""}" data-k="${k}" data-f="${f}">${lab}</button>`;
+      EP.innerHTML = `<div class="es"><div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
+        <div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
+        <div class="es-res"><span>${nomV[v]} · Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> (${pct(tcm, tca)})</span><span>2P <b>${tot.t2m}/${tot.t2a}</b></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Rebotes <b>${tot.reb}</b></span><span>Pérdidas <b>${tot.per}</b></span></div>
+        ${fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
+          <div class="g">${g(kk, "reb", "REB")}<span>${o.reb}</span></div><div class="g">${g(kk, "per", "PER")}<span>${o.per}</span></div>
+          <div class="g">${g(kk, "t2m", "2✓", "ok")}${g(kk, "t2x", "2✗", "ko")}<span>2P ${o.t2m}/${o.t2a}</span></div>
+          <div class="g">${g(kk, "t3m", "3✓", "ok")}${g(kk, "t3x", "3✗", "ko")}<span>3P ${o.t3m}/${o.t3a}</span></div>
+          <div class="g">${g(kk, "tlm", "TL✓", "ok")}${g(kk, "tlx", "TL✗", "ko")}<span>TL ${o.tlm}/${o.tla}</span></div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadoras: elige «Mi equipo» en la app de estadísticas.</div>'}
+        ${ESV.eq === 1 ? '<button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
+        <div style="opacity:.6;font-size:12px;margin-top:8px;">Se anota en el cuarto actual: cuartos 1-2 = 1ª mitad. Cambia el cuarto en el marcador.</div></div>`;
+      EP.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => { ESV.eq = Number(b.dataset.eq); pintarEs(); });
+      EP.querySelectorAll("[data-pp]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.pp); M.f = [0, 0]; guardarM(); pintarM(); pintarEs(); });
+      EP.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { ESV.v = b.dataset.v; pintarEs(); });
+      EP.querySelectorAll("[data-f]").forEach(b => b.onclick = () => {
+        const k = b.dataset.k, f = b.dataset.f, h = mitad(); const o = ((M.es[k] = M.es[k] || {})[h] = M.es[k][h] || cero());
+        if (f === "reb" || f === "per") o[f]++; else { const t = f.slice(0, 2 + (f[1] === "l" ? 0 : 0)); const tp = f.slice(0, -1); o[tp + "a"]++; if (f.slice(-1) === "m") o[tp + "m"]++; }
+        UND.push([k, h, f]); guardarM(); pintarEs();
+        try { navigator.vibrate && navigator.vibrate(15); } catch (e) { /* nada */ }
+      });
+      $("esUn").onclick = () => { const u = UND.pop(); if (!u) return; const o = (M.es[u[0]] || {})[u[1]]; if (!o) return; const f = u[2]; if (f === "reb" || f === "per") o[f] = Math.max(0, o[f] - 1); else { const tp = f.slice(0, -1); o[tp + "a"] = Math.max(0, o[tp + "a"] - 1); if (f.slice(-1) === "m") o[tp + "m"] = Math.max(0, o[tp + "m"] - 1); } guardarM(); pintarEs(); };
+      $("esX").onclick = () => EP.classList.remove("ver");
+      if ($("esRv")) $("esRv").onclick = () => { const n = (prompt("Dorsal de la rival:") || "").replace(/\D/g, ""); if (n && !M.rvn.includes(n)) { M.rvn.push(n); guardarM(); pintarEs(); } };
+    };
+    $("mpEs").onclick = () => { EP.classList.add("ver"); pintarEs(); };
+    EP.addEventListener("pointerdown", (e) => { if (e.target === EP) EP.classList.remove("ver"); });
     panel.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.s.split(":").map(Number); M.p[k] = Math.max(0, M.p[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
     panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
-    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; guardarM(); pintarM(); };
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; guardarM(); pintarM(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };
