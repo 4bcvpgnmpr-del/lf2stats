@@ -277,6 +277,9 @@
     #hojaImp table{width:100%;border-collapse:collapse;margin-top:10px;}
     #hojaImp td,#hojaImp th{border:1px solid #888;padding:6px 8px;text-align:left;vertical-align:top;font-size:11pt;}
     #hojaImp th{background:#eee;}
+    #hojaImp tr{break-inside:avoid;}
+    #hojaImp .ej-dib{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;} #hojaImp .ej-dib figure{margin:0;width:46mm;} #hojaImp .ej-dib figure>div{border:1px solid #bbb;border-radius:4px;overflow:hidden;line-height:0;} #hojaImp .ej-dib svg{width:100% !important;height:auto !important;display:block;} #hojaImp .ej-dib figcaption{font-size:8pt;color:#555;margin-top:1px;}
+    #hojaImp .ej-dib,#hojaImp svg{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
 
   /* ===== tema claro (como The Hoops Geek) ===== */
@@ -638,7 +641,7 @@ function pintarCarpetas(v, tipo) {
   const nFiltros = filtroTags.length + (filtroTipo ? 1 : 0);
   const nuevoTxt = tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
-  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
+  let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${tipo === "jugadas" ? '<button class="gris" id="bPartido" title="Pizarra en vivo para el banquillo">🏟 Modo partido</button>' : ""}${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
     <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
       <button class="gris" id="bOrden" title="Ordenar">⇅ ${ORDENES[ordenar]}</button>
@@ -672,6 +675,7 @@ function pintarCarpetas(v, tipo) {
   const lf = $("limpiaF"); if (lf) lf.onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; redib(); };
   v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
   if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
+  if ($("bPartido")) $("bPartido").onclick = abrirPartido;
   if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [...(tipo === "jugadas" || tipo === "ejercicios" ? [["⤓ Importar de Hoops Geek", () => dialogoHG(tipo)]] : []), ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
   if ($("sNo")) $("sNo").onclick = () => { seleccion.clear(); redib(); };
   const selItems = () => D[tipo].filter(x => seleccion.has(x.id));
@@ -1076,6 +1080,14 @@ function dialogoHG(tipo) {
     };
   };
 }
+
+/* ------------ modo partido: pizarra en vivo a pantalla completa ------------ */
+function abrirPartido() {
+  let m = $("partidoMarco");
+  if (!m) { m = document.createElement("div"); m.id = "partidoMarco"; m.style.cssText = "position:fixed;inset:0;z-index:400;background:#10171f;"; m.innerHTML = '<iframe id="partidoIf" title="Modo partido" allowfullscreen allow="fullscreen" style="border:0;width:100%;height:100%;"></iframe>'; document.body.appendChild(m); window.addEventListener("message", (ev) => { if (ev.data && ev.data.partidoCerrar) cerrarPartido(); }); }
+  m.style.display = "block"; $("partidoIf").src = "pizarra.html?partido=1&v=" + VERSION;
+}
+function cerrarPartido() { const m = $("partidoMarco"); if (m) { m.style.display = "none"; $("partidoIf").src = "about:blank"; } }
 
 /* ------------ playbooks (capítulos con jugadas, como The Hoops Geek) ------------ */
 const pbCaps = (p) => { p.data = p.data || {}; if (!Array.isArray(p.data.capitulos) || !p.data.capitulos.length) p.data.capitulos = [{ id: idNuevo("c"), titulo: (p.data.jugadas || []).length ? "Jugadas" : "", items: (p.data.jugadas || []).map(id => ({ t: "j", id })) }]; return p.data.capitulos; };
@@ -1496,12 +1508,24 @@ function nuevoPlanModal() {
     pin(); $("cpQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase(); pin(); }); $("cpX").onclick = cerrarVentana;
   };
 }
-function imprimirPlan(p) {
-  const d = p.data; let acum = 0, n = 0, filas = "";
+/* dibujos (todas las fases) de los ejercicios de un plan, listos para imprimir */
+function dibujosDePlan(p) {
+  const ids = [...new Set((p.data.ejercicios || []).filter(e => !e.sec && e.id).map(e => e.id))], out = {};
+  return new Promise((ok) => {
+    const lista = ids.map(id => D.ejercicios.find(y => y.id === id)).filter(x => x && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length);
+    if (!lista.length) { ok(out); return; }
+    let falta = lista.length; const fin = () => { clearTimeout(t); ok(out); }, t = setTimeout(() => ok(out), 8000);
+    lista.forEach(x => pedirFases(x, "ejercicios", "imp|" + x.id + "|" + Date.now(), (svgs) => { out[x.id] = svgs || []; if (--falta <= 0) fin(); }));
+  });
+}
+async function imprimirPlan(p) {
+  aviso("Preparando el PDF con los dibujos…");
+  const dib = await dibujosDePlan(p), d = p.data; let acum = 0, n = 0, filas = "";
   d.ejercicios.forEach((e) => {
     if (e.sec) { filas += `<tr><th colspan="4" style="text-align:center;letter-spacing:1px;text-transform:uppercase;">${esc(e.titulo || "")}</th></tr>`; return; }
     const ej = ejDe(e), ini = hmDe(d.inicio, acum), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; n++;
-    filas += `<tr><td>${n}</td><td>${ini}–${hmDe(d.inicio, acum)}<br>${e.min || 0} min</td><td><b>${esc(tituloSeg(e))}</b>${dd.categoria ? "<br>" + esc(dd.categoria) : ""}${dd.materiales ? "<br><i>Material: " + esc(dd.materiales) + "</i>" : ""}</td><td>${esc(dd.descripcion || "").replace(/\n/g, "<br>")}${e.notas ? (dd.descripcion ? "<br>" : "") + "<b>Notas:</b> " + esc(e.notas) : ""}</td></tr>`;
+    const svgs = (dib[e.id] || []).slice(0, 6), dibujo = svgs.length ? `<div class="ej-dib">${svgs.map((sv, i) => `<figure><div>${sv}</div>${svgs.length > 1 ? `<figcaption>Fase ${i + 1}</figcaption>` : ""}</figure>`).join("")}</div>` : "";
+    filas += `<tr><td>${n}</td><td>${ini}–${hmDe(d.inicio, acum)}<br>${e.min || 0} min</td><td><b>${esc(tituloSeg(e))}</b>${dd.categoria ? "<br>" + esc(dd.categoria) : ""}${dd.materiales ? "<br><i>Material: " + esc(dd.materiales) + "</i>" : ""}</td><td>${esc(dd.descripcion || "").replace(/\n/g, "<br>")}${e.notas ? (dd.descripcion ? "<br>" : "") + "<b>Notas:</b> " + esc(e.notas) : ""}${dibujo}</td></tr>`;
   });
   $("hojaImp").innerHTML = `<h1>${esc(p.nombre || "Plan de entrenamiento")}</h1><div>${solofecha(p.fecha)} · ${acum} min · ${n} ejercicios</div>${d.notas ? `<p>${esc(d.notas).replace(/\n/g, "<br>")}</p>` : ""}<table><tr><th>#</th><th>Horario</th><th>Ejercicio</th><th>Descripción</th></tr>${filas}</table>${d.reflexion ? `<h3>Reflexión</h3><p>${esc(d.reflexion).replace(/\n/g, "<br>")}</p>` : ""}`;
   window.print();

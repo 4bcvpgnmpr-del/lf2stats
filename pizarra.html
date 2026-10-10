@@ -190,6 +190,39 @@
   #modalVer.ver{display:flex;}
   #modalVer .caja{background:var(--white);border-radius:16px;width:100%;max-width:900px;max-height:96vh;overflow:auto;padding:14px;}
   #modalVer h3,#visor h3{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:17px;margin:0 0 8px;}
+
+  /* ===== modo partido ===== */
+  #partido{display:none;}
+  body.partido .wrap{display:none !important;} body.partido #partido{display:flex;} body.partido{background:#10171f;overflow:hidden;}
+  #partido{position:fixed;inset:0;flex-direction:column;color:#fff;font-family:inherit;background:#10171f;}
+  #partido .pt-top{display:flex;gap:8px;align-items:center;padding:8px 10px;background:#1b2530;flex:none;flex-wrap:wrap;}
+  #partido button{font-size:15px;font-weight:700;border:0;border-radius:12px;background:#2c3947;color:#fff;padding:0 14px;min-height:46px;cursor:pointer;}
+  #partido button.on{background:var(--teal);} #partido button:disabled{opacity:.35;}
+  #partido #ptBuscar{flex:1;min-width:140px;max-width:340px;min-height:46px;border-radius:12px;border:0;padding:0 14px;font-size:16px;background:#2c3947;color:#fff;}
+  #partido #ptBuscar::placeholder{color:#9fb0c0;}
+  #partido .pt-chips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;} #partido .pt-chips button{flex:none;min-height:40px;font-size:14px;}
+  #partido .pt-main{display:flex;flex:1;min-height:0;}
+  #partido #ptLista{width:min(300px,30vw);flex:none;overflow-y:auto;background:#17202a;padding:8px;display:flex;flex-direction:column;gap:6px;}
+  #partido .pt-it{display:flex;gap:8px;align-items:center;background:#223040;border-radius:12px;padding:6px;cursor:pointer;border:2px solid transparent;min-height:64px;}
+  #partido .pt-it.on{border-color:var(--teal);background:#25465a;}
+  #partido .pt-it .m{width:64px;flex:none;border-radius:8px;overflow:hidden;line-height:0;background:#e9d3ad;} #partido .pt-it .m svg{width:100%;height:auto;display:block;}
+  #partido .pt-it .n{flex:1;min-width:0;font-weight:700;font-size:14px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;} #partido .pt-it small{display:block;opacity:.6;font-weight:600;font-size:11px;}
+  #partido .pt-it .pin{flex:none;min-height:40px;width:40px;padding:0;font-size:18px;background:transparent;} #partido .pt-it .pin.on{background:transparent;color:#ffd24d;}
+  #partido .pt-escena{flex:1;min-width:0;display:flex;flex-direction:column;padding:8px 12px;gap:6px;}
+  #partido #ptTitulo{margin:0;font-size:20px;font-weight:800;} #partido #ptOpc{display:flex;gap:6px;flex-wrap:wrap;} #partido #ptOpc button{min-height:40px;}
+  #partido .pt-zona{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;container-type:size;}
+  #partido .pt-caja{position:relative;width:min(100cqw,calc(100cqh * var(--r,1)));aspect-ratio:var(--r,1);background:#e9d3ad;border-radius:10px;overflow:hidden;touch-action:none;}
+  #partido #ptPista{width:100%;height:100%;line-height:0;} #partido #ptPista svg{width:100%;height:100%;display:block;}
+  #partido #ptDib{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;} #partido #ptDib.act{pointer-events:auto;cursor:crosshair;}
+  #partido #ptLey{font-size:16px;line-height:1.4;max-height:20vh;overflow:auto;color:#dbe6ef;} #partido #ptLey ul,#partido #ptLey ol{margin:0;padding-left:20px;}
+  #partido .pt-ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:none;}
+  #partido .pt-ctrl .sep{width:1px;height:30px;background:#3a4958;margin:0 4px;}
+  #partido .pt-ctrl .col{width:34px;min-height:34px;height:34px;border-radius:50%;padding:0;border:3px solid #fff0;} #partido .pt-ctrl .col.on{border-color:#fff;}
+  #partido .pt-fase{font-weight:800;min-width:74px;text-align:center;}
+  #partido .pt-vacio{margin:auto;opacity:.6;font-size:18px;padding:30px;text-align:center;}
+  @media (max-width:820px),(orientation:portrait){
+    #partido .pt-main{flex-direction:column;} #partido #ptLista{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px;} #partido .pt-it{flex:none;width:210px;}
+  }
   #visor{display:none;}
   body.visor .wrap{display:none !important;} body.visor #visor{display:block;padding:12px;}
   body.visor{background:var(--white);}
@@ -607,6 +640,35 @@
   <div id="mvVideos"></div>
 </div></div>
 
+<!-- Modo partido: pizarra en vivo -->
+<div id="partido">
+  <div class="pt-top">
+    <button id="ptSalir">✕ Salir</button>
+    <input id="ptBuscar" type="search" placeholder="Buscar jugada…" autocomplete="off">
+    <div class="pt-chips" id="ptChips"></div>
+    <button id="ptFs" title="Pantalla completa">⛶</button>
+  </div>
+  <div class="pt-main">
+    <div id="ptLista"></div>
+    <div class="pt-escena">
+      <h2 id="ptTitulo"></h2>
+      <div id="ptOpc"></div>
+      <div class="pt-zona"><div class="pt-caja" id="ptCaja"><div id="ptPista"></div><canvas id="ptDib"></canvas></div></div>
+      <div id="ptLey"></div>
+      <div class="pt-ctrl">
+        <button id="ptJPrev" title="Jugada anterior">⏮</button>
+        <button id="ptFPrev">◀</button><span class="pt-fase" id="ptFase"></span><button id="ptFNext">▶</button>
+        <button id="ptJNext" title="Jugada siguiente">⏭</button>
+        <button id="ptPlay" style="min-width:110px;">▶ Animar</button>
+        <span class="sep"></span>
+        <button id="ptLapiz">✏️ Dibujar</button>
+        <span id="ptCols" style="display:none;gap:8px;align-items:center;"></span>
+        <button id="ptDeshacer" style="display:none;">↩︎</button><button id="ptBorrar" style="display:none;">🧽 Borrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Vista para las jugadoras (dentro de su app) -->
 <div id="visor">
   <h3 id="vsTitulo"></h3>
@@ -637,7 +699,7 @@ const NOMBRE_ACCION = { corte: "Corte", bote: "Bote", pase: "Pase", pantalla: "P
 const MOVEDORAS = ["corte", "bote", "pantalla", "mueve", "entrega"];
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
 const PARAMS = new URLSearchParams(location.search);
-const VISOR = PARAMS.get("visor") === "1";
+const VISOR = PARAMS.get("visor") === "1", PARTIDO = PARAMS.get("partido") === "1";
 const EJ = PARAMS.get("tabla") === "ejercicios", ORIG = {}, CATEG = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"], TABLA = EJ ? "ejercicios" : "jugadas";
 const EDITOR = PARAMS.get("editor") === "1", ID_ED = PARAMS.get("id") || "", CARPETA_ED = PARAMS.get("carpeta") || "";
 const $ = (id) => document.getElementById(id);
@@ -2086,10 +2148,129 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pcActivo
 conectarPC("btnFsAni", "cajaAni"); conectarPC("mvFs", "mvCaja"); conectarPC("vsFs", "visor");
 if ($("btnDatos")) { $("btnDatos").addEventListener("click", () => document.querySelector(".datos-ed").classList.toggle("plegado")); if (window.innerWidth <= 760) document.querySelector(".datos-ed").classList.add("plegado"); }
 
+
+/* ============================================================
+   MODO PARTIDO: pizarra en vivo para el banquillo
+   ============================================================ */
+function iniciarPartido() {
+  document.body.classList.add("partido");
+  const CLAVE_PIN = "scoutflow-libro-partido";
+  const leerPin = () => { try { return new Set(JSON.parse(localStorage.getItem(CLAVE_PIN) || "[]")); } catch (e) { return new Set(); } };
+  const guardarPin = (st) => { try { localStorage.setItem(CLAVE_PIN, JSON.stringify([...st])); } catch (e) { /* sin almacenamiento */ } };
+  const E = { lista: [], pin: leerPin(), q: "", filtro: "todas", j: null, i: 0, op: 0, parar: null, lapiz: false, color: "#ff4d4d", trazos: [], actual: null };
+  const caja = $("ptCaja"), pista = $("ptPista"), cv = $("ptDib"), ctx = cv.getContext("2d");
+  caja.style.setProperty("--r", ((ANCHO * S + 20) / (FONDO * S + 20)).toFixed(4));
+  const COLS = ["#ff4d4d", "#ffd24d", "#3fd0ff", "#ffffff", "#111111"];
+  $("ptCols").innerHTML = COLS.map(c => `<button class="col" data-c="${c}" style="background:${c}"></button>`).join("");
+
+  /* ---- dibujo con el dedo (se borra al cambiar de fase o jugada) ---- */
+  const ajustarLienzo = () => { const r = caja.getBoundingClientRect(), d = window.devicePixelRatio || 1; cv.width = Math.max(1, Math.round(r.width * d)); cv.height = Math.max(1, Math.round(r.height * d)); redibujar(); };
+  const redibujar = () => {
+    ctx.clearRect(0, 0, cv.width, cv.height); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    [...E.trazos, ...(E.actual ? [E.actual] : [])].forEach(t => { if (t.p.length < 2) return; ctx.strokeStyle = t.c; ctx.lineWidth = Math.max(3, cv.width / 170); ctx.beginPath(); t.p.forEach((q, k) => { const x = q[0] * cv.width, y = q[1] * cv.height; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke(); });
+  };
+  const pt = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+  cv.addEventListener("pointerdown", (e) => { if (!E.lapiz) return; cv.setPointerCapture(e.pointerId); E.actual = { c: E.color, p: [pt(e)] }; e.preventDefault(); });
+  cv.addEventListener("pointermove", (e) => { if (!E.actual) return; E.actual.p.push(pt(e)); redibujar(); e.preventDefault(); });
+  const fin = () => { if (!E.actual) return; if (E.actual.p.length > 1) E.trazos.push(E.actual); E.actual = null; redibujar(); };
+  cv.addEventListener("pointerup", fin); cv.addEventListener("pointercancel", fin);
+  const limpiarDibujo = () => { E.trazos = []; E.actual = null; redibujar(); };
+  new ResizeObserver(ajustarLienzo).observe(caja);
+
+  /* ---- escena ---- */
+  const detener = () => { if (E.parar) { E.parar(); E.parar = null; } $("ptPlay").textContent = "▶ Animar"; };
+  const mostrar = () => {
+    const j = E.j; if (!j) return;
+    pista.innerHTML = svgPaso(j, E.i, { rotulo: true });
+    $("ptLey").innerHTML = textoLista(j.pasos[E.i].texto);
+    $("ptFase").textContent = (E.i + 1) + " / " + j.pasos.length;
+    $("ptFPrev").disabled = E.i <= 0; $("ptFNext").disabled = E.i >= j.pasos.length - 1;
+  };
+  const abrir = (id) => {
+    const x = E.lista.find(y => y.id === id); if (!x) return;
+    detener(); limpiarDibujo(); E.j = normalizar(clonar(x)); E.i = 0; E.op = 0;
+    $("ptTitulo").textContent = E.j.nombre || "Jugada";
+    const ops = E.j.opciones;
+    $("ptOpc").innerHTML = ops && ops.length > 1 ? ops.map((o, k) => `<button data-k="${k}" class="${k === 0 ? "on" : ""}">${esc(o.nombre || "Opción " + (k + 1))}</button>`).join("") : "";
+    $("ptOpc").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { detener(); limpiarDibujo(); E.op = Number(b.dataset.k); E.j.pasos = ops[E.op].pasos; E.i = 0; $("ptOpc").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); mostrar(); }));
+    mostrar();
+    document.querySelectorAll("#ptLista .pt-it").forEach(el => el.classList.toggle("on", el.dataset.id === id));
+    const el = document.querySelector('#ptLista .pt-it[data-id="' + CSS.escape(id) + '"]'); if (el) el.scrollIntoView({ block: "nearest", inline: "nearest" });
+    try { localStorage.setItem("scoutflow-partido-ultima", id); } catch (e) { /* nada */ }
+  };
+  const visibles = () => {
+    const q = E.q.trim().toLowerCase();
+    return E.lista.filter(x => {
+      if (E.filtro === "pin" && !E.pin.has(x.id)) return false;
+      if (E.filtro === "fav" && !x.favorita) return false;
+      if (E.filtro.startsWith("t:") && !(x.tags || []).includes(E.filtro.slice(2))) return false;
+      if (E.filtro.startsWith("k:") && (x.tipo || "") !== E.filtro.slice(2)) return false;
+      return !q || ((x.nombre || "") + " " + (x.tags || []).join(" ") + " " + (x.tipo || "")).toLowerCase().includes(q);
+    });
+  };
+  const pintarLista = () => {
+    const v = visibles(), box = $("ptLista");
+    box.innerHTML = v.length ? v.map(x => `<div class="pt-it ${E.j && E.j.id === x.id ? "on" : ""}" data-id="${esc(x.id)}"><div class="m">${(() => { try { return svgPaso(normalizar(clonar(x)), 0, { mini: true }); } catch (e) { return ""; } })()}</div><div class="n">${esc(x.nombre || "(sin nombre)")}<small>${esc(x.tipo || "")}${(x.opciones && x.opciones.length > 1) ? " · " + x.opciones.length + " opciones" : ""}</small></div><button class="pin ${E.pin.has(x.id) ? "on" : ""}" data-pin="${esc(x.id)}" title="Añadir a mi libro del partido">${E.pin.has(x.id) ? "★" : "☆"}</button></div>`).join("") : `<div class="pt-vacio">${E.lista.length ? "Nada con ese filtro." : "No hay jugadas."}</div>`;
+    box.querySelectorAll(".pt-it").forEach(el => el.addEventListener("click", (ev) => {
+      const pb = ev.target.closest("[data-pin]");
+      if (pb) { const id = pb.dataset.pin; if (E.pin.has(id)) E.pin.delete(id); else E.pin.add(id); guardarPin(E.pin); pintarChips(); pintarLista(); return; }
+      abrir(el.dataset.id);
+    }));
+  };
+  const pintarChips = () => {
+    const tipos = [...new Set(E.lista.map(x => x.tipo).filter(Boolean))].sort(), tags = [...new Set(E.lista.flatMap(x => x.tags || []))].sort();
+    const ch = [["todas", "Todas"], ["pin", "★ Mi libro" + (E.pin.size ? " (" + E.pin.size + ")" : "")], ["fav", "⭐ Favoritas"]].concat(tipos.map(t => ["k:" + t, t])).concat(tags.map(t => ["t:" + t, "#" + t]));
+    $("ptChips").innerHTML = ch.map(([k, n]) => `<button data-f="${esc(k)}" class="${E.filtro === k ? "on" : ""}">${esc(n)}</button>`).join("");
+    $("ptChips").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { E.filtro = b.dataset.f; pintarChips(); pintarLista(); }));
+  };
+  const saltarJugada = (d) => { const v = visibles(); if (!v.length) return; let k = v.findIndex(x => E.j && x.id === E.j.id); k = k < 0 ? 0 : Math.max(0, Math.min(v.length - 1, k + d)); abrir(v[k].id); };
+  $("ptBuscar").addEventListener("input", (e) => { E.q = e.target.value; pintarLista(); });
+  $("ptJPrev").addEventListener("click", () => saltarJugada(-1)); $("ptJNext").addEventListener("click", () => saltarJugada(1));
+  const irFase = (d) => { if (!E.j) return; detener(); limpiarDibujo(); E.i = Math.max(0, Math.min(E.j.pasos.length - 1, E.i + d)); mostrar(); };
+  $("ptFPrev").addEventListener("click", () => irFase(-1)); $("ptFNext").addEventListener("click", () => irFase(1));
+  $("ptPlay").addEventListener("click", () => {
+    if (!E.j) return; if (E.parar) { detener(); mostrar(); return; }
+    const dur = 1200; if (!segmentosAnim(E.j, dur, 0, E.j.pasos.length).segs.length) return;
+    limpiarDibujo(); $("ptPlay").textContent = "■ Parar";
+    E.parar = animarJugada(E.j, pista, dur, { desde: 0, hasta: E.j.pasos.length, enFase: (k) => { E.i = k; $("ptLey").innerHTML = textoLista(E.j.pasos[k].texto); $("ptFase").textContent = (k + 1) + " / " + E.j.pasos.length; }, alAcabar: () => { E.parar = null; $("ptPlay").textContent = "▶ Animar"; E.i = E.j.pasos.length - 1; if (!(E.j.pasos[E.i].lineas || []).length) mostrar(); } });
+  });
+  /* lapiz */
+  const ponerLapiz = (on) => {
+    E.lapiz = on; cv.classList.toggle("act", on); $("ptLapiz").classList.toggle("on", on); $("ptLapiz").textContent = on ? "✏️ Listo" : "✏️ Dibujar";
+    $("ptCols").style.display = on ? "inline-flex" : "none"; $("ptDeshacer").style.display = on ? "" : "none"; $("ptBorrar").style.display = on ? "" : "none";
+    if (on) detener();
+  };
+  $("ptLapiz").addEventListener("click", () => ponerLapiz(!E.lapiz));
+  $("ptCols").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { E.color = b.dataset.c; $("ptCols").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); }));
+  $("ptCols").querySelector("button").classList.add("on");
+  $("ptDeshacer").addEventListener("click", () => { E.trazos.pop(); redibujar(); });
+  $("ptBorrar").addEventListener("click", limpiarDibujo);
+  /* deslizar para cambiar de fase (con el lapiz apagado) */
+  let x0 = null; caja.addEventListener("pointerdown", (e) => { if (!E.lapiz) x0 = e.clientX; });
+  caja.addEventListener("pointerup", (e) => { if (x0 == null || E.lapiz) { x0 = null; return; } const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 70) irFase(dx < 0 ? 1 : -1); });
+  /* salir y pantalla completa */
+  $("ptSalir").addEventListener("click", () => { detener(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ } if (window.parent !== window) { try { parent.postMessage({ partidoCerrar: true }, "*"); } catch (e) { /* nada */ } } else history.length > 1 ? history.back() : (location.href = "entrenador.html"); });
+  $("ptFs").addEventListener("click", () => { try { const el = document.documentElement; if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } catch (e) { aviso("Este navegador no permite pantalla completa aquí."); } });
+  document.addEventListener("keydown", (e) => { if (e.target.tagName === "INPUT") return; if (e.key === "ArrowRight") irFase(1); if (e.key === "ArrowLeft") irFase(-1); if (e.key === "ArrowDown") saltarJugada(1); if (e.key === "ArrowUp") saltarJugada(-1); if (e.key === " ") { e.preventDefault(); $("ptPlay").click(); } });
+  /* datos */
+  iniciarNube().then(recargarBib0);
+  async function recargarBib0() {
+    if (modoNube) { const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false }); if (!error) E.lista = (data || []).map(deFila); else modoNube = false; }
+    if (!modoNube) E.lista = leerLocal();
+    E.lista.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0) || String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+    if (E.pin.size && E.lista.some(x => E.pin.has(x.id))) E.filtro = "pin";
+    pintarChips(); pintarLista();
+    let ult = ""; try { ult = localStorage.getItem("scoutflow-partido-ultima") || ""; } catch (e) { /* nada */ }
+    const v = visibles(), pri = v.find(x => x.id === ult) || v[0];
+    if (pri) abrir(pri.id); else $("ptTitulo").textContent = modoNube ? "No hay jugadas" : "No se pudieron cargar las jugadas (" + (motivoLocal || "sin conexión") + ")";
+    ajustarLienzo();
+  }
+}
+
 /* ============================================================
    ARRANQUE
    ============================================================ */
-if (VISOR) {
+if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
   document.body.classList.add("visor");
   const v = crearVisor({ pista: "vsPista", leyenda: "vsLeyenda", play: "vsPlay", prev: "vsPrev", next: "vsNext", titulo: "vsTitulo", notas: "vsNotas", videos: "vsVideos", linea: "vsLinea", tiempo: "vsTiempo" }, 1200);
   const altura = () => { try { parent.postMessage({ visorAltura: document.documentElement.scrollHeight }, "*"); } catch (e) { /* nada */ } };
