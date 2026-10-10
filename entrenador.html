@@ -1717,21 +1717,23 @@ function abrirAnalisis(url, titulo) {
     #anaMarco{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:#0e141b;color:#fff;display:flex;flex-direction:column;font-family:'Archivo','Inter',system-ui,sans-serif;}
     #anaMarco button{font:inherit;font-size:15px;font-weight:700;border:0;border-radius:12px;background:#2c3947;color:#fff;padding:0 14px;min-height:46px;cursor:pointer;} #anaMarco button.on{background:#e8590c;} #anaMarco button:disabled{opacity:.4}
     #anaMarco .a-top{display:flex;gap:10px;align-items:center;padding:8px 10px;background:#1b2530;flex:none;} #anaMarco .a-top b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;}
-    #anaMarco .a-zona{flex:1;min-height:0;position:relative;} #anaMarco .a-caja{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;touch-action:none;} #anaMarco video{width:100%;height:100%;display:block;} #anaMarco canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;} #anaMarco canvas.act{pointer-events:auto;cursor:crosshair;}
+    #anaMarco .a-zona{flex:1;min-height:0;position:relative;} #anaMarco .a-caja{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;touch-action:none;overflow:hidden;} #anaMarco .a-in{position:absolute;top:0;left:0;width:100%;height:100%;transform-origin:0 0;} #anaMarco #anBox{display:none;position:absolute;border:2px dashed #ffd24d;background:#ffd24d22;pointer-events:none;} #anaMarco video{width:100%;height:100%;display:block;} #anaMarco canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;} #anaMarco canvas.act{pointer-events:auto;cursor:crosshair;}
     #anaMarco .a-ctl{flex:none;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;background:#1b2530;} #anaMarco .a-ctl input[type=range]{flex:1 1 220px;min-width:140px;height:30px;accent-color:#e8590c;} #anaMarco .a-t{font-variant-numeric:tabular-nums;font-weight:800;min-width:92px;text-align:center;font-size:14px;} #anaMarco .sep{width:1px;height:30px;background:#3a4958;margin:0 2px;}
     #anaMarco .a-col{width:34px;min-height:34px !important;height:34px;border-radius:50%;padding:0 !important;border:3px solid #fff0 !important;} #anaMarco .a-col.on{border-color:#fff !important;} #anaMarco .a-dib{display:none;gap:6px;align-items:center;flex-wrap:wrap;}`; document.head.appendChild(st); }
   const m = document.createElement("div"); m.id = "anaMarco";
   const COLS = ["#ff4d4d", "#ffd24d", "#3fd0ff", "#ffffff", "#111111"];
   m.innerHTML = `<div class="a-top"><button id="anX">✕ Cerrar</button><b>${esc(titulo || "Vídeo")}</b><button id="anCap" title="Guardar una imagen del fotograma con tus dibujos">📸 Captura</button></div>
-    <div class="a-zona" id="anZ"><div class="a-caja" id="anC"><video id="anV" playsinline preload="auto" crossorigin="anonymous" src="${esc(url)}"></video><canvas id="anD"></canvas></div></div>
+    <div class="a-zona" id="anZ"><div class="a-caja" id="anC"><div class="a-in" id="anIn"><video id="anV" playsinline preload="auto" crossorigin="anonymous" src="${esc(url)}"></video><canvas id="anD"></canvas></div><div id="anBox"></div></div></div>
     <div class="a-ctl"><button id="anB5">⏪ 5s</button><button id="anBf" title="Fotograma anterior">◀|</button><button id="anP" style="min-width:96px;">▶ Play</button><button id="anFf" title="Fotograma siguiente">|▶</button><button id="anF5">5s ⏩</button><span class="a-t" id="anT">0:00</span><input type="range" id="anS" min="0" max="1000" value="0">
       <button data-v="0.25">¼x</button><button data-v="0.5">½x</button><button data-v="1" class="on">1x</button><span class="sep"></span>
-      <button id="anL">✏️ Dibujar</button><span class="a-dib" id="anDib"><span id="anCols" style="display:inline-flex;gap:6px;"></span><button data-h="lapiz" class="on">✏️</button><button data-h="flecha">➚</button><button data-h="resalt">🖍</button><button data-w="1">•</button><button data-w="2.2" class="on">●</button><button data-w="3.2">⬤</button><button id="anU">↩︎</button><button id="anBo">🧽 Borrar</button></span></div>`;
+      <button id="anZm" title="Marca con el dedo la zona que quieres ver de cerca">🔍 Zona</button><button id="anZ1" title="Quitar zoom" style="display:none;">↺ x1</button><button id="anL">✏️ Dibujar</button><span class="a-dib" id="anDib"><span id="anCols" style="display:inline-flex;gap:6px;"></span><button data-h="lapiz" class="on">✏️</button><button data-h="flecha">➚</button><button data-h="resalt">🖍</button><button data-w="1">•</button><button data-w="2.2" class="on">●</button><button data-w="3.2">⬤</button><button id="anU">↩︎</button><button id="anBo">🧽 Borrar</button></span></div>`;
   document.body.appendChild(m);
   const v = $("anV"), caja = $("anC"), cv = $("anD"), ctx = cv.getContext("2d"), E = { trazos: [], actual: null, lapiz: false, herr: "lapiz", w: 2.2, color: COLS[0] };
   $("anCols").innerHTML = COLS.map((c, i) => `<button class="a-col ${i ? "" : "on"}" data-c="${c}" style="background:${c}"></button>`).join("");
   const FPS = 30, tt = (s) => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") + "." + String(Math.floor((s % 1) * 10));
-  const medir = () => { const z = $("anZ"), w = z.clientWidth, h = z.clientHeight; if (!w || !h) return; const r = (v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 16 / 9, b = Math.min(w, h * r); caja.style.width = Math.floor(b) + "px"; caja.style.height = Math.floor(b / r) + "px"; const d = window.devicePixelRatio || 1, rc = caja.getBoundingClientRect(); cv.width = Math.max(1, Math.round(rc.width * d)); cv.height = Math.max(1, Math.round(rc.height * d)); dibuja(); };
+  const pan = { x: 0, y: 0, z: 1 };
+  const aplicar = () => { const W = caja.offsetWidth, H = caja.offsetHeight; pan.z = Math.max(1, Math.min(8, pan.z)); pan.x = Math.min(0, Math.max(W * (1 - pan.z), pan.x)); pan.y = Math.min(0, Math.max(H * (1 - pan.z), pan.y)); $("anIn").style.transform = "translate(" + pan.x + "px," + pan.y + "px) scale(" + pan.z + ")"; const d = window.devicePixelRatio || 1, q = Math.min(pan.z, 4); cv.width = Math.max(1, Math.round(W * d * q)); cv.height = Math.max(1, Math.round(H * d * q)); dibuja(); $("anZ1").style.display = pan.z > 1.01 ? "" : "none"; };
+  const medir = () => { const z = $("anZ"), w = z.clientWidth, h = z.clientHeight; if (!w || !h) return; const r = (v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 16 / 9, b = Math.min(w, h * r); caja.style.width = Math.floor(b) + "px"; caja.style.height = Math.floor(b / r) + "px"; aplicar(); };
   const dibuja = () => {
     ctx.clearRect(0, 0, cv.width, cv.height); ctx.lineJoin = "round";
     [...E.trazos, ...(E.actual ? [E.actual] : [])].forEach(t => {
@@ -1743,10 +1745,16 @@ function abrirAnalisis(url, titulo) {
     });
   };
   const pt = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
-  cv.addEventListener("pointerdown", (e) => { if (!E.lapiz) return; cv.setPointerCapture(e.pointerId); E.actual = { c: E.color, p: [pt(e)], w: E.w, f: E.herr === "flecha", h: E.herr === "resalt" }; e.preventDefault(); });
-  cv.addEventListener("pointermove", (e) => { if (!E.actual) return; E.actual.p.push(pt(e)); dibuja(); e.preventDefault(); });
+  cv.addEventListener("pointerdown", (e) => { if (E.zona) { const r = caja.getBoundingClientRect(); E.z0 = [e.clientX - r.left, e.clientY - r.top]; cv.setPointerCapture(e.pointerId); e.preventDefault(); return; } if (!E.lapiz) return; cv.setPointerCapture(e.pointerId); E.actual = { c: E.color, p: [pt(e)], w: E.w, f: E.herr === "flecha", h: E.herr === "resalt" }; e.preventDefault(); });
+  cv.addEventListener("pointermove", (e) => { if (E.z0) { const r = caja.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, bx = $("anBox"); bx.style.display = "block"; bx.style.left = Math.min(x, E.z0[0]) + "px"; bx.style.top = Math.min(y, E.z0[1]) + "px"; bx.style.width = Math.abs(x - E.z0[0]) + "px"; bx.style.height = Math.abs(y - E.z0[1]) + "px"; e.preventDefault(); return; } if (!E.actual) return; E.actual.p.push(pt(e)); dibuja(); e.preventDefault(); });
+  const finZona = (e) => {
+    if (!E.z0) return; const r = caja.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, x0 = E.z0[0], y0 = E.z0[1]; E.z0 = null; $("anBox").style.display = "none";
+    const bw = Math.abs(x - x0), bh = Math.abs(y - y0); modoZona(false); if (bw < 24 || bh < 24) return;
+    const W = caja.offsetWidth, H = caja.offsetHeight, cx = ((x + x0) / 2 - pan.x) / pan.z, cy = ((y + y0) / 2 - pan.y) / pan.z, nz = Math.min(8, Math.min(W / (bw / pan.z), H / (bh / pan.z)));
+    pan.z = nz; pan.x = W / 2 - cx * nz; pan.y = H / 2 - cy * nz; aplicar();
+  };
   const fin = () => { if (!E.actual) return; if (E.actual.p.length > 1) E.trazos.push(E.actual); E.actual = null; dibuja(); };
-  cv.addEventListener("pointerup", fin); cv.addEventListener("pointercancel", fin);
+  cv.addEventListener("pointerup", (e) => { finZona(e); fin(); }); cv.addEventListener("pointercancel", () => { E.z0 = null; $("anBox").style.display = "none"; fin(); });
   const limpiar = () => { E.trazos = []; E.actual = null; dibuja(); };
   const refrescar = () => { $("anT").textContent = tt(v.currentTime) + " / " + tt(v.duration || 0); if (v.duration) $("anS").value = Math.round(v.currentTime / v.duration * 1000); };
   const pausar = () => { v.pause(); $("anP").textContent = "▶ Play"; };
@@ -1756,7 +1764,19 @@ function abrirAnalisis(url, titulo) {
   $("anB5").onclick = () => { limpiar(); ir(v.currentTime - 5); }; $("anF5").onclick = () => { limpiar(); ir(v.currentTime + 5); };
   $("anS").oninput = () => { limpiar(); ir($("anS").value / 1000 * (v.duration || 0)); };
   m.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { v.playbackRate = Number(b.dataset.v); m.querySelectorAll("[data-v]").forEach(z => z.classList.toggle("on", z === b)); });
-  $("anL").onclick = () => { E.lapiz = !E.lapiz; cv.classList.toggle("act", E.lapiz); $("anL").classList.toggle("on", E.lapiz); $("anL").textContent = E.lapiz ? "✏️ Listo" : "✏️ Dibujar"; $("anDib").style.display = E.lapiz ? "inline-flex" : "none"; if (E.lapiz) pausar(); };
+  const modoZona = (on) => { E.zona = on; $("anZm").classList.toggle("on", on); cv.classList.toggle("act", on || E.lapiz); if (on) { if (E.lapiz) $("anL").click(); pausar(); aviso("Marca con el dedo la zona que quieres ver de cerca."); } };
+  $("anZm").onclick = () => modoZona(!E.zona);
+  $("anZ1").onclick = () => { pan.z = 1; pan.x = 0; pan.y = 0; aplicar(); };
+  /* mover con un dedo y pellizcar para acercar (cuando no se dibuja) */
+  const ptrs = new Map(); let ult = null;
+  caja.addEventListener("pointerdown", (e) => { if (E.lapiz || E.zona) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]); caja.setPointerCapture(e.pointerId); ult = null; });
+  caja.addEventListener("pointermove", (e) => {
+    if (!ptrs.has(e.pointerId)) return; const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptrs.size === 1) { if (pan.z > 1.01) { pan.x += e.clientX - prev[0]; pan.y += e.clientY - prev[1]; aplicar(); } }
+    else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], dist = Math.hypot(a[0] - b[0], a[1] - b[1]), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, r = caja.getBoundingClientRect(); if (ult) { const f = dist / ult.d, nz = Math.max(1, Math.min(8, pan.z * f)), px = mx - r.left, py = my - r.top, cx = (px - pan.x) / pan.z, cy = (py - pan.y) / pan.z; pan.z = nz; pan.x = px - cx * nz + (mx - ult.mx); pan.y = py - cy * nz + (my - ult.my); aplicar(); } ult = { d: dist, mx, my }; }
+  });
+  const sueltaP = (e) => { ptrs.delete(e.pointerId); ult = null; }; caja.addEventListener("pointerup", sueltaP); caja.addEventListener("pointercancel", sueltaP);
+  $("anL").onclick = () => { E.lapiz = !E.lapiz; if (E.lapiz && E.zona) modoZona(false); cv.classList.toggle("act", E.lapiz); $("anL").classList.toggle("on", E.lapiz); $("anL").textContent = E.lapiz ? "✏️ Listo" : "✏️ Dibujar"; $("anDib").style.display = E.lapiz ? "inline-flex" : "none"; if (E.lapiz) pausar(); };
   $("anCols").querySelectorAll("button").forEach(b => b.onclick = () => { E.color = b.dataset.c; $("anCols").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); });
   m.querySelectorAll("[data-h]").forEach(b => b.onclick = () => { E.herr = b.dataset.h; m.querySelectorAll("[data-h]").forEach(z => z.classList.toggle("on", z === b)); });
   m.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { E.w = Number(b.dataset.w); m.querySelectorAll("[data-w]").forEach(z => z.classList.toggle("on", z === b)); });
