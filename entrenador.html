@@ -672,7 +672,7 @@ function pintarCarpetas(v, tipo) {
   const lf = $("limpiaF"); if (lf) lf.onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; redib(); };
   v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
   if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
-  if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [...(tipo === "jugadas" ? [["⤓ Importar de Hoops Geek", () => dialogoHG()]] : []), ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
+  if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [...(tipo === "jugadas" || tipo === "ejercicios" ? [["⤓ Importar de Hoops Geek", () => dialogoHG(tipo)]] : []), ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
   if ($("sNo")) $("sNo").onclick = () => { seleccion.clear(); redib(); };
   const selItems = () => D[tipo].filter(x => seleccion.has(x.id));
   if ($("sTag")) $("sTag").onclick = () => editarTags(tipo, selItems());
@@ -1009,36 +1009,37 @@ function hgMarcador() {
     const caja = document.createElement("div"); caja.style.cssText = "position:fixed;z-index:2147483647;left:50%;top:16px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font:600 15px system-ui;box-shadow:0 8px 30px #0006"; document.body.appendChild(caja);
     const di = (t) => { caja.textContent = t; };
     try {
-      di("Buscando tus jugadas…"); cab = await buscaToken();
+      di("Buscando tus jugadas y ejercicios…"); cab = await buscaToken();
       const ua = await J("/user_auth"), uid = ua.user_id; let carpetas = [];
-      try { carpetas = await J("/user/" + uid + "/folders?type=play"); } catch (e) { carpetas = []; }
+      for (const tp of ["play", "drill"]) { try { const fr = await J("/user/" + uid + "/folders?type=" + tp); if (Array.isArray(fr)) carpetas = carpetas.concat(fr.map(f => Object.assign({ type: tp }, f))); } catch (e) { /* sin carpetas de este tipo */ } }
       const ids = new Set();
-      (document.body.innerHTML.match(/\/dashboard\/play\/(\d+)/g) || []).forEach(m => ids.add(Number(m.split("/").pop())));
-      const m0 = location.pathname.match(/\/play\/(\d+)/); if (m0) ids.add(Number(m0[1]));
-      const listar = async (fid) => {
+      (document.body.innerHTML.match(/\/dashboard\/(?:play|drill)s?\/(\d+)/g) || []).forEach(m => ids.add(Number(m.split("/").pop())));
+      const m0 = location.pathname.match(/\/(?:play|drill)s?\/(\d+)/); if (m0) ids.add(Number(m0[1]));
+      const listar = async (fid, tp) => {
         for (let pg = 1; pg < 100; pg++) {
-          let r; try { r = await J("/user/" + uid + "/filter_plays_with_folders?" + new URLSearchParams({ folder_id: fid, page: pg, rows: 50, type: "play" })); } catch (e) { return; }
+          let r; try { r = await J("/user/" + uid + "/filter_plays_with_folders?" + new URLSearchParams({ folder_id: fid, page: pg, rows: 50, type: tp })); } catch (e) { return; }
           const it = (r && (r.data || r.items)) || []; if (!Array.isArray(it)) return;
           it.forEach(x => { if (x && x.kind !== "folder" && x.play_id) ids.add(x.play_id); });
           if (it.length < 50) return;
         }
       };
-      await listar("root"); for (const f of (Array.isArray(carpetas) ? carpetas : [])) await listar(f.folder_id);
-      const lista = [...ids]; if (!lista.length) { di("No he encontrado jugadas. Abre la biblioteca de jugadas (o una jugada) y vuelve a pulsar."); setTimeout(() => caja.remove(), 6000); return; }
+      for (const tp of ["play", "drill"]) { await listar("root", tp); for (const f of carpetas) if (f.type === tp) await listar(f.folder_id, tp); }
+      const lista = [...ids]; if (!lista.length) { di("No he encontrado nada. Abre tu biblioteca (de jugadas o de ejercicios) y vuelve a pulsar."); setTimeout(() => caja.remove(), 6000); return; }
       const plays = []; let i = 0;
-      const trabajador = async () => { while (i < lista.length) { const id = lista[i++]; try { plays.push(await J("/play/" + id)); } catch (e) { /* se salta */ } di("Descargando jugadas… " + plays.length + " de " + lista.length); } };
+      const trabajador = async () => { while (i < lista.length) { const id = lista[i++]; try { plays.push(await J("/play/" + id)); } catch (e) { /* se salta */ } di("Descargando… " + plays.length + " de " + lista.length); } };
       await Promise.all([trabajador(), trabajador(), trabajador(), trabajador()]);
       const blob = new Blob([JSON.stringify({ origen: "hoopsgeek", plays, folders: Array.isArray(carpetas) ? carpetas : [] })], { type: "application/json" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "hoopsgeek-jugadas.json"; document.body.appendChild(a); a.click(); a.remove();
-      di("Listo: " + plays.length + " jugadas. Súbelo en ScoutFlow."); setTimeout(() => caja.remove(), 7000);
+      di("Listo: " + plays.length + " elementos. Súbelo en ScoutFlow."); setTimeout(() => caja.remove(), 7000);
     } catch (e) { di("Error: " + e.message); caja.onclick = () => caja.remove(); setTimeout(() => caja.remove(), 30000); }
   })();
 }
-function dialogoHG() {
+function dialogoHG(tipo) {
+  tipo = tipo || "jugadas"; const EJ = tipo === "ejercicios", QUE = EJ ? "ejercicios" : "jugadas", want = EJ ? "drill" : "play";
   const codigo = "javascript:(" + encodeURIComponent("" + hgMarcador) + ")()";
-  const m = ventana(`<h3>Importar de Hoops Geek</h3>
+  const m = ventana(`<h3>Importar ${QUE} de Hoops Geek</h3>
     <p class="peq" style="margin:0 0 10px;"><b>1.</b> Arrastra este botón a la barra de marcadores de Chrome: <a id="hgMarc" href="${codigo}" draggable="true" style="display:inline-block;background:#111;color:#fff;border-radius:10px;padding:8px 12px;font-weight:700;text-decoration:none;" onclick="return false;">⤓ Bajar de Hoops Geek</a></p>
-    <p class="peq" style="margin:0 0 10px;"><b>2.</b> Entra en Hoops Geek (con tu sesión), abre tu biblioteca de jugadas y pulsa ese marcador. Se descarga un archivo.</p>
+    <p class="peq" style="margin:0 0 10px;"><b>2.</b> Entra en Hoops Geek (con tu sesión), abre tu biblioteca y pulsa ese marcador. Se descarga un archivo con tus jugadas y ejercicios.</p>
     <p class="peq" style="margin:0 0 10px;"><b>3.</b> Elige aquí ese archivo (también vale un archivo .har):</p>
     <input type="file" id="hgArch" accept=".json,.har,application/json">
     <div id="hgLista" style="margin-top:12px;"></div>
@@ -1048,8 +1049,10 @@ function dialogoHG() {
   $("hgArch").onchange = async (ev) => {
     const f = ev.target.files[0]; if (!f) return;
     const r = hgLeerArchivo(await f.text()), caja = $("hgLista");
-    if (!r || !r.plays.length) { caja.innerHTML = '<p class="peq">No he encontrado jugadas en ese archivo.</p>'; $("hgImp").disabled = true; return; }
-    const ya = new Map(D.jugadas.filter(x => x.data && x.data.hg && x.data.hg.id).map(x => [x.data.hg.id, x]));
+    const sel0 = r ? r.plays.filter(p => (p.type || "play") === want) : [];
+    if (!sel0.length) { caja.innerHTML = `<p class="peq">${r && r.plays.length ? "El archivo no trae " + QUE + " (solo " + (EJ ? "jugadas" : "ejercicios") + "). " : ""}No he encontrado ${QUE} en ese archivo.</p>`; $("hgImp").disabled = true; return; }
+    r.plays = sel0;
+    const base = EJ ? D.ejercicios : D.jugadas, ya = new Map(base.filter(x => x.data && ((x.data.hg && x.data.hg.id) || (x.data.diagrama && x.data.diagrama.hg && x.data.diagrama.hg.id))).map(x => [(x.data.hg || x.data.diagrama.hg).id, x]));
     cand = r.plays.map(p => { const ruta = hgRuta(r.folders, p.folder_id), c = hgConvertir(p, ruta); return { p, ruta, c, repetida: ya.get(p.play_id) || null }; });
     caja.innerHTML = '<div style="max-height:260px;overflow:auto;border:1px solid #e3e7ea;border-radius:10px;padding:6px;">' + cand.map((x, i) => `<label style="display:flex;gap:8px;align-items:center;padding:6px;"><input type="checkbox" data-i="${i}" ${x.c.error ? "disabled" : "checked"}><span><b>${esc(x.p.title || "(sin nombre)")}</b><br><small class="peq">${esc(x.ruta || "Sin carpeta")} · ${x.c.error ? "no se puede leer (" + esc(x.c.error) + ")" : (x.c.j.pasos.length + " fases") + (x.repetida ? " · ya importada (se actualiza)" : "") + (x.c.omitidos ? " · " + x.c.omitidos + " elementos sin traducir" : "")}</small></span></label>`).join("") + "</div>";
     const act = () => { const n = caja.querySelectorAll("input:checked").length; $("hgImp").disabled = !n; $("hgImp").textContent = "Importar " + n; };
@@ -1057,13 +1060,19 @@ function dialogoHG() {
     $("hgImp").onclick = async () => {
       const sel = [...caja.querySelectorAll("input:checked")].map(c => cand[Number(c.dataset.i)]); $("hgImp").disabled = true;
       const rutas = new Set(); sel.forEach(x => { let acc = ""; (x.ruta ? x.ruta.split("/") : []).forEach(s => { acc = acc ? acc + "/" + s : s; rutas.add(acc); }); });
-      for (const ruta of rutas) if (!D.carpetas.some(c => c.tipo === "jugadas" && c.nombre === ruta)) await guardarFila("carpetas", { tipo: "jugadas", nombre: ruta });
+      for (const ruta of rutas) if (!D.carpetas.some(c => c.tipo === tipo && c.nombre === ruta)) await guardarFila("carpetas", { tipo, nombre: ruta });
       let n = 0; for (const x of sel) {
         const f = x.c.fila, v = x.repetida;
-        if (v) { f.id = v.id; f.data.id = v.id; f.carpeta = v.carpeta || f.carpeta; f.favorita = !!v.favorita; f.compartida = !!v.compartida; f.data.favorita = f.favorita; f.data.compartida = f.compartida; f.data.tags = [...new Set([...(v.data.tags || []), ...(f.data.tags || [])])]; }
-        if (await guardarFila("jugadas", f)) n++;
+        if (v) { f.id = v.id; f.data.id = v.id; f.carpeta = v.carpeta || f.carpeta; f.favorita = !!v.favorita; f.compartida = !!v.compartida; f.data.favorita = f.favorita; f.data.compartida = f.compartida; f.data.tags = [...new Set([...((v.data && v.data.tags) || []), ...(f.data.tags || [])])]; }
+        let fila = f;
+        if (EJ) {
+          const j = f.data, set = (x.p.data && x.p.data.settings) || {}, diag = clonar(j); ["nombre", "carpeta", "tags", "notas", "tipo", "minutos", "actualizada", "favorita", "compartida"].forEach(k => delete diag[k]);
+          const prev = (v && v.data) || {};
+          fila = { id: f.id, nombre: f.nombre, carpeta: f.carpeta, data: Object.assign({}, prev, { diagrama: diag, tags: j.tags || [], descripcion: j.notas || prev.descripcion || "", categoria: prev.categoria || "Otro", minutos: Number(set.duration || set.minutes || set.time) || prev.minutos || 0, hg: j.hg }) };
+        }
+        if (await guardarFila(EJ ? "ejercicios" : "jugadas", fila)) n++;
       }
-      cerrarVentana(); await cargarTodo(); pintar(); aviso(n + " jugada" + (n === 1 ? "" : "s") + " importada" + (n === 1 ? "" : "s"));
+      cerrarVentana(); await cargarTodo(); pintar(); aviso(n + " " + (EJ ? "ejercicio" : "jugada") + (n === 1 ? "" : "s") + (EJ ? " importado" : " importada") + (n === 1 ? "" : "s"));
     };
   };
 }
