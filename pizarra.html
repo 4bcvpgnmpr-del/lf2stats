@@ -2325,9 +2325,9 @@ function iniciarPartido() {
     document.head.appendChild(st);
     const panel = document.createElement("div"); panel.id = "ptPanel";
     panel.innerHTML = `<div class="mp"><div class="mp-eq">${[0, 1].map(k => `<div class="mp-e"><input data-n="${k}" value="${esc(M.n[k])}"><div class="mp-n" id="mpN${k}">0</div><div class="mp-b"><button data-s="${k}:1">+1</button><button data-s="${k}:2">+2</button><button data-s="${k}:3">+3</button><button data-s="${k}:-1">−1</button></div><div class="mp-f">Faltas <button data-f="${k}:-1">−</button><b id="mpF${k}">0</b><button data-f="${k}:1">＋</button></div></div>`).join("")}</div>
-      <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span></h4><div class="mp-pj" id="mpPj"></div></div>
+      <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span><button id="mpEd" style="min-height:34px;padding:0 10px;">✏️ Editar</button></h4><div class="mp-pj" id="mpPj"></div></div>
       <div class="mp-per" id="mpPer">${[1, 2, 3, 4, 5].map(n => `<button data-p="${n}">${n === 5 ? "Prórroga" : "Cuarto " + n}</button>`).join("")}</div>
-      <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
+      <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpVes" style="background:#2b8a3e;">🚪 Vestuario 15:00</button><button id="mpMan" style="background:#2b8a3e;">⏱ Manual…</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
       <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpEs" style="background:#2b8a3e;">📊 Estadísticas</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
     $("partido").appendChild(panel);
     const pill = document.createElement("button"); pill.id = "ptPill"; pill.textContent = "⏱ 1:00"; $("partido").appendChild(pill);
@@ -2349,7 +2349,12 @@ function iniciarPartido() {
       panel.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", Number(b.dataset.p) === M.per));
       $("ptMarc").textContent = "⏱ " + M.p[0] + "–" + M.p[1]; if (typeof pintarPl === "function") pintarPl();
     };
-    let PLT = [];
+    let PLT = [], RAW = [];
+    const LS_ED = "scoutflow-plantilla-edit";
+    const leerEd = () => { try { const o = JSON.parse(localStorage.getItem(LS_ED) || "{}"); return { ov: o.ov || {}, extra: o.extra || [] }; } catch (e) { return { ov: {}, extra: [] }; } };
+    const guardarEd = (o) => { try { localStorage.setItem(LS_ED, JSON.stringify(o)); } catch (e) { /* nada */ } };
+    const aplicaEd = (l) => { const ed = leerEd(); return l.filter(j => !(ed.ov[j.id] && ed.ov[j.id].del)).map(j => Object.assign({}, j, ed.ov[j.id] || {})).concat(ed.extra); };
+    const setPlt = (l) => { RAW = l || []; PLT = aplicaEd(RAW); pintarPl(); };
     const pintarPl = () => {
       const box = $("mpPj"); if (!box) return;
       if (!PLT.length) { box.innerHTML = '<div style="opacity:.65;font-size:14px;grid-column:1/-1;">Elige «Mi equipo» en la app de estadísticas (o añade tu plantilla en «Quintetos y equipos») y aparecerá aquí.</div>'; return; }
@@ -2387,11 +2392,11 @@ function iniciarPartido() {
     };
     E.cargarPlantilla = async () => {
       const me = await miEquipoPlantilla();
-      if (me && me.length) { PLT = me; pintarPl(); return; }
+      if (me && me.length) { setPlt(me); return; }
       let r = null;
       if (modoNube) { try { const { data, error } = await nube.from("archivos").select("*").eq("id", "_equipos"); if (!error && data && data[0]) { r = JSON.parse(data[0].nombre || "{}"); kv.put("partido_plantilla", r); } } catch (e) { /* sin red */ } }
       if (!r) r = await kv.get("partido_plantilla");
-      PLT = ((r && r.plantilla) || []).filter(j => j.pres !== false); pintarPl();
+      setPlt(((r && r.plantilla) || []).filter(j => j.pres !== false));
     };
 
     /* ---- estadísticas a mano: rebotes, pérdidas y tiros (nosotros y rival) ---- */
@@ -2420,7 +2425,7 @@ function iniciarPartido() {
       const tcm = tot.t2m + tot.t3m, tca = tot.t2a + tot.t3a, pts = tot.t2m * 2 + tot.t3m * 3 + tot.tlm;
       const nomV = { h1: "1ª mitad", h2: "2ª mitad", tot: "Total" };
       const g = (k, f, lab, ok) => `<button class="${ok || ""}" data-k="${k}" data-f="${f}">${lab}</button>`;
-      EP.innerHTML = `<div class="es"><div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
+      EP.innerHTML = `<div class="es"><div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
         <div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
         <div class="es-res"><span>${nomV[v]} · Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> (${pct(tcm, tca)})</span><span>2P <b>${tot.t2m}/${tot.t2a}</b></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Rebotes <b>${tot.reb}</b></span><span>Pérdidas <b>${tot.per}</b></span></div>
         ${fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
@@ -2440,11 +2445,45 @@ function iniciarPartido() {
         try { navigator.vibrate && navigator.vibrate(15); } catch (e) { /* nada */ }
       });
       $("esUn").onclick = () => { const u = UND.pop(); if (!u) return; const o = (M.es[u[0]] || {})[u[1]]; if (!o) return; const f = u[2]; if (f === "reb" || f === "per") o[f] = Math.max(0, o[f] - 1); else { const tp = f.slice(0, -1); o[tp + "a"] = Math.max(0, o[tp + "a"] - 1); if (f.slice(-1) === "m") o[tp + "m"] = Math.max(0, o[tp + "m"] - 1); } guardarM(); pintarEs(); };
+      $("esEd").onclick = () => abrirEd();
       $("esX").onclick = () => EP.classList.remove("ver");
       if ($("esRv")) $("esRv").onclick = () => { const n = (prompt("Dorsal de la rival:") || "").replace(/\D/g, ""); if (n && !M.rvn.includes(n)) { M.rvn.push(n); guardarM(); pintarEs(); } };
     };
     $("mpEs").onclick = () => { EP.classList.add("ver"); pintarEs(); };
     EP.addEventListener("pointerdown", (e) => { if (e.target === EP) EP.classList.remove("ver"); });
+
+    /* ---- editor de jugadoras (nombre, dorsal, añadir, quitar) ---- */
+    const edS = document.createElement("style"); edS.textContent = `
+      #ptEd{display:none;position:fixed;inset:0;z-index:32;background:#000c;align-items:center;justify-content:center;padding:10px;} #ptEd.ver{display:flex;}
+      #ptEd .ed{background:#17202a;border-radius:18px;padding:14px;width:min(560px,100%);max-height:100%;overflow:auto;color:#fff;box-shadow:0 12px 40px #000c;} #ptEd h4{margin:0 0 10px;font-size:16px;}
+      #ptEd .er{display:flex;gap:6px;margin-bottom:6px;} #ptEd input{background:#223040;border:1px solid #3a4b5e;color:#fff;border-radius:10px;padding:0 10px;min-height:44px;font-size:16px;min-width:0;} #ptEd .en{width:70px;text-align:center;} #ptEd .eo{flex:1;} #ptEd button{min-height:44px;}
+      #ptEd .pie{display:flex;gap:8px;justify-content:space-between;margin-top:10px;flex-wrap:wrap;}`;
+    document.head.appendChild(edS);
+    const ED = document.createElement("div"); ED.id = "ptEd"; $("partido").appendChild(ED);
+    const abrirEd = () => {
+      const ed = leerEd(), base = RAW.filter(j => !(ed.ov[j.id] && ed.ov[j.id].del));
+      const fila = (id, num, nom, extra) => `<div class="er" data-id="${esc(id)}" data-x="${extra ? 1 : 0}"><input class="en" inputmode="numeric" placeholder="Nº" value="${esc(String(num == null ? "" : num))}"><input class="eo" placeholder="Nombre" value="${esc(nom)}"><button class="eq" title="Quitar">✕</button></div>`;
+      ED.innerHTML = `<div class="ed"><h4>Jugadoras (nombre y dorsal)</h4><div id="edL">${base.map(j => { const o = ed.ov[j.id] || {}; return fila(j.id, o.num != null ? o.num : j.num, o.nombre != null ? o.nombre : j.nombre, false); }).join("")}${ed.extra.map(j => fila(j.id, j.num, j.nombre, true)).join("")}</div>
+        <div class="pie"><button id="edAdd">＋ Añadir jugadora</button><button id="edRes" title="Vuelve a los datos de la FEB">Restaurar</button><button id="edOk" style="background:#e8590c;">Guardar</button></div></div>`;
+      ED.classList.add("ver");
+      const nueva = () => { const l = $("edL"); l.insertAdjacentHTML("beforeend", fila("x" + Date.now().toString(36) + Math.floor(Math.random() * 99), "", "", true)); l.lastElementChild.querySelector(".eo").focus(); wire(); };
+      const wire = () => ED.querySelectorAll(".eq").forEach(b => b.onclick = () => { const r = b.closest(".er"); r.dataset.del = "1"; r.style.display = "none"; });
+      wire(); $("edAdd").onclick = nueva;
+      $("edRes").onclick = () => { if (!confirm("¿Volver a los nombres y dorsales originales?")) return; guardarEd({ ov: {}, extra: [] }); setPlt(RAW); ED.classList.remove("ver"); if (EP.classList.contains("ver")) pintarEs(); };
+      $("edOk").onclick = () => {
+        const o = { ov: Object.assign({}, ed.ov), extra: [] };
+        ED.querySelectorAll(".er").forEach(r => {
+          const id = r.dataset.id, num = r.querySelector(".en").value.trim(), nom = r.querySelector(".eo").value.trim(), del = r.dataset.del === "1";
+          if (r.dataset.x === "1") { if (!del && nom) o.extra.push({ id, nombre: nom, num }); } else o.ov[id] = del ? { del: true } : { nombre: nom, num };
+        });
+        guardarEd(o); setPlt(RAW); ED.classList.remove("ver"); if (EP.classList.contains("ver")) pintarEs();
+      };
+    };
+    $("mpEd").onclick = abrirEd;
+    ED.addEventListener("pointerdown", (e) => { if (e.target === ED) ED.classList.remove("ver"); });
+    /* ---- cronómetro manual (vestuario) ---- */
+    $("mpVes").onclick = () => iniciarT(15 * 60);
+    $("mpMan").onclick = () => { const v = prompt("Tiempo en minutos (ej. 10, o 2:30 para 2 min 30 s):", "10"); if (v == null) return; const m = String(v).trim().match(/^(\d+)(?:[:.,](\d{1,2}))?$/); if (!m) { aviso("Tiempo no válido"); return; } const sec = v.includes(":") ? Number(m[1]) * 60 + Number(m[2] || 0) : Number(m[1]) * 60 + (m[2] ? Math.round(Number("0." + m[2]) * 60) : 0); if (sec > 0) iniciarT(sec); };
     panel.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.s.split(":").map(Number); M.p[k] = Math.max(0, M.p[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
@@ -2453,7 +2492,7 @@ function iniciarPartido() {
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };
-    pintarM(); pintarT(); kv.get("partido_plantilla").then(r => { if (r && !PLT.length) { PLT = (r.plantilla || []).filter(j => j.pres !== false); pintarPl(); } });
+    pintarM(); pintarT(); kv.get("partido_plantilla").then(r => { if (r && !RAW.length) setPlt((r.plantilla || []).filter(j => j.pres !== false)); });
   })();
   /* salir y pantalla completa */
   $("ptSalir").addEventListener("click", () => { detener(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ } if (window.parent !== window) { try { parent.postMessage({ partidoCerrar: true }, "*"); } catch (e) { /* nada */ } } else history.length > 1 ? history.back() : (location.href = "entrenador.html"); });
