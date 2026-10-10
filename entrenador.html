@@ -271,7 +271,7 @@
   .mini-s{flex:none;width:64px;height:48px;border:1px solid #d9dee3;border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:2px;font-size:18px;} .mini-s svg{width:100%;height:100%;display:block;}
   .lista-sel label.it span.mini-s{display:flex;gap:0;}
   .pe-mini{flex:none;width:68px;height:50px;border:1px solid var(--pln);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 8px 0 10px;padding:2px;font-size:18px;} .pe-mini svg{width:100%;height:100%;display:block;} .pe-mini.grande{width:150px;height:110px;margin:0 0 0 10px;}
-  .pe-c2{display:flex;align-items:center;}
+  .pe-c2{display:flex;align-items:center;} .pe-c3{display:flex;align-items:center;} .pe-c3 input{flex:1;min-width:0;} .pe-rep{flex:none;background:#e8f4f0;color:#2f8f78;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;margin-left:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .eq-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start;} .eq-card{background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:14px;} .eq-card h3{margin:0 0 8px;font-size:16px;}
   .eq-lista{max-height:60vh;overflow:auto;} .eq-jug{display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid #eef0f2;} .eq-jug:first-child{border-top:0;} .eq-jug.aus{opacity:.45;} .eq-jug input{width:auto;margin:0;} .eq-n{width:26px;text-align:right;font-weight:800;color:#e8590c;} .eq-nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .eq-st{color:#f08c00;font-size:11px;letter-spacing:-1px;}
   .eq-add{display:flex;gap:6px;margin-top:10px;} .eq-add input{margin:0;}
@@ -300,6 +300,7 @@
     .pdf-c{flex:1;min-width:0;padding:8px 10px 8px 0;} .pdf-c h3{margin:0 0 3px;font-size:12.5pt;} .pdf-chips{font-size:8.5pt;color:#5d6b78;margin-bottom:4px;} .pdf-chips span{display:inline-block;background:#eef1f4 !important;border-radius:999px;padding:1px 8px;margin-right:4px;} .pdf-c p{margin:3px 0;font-size:10pt;line-height:1.4;} .pdf-nota{margin:5px 0 0;padding:4px 8px;background:#fff8db !important;border-left:3px solid #f0b400;font-size:9.5pt;border-radius:3px;}
     .pdf-dib{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;} .pdf-dib figure{margin:0;width:44mm;} .pdf-dib figure>div{border:1px solid #cfd6dc;border-radius:4px;overflow:hidden;line-height:0;} .pdf-dib svg{width:100% !important;height:auto !important;display:block;} .pdf-dib figcaption{font-size:7.5pt;color:#667380;margin-top:1px;}
     .pdf-pie{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:8pt;color:#8a95a1;border-top:1px solid #e3e7ea;padding-top:3px;} .pdf-refl{margin-top:14px;} .pdf-refl h3{margin:0 0 4px;font-size:11pt;}
+    .pdf-rep{margin-top:7px;break-inside:avoid;} .pdf-rep-t{font-size:8pt;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#8a95a1;margin-bottom:3px;} .pdf-rep-g{display:flex;flex-wrap:wrap;gap:6px;} .pdf-rep-e{flex:1 1 30mm;min-width:30mm;border:1.5px solid var(--c);border-radius:6px;overflow:hidden;} .pdf-rep-h{background:var(--c) !important;color:#fff;font-weight:800;font-size:9pt;padding:2px 7px;} .pdf-rep-r{font-size:9.5pt;font-weight:700;padding:2px 7px;border-top:1px solid #eef0f2;} .pdf-rep-r i{font-style:normal;font-size:7.5pt;color:#8a95a1;margin-right:5px;text-transform:uppercase;}
     #hojaImp *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .eqp-g{display:grid;gap:12px;grid-template-columns:repeat(2,1fr);} .eqp-g.n3{grid-template-columns:repeat(3,1fr);} .eqp-g.n4{grid-template-columns:repeat(4,1fr);} .eqp-eq{border:2px solid var(--c);border-radius:10px;overflow:hidden;break-inside:avoid;} .eqp-h{background:var(--c) !important;color:#fff;font-weight:800;font-size:14pt;padding:8px 12px;} .eqp-r{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid #e3e7ea;min-height:11mm;} .eqp-p{width:22mm;font-size:8.5pt;font-weight:800;color:#8a95a1;text-transform:uppercase;} .eqp-d{width:9mm;font-weight:800;font-size:14pt;color:var(--c);text-align:right;} .eqp-n{font-weight:700;font-size:13pt;} .eqp-b{margin-top:12px;font-size:11pt;padding:8px 12px;background:#f6f7f9 !important;border-radius:6px;}
     #hojaImp table{width:100%;border-collapse:collapse;margin-top:10px;}
@@ -1426,7 +1427,7 @@ function pEd() {
       const ej = ejDe(e);
       return `<div class="pe-fila" data-i="${i}">${asa}<div class="pe-tarj"><div class="pe-c1"><button class="pe-min" data-min="${i}" title="Editar tiempo">${Number(e.min) || 0} min</button></div>
         <div class="pe-c2">${ej ? `<span class="pe-mini" data-mini="${esc(ej.id)}">${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}<input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio vinculado" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : IC.plus}</button>`}</div>
-        <div class="pe-c3"><input data-f="notas" value="${esc(e.notas || "")}" placeholder="Añade notas aquí…" ${ro ? "disabled" : ""}></div>
+        <div class="pe-c3">${repDe(e) ? `<span class="pe-rep" title="Reparto vinculado">👥 ${esc(repDe(e).nombre)}</span>` : ""}<input data-f="notas" value="${esc(e.notas || "")}" placeholder="Añade notas aquí…" ${ro ? "disabled" : ""}></div>
         ${ro ? "" : `<div class="pe-c4"><button data-r="${i}" title="Más">${IC.mas}</button><button data-dup="${i}" title="Duplicar">${IC.dup}</button><button data-del="${i}" title="Eliminar">${IC.del}</button></div>`}</div></div>`;
     }).join("");
     cuerpo = `<div class="pe-cuerpo"><div class="pe-h"><h2>Cronograma</h2><span>${total} min</span></div>
@@ -1442,7 +1443,7 @@ function pEd() {
     lista.forEach((e) => {
       if (e.sec) { cierra(); sub = 0; secAbierta = true; filas += `<div class="pv-sec">${esc(e.titulo || "Sección")}<span>§SUB§</span></div>`; return; }
       const ini = hmDe(d.inicio, acum), ej = ejDe(e), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; sub += Number(e.min) || 0;
-      filas += `<div class="pv-seg"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}</div>${ej ? `<span class="pe-mini grande" data-mini="${esc(ej.id)}">${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}</div>`;
+      filas += `<div class="pv-seg"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}${repDe(e) ? `<div class="pv-d">👥 <b>${esc(repDe(e).nombre)}:</b> ${repDe(e).equipos.map(q => esc(q.n) + " (" + q.s.map(id => id && eqJug(id) ? esc(eqJug(id).nombre) : "").filter(Boolean).join(", ") + ")").join(" · ")}</div>` : ""}</div>${ej ? `<span class="pe-mini grande" data-mini="${esc(ej.id)}">${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}</div>`;
     });
     cierra();
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><h2 style="font-size:22px;">${esc(p.nombre || "Plan sin título")}</h2><p class="peq" style="margin:2px 0 12px;">${solofecha(p.fecha)} · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · ${total} min · ${d.inicio}–${hmDe(d.inicio, total)}</p>${d.notas ? `<p style="white-space:pre-wrap;margin:0 0 12px;">${esc(d.notas)}</p>` : ""}${filas || '<div class="vacio">Aún no hay segmentos.</div>'}
@@ -1470,7 +1471,7 @@ function pEd() {
       const vb = el.querySelector("[data-v]"); if (vb) vb.onclick = () => elegirEjercicio((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista[i].id = id; lista[i].titulo = ej.nombre; if (!Number(lista[i].min)) lista[i].min = (ej.data && ej.data.minutos) || 10; histPlan(); pEd(); });
       const dp = el.querySelector("[data-dup]"); if (dp) dp.onclick = () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); };
       const dl = el.querySelector("[data-del]"); if (dl) dl.onclick = () => { lista.splice(i, 1); histPlan(); pEd(); };
-      const mb = el.querySelector("[data-r]"); if (mb) mb.onclick = (ev) => abrirMenu(ev, ro ? [] : [["↑ Subir", () => mover(i, -1)], ["↓ Bajar", () => mover(i, 1)], ["⧉ Duplicar", () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); }]].concat(lista[i].id && ejDe(lista[i]) ? [["🔗 Quitar vínculo con el ejercicio", () => { lista[i].titulo = tituloSeg(lista[i]); delete lista[i].id; histPlan(); pEd(); }]] : []).concat([["🗑 Eliminar", () => { lista.splice(i, 1); histPlan(); pEd(); }, "pel"]]));
+      const mb = el.querySelector("[data-r]"); if (mb) mb.onclick = (ev) => abrirMenu(ev, ro ? [] : [["👥 " + (lista[i].reparto ? "Cambiar reparto de equipos…" : "Vincular reparto de equipos…"), () => elegirReparto(lista[i].reparto || "", (id) => { if (id) lista[i].reparto = id; else delete lista[i].reparto; histPlan(); pEd(); })], ["↑ Subir", () => mover(i, -1)], ["↓ Bajar", () => mover(i, 1)], ["⧉ Duplicar", () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); }]].concat(lista[i].id && ejDe(lista[i]) ? [["🔗 Quitar vínculo con el ejercicio", () => { lista[i].titulo = tituloSeg(lista[i]); delete lista[i].id; histPlan(); pEd(); }]] : []).concat([["🗑 Eliminar", () => { lista.splice(i, 1); histPlan(); pEd(); }, "pel"]]));
       // arrastrar
       const asa = el.querySelector(".pe-asa");
       if (asa && !ro) {
@@ -1572,6 +1573,7 @@ function dibujosDePlan(p) {
 }
 async function imprimirPlan(p) {
   aviso("Preparando el PDF con los dibujos…");
+  eqAsegurar();
   const dib = await dibujosDePlan(p), d = p.data, q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
   let acum = 0, n = 0, res = "", det = "", sub = 0, secAb = false;
   const cierra = () => { if (secAb) det = det.replace("§SUB§", sub + " min"); };
@@ -1581,7 +1583,7 @@ async function imprimirPlan(p) {
     const fin = hmDe(d.inicio, acum), svgs = (dib[e.id] || []).slice(0, 6);
     res += `<tr><td>${ini}–${fin}</td><td><b>${esc(tituloSeg(e) || "(sin título)")}</b></td><td style="text-align:right;">${e.min || 0} min</td></tr>`;
     const chips = [dd.categoria, dd.materiales ? "Material: " + dd.materiales : ""].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join("");
-    det += `<div class="pdf-ej"><div class="pdf-t"><b>${ini}</b><span>${e.min || 0} min</span><i>Ejercicio ${n}</i></div><div class="pdf-c"><h3>${esc(tituloSeg(e) || "(sin título)")}</h3>${chips ? `<div class="pdf-chips">${chips}</div>` : ""}${dd.descripcion ? `<p>${esc(dd.descripcion).replace(/\n/g, "<br>")}</p>` : ""}${e.notas ? `<div class="pdf-nota"><b>Notas:</b> ${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${svgs.length ? `<div class="pdf-dib">${svgs.map((sv, i) => `<figure><div>${sv}</div>${svgs.length > 1 ? `<figcaption>Fase ${i + 1}</figcaption>` : ""}</figure>`).join("")}</div>` : ""}</div></div>`;
+    det += `<div class="pdf-ej"><div class="pdf-t"><b>${ini}</b><span>${e.min || 0} min</span><i>Ejercicio ${n}</i></div><div class="pdf-c"><h3>${esc(tituloSeg(e) || "(sin título)")}</h3>${chips ? `<div class="pdf-chips">${chips}</div>` : ""}${dd.descripcion ? `<p>${esc(dd.descripcion).replace(/\n/g, "<br>")}</p>` : ""}${e.notas ? `<div class="pdf-nota"><b>Notas:</b> ${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${repDe(e) ? eqHtmlPdf(repDe(e)) : ""}${svgs.length ? `<div class="pdf-dib">${svgs.map((sv, i) => `<figure><div>${sv}</div>${svgs.length > 1 ? `<figcaption>Fase ${i + 1}</figcaption>` : ""}</figure>`).join("")}</div>` : ""}</div></div>`;
   });
   cierra();
   const h = $("hojaImp"); h.className = "pdf-plan";
@@ -1683,6 +1685,18 @@ function pintarEquipos(v) {
     set.equipos[e].s[s] = sel.id; EQ.sel = null; guardar();
   });
   const po = v.querySelector("[data-pool]"); po.onclick = (ev) => { if (ev.target.closest("[data-p]")) return; if (EQ.sel && EQ.sel.e >= 0) { set.equipos[EQ.sel.e].s[EQ.sel.s] = null; EQ.sel = null; guardar(); } };
+}
+const eqAsegurar = () => { if (!EQ) EQ = Object.assign(eqLeer(), { sel: null }); return EQ; };
+const repDe = (e) => { if (!e || !e.reparto) return null; eqAsegurar(); return EQ.sets.find(x => x.id === e.reparto) || null; };
+const eqNombreJ = (j) => (j.num !== "" && j.num != null ? esc(String(j.num)) + " " : "") + esc(j.nombre);
+function eqHtmlPdf(set) {
+  eqAsegurar();
+  return `<div class="pdf-rep"><div class="pdf-rep-t">Equipos · ${esc(set.nombre)}</div><div class="pdf-rep-g">${set.equipos.map(e => `<div class="pdf-rep-e" style="--c:${e.c}"><div class="pdf-rep-h">${esc(e.n)}</div>${e.s.map((id, i) => { const j = id && eqJug(id); return j ? `<div class="pdf-rep-r">${set.modo === "q5" ? `<i>${EQ_POS[i]}</i>` : ""}${eqNombreJ(j)}</div>` : ""; }).join("")}</div>`).join("")}</div></div>`;
+}
+function elegirReparto(actual, ok) {
+  eqAsegurar();
+  ventana(`<h3>Vincular reparto de equipos</h3><p class="peq" style="margin:0 0 6px;">Aparecerá en el PDF dentro de este ejercicio.</p><div class="lista-sel" id="rpL" style="max-height:340px;"><label class="it" data-id=""><span style="flex:1;">— Ninguno —</span>${actual ? "" : "✓"}</label>${EQ.sets.map(x => `<label class="it" data-id="${esc(x.id)}"><span style="flex:1;">👥 <b>${esc(x.nombre)}</b></span><span class="peq">${x.equipos.length} equipos ${actual === x.id ? "✓" : ""}</span></label>`).join("") || '<div class="vacio">Aún no tienes repartos: créalos en «Quintetos y equipos».</div>'}</div><div class="pie-m"><button class="gris" id="rpX">Cerrar</button></div>`);
+  $("rpX").onclick = cerrarVentana; $("rpL").querySelectorAll("[data-id]").forEach(el => el.onclick = () => { cerrarVentana(); ok(el.dataset.id); });
 }
 async function imprimirEquipos(set) {
   if (!set) return;
