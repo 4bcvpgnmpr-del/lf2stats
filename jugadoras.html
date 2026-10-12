@@ -208,6 +208,22 @@
   .etiqueta-nuevo{background:var(--orange);color:#fff;font-size:10.5px;font-weight:800;
     border-radius:10px;padding:2px 7px;text-transform:uppercase;letter-spacing:.05em;}
 
+  /* ---------- Tests ---------- */
+  .test-tarjeta{background:var(--white);border:1.5px solid var(--wood-line);border-left:4px solid var(--orange);border-radius:12px;padding:14px;margin-bottom:11px;}
+  .test-tarjeta.hecho{border-left-color:var(--verde);}
+  .test-tarjeta .cab{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+  .test-tarjeta .cab b{font-size:15px;} .test-tarjeta .cab span{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+  .test-tarjeta .res{margin:8px 0 0;font-size:15px;} .test-tarjeta .aviso-unica{margin:6px 0 0;font-size:13px;color:var(--ink-soft);}
+  .test-preg{background:var(--white);border:1.5px solid var(--wood-line);border-radius:12px;padding:14px;margin-bottom:11px;}
+  .test-preg .enun{font-size:15px;margin-bottom:8px;}
+  .test-op{display:flex;gap:10px;align-items:flex-start;padding:10px 11px;border:1.5px solid var(--wood-line);border-radius:10px;margin-bottom:7px;cursor:pointer;font-size:14.5px;background:var(--suave);}
+  .test-op:has(input:checked){border-color:var(--orange);background:var(--rojo-suave);}
+  .test-op{text-transform:none;letter-spacing:0;font-weight:500;}
+  .test-op input{margin-top:3px;flex:none;}
+  .test-res .gran{font-family:'Archivo Black',sans-serif;font-size:40px;line-height:1.1;margin:6px 0 4px;}
+  .test-rev{padding:9px 0;border-top:1px solid var(--wood-line);font-size:14px;} .test-rev:first-of-type{border-top:0;}
+  .test-rev.ok b{color:var(--verde);} .test-rev.mal b{color:var(--rojo);} .test-rev .peq{font-size:13px;color:var(--ink-soft);margin-top:3px;}
+
   /* ---------- Objetivos ---------- */
   .objetivo{display:flex;gap:11px;align-items:flex-start;background:var(--white);
     border:1.5px solid var(--wood-line);border-radius:12px;padding:13px;margin-bottom:9px;}
@@ -418,6 +434,7 @@
       <button data-tab="inicio" class="activa">Inicio</button>
       <button data-tab="numeros">Mis numeros</button>
       <button data-tab="mensajes">Mensajes<span class="punto" id="puntoMensajes" hidden></span></button>
+      <button data-tab="tests">Tests<span class="punto" id="puntoTests" hidden></span></button>
       <button data-tab="clips">Videos</button>
       <button data-tab="rival">El rival<span class="punto" id="puntoRival" hidden></span></button>
       <button data-tab="equipo">Mi equipo<span class="punto" id="puntoEquipo" hidden></span></button>
@@ -428,6 +445,7 @@
     <section id="tab-inicio"></section>
     <section id="tab-numeros" hidden></section>
     <section id="tab-mensajes" hidden></section>
+    <section id="tab-tests" hidden></section>
     <section id="tab-clips" hidden></section>
     <section id="tab-rival" hidden></section>
     <section id="tab-equipo" hidden></section>
@@ -693,7 +711,7 @@ async function cargarPerfil(sesion) {
           <div class="eq">${esc(correo)}${miEquipo ? " · " + esc(miEquipo) : ""}</div></div>
           <button class="salir" id="btnSalir">Salir</button>`;
         $("btnSalir").addEventListener("click", salir);
-        ["numeros", "mensajes", "clips", "despues", "jugadas"].forEach(t => {
+        ["numeros", "mensajes", "tests", "clips", "despues", "jugadas"].forEach(t => {
           const b = document.querySelector('.pestanas button[data-tab="' + t + '"]');
           if (b) b.remove();
           const c = $("tab-" + t); if (c) c.remove();
@@ -720,6 +738,7 @@ async function cargarPerfil(sesion) {
         $("btnCerrarPrevia").addEventListener("click", () => window.close() || history.back());
         pintarCabecera(null);
         cargarMensajes();
+        cargarTests();
         cargarClips();
         cargarInformes();
         aplicarTemporada().then(() => { cargarInicio(); return cargarNumeros().then(cargarObjetivos); });
@@ -750,6 +769,7 @@ async function cargarPerfil(sesion) {
 
   pintarCabecera(null);
   cargarMensajes();
+  cargarTests();
   cargarClips();
   // los objetivos se pintan DESPUES de los numeros: si no, cargarNumeros
   // reescribe la pestana entera y se los lleva por delante
@@ -1609,6 +1629,80 @@ async function marcarLeidos() {
   });
 }
 
+/* ---------- Tests del entrenador ---------- */
+async function cargarTests() {
+  const caja = $("tab-tests"); if (!caja) return;
+  const btn = document.querySelector('.pestanas button[data-tab="tests"]');
+  if (modoVistaPrevia) { caja.innerHTML = `<div class="vacio">Los tests los ve y responde cada jugadora desde su cuenta.</div>`; return; }
+  const { data, error } = await sb.rpc("tests_mios");
+  if (error) {
+    const falta = /Could not find|schema cache|does not exist/i.test(error.message || "");
+    caja.innerHTML = `<div class="vacio">${falta
+      ? "Los tests todavía no están activados. Dile al entrenador que ejecute el archivo <b>tests.sql</b> en Supabase."
+      : "No se han podido cargar los tests.<br><small>" + esc(error.message || "") + "</small>"}</div>`;
+    return;
+  }
+  const lista = data || [];
+  const pend = lista.filter(t => t.estado !== "hecho").length;
+  $("puntoTests").hidden = pend === 0;
+  if (!lista.length) { caja.innerHTML = `<div class="vacio">No tienes ningún test ahora mismo.</div>`; return; }
+  caja.innerHTML = lista.map(t => {
+    const hecho = t.estado === "hecho";
+    return `<div class="test-tarjeta ${hecho ? "hecho" : ""}">
+      <div class="cab"><b>${esc(t.titulo)}</b><span>${t.preguntas} preguntas</span></div>
+      ${hecho
+        ? `<p class="res">Acertaste <b>${t.aciertos}</b> de ${t.total}${t.terminado ? " · " + esc(fechaCorta(t.terminado)) : ""}</p>`
+        : `<p class="aviso-unica">${t.estado === "en_curso" ? "Lo empezaste y no lo enviaste. Te salen las mismas preguntas." : "Solo puedes responderlo una vez."}</p>
+           <button class="boton" data-test="${esc(t.id)}" data-estado="${esc(t.estado)}">${t.estado === "en_curso" ? "Continuar el test" : "Empezar el test"}</button>`}
+    </div>`;
+  }).join("");
+  caja.querySelectorAll("[data-test]").forEach(b => b.addEventListener("click", () => {
+    if (b.getAttribute("data-estado") === "pendiente" && !confirm("Solo puedes responder este test una vez. ¿Empezar ahora?")) return;
+    empezarTest(b.getAttribute("data-test"));
+  }));
+}
+
+async function empezarTest(id) {
+  const caja = $("tab-tests");
+  caja.innerHTML = `<div class="vacio">Cargando el test…</div>`;
+  const { data, error } = await sb.rpc("test_empezar", { p_test: id });
+  if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div><button class="boton suave" id="tVolver">Volver</button>`; $("tVolver").addEventListener("click", cargarTests); return; }
+  if (data.hecho) { cargarTests(); return; }
+  const resp = {};
+  const pregs = data.preguntas || [];
+  caja.innerHTML = `<div class="bloque"><h3>${esc(data.titulo)}</h3>
+    <p class="expl">${pregs.length} preguntas. Solo puedes enviarlo una vez, así que repasa antes de terminar.</p></div>
+    ${pregs.map((p, n) => `<div class="test-preg"><div class="enun"><b>${n + 1}.</b> ${esc(p.texto)}</div>
+      ${p.opciones.map((o, k) => `<label class="test-op"><input type="radio" name="tp${n}" data-q="${esc(p.id)}" value="${k}"><span>${esc(o)}</span></label>`).join("")}</div>`).join("")}
+    <button class="boton" id="tEnviar">Enviar respuestas</button>
+    <div id="avisoTest"></div>`;
+  caja.querySelectorAll("input[type=radio]").forEach(r => r.addEventListener("change", () => { resp[r.getAttribute("data-q")] = Number(r.value); }));
+  $("tEnviar").addEventListener("click", async () => {
+    const sin = pregs.filter(p => resp[p.id] === undefined).length;
+    if (sin && !confirm(`Te quedan ${sin} sin responder y contarán como falladas. ¿Enviar igualmente?`)) return;
+    if (!sin && !confirm("¿Enviar tus respuestas? No podrás cambiarlas.")) return;
+    $("tEnviar").disabled = true;
+    const r = await sb.rpc("test_enviar", { p_test: id, p_resp: resp });
+    if (r.error) { $("tEnviar").disabled = false; avisar("avisoTest", r.error.message, "mal"); return; }
+    mostrarResultadoTest(r.data);
+  });
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function mostrarResultadoTest(r) {
+  const caja = $("tab-tests"), fallos = r.total - r.aciertos;
+  caja.innerHTML = `<div class="bloque test-res"><h3>Test enviado</h3>
+    <div class="gran">${r.aciertos} de ${r.total}</div>
+    <p class="expl" style="margin:0;">${r.aciertos} acertadas · ${fallos} falladas</p></div>
+    ${(r.detalle || []).length ? `<div class="bloque"><h3>Repaso</h3>${r.detalle.map(d => `<div class="test-rev ${d.ok ? "ok" : "mal"}">
+      <div><b>${d.ok ? "✓" : "✗"}</b> ${esc(d.texto)}</div>
+      ${d.ok ? "" : `<div class="peq">${d.tu ? "Tu respuesta: " + esc(d.tu) : "Sin responder"}</div><div class="peq">Correcta: <b>${esc(d.correcta)}</b></div>`}</div>`).join("")}</div>` : ""}
+    <button class="boton suave" id="tVolver">Volver a mis tests</button>`;
+  $("tVolver").addEventListener("click", cargarTests);
+  window.scrollTo({ top: 0, behavior: "instant" });
+  $("puntoTests").hidden = true;
+}
+
 /* ---------- Pestana 4: el scouting del rival ---------- */
 /* ---------- Reproductor compartido (Videos y El rival) ---------- */
 function incrustar(url) {
@@ -1840,7 +1934,7 @@ function aplicarOrdenPestanas() {
     const b = botones.find(x => x.getAttribute("data-tab") === id);
     if (b) barra.appendChild(b);
   });
-  botones.forEach(b => { b.hidden = ocultas.includes(b.getAttribute("data-tab")); });
+  botones.forEach(b => { b.hidden = ocultas.includes(b.getAttribute("data-tab")) || b.dataset.sinTests === "1"; });
   const primera = [...barra.querySelectorAll("button[data-tab]")].find(b => !b.hidden);
   if (primera && !primera.classList.contains("activa") && !barra.dataset.ordenado) primera.click();
   barra.dataset.ordenado = "1";
@@ -1892,7 +1986,9 @@ async function cargarInformes() {
   } else {
     ultimoInforme = rivales[0].id;
     if (reciente(rivales[0]) && visto("lf2_rival_visto") !== rivales[0].id) $("puntoRival").hidden = false;
-    caja.innerHTML = rivales.map(i => `
+    // solo el rival actual: los envíos de rivales anteriores ya no se ven (siguen guardados)
+    const actual = rivales.filter(i => i.rival === rivales[0].rival);
+    caja.innerHTML = actual.map(i => `
       <div class="bloque">
         <h3>${esc(i.titulo)}</h3>
         <p class="expl">${esc(i.partido || "")}${i.partido ? " · " : ""}${esc(fechaCorta(i.fecha))}</p>
@@ -1938,8 +2034,9 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["inicio", "numeros", "mensajes", "clips", "rival", "equipo", "despues", "jugadas"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
+    ["inicio", "numeros", "mensajes", "tests", "clips", "rival", "equipo", "despues", "jugadas"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
+    if (t === "tests") cargarTests();
     if (t === "rival") {
       $("puntoRival").hidden = true;
       try { localStorage.setItem("lf2_rival_visto", ultimoInforme || ""); }
