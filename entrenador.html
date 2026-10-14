@@ -2225,11 +2225,18 @@ async function calCargarFeb(forzar) {
   try {
     const f = await calHoja("Resultados" + suf);
     CAL.feb = f.filter(r => r.Local && r.Visitante).map(r => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(r.Fecha || ""); return { fecha: m ? m[3] + "-" + m[2] + "-" + m[1] : "", hora: (r.Hora || "").trim(), local: r.Local, visitante: r.Visitante, pl: r.Pts_Local, pv: r.Pts_Visitante, jugado: r.Jugado === "Si", jornada: r.Jornada || "", fase: r.Fase || "", pid: r.PartidoID || "" }; }).filter(r => r.fecha);
+    CAL.feb = calSinRepetidos(CAL.feb);
     CAL.febEstado = "ok"; try { localStorage.setItem("cal_feb_cache", JSON.stringify({ tem, feb: CAL.feb })); } catch (e) { /* nada */ }
   } catch (e) {
     let c = null; try { c = JSON.parse(localStorage.getItem("cal_feb_cache") || "null"); } catch (x) { /* nada */ }
-    if (c && c.feb) { CAL.feb = c.feb; CAL.febEstado = "cache"; } else { CAL.feb = []; CAL.febEstado = "error"; }
+    if (c && c.feb) { CAL.feb = calSinRepetidos(c.feb); CAL.febEstado = "cache"; } else { CAL.feb = []; CAL.febEstado = "error"; }
   }
+}
+/* la hoja puede traer el mismo partido más de una vez (otra fase, jornada o grupo): mismo local, visitante y fecha = el mismo partido */
+function calSinRepetidos(l) {
+  const m = new Map();
+  (l || []).forEach(p => { const k = calNorm(p.local) + "|" + calNorm(p.visitante) + "|" + p.fecha, o = m.get(k); if (!o || (!o.jugado && p.jugado) || (!o.hora && p.hora && o.jugado === p.jugado)) m.set(k, p); });
+  return [...m.values()];
 }
 function calEventos() {
   const out = [], eq = calMiEq();
