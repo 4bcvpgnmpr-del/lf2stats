@@ -407,6 +407,31 @@
   .dj-cuerpo .meta{color:#6b7680;font-size:13px;margin-bottom:10px;}
   .pista-w{position:relative;} .dj-cuerpo .pista.anim{background:transparent;min-height:0;aspect-ratio:547/514;} .dj-cuerpo .pista.anim iframe{display:block;width:100%;height:100%;border:0;}
   .dj-ov{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:10px;padding:22px 12px 8px;border-radius:0 0 6px 6px;background:linear-gradient(to top,rgba(20,24,30,.55),rgba(20,24,30,0));} .dj-ov button{background:transparent;color:#fff;border:0;width:34px;height:34px;border-radius:8px;font-size:20px;padding:0;cursor:pointer;} .dj-ov button:hover{background:rgba(255,255,255,.2);} .dj-ov .ovbar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.4);}
+
+  /* ficha en el ordenador: cabecera grande con migas de pan, como The Hoops Geek */
+  .dj-mig,.dj-acc{display:none;}
+  @media (min-width:701px){.dj-mig{display:flex;} .dj-acc{display:flex;}}
+  @media (min-width:701px){
+    #detalleJ .dj-top{display:none;}
+    .dj-cuerpo{max-width:1240px;padding:34px 48px 90px;font-family:'Inter',system-ui,sans-serif;}
+    .dj-cuerpo .dj-cab{display:block;margin-bottom:26px;}
+    .dj-mig{align-items:center;gap:16px;font-size:19px;color:#2b3640;margin-bottom:34px;flex-wrap:wrap;}
+    .dj-mig button{background:transparent;border:0;font-size:30px;line-height:1;padding:2px 6px;color:#2b3640;cursor:pointer;border-radius:8px;} .dj-mig button:hover{background:#f1f3f5;}
+    .dj-mig i{font-style:normal;color:#b3bac2;font-size:16px;} .dj-mig .act{color:#8a94a0;}
+    .dj-tit{display:flex;align-items:center;justify-content:space-between;gap:24px;}
+    .dj-cuerpo .dj-tit h1{font-size:46px;line-height:1.1;margin:0;font-weight:700;letter-spacing:-.8px;color:#27323c;}
+    .dj-acc{align-items:center;gap:14px;flex:none;}
+    .dj-acc .dj-ed2{background:#fff;border:1.5px solid #dfe3e8;border-radius:10px;padding:12px 20px;font-size:17px;font-weight:600;color:#27323c;cursor:pointer;font-family:inherit;} .dj-acc .dj-ed2:hover{background:#f6f7f8;}
+    .dj-acc #djMigMas{background:transparent;border:0;font-size:28px;color:#27323c;cursor:pointer;padding:4px 8px;border-radius:8px;} .dj-acc #djMigMas:hover{background:#f1f3f5;}
+    .dj-cuerpo > h1{display:none;}
+    .dj-cuerpo .jug-btn{font-family:inherit;background:#3f9c86;font-size:20px;font-weight:600;padding:15px 26px;border-radius:9px;margin:2px 0 40px;letter-spacing:.1px;}
+    .dj-cuerpo h4{font-size:21px;font-weight:600;margin:0 0 14px;color:#27323c;}
+    .dj-fases{gap:0 40px;} .dj-fase{margin-bottom:30px;}
+    .dj-cuerpo ul{font-size:19px;line-height:1.55;margin:16px 0 4px;padding-left:26px;color:#27323c;} .dj-cuerpo ul li{margin-bottom:10px;}
+    .dj-cuerpo p{font-size:18px;color:#27323c;}
+    .dj-cuerpo .pista{border-radius:4px;}
+    .dj-ov button{font-size:22px;}
+  }
   .dj-fases{display:grid;grid-template-columns:1fr;gap:0 24px;}
   @media (min-width:701px){ .dj-fases{grid-template-columns:1fr 1fr;} .dj-top{padding:10px 24px;} .dj-top b{text-align:left;font-size:19px;} }
 
@@ -2467,7 +2492,9 @@ function abrirDetalle(tipo, x) {
   detalleActual = { id: x.id + "|" + Date.now(), x, tipo };
   $("djTit").textContent = x.nombre || ""; $("djPlay").style.display = (d.pasos && d.pasos.length) ? "" : "none";
   const lineas = (t) => String(t || "").split("\n").map(s => s.trim()).filter(Boolean);
-  let h = `<h1>${esc(x.nombre || "(sin nombre)")}</h1>`;
+  const ruta = String(x.carpeta || "").split("/").map(t => t.trim()).filter(Boolean);
+  let h = `<div class="dj-cab"><div class="dj-mig"><button type="button" id="djMigAtras" aria-label="Volver">←</button><span>${esJ ? "Jugadas" : "Ejercicios"}</span>${ruta.map(t => `<i>•</i><span>${esc(t)}</span>`).join("")}<i>•</i><span class="act">${esc(x.nombre || "(sin nombre)")}</span></div>
+    <div class="dj-tit"><h1>${esc(x.nombre || "(sin nombre)")}</h1><div class="dj-acc"><button type="button" id="djMigEd" class="dj-ed2">✏️ ${esJ ? "Editar jugada" : "Editar ejercicio"}</button><button type="button" id="djMigMas" aria-label="Más">⋯</button></div></div></div>`;
   if (!esJ && x.data && (x.data.minutos || x.data.categoria)) h += `<div class="meta">${esc(x.data.categoria || "")}${x.data.minutos ? " · " + x.data.minutos + " min" : ""}</div>`;
   if (notas) h += `<p>${esc(notas)}</p>`;
   if (d.pasos && d.pasos.length) {
@@ -2479,6 +2506,7 @@ function abrirDetalle(tipo, x) {
   $("djCuerpo").innerHTML = h; $("djCuerpo").scrollTop = 0; $("detalleJ").classList.add("ver");
   $("djEd").textContent = esJ ? "✏️ Editar jugada" : "✏️ Editar ejercicio";
   if ($("djAnim")) $("djAnim").onclick = () => reproducirDetalle();
+  $("djMigAtras").onclick = () => $("djAtras").click(); $("djMigEd").onclick = () => $("djEd").click(); $("djMigMas").onclick = (ev) => $("djMas").dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: ev.clientX, clientY: ev.clientY }));
   pedirFases(x, tipo, detalleActual.id);
   /* cada fase es un reproductor: ▶ la anima ahí mismo (solo esa fase), ⛶ abre la animación completa en grande */
   inlineWins = [];
