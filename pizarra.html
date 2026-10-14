@@ -800,19 +800,19 @@ let MADERA = "";
 function maderaSvg() {
   if (MADERA) return MADERA;
   let sem = 20261008; const rnd = () => (sem = (sem * 1664525 + 1013904223) % 4294967296) / 4294967296;
-  const tonos = ["#e9cfa8", "#e4c79c", "#edd3ae", "#dfbf93", "#e7ca9f", "#dcba8c", "#ebd0a9", "#e1c296"];
+  const tonos = ["#ecd3ab", "#e9cfa6", "#eed6b1", "#e7cca2", "#ebd1a9", "#e8cfa7", "#edd4ad", "#e6cba2"];
   const W = ANCHO * S + 20, H = FONDO * S + 20;
-  let x = -10, o = `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#e6c9a0"/>`;
+  let x = -10, o = `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#e9cfa8"/>`;
   while (x < W - 10) {
-    const w = 11 + rnd() * 16; let y = -10;
+    const w = 17 + rnd() * 17; let y = -10;
     while (y < H - 10) {
-      const h = Math.min(45 + rnd() * 150, H - 10 - y);
+      const h = Math.min(80 + rnd() * 230, H - 10 - y);
       o += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w + 0.6).toFixed(1)}" height="${(h + 0.6).toFixed(1)}" fill="${tonos[Math.floor(rnd() * tonos.length)]}"/>`;
       y += h;
     }
     x += w;
   }
-  o += `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#b98a55" opacity=".05"/>`;
+  o += `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#b98a55" opacity=".02"/>`;
   return (MADERA = o);
 }
 function pistaFondo() {
@@ -820,12 +820,11 @@ function pistaFondo() {
   const yEsq = A.y + Math.sqrt(6.75 * 6.75 - Math.pow(A.x - 0.9, 2));
   const marcas = [1.75, 2.6, 3.5, 4.4].map(y => `<line x1="${m(5.05 - 0.28)}" y1="${m(y)}" x2="${m(5.05)}" y2="${m(y)}"/><line x1="${m(9.95)}" y1="${m(y)}" x2="${m(9.95 + 0.28)}" y2="${m(y)}"/>`).join("");
   return `${maderaSvg()}
-  <g fill="none" stroke="#fff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="butt">
+  <g fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="butt">
     <rect x="0" y="0" width="${m(ANCHO)}" height="${m(FONDO)}"/>
     <path d="M ${m(0.9)} 0 L ${m(0.9)} ${m(yEsq)} A ${m(6.75)} ${m(6.75)} 0 0 0 ${m(ANCHO - 0.9)} ${m(yEsq)} L ${m(ANCHO - 0.9)} 0"/>
     <rect x="${m(5.05)}" y="0" width="${m(4.9)}" height="${m(5.8)}"/>
-    <path d="M ${m(5.7)} ${m(5.8)} A ${m(1.8)} ${m(1.8)} 0 0 1 ${m(9.3)} ${m(5.8)}"/>
-    <path d="M ${m(5.7)} ${m(5.8)} A ${m(1.8)} ${m(1.8)} 0 0 0 ${m(9.3)} ${m(5.8)}" stroke-dasharray="8 7"/>
+    <path d="M ${m(5.7)} ${m(5.8)} A ${m(1.8)} ${m(1.8)} 0 0 0 ${m(9.3)} ${m(5.8)}"/>
     <path d="M ${m(A.x - 1.25)} ${m(A.y)} A ${m(1.25)} ${m(1.25)} 0 0 0 ${m(A.x + 1.25)} ${m(A.y)}"/>
     <path d="M ${m(5.7)} ${m(FONDO)} A ${m(1.8)} ${m(1.8)} 0 0 1 ${m(9.3)} ${m(FONDO)}"/>
     <g stroke-width="3">${marcas}</g>
@@ -890,27 +889,27 @@ function lineaSvg(l, opac) {
   const px = fin[0] * S, py = fin[1] * S, nx = -sa, ny = ca, f = (v) => v.toFixed(1);
   const barra = (cx, cy, mitad, grosor) => `<line x1="${f(cx - nx * mitad)}" y1="${f(cy - ny * mitad)}" x2="${f(cx + nx * mitad)}" y2="${f(cy + ny * mitad)}" stroke="${col}" stroke-width="${grosor}" stroke-linecap="round"/>`;
   const flecha = (L, W) => `<path d="M ${f(px)} ${f(py)} L ${f(px - ca * L + nx * W)} ${f(py - sa * L + ny * W)} L ${f(px - ca * L * 0.72)} ${f(py - sa * L * 0.72)} L ${f(px - ca * L - nx * W)} ${f(py - sa * L - ny * W)} Z" fill="${col}" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
-  const sw = 2.1; let cuerpo = "", remate = "", dash = "";
-  const LA = 0.4; // largo de punta en metros
+  const sw = 3; let cuerpo = "", remate = "", dash = "";
+  const LA = 0.5; // largo de punta en metros
   if (l.t === "bote") {
     const corto = largoDe(base) > LA + 0.3 ? recortarFinal(base, LA * 0.7) : base, onda = [];
     let s = 0;
     for (let i = 0; i < corto.length; i++) {
       if (i) s += Math.hypot(corto[i][0] - corto[i - 1][0], corto[i][1] - corto[i - 1][1]);
       const a = corto[Math.max(0, i - 1)], b = corto[Math.min(corto.length - 1, i + 1)], d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-      const amp = 0.1 * Math.min(1, s / 0.35), w = Math.sin(s / 0.42 * 2 * Math.PI) * amp;
+      const amp = 0.16 * Math.min(1, s / 0.35), w = Math.sin(s / 0.5 * 2 * Math.PI) * amp;
       onda.push([corto[i][0] - (b[1] - a[1]) / d * w, corto[i][1] + (b[0] - a[0]) / d * w]);
     }
-    cuerpo = onda; remate = flecha(10, 5);
-  } else if (l.t === "pantalla") { cuerpo = base; remate = barra(px, py, 15, 3.4); }
+    cuerpo = onda; remate = flecha(17, 7.5);
+  } else if (l.t === "pantalla") { cuerpo = base; remate = barra(px, py, 16, 4.2); }
   else if (l.t === "entrega") { cuerpo = base; remate = barra(px - ca * 4, py - sa * 4, 13, 3) + barra(px + ca * 6, py + sa * 6, 13, 3); }
   else if (l.t === "tiro") {
     cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="9 8"';
     const cx = px - ca * 24, cy = py - sa * 24;
-    remate = `<circle cx="${f(cx)}" cy="${f(cy)}" r="8" fill="#e9cfa8" stroke="${col}" stroke-width="2.8"/><line x1="${f(cx - 8)}" y1="${f(cy)}" x2="${f(cx + 8)}" y2="${f(cy)}" stroke="${col}" stroke-width="2.4"/><line x1="${f(cx)}" y1="${f(cy - 8)}" x2="${f(cx)}" y2="${f(cy + 8)}" stroke="${col}" stroke-width="2.4"/>` + flecha(10, 5);
-  } else if (l.t === "pase") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="8 6"'; remate = flecha(10, 5); }
-  else if (l.t === "mueve") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="0.1 8.5"'; remate = flecha(10, 5); }
-  else { cuerpo = recortarFinal(base, LA * 0.7); remate = flecha(10, 5); }
+    remate = `<circle cx="${f(cx)}" cy="${f(cy)}" r="8" fill="#e9cfa8" stroke="${col}" stroke-width="2.8"/><line x1="${f(cx - 8)}" y1="${f(cy)}" x2="${f(cx + 8)}" y2="${f(cy)}" stroke="${col}" stroke-width="2.4"/><line x1="${f(cx)}" y1="${f(cy - 8)}" x2="${f(cx)}" y2="${f(cy + 8)}" stroke="${col}" stroke-width="2.4"/>` + flecha(17, 7.5);
+  } else if (l.t === "pase") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="8 6"'; remate = flecha(17, 7.5); }
+  else if (l.t === "mueve") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="0.1 8.5"'; remate = flecha(17, 7.5); }
+  else { cuerpo = recortarFinal(base, LA * 0.7); remate = flecha(17, 7.5); }
   const cap = l.t === "mueve" ? "round" : "butt", grosor = l.t === "mueve" ? 3 : sw;
   return `<g opacity="${opac}" data-linea="1"><path d="${trazoD(cuerpo)}" fill="none" stroke="${col}" stroke-width="${grosor}" stroke-linecap="${cap}" stroke-linejoin="round"${dash}/>${remate}</g>`;
 }
@@ -986,7 +985,7 @@ function svgPaso(j, i, opciones) {
   let lineas = "";
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
-  const MINI_CSS = opciones.mini ? `<style>svg.sfm g[data-linea] path[fill="none"]{stroke-width:5.2px!important}svg.sfm g[data-linea] line{stroke-width:5px!important}svg.sfm text[font-size="23"]{font-size:42px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:7px;stroke-linejoin:round}svg.sfm text[font-size="13"]{font-size:26px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:6px}svg.sfm g[stroke="#d9304f"]{stroke-width:6.5px}svg.sfm circle[r="18"]{stroke-width:5px}</style>` : "";
+  const MINI_CSS = opciones.mini ? `<style>svg.sfm g[data-linea] path[fill="none"]{stroke-width:4.4px!important}svg.sfm g[data-linea] line{stroke-width:5px!important}svg.sfm text[font-size="23"]{font-size:40px!important;paint-order:stroke;stroke:#f2dfbd;stroke-width:4px;stroke-linejoin:round}svg.sfm text[font-size="13"]{font-size:26px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:6px}svg.sfm g[stroke="#d9304f"]{stroke-width:6.5px}svg.sfm circle[r="18"]{stroke-width:3.6px}</style>` : "";
   const VB = opciones.mini ? `-3 -3 ${ANCHO * S + 6} ${FONDO * S + 6}` : `-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}`;
   return `<svg xmlns="http://www.w3.org/2000/svg"${opciones.mini ? ' class="sfm"' : ""} viewBox="${VB}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${MINI_CSS}${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${opciones.rotulo && p.mostrarTitulo && p.titulo ? rotuloSvg(p.titulo, 1) : ""}${CLIP_FIN}</svg>`;
 }
