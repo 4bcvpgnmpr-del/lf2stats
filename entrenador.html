@@ -306,11 +306,13 @@
     #app,#detalleJ,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#pbEd,#aviso{display:none !important;}
     body{background:#fff;}
     #hojaImp{display:block;padding:10mm;font-size:12pt;}
-    @page{@bottom-right{content:"ScoutFlow";font:600 8pt Inter,sans-serif;color:#8a96a3;}} #hojaImp h1{font-family:'Inter',sans-serif !important;font-weight:700 !important;letter-spacing:-.4px;}
+    @page{@bottom-right{content:"ScoutFlow  ·  " counter(page);font:600 8pt Inter,sans-serif;color:#8a96a3;}} #hojaImp h1{font-family:'Inter',sans-serif !important;font-weight:700 !important;letter-spacing:-.4px;}
     #hojaImp h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22pt;margin:0 0 4px;}
     #hojaImp .pbp .pbv-anim{display:none !important;} #hojaImp .pbp{-webkit-print-color-adjust:exact;print-color-adjust:exact;} #hojaImp .pbv-jug{break-inside:avoid;} #hojaImp .pbv-jug.pag{break-before:page;} #hojaImp .pbv-salto{break-after:page;} #hojaImp .pbv-ch{break-after:avoid;} #hojaImp .pbv-portada{height:125mm;min-height:0;padding:0;overflow:hidden;break-after:page;break-inside:avoid;} #hojaImp .pbv-portada img{width:90px;height:90px;} #hojaImp .pbv-portada h1{font-size:2.4em;} #hojaImp .pbv-toc{break-inside:avoid;margin-top:0;} #hojaImp .pbv-toc summary{list-style:none;} #hojaImp .pbv-toc summary::-webkit-details-marker{display:none;}
 
     #hojaImp.pdf-plan{page:plan;} #hojaImp.pdf-eq{page:eqs;}
+    @page pbpg{size:A4;margin:12mm 12mm 16mm;} #hojaImp.pdf-pb{page:pbpg;padding:0;}
+    #hojaImp .pbv-hojas{display:block !important;padding:0 !important;zoom:1 !important;} #hojaImp .hoja{width:auto;min-height:0;padding:0;box-shadow:none;border-radius:0;break-after:page;background:transparent;} #hojaImp .hoja:last-child{break-after:auto;} #hojaImp .hoja-pie{display:none;} #hojaImp .hoja.portada .pbv-portada{min-height:255mm;}
     .pdf-cab{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:4px solid #e8590c;padding-bottom:10px;margin-bottom:12px;} .pdf-cab small{letter-spacing:2px;font-weight:800;color:#e8590c;font-size:9pt;} #hojaImp .pdf-cab h1{font-family:'Archivo Black',sans-serif;font-weight:400;margin:2px 0 4px;font-size:22pt;line-height:1.1;} .pdf-meta{color:#5d6b78;font-size:10pt;} .pdf-esc{width:60px;height:60px;object-fit:contain;}
     .pdf-obj{background:#f6f7f9;border-left:4px solid #e8590c;border-radius:4px;padding:8px 12px;margin:0 0 12px;font-size:10.5pt;line-height:1.45;} .pdf-obj b{display:block;font-size:8pt;letter-spacing:1.5px;color:#8a95a1;margin-bottom:2px;}
     #hojaImp table.pdf-res{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:10pt;} #hojaImp table.pdf-res th{background:#1d2630 !important;color:#fff;border:0;font-size:8.5pt;letter-spacing:1px;text-transform:uppercase;padding:5px 8px;} #hojaImp table.pdf-res td{border:0;border-bottom:1px solid #e3e7ea;padding:4px 8px;font-size:10pt;} #hojaImp table.pdf-res tr.s td{background:#fdeee3 !important;font-weight:800;letter-spacing:.5px;text-transform:uppercase;font-size:9pt;color:#b3410a;}
@@ -566,6 +568,13 @@
   .cmp-url{display:flex;gap:8px;margin-bottom:10px;} .cmp-url input{flex:1;} .cmp-url button{background:var(--g);color:#fff;padding:0 16px;} .cmp-un{color:#d64545 !important;border-color:#f1b5b5 !important;margin-top:6px;} .cmp textarea{width:100%;margin:6px 0 10px;font-family:monospace;font-size:12.5px;} .cmp-fases{display:flex;gap:8px;flex-wrap:wrap;}
   #hojaImp .pdf-fases{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-top:6mm;} #hojaImp .pdf-fase{break-inside:avoid;} #hojaImp .pdf-fh{font-weight:700;margin-bottom:2mm;} #hojaImp .pdf-fd svg{width:100%;height:auto;display:block;border-radius:6px;} #hojaImp .pdf-fase p{font-size:10pt;margin:2mm 0 0;}
   .cmp-bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:6px 0;} .cmp-bar i{display:block;height:100%;width:40%;background:var(--g);border-radius:6px;animation:cmpb 1.2s ease-in-out infinite;} @keyframes cmpb{0%{margin-left:-40%}100%{margin-left:100%}}
+  .pbv-fases .pista{aspect-ratio:547/514;background:#f3e6d2;border-radius:8px;}
+  .pbv-brand{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.5px;font-size:1.1em;color:#1f2933;margin-top:18px;} .pbv-brand span{color:#e0602a;} .pbv-brand.mini{font-size:.85em;margin:0 0 6px;opacity:.85;}
+  #pbEd.prev .pb-main{background:#e6e9ec;}
+  #pbEd.prev .pbv.paginado{max-width:none;} .pbv-hojas{display:flex;flex-direction:column;align-items:center;gap:22px;padding:22px 0 60px;}
+  .hoja{position:relative;box-sizing:border-box;width:794px;min-height:1123px;padding:45px 45px 70px;background:var(--fondo,#fff);color:inherit;box-shadow:0 2px 6px rgba(20,30,40,.12),0 14px 40px rgba(20,30,40,.12);border-radius:3px;flex:none;}
+  .hoja.portada{padding-bottom:45px;} .hoja.portada .pbv-portada{min-height:1030px;padding:0;} .hoja .pbv-cap{margin:0;} .hoja .pbv-ch{margin-top:0;}
+  .hoja-pie{position:absolute;left:45px;right:45px;bottom:22px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;color:#8a96a3;border-top:1px solid #e4e7eb;padding-top:8px;} .hoja-pie b{color:#1f2933;font-weight:800;letter-spacing:-.3px;} .hoja-pie b span{color:#e0602a;}
   /* inicio */
   .ini{max-width:1180px;} .ini h1{font-size:34px;font-weight:700;letter-spacing:-.9px;margin:2px 0 4px;} .ini-sub{color:var(--soft);margin:0 0 26px;font-size:15.5px;}
   .ini-g3{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;} .ini-g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
@@ -1026,11 +1035,26 @@ function pedirVideo(x, cb) {
   const t = setTimeout(() => cerrar({ error: "Tardó demasiado" }), 180000);
   window.addEventListener("message", on); document.body.appendChild(fr);
 }
+let ESC_PDF = { modo: "", data: "" };
+function pedirEscudoPdf() {
+  return new Promise((res) => {
+    const q = equipoDe(), prop = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
+    const m = ventana(`<h3>Escudo del PDF</h3><div class="esc-prev"><div class="box" id="epBox"></div><div><select id="epMod" style="margin-bottom:6px;"><option value="">Mi equipo</option><option value="otro">Otro escudo (rival…)</option><option value="none">Sin escudo</option></select><div id="epBt" style="display:none;"><button class="gris" id="epEl" type="button">Elegir imagen…</button><input type="file" id="epFile" accept="image/*" style="display:none;"></div></div></div><div class="pie-m"><button class="gris" id="epX">Cancelar</button><button class="naranja" id="epOk">Crear PDF</button></div>`);
+    let datos = ESC_PDF.data; $("epMod").value = ESC_PDF.modo;
+    const pintarE = () => { const mo = $("epMod").value; $("epBt").style.display = mo === "otro" ? "" : "none"; const u = mo === "" ? prop : mo === "otro" ? datos : ""; $("epBox").innerHTML = u ? `<img src="${esc(u)}" alt="">` : (mo === "none" ? "∅" : "🏀"); };
+    $("epMod").onchange = pintarE; $("epEl").onclick = () => $("epFile").click();
+    $("epFile").onchange = () => { const f = $("epFile").files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { aviso("La imagen pesa más de 5 MB."); return; } const r = new FileReader(); r.onload = () => { datos = r.result; pintarE(); }; r.readAsDataURL(f); };
+    pintarE();
+    $("epX").onclick = () => { cerrarVentana(); res(null); };
+    $("epOk").onclick = () => { const mo = $("epMod").value; if (mo === "otro" && !datos) { aviso("Elige una imagen."); return; } ESC_PDF = { modo: mo, data: datos }; cerrarVentana(); res(mo === "" ? prop : mo === "otro" ? datos : ""); };
+  });
+}
 async function pdfElemento(tipo, x) {
   const d = diagDe(x) || { pasos: [] };
+  const escudo = await pedirEscudoPdf(); if (escudo === null) return;
   aviso("Preparando el PDF…");
   const svgs = d.pasos && d.pasos.length ? await new Promise((ok) => { const t = setTimeout(() => ok([]), 8000); pedirFases(x, tipo, "pdf|" + x.id + "|" + Date.now(), (l) => { clearTimeout(t); ok(l || []); }); }) : [];
-  const q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
+  const q = equipoDe(), url = escudo;
   const dd = x.data || {}, notas = tipo === "jugadas" ? (d.notas || dd.notas || "") : (dd.descripcion || "");
   const fases = svgs.map((sv, i) => { const p = d.pasos[i] || {}; return `<div class="pdf-fase"><div class="pdf-fh"><b>${esc(p.titulo || "Fase " + (i + 1))}</b></div><div class="pdf-fd">${sv}</div>${p.texto ? `<p>${esc(p.texto).replace(/\n/g, "<br>")}</p>` : ""}</div>`; }).join("");
   const h = $("hojaImp"); h.className = "pdf-plan";
@@ -1448,9 +1472,9 @@ function pbVistaHtml(p) {
     });
     cuerpo += `</section>`;
   });
-  const eq = equipoDe(), crest = eq.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(eq.ruta).data.publicUrl : "";
-  const portada = E.portada ? `<section class="pbv-portada">${crest ? `<img src="${esc(crest)}" alt="">` : ""}<h1>${esc(p.nombre || "Playbook")}</h1><div class="pbv-sub">${esc(p.equipo || eq.equipo || "")}${(p.temporada || eq.temporada) ? " · " + esc(p.temporada || eq.temporada) : ""}</div><div class="pbv-lin"></div>${(p.data && p.data.notas && E.notas) ? `<p class="pbv-no" style="max-width:520px;">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}</section>` : "";
-  return `<div class="pbv cap-${E.cap}" style="${pbVars(E)}">${portada}<header class="pbv-h">${E.portada ? "" : `<h1>${esc(p.nombre || "Playbook")}</h1><div class="peq">${esc(p.equipo || "")}${p.temporada ? " · " + esc(p.temporada) : ""}</div>`}${(!E.portada && p.data && p.data.notas && E.notas) ? `<p class="pbv-no">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}</header>${E.indice ? `<details class="pbv-toc" open><summary>Índice</summary>${toc}</details>` : ""}${cuerpo}</div>`;
+  const eq = equipoDe(), rutaEsc = (p.data && p.data.escudo) ? (p.data.escudo === "none" ? "" : p.data.escudo) : eq.ruta, crest = rutaEsc && nube ? nube.storage.from("entrenador").getPublicUrl(rutaEsc).data.publicUrl : "";
+  const portada = E.portada ? `<section class="pbv-portada">${crest ? `<img src="${esc(crest)}" alt="">` : ""}<h1>${esc(p.nombre || "Playbook")}</h1><div class="pbv-sub">${esc(p.equipo || eq.equipo || "")}${(p.temporada || eq.temporada) ? " · " + esc(p.temporada || eq.temporada) : ""}</div><div class="pbv-lin"></div>${(p.data && p.data.notas && E.notas) ? `<p class="pbv-no" style="max-width:520px;">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}<div class="pbv-brand">Scout<span>Flow</span></div></section>` : "";
+  return `<div class="pbv cap-${E.cap}" style="${pbVars(E)}">${portada}<header class="pbv-h">${E.portada ? "" : `<div class="pbv-brand mini">Scout<span>Flow</span></div><h1>${esc(p.nombre || "Playbook")}</h1><div class="peq">${esc(p.equipo || "")}${p.temporada ? " · " + esc(p.temporada) : ""}</div>`}${(!E.portada && p.data && p.data.notas && E.notas) ? `<p class="pbv-no">${esc(p.data.notas).replace(/\n/g, "<br>")}</p>` : ""}</header>${E.indice ? `<details class="pbv-toc" open><summary>Índice</summary>${toc}</details>` : ""}${cuerpo}</div>`;
 }
 function pbCargar(root) {
   root.querySelectorAll(".pbv-jug").forEach(el => {
@@ -1459,7 +1483,39 @@ function pbCargar(root) {
     if (el.querySelector("[data-pbf]")) pedirFases(x, tipo, el.dataset.pbk, (sv) => { el.querySelectorAll("[data-pbf]").forEach(f => { const s = sv[Number(f.dataset.pbf)]; if (s) f.innerHTML = s; }); });
   });
 }
-function imprimirPb(root) { const h = $("hojaImp"); h.className = ""; h.innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; h.querySelectorAll("details").forEach(d => { d.open = true; }); window.print(); }
+/* vista previa en hojas A4 (794 x 1123 px a 96 ppp; márgenes de 12 mm): lo que ves es lo que sale en el PDF */
+function pbPaginar(root, p) {
+  const pbv = root.querySelector(".pbv"); if (!pbv || pbv.classList.contains("paginado")) return;
+  const AN = 794, M = 45, AL = 1123, UTIL = 1005;
+  const bloques = [], nuevo = (el, forzar) => bloques.push({ el, forzar: !!forzar });
+  [...pbv.children].forEach(ch => {
+    if (ch.classList.contains("pbv-portada")) { nuevo(ch, true); bloques.push({ salto: true }); }
+    else if (ch.classList.contains("pbv-h") || ch.classList.contains("pbv-toc")) nuevo(ch, false);
+    else if (ch.classList.contains("pbv-cap")) { [...ch.children].forEach((x, i) => { if (x.classList.contains("pbv-salto")) { bloques.push({ salto: true }); return; } nuevo(x, i === 0); }); }
+    else nuevo(ch, false);
+  });
+  const med = document.createElement("div"); med.style.cssText = "position:absolute;left:-9999px;top:0;visibility:hidden;width:" + (AN - 2 * M) + "px;"; med.className = "pbv paginado-med"; med.setAttribute("style", med.getAttribute("style") + ";" + (pbv.getAttribute("style") || "")); med.className = pbv.className; document.body.appendChild(med);
+  const alto = (el) => { med.appendChild(el); const cs = getComputedStyle(el); return el.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0); };
+  const reales = bloques.filter(b => b.el); reales.forEach(b => { b.h = alto(b.el); if (b.h > UTIL && b.el.querySelector(".pbv-fases")) { for (const c of [3, 4]) { b.el.style.setProperty("--cols", c); b.h = alto(b.el); if (b.h <= UTIL) break; } } });
+  const hojas = []; let cur = null, usado = 0;
+  const abrir = () => { cur = []; hojas.push(cur); usado = 0; };
+  let primera = true;
+  bloques.forEach((b, i) => {
+    if (b.salto) { cur = null; return; }
+    if (!cur || (b.forzar && !primera && cur.length) || (usado + b.h > UTIL && cur.length)) abrir();
+    primera = false;
+    cur.push(b.el); usado += b.h;
+    if (b.el.classList.contains("pbv-ch")) b.ch = true;
+  });
+  // un título de capítulo nunca se queda solo al final de la hoja
+  for (let k = 0; k < hojas.length - 1; k++) { const h = hojas[k]; if (h.length > 1 && h[h.length - 1].classList.contains("pbv-ch")) hojas[k + 1].unshift(h.pop()); }
+  const cont = document.createElement("div"); cont.className = "pbv-hojas";
+  const nom = (p && p.nombre) || "";
+  hojas.forEach((h, i) => { const d = document.createElement("div"); d.className = "hoja" + (h[0] && h[0].classList.contains("pbv-portada") ? " portada" : ""); h.forEach(el => d.appendChild(el)); const pie = document.createElement("div"); pie.className = "hoja-pie"; pie.innerHTML = '<b>Scout<span>Flow</span></b><span>' + esc(nom) + "</span><span>" + (i + 1) + " / " + hojas.length + "</span>"; if (!d.classList.contains("portada")) d.appendChild(pie); cont.appendChild(d); });
+  med.remove(); pbv.innerHTML = ""; pbv.appendChild(cont); pbv.classList.add("paginado");
+  const esc2 = () => { const w = root.clientWidth - 24; cont.style.zoom = w < AN ? Math.max(.4, w / AN) : 1; }; esc2(); if (!root._pbRs) { root._pbRs = true; window.addEventListener("resize", () => { const c = root.querySelector(".pbv-hojas"); if (c) { const w = root.clientWidth - 24; c.style.zoom = w < AN ? Math.max(.4, w / AN) : 1; } }); }
+}
+function imprimirPb(root) { const h = $("hojaImp"); h.className = root.querySelector(".paginado") ? "pdf-pb" : ""; h.innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; h.querySelectorAll("details").forEach(d => { d.open = true; }); window.print(); }
 function pintarPlaybook(v) {
   const p = D.playbooks.find(y => y.id === vistaDetalle.id); if (!p) { vistaDetalle = null; return pintar(); }
   v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span></div><div class="pbv-acc"><button class="gris" id="impPb">🖨 Imprimir / PDF</button>${puedeEscribir ? '<button class="naranja" id="editPb">✏️ Editar playbook</button>' : ""}</div><div id="pbLect">${pbVistaHtml(p)}</div>`;
@@ -1476,11 +1532,22 @@ function formPlaybook(p, alGuardar) {
     <label>Título</label><input id="pbN" value="${esc(p.nombre)}" placeholder="Ej: Sistemas de ataque">
     <div class="dos"><div><label>Equipo</label><input id="pbE" value="${esc(p.equipo || "")}"></div><div><label>Temporada</label><input id="pbT" value="${esc(p.temporada || "")}" placeholder="2026/27"></div></div>
     <label>Notas de introducción</label><textarea id="pbNo" style="min-height:70px;">${esc(p.data.notas || "")}</textarea>
+    <label>Escudo de la portada</label><div class="esc-prev"><div class="box" id="pbEBox"></div><div><select id="pbEMod" style="margin-bottom:6px;"><option value="">Mi equipo</option><option value="otro">Otro escudo (rival…)</option><option value="none">Sin escudo</option></select><div id="pbEBt" style="display:none;"><button class="gris" id="pbEEl" type="button">Elegir imagen…</button><input type="file" id="pbEFile" accept="image/*" style="display:none;"></div></div></div>
     <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible para las jugadoras</label>
     <div class="pie-m"><button class="gris" id="pbX">Cancelar</button><button class="naranja" id="pbG">${nuevo ? "Crear y añadir jugadas" : "Guardar"}</button></div>`);
   $("pbX").onclick = cerrarVentana;
+  const pubUrl = (r) => r && nube ? nube.storage.from("entrenador").getPublicUrl(r).data.publicUrl : "";
+  let escArch = null, escPrev = p.data.escudo && p.data.escudo !== "none" ? pubUrl(p.data.escudo) : "";
+  $("pbEMod").value = p.data.escudo === "none" ? "none" : (p.data.escudo ? "otro" : "");
+  const pintarEsc = () => { const mo = $("pbEMod").value; $("pbEBt").style.display = mo === "otro" ? "" : "none"; const u = mo === "" ? pubUrl(equipoDe().ruta) : mo === "otro" ? escPrev : ""; $("pbEBox").innerHTML = u ? `<img src="${esc(u)}" alt="">` : (mo === "none" ? "∅" : "🏀"); };
+  $("pbEMod").onchange = pintarEsc; $("pbEEl").onclick = () => $("pbEFile").click();
+  $("pbEFile").onchange = () => { const f = $("pbEFile").files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { aviso("La imagen pesa más de 5 MB."); return; } escArch = f; const r = new FileReader(); r.onload = () => { escPrev = r.result; pintarEsc(); }; r.readAsDataURL(f); };
+  pintarEsc();
   $("pbG").onclick = async () => {
     p.nombre = $("pbN").value.trim(); if (!p.nombre) { aviso("Ponle un título."); return; }
+    const mo = $("pbEMod").value;
+    if (mo === "") delete p.data.escudo; else if (mo === "none") p.data.escudo = "none";
+    else { if (escArch) { const limpio = escArch.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_"), nueva = "escudo/pb-" + Date.now() + "-" + limpio; const { error } = await nube.storage.from("entrenador").upload(nueva, escArch, { contentType: escArch.type || undefined, upsert: false }); if (error) { aviso("No se pudo subir el escudo: " + error.message); return; } p.data.escudo = nueva; } else if (!p.data.escudo || p.data.escudo === "none") { aviso("Elige una imagen para el escudo."); return; } }
     p.equipo = $("pbE").value.trim(); p.temporada = $("pbT").value.trim(); p.compartido = $("pbC").checked; p.data.notas = $("pbNo").value;
     if (alGuardar) { cerrarVentana(); alGuardar(p); return; }
     if (nuevo) { cerrarVentana(); abrirPbEd(p, true); return; }
@@ -1533,7 +1600,7 @@ function pbSoltar(ci, ii) {
 function pbAnadir(it) { const c = PB.p.data.capitulos[PB.sel] || PB.p.data.capitulos[0]; c.items.push(it); pbSucio(); pbMain(); pbOut(); const el = document.querySelector(`#pbMain [data-cap="${PB.p.data.capitulos.indexOf(c)}"]`); if (el) { const l = el.querySelector(".pb-items"); if (l && l.lastElementChild) l.lastElementChild.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }
 function pbMain() {
   const root = $("pbMain"), p = PB.p, caps = p.data.capitulos, ro = !puedeEscribir;
-  if (PB.prev) { root.innerHTML = pbVistaHtml(p); pbCargar(root); root.scrollTop = 0; return; }
+  if (PB.prev) { root.innerHTML = pbVistaHtml(p); pbCargar(root); pbPaginar(root, p); root.scrollTop = 0; return; }
   const sc = root.scrollTop;
   root.innerHTML = caps.map((c, ci) => `<section class="pb-cap ${ci === PB.sel ? "on" : ""}" data-cap="${ci}">
     <div class="pb-caph"><span class="pb-asa">${IC.asa}</span><span class="pb-capn">${ci + 1}.</span><input class="pb-capt" data-ci="${ci}" value="${esc(c.titulo || "")}" placeholder="Capítulo sin título" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pb-ic" data-capmas="${ci}" title="Más">${IC.mas}</button>`}</div>
@@ -1877,9 +1944,10 @@ function dibujosDePlan(p) {
   });
 }
 async function imprimirPlan(p) {
+  const escudo = await pedirEscudoPdf(); if (escudo === null) return;
   aviso("Preparando el PDF con los dibujos…");
   eqAsegurar();
-  const dib = await dibujosDePlan(p), d = p.data, q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
+  const dib = await dibujosDePlan(p), d = p.data, q = equipoDe(), url = escudo;
   let acum = 0, n = 0, res = "", det = "", sub = 0, secAb = false;
   const cierra = () => { if (secAb) det = det.replace("§SUB§", sub + " min"); };
   d.ejercicios.forEach((e) => {
