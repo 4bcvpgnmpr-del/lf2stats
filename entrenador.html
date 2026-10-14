@@ -391,6 +391,23 @@
 
   /* ====== telefono (como The Hoops Geek): barra superior, lista con miniaturas, barra inferior, ficha de la jugada ====== */
   #topMov,#barraMov,#veloMenu,#detalleJ{display:none;}
+  /* ficha de la jugada (ordenador y móvil): se ve primero la jugada y desde ahí se edita */
+  #detalleJ{position:fixed;inset:0;z-index:150;background:#fff;flex-direction:column;} #detalleJ.ver{display:flex;}
+  .dj-top{display:flex;align-items:center;gap:8px;padding:10px 12px;height:60px;flex:none;border-bottom:1px solid #eceff1;}
+  .dj-top button{background:#fff;color:#2b3640;border:1.5px solid #e3e6ea;border-radius:999px;width:44px;height:44px;padding:0;font-size:22px;flex:none;cursor:pointer;}
+  .dj-top button.dj-ed{width:auto;padding:0 16px;font-size:14px;font-weight:700;background:#fff;}
+  .dj-top b{flex:1;text-align:center;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dj-cuerpo{flex:1;overflow:auto;padding:6px 16px 60px;width:100%;max-width:1100px;margin:0 auto;}
+  .dj-cuerpo h1{font-size:25px;margin:6px 0 12px;font-weight:700;color:#2b3640;}
+  .dj-cuerpo p{font-size:16px;line-height:1.5;margin:0 0 12px;color:#2b3640;white-space:pre-wrap;}
+  .dj-cuerpo .jug-btn{background:#12a483;color:#fff;border-radius:8px;padding:11px 16px;font-size:15px;font-weight:600;margin:4px 0 18px;border:0;cursor:pointer;}
+  .dj-cuerpo h4{font-size:15px;font-weight:700;margin:16px 0 8px;color:#2b3640;}
+  .dj-cuerpo .pista{border-radius:6px;overflow:hidden;background:#eee;min-height:160px;} .dj-cuerpo .pista svg{display:block;width:100%;height:auto;}
+  .dj-cuerpo ul{margin:10px 0 6px;padding-left:20px;font-size:16px;line-height:1.5;color:#2b3640;}
+  .dj-cuerpo .meta{color:#6b7680;font-size:13px;margin-bottom:10px;}
+  .dj-fases{display:grid;grid-template-columns:1fr;gap:0 24px;}
+  @media (min-width:701px){ .dj-fases{grid-template-columns:1fr 1fr;} .dj-top{padding:10px 24px;} .dj-top b{text-align:left;font-size:19px;} }
+
   @media (max-width:700px){
     body{background:#fff;}
     #app{display:block !important;height:auto;}
@@ -521,7 +538,7 @@
 
 <div id="veloMenu"></div>
 <div id="barraMov"><div class="bm-pill"><span class="bm-lupa">🔍</span><input type="search" id="bmQ" placeholder="Buscar"></div><button id="bmFil" aria-label="Filtro">☰</button><button id="bmOrd" aria-label="Orden">⇅</button><button id="bmVis" aria-label="Vista">▦</button><button id="bmNew" aria-label="Nuevo">＋</button></div>
-<div id="detalleJ"><div class="dj-top"><button id="djAtras" aria-label="Volver">‹</button><b id="djTit"></b><button id="djPlay" aria-label="Reproducir">▶</button><button id="djMas" aria-label="Más">⋯</button></div><div class="dj-cuerpo" id="djCuerpo"></div></div>
+<div id="detalleJ"><div class="dj-top"><button id="djAtras" aria-label="Volver">‹</button><b id="djTit"></b><button id="djEd" class="dj-ed">✏️ Editar jugada</button><button id="djPlay" aria-label="Reproducir">▶</button><button id="djMas" aria-label="Más">⋯</button></div><div class="dj-cuerpo" id="djCuerpo"></div></div>
 <div id="menuPop"></div>
 <div id="cajon"></div>
 <div id="aviso"></div>
@@ -966,7 +983,7 @@ function nuevoElemento(tipo) {
 }
 const esMovil = () => window.matchMedia("(max-width:700px)").matches;
 function abrirElemento(tipo, x) {
-  if (esMovil() && (tipo === "jugadas" || tipo === "ejercicios")) return abrirDetalle(tipo, x);
+  if (tipo === "jugadas" || tipo === "ejercicios") return abrirDetalle(tipo, x);
   return editarElemento(tipo, x);
 }
 function editarElemento(tipo, x) {
@@ -980,7 +997,10 @@ function abrirEditor(id, tabla) {
   const u = "pizarra.html?editor=1" + (tabla === "ejercicios" ? "&tabla=ejercicios" : "") + (id ? "&id=" + encodeURIComponent(id) : "&carpeta=" + encodeURIComponent(carpeta)) + "&v=" + VERSION;
   $("marcoEd").src = u; $("editorMarco").classList.add("ver");
 }
-async function cerrarEditorMarco() { $("editorMarco").classList.remove("ver"); $("marcoEd").src = "about:blank"; await cargarTodo(); pintar(); }
+async function cerrarEditorMarco() {
+  $("editorMarco").classList.remove("ver"); $("marcoEd").src = "about:blank"; await cargarTodo(); pintar();
+  if (detalleActual && $("detalleJ").classList.contains("ver")) { const t = detalleActual.tipo, f = (D[t] || []).find(y => y.id === detalleActual.x.id); if (f) abrirDetalle(t, f); else { $("detalleJ").classList.remove("ver"); detalleActual = null; } }
+}
 const animDe = (ej) => { const d = diagDe(ej); return !!(d && d.pasos && d.pasos.length); };
 function verEjercicio(ej) {
   if (!ej || !animDe(ej)) { aviso("Este ejercicio no tiene dibujo para animar."); return; }
@@ -2450,9 +2470,12 @@ function abrirDetalle(tipo, x) {
   if (notas) h += `<p>${esc(notas)}</p>`;
   if (d.pasos && d.pasos.length) {
     h += `<button class="jug-btn" id="djAnim">▶ Reproducir animación completa</button>`;
-    d.pasos.forEach((q, i) => { const ls = lineas(q.texto); h += `<h4>${esc(q.titulo || (d.pasos.length > 1 ? "Fase " + (i + 1) : ""))}</h4><div class="pista" data-f="${i}"></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}`; });
-  } else h += '<p class="peq">Todavía no tiene dibujo. Pulsa ⋯ › «Editar en la pizarra».</p>';
+    h += '<div class="dj-fases">';
+    d.pasos.forEach((q, i) => { const ls = lineas(q.texto); h += `<div class="dj-fase"><h4>${esc(q.titulo || (d.pasos.length > 1 ? "Fase " + (i + 1) : ""))}</h4><div class="pista" data-f="${i}"></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}</div>`; });
+    h += "</div>";
+  } else h += '<p class="peq">Todavía no tiene dibujo. Pulsa «Editar» para dibujarla.</p>';
   $("djCuerpo").innerHTML = h; $("djCuerpo").scrollTop = 0; $("detalleJ").classList.add("ver");
+  $("djEd").textContent = esJ ? "✏️ Editar jugada" : "✏️ Editar ejercicio";
   if ($("djAnim")) $("djAnim").onclick = () => reproducirDetalle();
   pedirFases(x, tipo, detalleActual.id);
 }
@@ -2462,6 +2485,7 @@ function reproducirDetalle() {
 }
 $("djAtras").addEventListener("click", () => { $("detalleJ").classList.remove("ver"); detalleActual = null; });
 $("djPlay").addEventListener("click", reproducirDetalle);
+$("djEd").addEventListener("click", () => { if (detalleActual) editarElemento(detalleActual.tipo, detalleActual.x); });
 $("djMas").addEventListener("click", (ev) => { if (!detalleActual) return; const { tipo, x } = detalleActual; abrirMenu(ev, opcionesElemento(tipo, x).map(([t, f, c]) => [t, () => { if (/Eliminar/.test(t)) { $("detalleJ").classList.remove("ver"); } f(); }, c])); });
 
 /* ------------ arranque ------------ */
