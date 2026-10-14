@@ -225,6 +225,9 @@
       <label>Preguntas al azar que le salen a cada jugadora (además de las fijas)</label>
       <input id="teN" type="number" min="0" value="5" style="max-width:120px;">
       <p class="expl" id="teAyudaN" style="margin:6px 0 0;"></p>
+      <label>Tiempo para contestar cada pregunta (segundos)</label>
+      <input id="teSeg" type="number" min="0" value="0" style="max-width:120px;">
+      <p class="expl" style="margin:6px 0 0;">0 = sin límite. Con tiempo, a la jugadora le sale una pregunta cada vez, no puede volver atrás y cuando se acaba el tiempo pasa sola a la siguiente (si no contestó, cuenta como fallada). Así no les da tiempo a buscar. En cada pregunta puedes poner un tiempo distinto.</p>
       <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;margin-top:14px;"><input type="checkbox" id="teCorr" checked style="width:auto;"> Al terminar, enseñarle qué falló y la respuesta correcta</label>
       <label>Posición de cada jugadora</label>
       <p class="expl" style="margin:0 0 6px;">Marca Exterior, Interior o las dos. Se guarda al tocar y vale para todos los tests. Las que no tengan ninguna solo harán las preguntas de «Todas».</p>
@@ -1260,7 +1263,7 @@ function abrirEditorTest(id) {
   const empezado = t ? INTENTOS.some(i => i.test_id === t.id) : false;
   TE = {
     id: t ? t.id : null, titulo: t ? t.titulo : "", n: t ? t.n_preguntas : 5,
-    corr: t ? t.mostrar_correccion : true,
+    corr: t ? t.mostrar_correccion : true, seg: t ? (t.segundos || 0) : 20,
     para: t && t.jugadoras ? "elegidas" : "todas",
     sel: new Set(t && t.jugadoras ? t.jugadoras : []),
     preguntas: t ? JSON.parse(JSON.stringify(t.preguntas || [])) : [{ id: nidT(), texto: "", opciones: ["", "", "", ""], correcta: 0, grupo: "todas", fija: false }],
@@ -1268,7 +1271,7 @@ function abrirEditorTest(id) {
   };
   $("tituloEditorTest").textContent = t ? "Editar test" : "Nuevo test";
   $("cajaEditorTest").hidden = false; $("cajaResultadosTest").hidden = true;
-  $("teTitulo").value = TE.titulo; $("teN").value = TE.n; $("teCorr").checked = TE.corr; $("tePara").value = TE.para;
+  $("teTitulo").value = TE.titulo; $("teN").value = TE.n; $("teSeg").value = TE.seg; $("teCorr").checked = TE.corr; $("tePara").value = TE.para;
   pintarEditorTest();
   $("cajaEditorTest").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1289,7 +1292,8 @@ function pintarEditorTest() {
       <button class="boton fina gris" data-pdel="${i}" ${dis} title="Quitar la pregunta" style="margin:0;">✕</button></div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;">
       <select data-pg="${i}" ${dis} style="max-width:170px;margin:0;"><option value="todas" ${(p.grupo || "todas") === "todas" ? "selected" : ""}>Para todas</option><option value="ext" ${p.grupo === "ext" ? "selected" : ""}>Solo exteriores</option><option value="int" ${p.grupo === "int" ? "selected" : ""}>Solo interiores</option></select>
-      <label style="display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;margin:0;"><input type="checkbox" data-pf="${i}" ${p.fija ? "checked" : ""} ${dis} style="width:auto;"> Fija (sale a todas)</label></div>
+      <label style="display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;margin:0;"><input type="checkbox" data-pf="${i}" ${p.fija ? "checked" : ""} ${dis} style="width:auto;"> Fija (sale a todas)</label>
+      <label style="display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;margin:0;">Segundos <input type="number" min="0" data-ps="${i}" value="${p.seg || ""}" placeholder="igual" ${dis} style="width:78px;margin:0;"></label></div>
     <div style="font-size:12px;color:var(--ink-soft);margin:8px 0 4px;">Opciones · marca la correcta</div>
     ${p.opciones.map((o, k) => `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
       <input type="radio" name="co${i}" data-pc="${i}|${k}" ${p.correcta === k ? "checked" : ""} ${dis} style="width:auto;">
@@ -1299,6 +1303,7 @@ function pintarEditorTest() {
   const q = $("tePreguntas");
   q.querySelectorAll("[data-pt]").forEach(x => x.addEventListener("input", () => { TE.preguntas[+x.getAttribute("data-pt")].texto = x.value; ayudaN(); }));
   q.querySelectorAll("[data-pg]").forEach(x => x.addEventListener("change", () => { TE.preguntas[+x.getAttribute("data-pg")].grupo = x.value; ayudaN(); }));
+  q.querySelectorAll("[data-ps]").forEach(x => x.addEventListener("input", () => { const v = parseInt(x.value, 10); const pq = TE.preguntas[+x.getAttribute("data-ps")]; if (v >= 0) pq.seg = v; else delete pq.seg; }));
   q.querySelectorAll("[data-pf]").forEach(x => x.addEventListener("change", () => { TE.preguntas[+x.getAttribute("data-pf")].fija = x.checked; ayudaN(); }));
   q.querySelectorAll("[data-po]").forEach(x => x.addEventListener("input", () => { const [i, k] = x.getAttribute("data-po").split("|").map(Number); TE.preguntas[i].opciones[k] = x.value; }));
   q.querySelectorAll("[data-pc]").forEach(x => x.addEventListener("change", () => { const [i, k] = x.getAttribute("data-pc").split("|").map(Number); TE.preguntas[i].correcta = k; }));
@@ -1356,7 +1361,7 @@ async function guardarTest() {
       if (!(corr || "").trim()) { avisar("avisoEditorTest", `En la pregunta ${i + 1} la opción correcta está vacía.`, "mal"); return; }
       let nc = 0; p.opciones.forEach((o, k) => { if (o.trim()) { if (k === p.correcta) nc = ops.length; ops.push(o.trim()); } });
       if (ops.length < 2) { avisar("avisoEditorTest", `La pregunta ${i + 1} necesita al menos 2 opciones.`, "mal"); return; }
-      preguntas.push({ id: p.id, texto: p.texto.trim(), opciones: ops, correcta: nc, grupo: p.grupo || "todas", fija: !!p.fija });
+      preguntas.push({ id: p.id, texto: p.texto.trim(), opciones: ops, correcta: nc, grupo: p.grupo || "todas", fija: !!p.fija, ...(p.seg >= 0 && p.seg !== undefined ? { seg: p.seg } : {}) });
     }
     if (!preguntas.length) { avisar("avisoEditorTest", "Añade al menos una pregunta.", "mal"); return; }
   }
@@ -1364,7 +1369,7 @@ async function guardarTest() {
   if (!preguntas.some(p => p.fija) && n < 1) { avisar("avisoEditorTest", "No hay preguntas fijas, así que pon al menos 1 al azar.", "mal"); return; }
   TE.para = $("tePara").value;
   if (TE.para === "elegidas" && !TE.sel.size) { avisar("avisoEditorTest", "Elige al menos una jugadora.", "mal"); return; }
-  const fila = { titulo, n_preguntas: n, mostrar_correccion: $("teCorr").checked, jugadoras: TE.para === "elegidas" ? [...TE.sel] : null };
+  const fila = { titulo, n_preguntas: n, mostrar_correccion: $("teCorr").checked, jugadoras: TE.para === "elegidas" ? [...TE.sel] : null, segundos: Math.max(0, parseInt($("teSeg").value, 10) || 0) };
   if (!TE.bloqueado) fila.preguntas = preguntas;
   const r = TE.id ? await sb.from("tests").update(fila).eq("id", TE.id) : await sb.from("tests").insert(fila);
   if (r.error) { avisar("avisoEditorTest", "No se ha podido guardar: " + r.error.message, "mal"); return; }
