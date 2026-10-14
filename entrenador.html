@@ -2241,14 +2241,15 @@ function calSinRepetidos(l) {
 function calEventos() {
   const out = [], eq = calMiEq();
   if (CAL.filtro.feb && eq) (CAL.feb || []).forEach(p => { const loc = calMismo(p.local, eq), vis = calMismo(p.visitante, eq); if (!loc && !vis) return;
-    out.push({ id: "f" + (p.pid || p.fecha + p.local), tipo: "feb", fecha: p.fecha, hora: p.hora, titulo: (loc ? "vs " + p.visitante : "en " + p.local), cat: eq, feb: p, ro: true }); });
+    out.push({ id: "f" + (p.pid || p.fecha + p.local), tipo: "feb", fecha: p.fecha, hora: p.hora, titulo: (loc ? "vs " + p.visitante : "en " + p.local), cat: eq, feb: p, ro: true, casa: !!loc }); });
   CAL.ev.forEach(e => { if (CAL.filtro[e.tipo] && (!CAL.cat || e.cat === CAL.cat)) out.push(e); });
   if (CAL.filtro.plan) D.planes.forEach(p => { if (p.fecha) out.push({ id: "p" + p.id, tipo: "plan", fecha: String(p.fecha).slice(0, 10), hora: ((p.data && p.data.inicio) || ""), titulo: p.nombre || "Plan de entreno", cat: "", plan: p, ro: true }); });
   return out.sort((a, b) => (a.fecha + (a.hora || "99")).localeCompare(b.fecha + (b.hora || "99")));
 }
 function calResultado(p) { if (!p.jugado || p.pl === "" || p.pv === "") return null; const eq = calMiEq(), loc = calMismo(p.local, eq), a = parseInt(p.pl, 10), b = parseInt(p.pv, 10); if (isNaN(a) || isNaN(b)) return null; const mio = loc ? a : b, su = loc ? b : a; return { txt: mio + "-" + su, gano: mio > su }; }
+const calIc = (e) => e.tipo === "feb" ? (e.casa ? "🏠" : "🚌") : CAL_TIPOS[e.tipo].i;
 const calChip = (e) => { const t = CAL_TIPOS[e.tipo], r = e.feb ? calResultado(e.feb) : null;
-  return `<div class="cal-ch" data-e="${esc(e.id)}" style="--c:${t.c};" title="${esc((e.hora ? e.hora + " · " : "") + e.titulo + (e.cat ? " · " + e.cat : ""))}"><span>${e.hora ? '<b>' + esc(e.hora) + '</b> ' : ""}${t.i} ${esc(e.titulo)}</span>${r ? `<i class="${r.gano ? "g" : "p"}">${r.txt}</i>` : ""}</div>`; };
+  return `<div class="cal-ch" data-e="${esc(e.id)}" style="--c:${t.c};" title="${esc((e.hora ? e.hora + " · " : "") + e.titulo + (e.cat ? " · " + e.cat : ""))}"><span>${e.hora ? '<b>' + esc(e.hora) + '</b> ' : ""}${calIc(e)} ${esc(e.titulo)}</span>${r ? `<i class="${r.gano ? "g" : "p"}">${r.txt}</i>` : ""}</div>`; };
 function pintarCalendario(v) {
   if (CAL.ev === null) CAL.ev = calLeer();
   if (!CAL.mes) { const h = new Date(); CAL.mes = new Date(h.getFullYear(), h.getMonth(), 1); }
@@ -2282,7 +2283,7 @@ function calPintar() {
   if ($("calCat")) $("calCat").onchange = (e) => { CAL.cat = e.target.value; calPintar(); };
   // próximos
   const prox = evs.filter(e => e.fecha >= hoy).slice(0, 4);
-  $("calProx").innerHTML = prox.length ? `<div class="cal-prox">${prox.map(e => { const t = CAL_TIPOS[e.tipo], d = Math.round((calFecha(e.fecha) - calFecha(hoy)) / 864e5); return `<div class="cal-pc" data-e="${esc(e.id)}" style="--c:${t.c};"><small>${d === 0 ? "HOY" : d === 1 ? "MAÑANA" : "EN " + d + " DÍAS"}</small><b>${t.i} ${esc(e.titulo)}</b><span>${esc(calFecha(e.fecha).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }))}${e.hora ? " · " + esc(e.hora) : ""}${e.cat ? " · " + esc(e.cat) : ""}</span></div>`; }).join("")}</div>` : "";
+  $("calProx").innerHTML = prox.length ? `<div class="cal-prox">${prox.map(e => { const t = CAL_TIPOS[e.tipo], d = Math.round((calFecha(e.fecha) - calFecha(hoy)) / 864e5); return `<div class="cal-pc" data-e="${esc(e.id)}" style="--c:${t.c};"><small>${d === 0 ? "HOY" : d === 1 ? "MAÑANA" : "EN " + d + " DÍAS"}</small><b>${calIc(e)} ${esc(e.titulo)}</b><span>${esc(calFecha(e.fecha).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }))}${e.hora ? " · " + esc(e.hora) : ""}${e.cat ? " · " + esc(e.cat) : ""}</span></div>`; }).join("")}</div>` : "";
   const porDia = {}; evs.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
   let h = "";
   if (CAL.vista === "mes") {
@@ -2317,10 +2318,10 @@ function calAbrir(e) {
   if (!puedeEscribir) { calVer(e); return; }
   calForm(e);
 }
-function calVer(e) { const t = CAL_TIPOS[e.tipo]; ventana(`<h3>${t.i} ${esc(e.titulo)}</h3><p class="peq">${esc(solofecha(e.fecha))}${e.hora ? " · " + esc(e.hora) + (e.fin ? "–" + esc(e.fin) : "") : ""}${e.cat ? " · " + esc(e.cat) : ""}${e.lugar ? " · 📍 " + esc(e.lugar) : ""}</p>${e.notas ? `<p style="white-space:pre-wrap;">${esc(e.notas)}</p>` : ""}<div class="pie-m"><button class="gris" id="cfX">Cerrar</button></div>`); $("cfX").onclick = cerrarVentana; }
+function calVer(e) { const t = CAL_TIPOS[e.tipo]; ventana(`<h3>${calIc(e)} ${esc(e.titulo)}</h3><p class="peq">${esc(solofecha(e.fecha))}${e.hora ? " · " + esc(e.hora) + (e.fin ? "–" + esc(e.fin) : "") : ""}${e.cat ? " · " + esc(e.cat) : ""}${e.lugar ? " · 📍 " + esc(e.lugar) : ""}</p>${e.notas ? `<p style="white-space:pre-wrap;">${esc(e.notas)}</p>` : ""}<div class="pie-m"><button class="gris" id="cfX">Cerrar</button></div>`); $("cfX").onclick = cerrarVentana; }
 function calDia(iso) {
   const l = calEventos().filter(e => e.fecha === iso), d = calFecha(iso);
-  ventana(`<h3>${esc(d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }))}</h3>${l.length ? `<div class="cal-ag-l" id="cdL">${l.map(e => { const t = CAL_TIPOS[e.tipo]; return `<div class="cal-ag-e" data-e="${esc(e.id)}" style="--c:${t.c};"><b>${t.i} ${esc(e.titulo)}</b><span>${e.hora ? esc(e.hora) : "Todo el día"}${e.cat ? " · " + esc(e.cat) : ""}</span></div>`; }).join("")}</div>` : '<p class="peq">Nada este día.</p>'}
+  ventana(`<h3>${esc(d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }))}</h3>${l.length ? `<div class="cal-ag-l" id="cdL">${l.map(e => { const t = CAL_TIPOS[e.tipo]; return `<div class="cal-ag-e" data-e="${esc(e.id)}" style="--c:${t.c};"><b>${calIc(e)} ${esc(e.titulo)}</b><span>${e.hora ? esc(e.hora) : "Todo el día"}${e.cat ? " · " + esc(e.cat) : ""}</span></div>`; }).join("")}</div>` : '<p class="peq">Nada este día.</p>'}
     <div class="pie-m"><button class="gris" id="cdX">Cerrar</button>${puedeEscribir ? '<button class="naranja" id="cdN">＋ Añadir aquí</button>' : ""}</div>`);
   $("cdX").onclick = cerrarVentana; if ($("cdN")) $("cdN").onclick = () => calForm(null, iso);
   document.querySelectorAll("#cdL [data-e]").forEach(c => c.onclick = () => { const e = l.find(x => x.id === c.dataset.e); cerrarVentana(); if (e) calAbrir(e); });
