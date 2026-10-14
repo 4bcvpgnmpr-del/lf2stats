@@ -534,12 +534,51 @@
   .zona-menu a:hover{background:#f1f3f5;} .zona-menu a.on{background:#e8f4f0;color:#2f8f78;} .zona-menu .ck{margin-left:auto;}
   #app.col .zona-sel .chev{display:none;}
   .barra input[type=search]{max-width:320px;flex:1 1 200px;} .barra button.gris{padding:0 13px !important;} .barra{gap:8px !important;}
+
+  /* ====== estilo común (maqueta): Inter, verde ScoutFlow, tarjetas limpias ====== */
+  :root{--bg:#f5f6f7;--line:#e4e7eb;--suave:#f1f3f5;--side:#1f2933;--teal:#2f7f6c;--g:#3f9c86;--gs:#e6f3ef;}
+  body{font-family:'Inter','Archivo',system-ui,sans-serif;font-size:14.5px;-webkit-font-smoothing:antialiased;}
+  h2,h3{font-family:'Inter',system-ui,sans-serif;font-weight:700;letter-spacing:-.4px;}
+  .cab h2{font-size:28px;}
+  button{font-family:inherit;font-weight:600;border-radius:10px;}
+  button.naranja{background:var(--g);} button.naranja:hover{background:#368a76;}
+  button.gris{background:#fff;border:1.5px solid var(--line);} button.gris:hover{background:var(--suave);}
+  input,select,textarea{border-color:var(--line);} input:focus,select:focus,textarea:focus{outline:0;border-color:var(--g);box-shadow:0 0 0 3px rgba(63,156,134,.15);}
+  main{padding:30px 38px 70px;} @media (max-width:900px){main{padding:16px 14px 90px;}}
+  .marca{padding:20px 18px 12px;font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.3px;}
+  .grupo button{font-weight:500;padding:10px 12px;} .grupo button .i svg{opacity:.9;}
+  .grupo button.on{background:#e8f3f0;color:#2f7f6c;font-weight:600;box-shadow:inset 3px 0 0 var(--g);} .grupo button.on svg{opacity:1;}
+  .grupo h4{letter-spacing:1px;}
+  .tj{border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(20,30,40,.04);transition:transform .15s,box-shadow .15s,border-color .15s;}
+  .tj:hover{border-color:#cfd6dd;box-shadow:0 10px 26px rgba(20,30,40,.10);transform:translateY(-2px);}
+  .tabla{border-radius:14px;border-color:var(--line);} 
+  .vacio{text-align:center;color:var(--soft);padding:38px 20px;font-size:14.5px;}
+  #menuPop{border-radius:12px;box-shadow:0 14px 40px rgba(20,30,40,.18);} #menuPop button{display:flex;align-items:center;gap:10px;font-weight:500;}
+  svg.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  /* inicio */
+  .ini{max-width:1180px;} .ini h1{font-size:34px;font-weight:700;letter-spacing:-.9px;margin:2px 0 4px;} .ini-sub{color:var(--soft);margin:0 0 26px;font-size:15.5px;}
+  .ini-g3{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;} .ini-g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  .ini-next{background:linear-gradient(135deg,#2f7f6c,#3f9c86);color:#fff;border-radius:18px;padding:24px;position:relative;overflow:hidden;min-height:180px;}
+  .ini-next:after{content:"";position:absolute;right:-36px;top:-36px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.09);}
+  .ini-next small{opacity:.88;font-weight:700;letter-spacing:.8px;font-size:11px;} .ini-next .vs{font-size:25px;font-weight:700;letter-spacing:-.5px;margin:10px 0 6px;line-height:1.2;position:relative;z-index:1;} .ini-next .vs span{opacity:.7;font-weight:500;font-size:18px;}
+  .ini-next p{margin:0;opacity:.92;position:relative;z-index:1;} .ini-next .bt{display:flex;gap:8px;margin-top:18px;position:relative;z-index:1;flex-wrap:wrap;}
+  .ini-next .blanco{background:#fff;color:#2f7f6c;} .ini-next .cristal{background:rgba(255,255,255,.2);color:#fff;} .ini-next button{padding:10px 16px;font-size:14px;}
+  .ini-kpi{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:2px;} .ini-kpi>span{color:var(--soft);font-size:13px;} .ini-kpi>b{font-size:38px;letter-spacing:-1.2px;line-height:1.15;margin:4px 0 2px;}
+  .ini-kpi .ch{margin-top:12px;} .ini-kpi .nums{display:flex;gap:14px;margin-top:8px;} .ini-kpi .nums b{font-size:30px;letter-spacing:-1px;display:block;line-height:1.1;} .ini-kpi .nums span{font-size:12px;color:var(--soft);}
+  .chip{display:inline-flex;padding:5px 11px;border-radius:99px;font-size:12px;font-weight:700;background:var(--gs);color:var(--teal);}
+  .ini-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;} .ini-card .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;} .ini-card .hd b{font-size:17px;letter-spacing:-.3px;} .ini-card .hd a{color:var(--g);font-weight:600;font-size:13.5px;cursor:pointer;}
+  .ini-li{display:flex;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line);cursor:pointer;} .ini-card .hd+.ini-li{border-top:0;} .ini-li:hover b{color:var(--g);}
+  .ini-li .m{width:72px;flex:none;border-radius:9px;overflow:hidden;line-height:0;background:#f3e6d2;min-height:54px;display:flex;align-items:center;justify-content:center;font-size:22px;} .ini-li .m svg{width:100%;height:auto;display:block;}
+  .ini-li b{font-weight:600;font-size:14.5px;} .ini-li small{display:block;color:var(--soft);margin-top:2px;font-size:12.5px;}
+  .ini-li .pt{width:10px;height:10px;border-radius:50%;flex:none;margin:0 4px;}
+  @media (max-width:900px){.ini-g3,.ini-g2{grid-template-columns:1fr;} main{padding:18px 16px 90px;} .ini h1{font-size:26px;}}
 </style>
 </head>
 <body>
 <div id="app">
   <aside>
     <div class="marca"><div class="logo zona-sel" data-zona="entrenador" title="Cambiar de zona"><span class="lg-bola">●</span><div class="lg-t"><b>Scout<span>Flow</span></b><small>Entrenador</small></div><span class="chev">▾</span></div><button class="colbtn" id="btnCol" title="Plegar menú">«</button></div><div class="perfil" id="perfil" title="Mi equipo"><span class="av" id="perfilAv">🏀</span><div class="tt"><b id="perfilEq">Mi equipo</b><small id="perfilTe">Añade tu escudo</small></div></div>
+    <div class="grupo"><button data-s="inicio"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span class="tx">Inicio</span></button></div>
     <div class="grupo"><h4>Partido</h4><button data-s="partido" class="btn-partido"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><span class="tx">Modo partido</span></button><button data-s="libro"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg></span><span class="tx">Libro de partidos</span></button></div>
     <div class="grupo"><h4>Jugadas</h4>
       <button data-s="jugadas"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
@@ -597,9 +636,9 @@ function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ve
 
 const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : null;
 const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [] };
-let puedeEscribir = true, faltaSql = "", seccion = "jugadas", carpeta = "", busqueda = "", vistaDetalle = null;
+let puedeEscribir = true, faltaSql = "", seccion = "inicio", carpeta = "", busqueda = "", vistaDetalle = null;
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
-const SECCIONES = { calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 const kv = {
@@ -639,12 +678,14 @@ async function borrarFila(tabla, id) { const { error } = await nube.from(tabla).
 /* ------------ navegacion ------------ */
 function ir(s, c) { if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; seleccion = new Set(); vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
 function pintar() {
+  if (PERM_E && !PERM_E.has(seccion)) seccion = [...PERM_E].find(x => x !== "partido") || "jugadas";
   document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
   const m = $("main"); m.scrollTop = 0;
   const aviso0 = OFFLINE ? '<div class="aviso-sql" style="background:#fff4d6;border-color:#f0c24b;color:#7a5a00;">📴 Sin conexión: ves lo último que se guardó en este aparato. Para editar, vuelve a tener internet.</div>' : faltaSql ? `<div class="aviso-sql">⚠️ Falta preparar la base de datos: ejecuta <b>${/jugadas/.test(faltaSql) && !/playbooks|ejercicios|planes|archivos|carpetas/.test(faltaSql) ? "jugadas.sql" : "entrenador.sql"}</b> en Supabase › SQL Editor. <span class="peq">(${esc(faltaSql)})</span></div>` : "";
   m.innerHTML = aviso0 + '<div id="vista"></div>';
   const v = $("vista");
   if (vistaDetalle && vistaDetalle.tipo === "playbook") return pintarPlaybook(v);
+  if (seccion === "inicio") return pintarInicio(v);
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
   if (seccion === "calendario") return pintarCalendario(v);
   if (seccion === "playbooks") return pintarPlaybooks(v);
@@ -655,10 +696,11 @@ function pintar() {
 }
 
 /* ------------ menu emergente y ventana ------------ */
+const ICM = { "✏️": '<path d="M4 20h4L19 9l-4-4L4 16z"/>', "📝": '<path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/>', "▶": '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/>', "📤": '<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>', "🙈": '<path d="M3 3l18 18M10.5 5.2A9.5 9.5 0 0 1 21 12a14 14 0 0 1-3 3.8M6.3 6.6A14 14 0 0 0 3 12s3.5 7 9 7a8.7 8.7 0 0 0 3.6-.8"/>', "🔗": '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>', "🚫": '<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>', "🏷": '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>', "📁": '<path d="M3 6a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', "⧉": '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>', "🗑": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', "📂": '<path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v1H3z"/><path d="M3 11h18l-2 8H5z"/>' };
 const menu = $("menuPop");
 function abrirMenu(ev, opciones) {
   ev.stopPropagation();
-  menu.innerHTML = ""; opciones.forEach(([t, f, c]) => { const b = document.createElement("button"); b.textContent = t; if (c) b.className = c; b.addEventListener("click", () => { menu.style.display = "none"; f(); }); menu.appendChild(b); });
+  menu.innerHTML = ""; opciones.forEach(([t, f, c]) => { const b = document.createElement("button"); const mi = /^(✏️|📝|▶|📤|🙈|🔗|🚫|🏷|📁|⧉|🗑|📂)\s*(.*)$/.exec(t); if (mi && ICM[mi[1]]) b.innerHTML = '<svg class="ico" viewBox="0 0 24 24">' + ICM[mi[1]] + "</svg><span>" + esc(mi[2]) + "</span>"; else b.textContent = t; if (c) b.className = c; b.addEventListener("click", () => { menu.style.display = "none"; f(); }); menu.appendChild(b); });
   menu.style.display = "block";
   const r = ev.currentTarget.getBoundingClientRect();
   menu.style.left = Math.max(8, Math.min(r.right - 190, innerWidth - 200)) + "px";
@@ -2297,6 +2339,37 @@ function calResultado(p) { if (!p.jugado || p.pl === "" || p.pv === "") return n
 const calIc = (e) => e.tipo === "feb" ? (e.casa ? "🏠" : "🚌") : CAL_TIPOS[e.tipo].i;
 const calChip = (e) => { const t = CAL_TIPOS[e.tipo], r = e.feb ? calResultado(e.feb) : null;
   return `<div class="cal-ch" data-e="${esc(e.id)}" style="--c:${t.c};" title="${esc((e.hora ? e.hora + " · " : "") + e.titulo + (e.cat ? " · " + e.cat : ""))}"><span>${e.hora ? '<b>' + esc(e.hora) + '</b> ' : ""}${calIc(e)} ${esc(e.titulo)}</span>${r ? `<i class="${r.gano ? "g" : "p"}">${r.txt}</i>` : ""}</div>`; };
+/* ------------ pantalla de inicio ------------ */
+function pintarInicio(v) {
+  if (CAL.ev === null) CAL.ev = calLeer();
+  if (!CAL.feb && CAL.febEstado !== "cargando") calCargarFeb().then(() => { if (seccion === "inicio") pintar(); });
+  const h = new Date(), p2 = (n) => String(n).padStart(2, "0"), hoyIso = h.getFullYear() + "-" + p2(h.getMonth() + 1) + "-" + p2(h.getDate());
+  const eq = calMiEq(), saludo = h.getHours() < 13 ? "Buenos días" : h.getHours() < 21 ? "Buenas tardes" : "Buenas noches";
+  const dia = h.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }), diaT = dia.charAt(0).toUpperCase() + dia.slice(1);
+  const evs = calEventos().filter(x => x.fecha >= hoyIso);
+  const part = evs.find(x => x.tipo === "feb" && !x.feb.jugado), ent = evs.find(x => x.tipo === "entreno" || x.tipo === "plan");
+  const corto = (iso) => { const d = calFecha(iso), n = Math.round((d - calFecha(hoyIso)) / 864e5); return n === 0 ? "Hoy" : n === 1 ? "Mañana" : d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" }).replace(/^./, c => c.toUpperCase()); };
+  const IH = (d) => '<svg class="ico" viewBox="0 0 24 24">' + d + "</svg>";
+  let tarjP;
+  if (part) { const p = part.feb, casa = part.casa; tarjP = `<div class="ini-next"><small>PRÓXIMO PARTIDO · ${esc(corto(part.fecha)).toUpperCase()}${part.hora ? " · " + esc(part.hora) : ""}</small><div class="vs">${esc(p.local)} <span>vs</span> ${esc(p.visitante)}</div><p>${casa ? "🏠 En casa" : "🚌 Fuera de casa"}${p.jornada ? " · Jornada " + esc(p.jornada) : ""}</p><div class="bt"><button id="iniPart" class="blanco">Modo partido</button><button id="iniCal" class="cristal">Ver calendario</button></div></div>`; }
+  else tarjP = `<div class="ini-next"><small>PRÓXIMO PARTIDO</small><div class="vs">${eq ? "Sin partidos próximos" : "Elige tu equipo"}</div><p>${eq ? "Cuando haya partidos en la hoja de la FEB aparecerán aquí." : "Elígelo en el calendario para ver aquí tus partidos."}</p><div class="bt"><button id="iniCal" class="blanco">Abrir calendario</button></div></div>`;
+  const tarjE = ent ? `<div class="ini-kpi"><span>Próximo entreno</span><b>${esc(ent.hora || "—")}</b><span>${esc(corto(ent.fecha))}${ent.cat ? " · " + esc(ent.cat) : ""}</span><div class="ch"><span class="chip">${esc(ent.titulo)}</span></div></div>`
+    : `<div class="ini-kpi"><span>Próximo entreno</span><b>—</b><span>Nada programado</span><div class="ch"><button class="gris" id="iniCal2">Programar</button></div></div>`;
+  const tarjB = `<div class="ini-kpi"><span>Tu biblioteca</span><div class="nums"><div><b>${D.jugadas.length}</b><span>jugadas</span></div><div><b>${D.ejercicios.length}</b><span>ejercicios</span></div><div><b>${D.planes.length}</b><span>planes</span></div></div></div>`;
+  const rec = D.jugadas.slice().sort((a, b) => String(b.actualizada || "").localeCompare(String(a.actualizada || ""))).slice(0, 4);
+  const filaJ = (x) => { const d = diagDe(x), nf = d && d.pasos ? d.pasos.length : 0; return `<div class="ini-li" data-j="${esc(x.id)}"><div class="m" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || "<span>🏀</span>"}</div><div><b>${esc(x.nombre || "(sin nombre)")}</b><small>${nf ? nf + (nf === 1 ? " fase" : " fases") : "Sin dibujo"}${x.carpeta ? " · " + esc(x.carpeta) : ""}</small></div></div>`; };
+  const prox = evs.slice(0, 5);
+  const filaC = (x) => { const t = CAL_TIPOS[x.tipo], r = x.feb ? calResultado(x.feb) : null; return `<div class="ini-li ev" data-ev="1"><span class="pt" style="background:${t.c}"></span><div><b>${esc(corto(x.fecha))} · ${esc(x.titulo)}</b><small>${esc(x.hora || "Todo el día")}${x.cat ? " · " + esc(x.cat) : ""}</small></div></div>`; };
+  v.innerHTML = `<div class="ini"><h1>${saludo}${eq ? ", " + esc(eq) : ""}</h1><p class="ini-sub">${esc(diaT)}</p>
+    <div class="ini-g3">${tarjP}${tarjE}${tarjB}</div>
+    <div class="ini-g2"><div class="ini-card"><div class="hd"><b>Jugadas recientes</b><a id="iniTodas">Ver todas</a></div>${rec.length ? rec.map(filaJ).join("") : '<div class="vacio">Todavía no hay jugadas.</div>'}</div>
+    <div class="ini-card"><div class="hd"><b>Calendario</b><a id="iniCal3">Abrir</a></div>${prox.length ? prox.map(filaC).join("") : '<div class="vacio">Sin eventos próximos.</div>'}</div></div></div>`;
+  const g = (id, f) => { const b = $(id); if (b) b.onclick = f; };
+  g("iniPart", () => abrirPartido()); g("iniCal", () => ir("calendario")); g("iniCal2", () => ir("calendario")); g("iniCal3", () => ir("calendario")); g("iniTodas", () => ir("jugadas"));
+  v.querySelectorAll("[data-j]").forEach(el => el.onclick = () => { const x = D.jugadas.find(y => y.id === el.dataset.j); if (x) abrirElemento("jugadas", x); });
+  v.querySelectorAll("[data-ev]").forEach(el => el.onclick = () => ir("calendario"));
+  pedirMiniaturas(rec);
+}
 function pintarCalendario(v) {
   if (CAL.ev === null) CAL.ev = calLeer();
   if (!CAL.mes) { const h = new Date(); CAL.mes = new Date(h.getFullYear(), h.getMonth(), 1); }
@@ -2555,7 +2628,7 @@ function soloPartido(email) {
   abrirPartido();
 }
 const flagSoloPartido = () => { try { return localStorage.getItem("sf_solo_partido") === "1"; } catch (e) { return false; } };
-const PLANES_APP = { gratis: { n: "Gratis", e: ["calendario", "jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { n: "Gratis", e: ["inicio", "calendario", "jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
