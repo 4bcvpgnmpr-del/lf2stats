@@ -2355,7 +2355,8 @@ function calForm(e, fecha, pre) {
   };
 }
 function calElegirEquipo() {
-  const lista = [...new Set((CAL.feb || []).flatMap(p => [p.local, p.visitante]))].sort((a, b) => a.localeCompare(b, "es")), eq = calMiEq();
+  const lista = []; (CAL.feb || []).flatMap(p => [p.local, p.visitante]).map(t => String(t || "").replace(/\s+/g, " ").trim()).filter(Boolean).forEach(t => { const i = lista.findIndex(u => calMismo(u, t)); if (i < 0) lista.push(t); else if (t.length < lista[i].length) lista[i] = t; });
+  lista.sort((a, b) => a.localeCompare(b, "es")); const eq = calMiEq();
   ventana(`<h3>Mi equipo en la FEB</h3><p class="peq" style="margin:0 0 6px;">Sus partidos (fecha, hora y resultado) aparecen solos en el calendario.</p>
     <label>Equipo</label><select id="ceqS"><option value="">— Ninguno —</option>${lista.map(t => `<option${calMismo(t, eq) && calNorm(t) === calNorm(eq) ? " selected" : ""}>${esc(t)}</option>`).join("")}</select>
     ${lista.length ? "" : '<p class="peq">No se pudo leer la lista de equipos todavía. Cierra y vuelve a probar en unos segundos.</p>'}
