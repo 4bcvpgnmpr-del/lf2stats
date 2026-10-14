@@ -416,6 +416,18 @@
     body{-webkit-tap-highlight-color:transparent;} .caja-pista svg,.lienzo svg{touch-action:none;}
   }
 
+
+  /* ====== reproductor en linea (ficha de la jugada): la pista se anima ahi mismo, con controles encima ====== */
+  body.inline,body.inline.visor{background:transparent;margin:0;overflow:hidden;}
+  body.inline #visor{padding:0 !important;position:relative;}
+  body.inline #vsTitulo,body.inline #vsLeyenda,body.inline #vsNotas,body.inline #vsVideos,body.inline #vsPrev,body.inline #vsNext,body.inline .vopc,body.inline .vmodo{display:none !important;}
+  body.inline #vsPista{border:0;border-radius:0;background:transparent;} body.inline #vsPista svg{display:block;width:100%;height:auto;max-height:none;}
+  body.inline .reprod{position:absolute;left:0;right:0;bottom:0;margin:0;padding:22px 12px 8px;border:0;border-radius:0;background:linear-gradient(to top,rgba(20,24,30,.62),rgba(20,24,30,0));display:flex;align-items:center;gap:10px;}
+  body.inline .reprod .ctrl{display:contents;}
+  body.inline .reprod .play{order:1;width:34px;height:34px;border-radius:50%;background:transparent;color:#fff;font-size:20px;padding:0;} body.inline .reprod .play:hover{background:rgba(255,255,255,.2);}
+  body.inline .reprod .linea-tiempo{order:2;flex:1 1 0;width:0;min-width:0;margin:0;} body.inline .reprod .linea-tiempo .seg{background:rgba(255,255,255,.4);height:5px;} body.inline .reprod .linea-tiempo .seg i{background:#fff;}
+  body.inline .reprod .tiempo{order:3;color:#fff;font-size:12px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+  body.inline .reprod #vsFs{order:4;margin:0;width:34px;height:34px;border-radius:8px;background:transparent;color:#fff;border:0;font-size:20px;padding:0;} body.inline .reprod #vsFs:hover{background:rgba(255,255,255,.2);}
   /* ====== aspecto limpio del editor (escritorio), como The Hoops Geek ====== */
   @media (min-width:761px){
     body.editor .barra-ed{height:64px;padding:0 20px;gap:6px;}
@@ -887,16 +899,22 @@ function pistaFondo() {
 
 /* --- trazado de lineas: suavizado, onda de bote, flechas --- */
 function suavizar(p) {
-  if (p.length < 3) return p.slice();
-  const out = [], n = p.length;
+  /* Catmull-Rom centripeta: pasa por los puntos sin picos ni rizos aunque haya pocos o muy desiguales */
+  const q = [p[0]]; for (let i = 1; i < p.length; i++) if (Math.hypot(p[i][0] - q[q.length - 1][0], p[i][1] - q[q.length - 1][1]) > 1e-6) q.push(p[i]);
+  if (q.length < 3) return q.length < 2 ? p.slice() : q;
+  const out = [], n = q.length, mez = (a, b, ta, tb, t) => a.map((_, c) => tb === ta ? a[c] : (a[c] * (tb - t) + b[c] * (t - ta)) / (tb - ta));
   for (let i = 0; i < n - 1; i++) {
-    const p0 = p[Math.max(0, i - 1)], p1 = p[i], p2 = p[i + 1], p3 = p[Math.min(n - 1, i + 2)];
-    for (let k = 0; k < 6; k++) {
-      const t = k / 6, t2 = t * t, t3 = t2 * t;
-      out.push([0, 1].map(c => 0.5 * ((2 * p1[c]) + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3)));
+    const p0 = i ? q[i - 1] : [2 * q[0][0] - q[1][0], 2 * q[0][1] - q[1][1]], p1 = q[i], p2 = q[i + 1], p3 = i + 2 < n ? q[i + 2] : [2 * q[n - 1][0] - q[n - 2][0], 2 * q[n - 1][1] - q[n - 2][1]];
+    const d = (a, b) => Math.pow(Math.hypot(a[0] - b[0], a[1] - b[1]), 0.5) || 1e-3;
+    const t0 = 0, t1 = t0 + d(p0, p1), t2 = t1 + d(p1, p2), t3 = t2 + d(p2, p3), pasos = 10;
+    for (let k = 0; k < pasos; k++) {
+      const t = t1 + (t2 - t1) * k / pasos;
+      const A1 = mez(p0, p1, t0, t1, t), A2 = mez(p1, p2, t1, t2, t), A3 = mez(p2, p3, t2, t3, t);
+      const B1 = mez(A1, A2, t0, t2, t), B2 = mez(A2, A3, t1, t3, t);
+      out.push(mez(B1, B2, t1, t2, t));
     }
   }
-  out.push(p[n - 1]); return out;
+  out.push(q[n - 1]); return out;
 }
 function remuestrear(p, paso) {
   const out = [p[0]]; let falta = paso;
@@ -941,7 +959,7 @@ function lineaSvg(l, opac) {
   const px = fin[0] * S, py = fin[1] * S, nx = -sa, ny = ca, f = (v) => v.toFixed(1);
   const barra = (cx, cy, mitad, grosor) => `<line x1="${f(cx - nx * mitad)}" y1="${f(cy - ny * mitad)}" x2="${f(cx + nx * mitad)}" y2="${f(cy + ny * mitad)}" stroke="${col}" stroke-width="${grosor}" stroke-linecap="round"/>`;
   const flecha = (L, W) => `<path d="M ${f(px)} ${f(py)} L ${f(px - ca * L + nx * W)} ${f(py - sa * L + ny * W)} L ${f(px - ca * L * 0.72)} ${f(py - sa * L * 0.72)} L ${f(px - ca * L - nx * W)} ${f(py - sa * L - ny * W)} Z" fill="${col}" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
-  const sw = 3; let cuerpo = "", remate = "", dash = "";
+  const sw = 2.2; let cuerpo = "", remate = "", dash = "";
   const LA = 0.5; // largo de punta en metros
   if (l.t === "bote") {
     const corto = largoDe(base) > LA + 0.3 ? recortarFinal(base, LA * 0.7) : base, onda = [];
@@ -953,8 +971,8 @@ function lineaSvg(l, opac) {
       onda.push([corto[i][0] - (b[1] - a[1]) / d * w, corto[i][1] + (b[0] - a[0]) / d * w]);
     }
     cuerpo = onda; remate = flecha(17, 7.5);
-  } else if (l.t === "pantalla") { cuerpo = base; remate = barra(px, py, 16, 4.2); }
-  else if (l.t === "entrega") { cuerpo = base; remate = barra(px - ca * 4, py - sa * 4, 13, 3) + barra(px + ca * 6, py + sa * 6, 13, 3); }
+  } else if (l.t === "pantalla") { cuerpo = base; remate = barra(px, py, 14, 3); }
+  else if (l.t === "entrega") { cuerpo = base; remate = `<line x1="${f(px)}" y1="${f(py)}" x2="${f(px + ca * 17)}" y2="${f(py + sa * 17)}" stroke="${col}" stroke-width="${sw}"/>` + barra(px + ca * 4, py + sa * 4, 15, 3.2) + barra(px + ca * 11, py + sa * 11, 15, 3.2); }
   else if (l.t === "tiro") {
     cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="9 8"';
     const cx = px - ca * 24, cy = py - sa * 24;
@@ -962,7 +980,7 @@ function lineaSvg(l, opac) {
   } else if (l.t === "pase") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="8 6"'; remate = flecha(17, 7.5); }
   else if (l.t === "mueve") { cuerpo = recortarFinal(base, LA * 0.7); dash = ' stroke-dasharray="0.1 8.5"'; remate = flecha(17, 7.5); }
   else { cuerpo = recortarFinal(base, LA * 0.7); remate = flecha(17, 7.5); }
-  const cap = l.t === "mueve" ? "round" : "butt", grosor = l.t === "mueve" ? 3 : sw;
+  const cap = l.t === "mueve" ? "round" : "butt", grosor = l.t === "mueve" ? 2.8 : l.t === "bote" ? 2.5 : sw;
   return `<g opacity="${opac}" data-linea="1"><path d="${trazoD(cuerpo)}" fill="none" stroke="${col}" stroke-width="${grosor}" stroke-linecap="${cap}" stroke-linejoin="round"${dash}/>${remate}</g>`;
 }
 
@@ -1345,7 +1363,7 @@ function iconoAccion(t) {
   else if (t === "pantalla") g = `<path d="M 2 9 H 42 M 42 2 V 16" ${e}/>`;
   else if (t === "tiro") g = `<path d="M 2 9 H 11 M 16 9 H 21" ${e}/><circle cx="29" cy="9" r="4.6" ${e}/><path d="M 29 3 V 15 M 23 9 H 35" stroke="${c}" stroke-width="1.6"/>${flecha(44)}`;
   else if (t === "mueve") g = `<path d="M 2 9 H 3 M 8 9 H 9 M 14 9 H 15 M 20 9 H 21 M 26 9 H 27 M 32 9 H 33" stroke="${c}" stroke-width="3" stroke-linecap="round"/>${flecha(44)}`;
-  else if (t === "entrega") g = `<path d="M 2 9 H 42 M 30 3 V 15 M 36 3 V 15" ${e}/>`;
+  else if (t === "entrega") g = `<path d="M 2 9 H 42 M 19 2 V 16 M 26 2 V 16" ${e}/>`;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
 }
 function iconoObjeto(t) {
@@ -2772,7 +2790,7 @@ function iniciarPartido() {
    ARRANQUE
    ============================================================ */
 if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
-  document.body.classList.add("visor");
+  document.body.classList.add("visor"); if (PARAMS.get("inline") === "1") document.body.classList.add("inline");
   const v = crearVisor({ pista: "vsPista", leyenda: "vsLeyenda", play: "vsPlay", prev: "vsPrev", next: "vsNext", titulo: "vsTitulo", notas: "vsNotas", videos: "vsVideos", linea: "vsLinea", tiempo: "vsTiempo" }, 1200);
   const altura = () => { try { parent.postMessage({ visorAltura: document.documentElement.scrollHeight }, "*"); } catch (e) { /* nada */ } };
   window.addEventListener("message", (ev) => { if (ev.data && ev.data.jugada && ev.data.jugada.pasos) { v.abrir(ev.data.jugada); setTimeout(altura, 120); } });
@@ -2788,6 +2806,7 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
     ev.data.miniaturas.forEach(m => { try { const j = normalizar(JSON.parse(JSON.stringify(m.jugada))); out[m.id] = svgPaso(j, 0, { mini: true }); } catch (e) { out[m.id] = ""; } });
     try { parent.postMessage({ miniaturasListas: out }, "*"); } catch (e) { /* nada */ }
   });
+  if (document.body.classList.contains("inline")) { const fs = $("vsFs"), nu = fs.cloneNode(true); fs.replaceWith(nu); nu.addEventListener("click", () => { try { parent.postMessage({ inlineFS: true }, "*"); } catch (e) { /* nada */ } }); }
   try { parent.postMessage({ visorListo: true }, "*"); } catch (e) { /* nada */ }
 } else {
   const modal = crearVisor({ pista: "mvPista", leyenda: "mvLeyenda", play: "mvPlay", prev: "mvPrev", next: "mvNext", titulo: "mvTitulo", notas: "mvNotas", videos: "mvVideos", linea: "mvLinea", tiempo: "mvTiempo" }, 1200);
