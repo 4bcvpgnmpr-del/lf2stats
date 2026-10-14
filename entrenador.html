@@ -41,6 +41,18 @@
   .pie a:hover{background:rgba(255,255,255,.08);}
   main{overflow:auto;padding:22px 26px 60px;min-width:0;}
   .cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .cal-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;} .cal-nav{display:flex;align-items:center;gap:8px;} .cal-nav b{font-size:20px;min-width:160px;text-align:center;} .cal-vista{display:flex;gap:4px;}
+  button.gris.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .cal-filtros{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center;} .cal-f{border:1.5px solid var(--c);background:#fff;color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;opacity:.5;} .cal-f.on{background:var(--c);color:#fff;opacity:1;} .cal-filtros select{max-width:200px;}
+  .cal-prox{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-bottom:14px;} .cal-pc{background:#fff;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;box-shadow:0 1px 3px rgba(0,0,0,.05);} .cal-pc small{font-weight:800;font-size:10.5px;letter-spacing:.08em;color:var(--c);} .cal-pc b{font-size:15px;} .cal-pc span{font-size:12.5px;color:var(--soft);}
+  .cal-mes{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);} .cal-sem{display:grid;grid-template-columns:repeat(7,1fr);background:var(--suave);border-bottom:1px solid var(--line);} .cal-sem span{text-align:center;padding:8px 0;font-size:12px;font-weight:800;color:var(--soft);letter-spacing:.06em;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);} .cal-d{min-height:104px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0;} .cal-d:nth-child(7n){border-right:0;} .cal-d:hover{background:#fffaf2;} .cal-d.fuera{background:#faf8f4;} .cal-d.fuera .cal-n{opacity:.35;}
+  .cal-n{font-size:13px;font-weight:700;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;} .cal-d.hoy .cal-n{background:var(--orange);color:#fff;} .cal-d.hoy{background:#fff7ee;}
+  .cal-ch{background:color-mix(in srgb,var(--c) 14%,#fff);border-left:3px solid var(--c);border-radius:5px;padding:2px 5px;font-size:11.5px;line-height:1.25;display:flex;justify-content:space-between;gap:4px;overflow:hidden;cursor:pointer;} .cal-ch span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .cal-ch i{font-style:normal;font-weight:800;font-size:10.5px;flex:none;} i.g{color:#1b8a4b;} i.p{color:#c0392b;} .cal-mas{font-size:11px;color:var(--soft);padding-left:4px;} .cal-pt{display:none;gap:3px;justify-content:center;flex-wrap:wrap;}
+  .cal-ag{display:flex;flex-direction:column;gap:10px;} .cal-ag-d{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;} .cal-ag-d.hoy{border-color:var(--orange);box-shadow:0 0 0 2px rgba(224,96,42,.15);} .cal-ag-f{width:44px;flex:none;text-align:center;} .cal-ag-f b{display:block;font-size:24px;line-height:1;} .cal-ag-f span{font-size:11px;color:var(--soft);text-transform:uppercase;font-weight:700;}
+  .cal-ag-l{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;} .cal-ag-e{border-left:4px solid var(--c);background:color-mix(in srgb,var(--c) 10%,#fff);border-radius:8px;padding:7px 10px;cursor:pointer;display:flex;flex-direction:column;gap:1px;position:relative;} .cal-ag-e span{font-size:12.5px;color:var(--soft);} .cal-ag-e i{position:absolute;right:10px;top:8px;font-style:normal;font-weight:800;font-size:13px;}
+  .cal-tp{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;} .cal-tp button.on{background:var(--c);border-color:var(--c);color:#fff;} .cal-res{font-size:22px;font-weight:800;padding:10px;border-radius:10px;text-align:center;margin-bottom:8px;} .cal-res.g{background:#e3f6ea;color:#1b8a4b;} .cal-res.p{background:#fde8e6;color:#c0392b;}
+  @media(max-width:700px){ .cal-d{min-height:54px;padding:2px;} .cal-ch{display:none;} .cal-pt{display:flex;} .cal-mas{display:none;} .cal-pt i{width:6px;height:6px;border-radius:50%;display:block;} .cal-nav b{min-width:0;font-size:17px;} }
   .cab h2{font-size:24px;}
   .miga{font-size:13px;color:var(--soft);font-weight:700;}
   .miga a{color:var(--orange);cursor:pointer;text-decoration:none;}
@@ -490,6 +502,7 @@
       <button data-s="playbooks"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.500-1.500-6-1.500-9 .5-3-2-6.500-2-9-.5z"/><path d="M12 6v13.500"/></svg></span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
     </div>
     <div class="grupo"><h4>Planificación</h4>
+      <button data-s="calendario"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4"/></svg></span><span class="tx">Calendario</span></button>
       <button data-s="ejercicios"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Ejercicios</span><span class="n" id="n-ejercicios"></span></button>
       <button data-s="planes"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.01M8 17.500h2M12 17.500h2"/></svg></span><span class="tx">Planes de entreno</span><span class="n" id="n-planes"></span></button>
       <button data-s="equipos"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.500"/><path d="M3.500 19c0-3 2.500-5 5.500-5s5.500 2 5.500 5M15 14.500c3 0 5.500 1.500 5.500 4.500"/></svg></span><span class="tx">Quintetos y equipos</span><span class="n" id="n-equipos"></span></button>
@@ -542,7 +555,7 @@ const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : n
 const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [] };
 let puedeEscribir = true, faltaSql = "", seccion = "jugadas", carpeta = "", busqueda = "", vistaDetalle = null;
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
-const SECCIONES = { jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 const kv = {
@@ -589,6 +602,7 @@ function pintar() {
   const v = $("vista");
   if (vistaDetalle && vistaDetalle.tipo === "playbook") return pintarPlaybook(v);
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
+  if (seccion === "calendario") return pintarCalendario(v);
   if (seccion === "playbooks") return pintarPlaybooks(v);
   if (seccion === "equipos") return pintarEquipos(v);
   if (seccion === "libro") return pintarLibro(v);
@@ -2168,6 +2182,201 @@ function formEquipo() {
     if (ok) { cerrarVentana(); aviso("Equipo guardado ✓"); await cargarTodo(); pintar(); }
   };
 }
+/* ------------ calendario: partidos de la FEB + entrenos y partidos de otras categorías ------------ */
+const CAL = { ev: null, mes: null, vista: null, feb: null, febEstado: "", filtro: { feb: true, entreno: true, partido: true, otro: true, plan: true }, cat: "" };
+const CAL_TIPOS = { feb: { n: "Mi equipo (FEB)", c: "#1b2432", i: "🏀" }, entreno: { n: "Entrenamiento", c: "#2f9e83", i: "🎯" }, partido: { n: "Partido", c: "#e0602a", i: "🏆" }, otro: { n: "Otro", c: "#7b61ff", i: "📌" }, plan: { n: "Plan de entreno", c: "#2f80ed", i: "📋" } };
+const CAL_MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+const CAL_DIAS = ["L", "M", "X", "J", "V", "S", "D"], CAL_DIAS_L = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const calISO = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const calFecha = (iso) => new Date(iso + "T12:00:00");
+function calLeer() {
+  const r = D.archivos.find(a => a.id === "_calendario"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* vacío */ }
+  return Array.isArray(o.ev) ? o.ev : [];
+}
+async function calGuardar() {
+  const ok = await guardarFila("archivos", { id: "_calendario", nombre: JSON.stringify({ ev: CAL.ev }), tipo: "ajustes", ruta: "", mime: "", tamano: 0 });
+  if (ok) { const i = D.archivos.findIndex(a => a.id === "_calendario"); const f = { id: "_calendario", nombre: JSON.stringify({ ev: CAL.ev }), tipo: "ajustes", ruta: "", mime: "", tamano: 0 }; if (i >= 0) D.archivos[i] = Object.assign(D.archivos[i], f); else D.archivos.push(f); }
+  return ok;
+}
+/* --- partidos de la hoja de la FEB (misma hoja que Estadísticas) --- */
+const CAL_SHEET = "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94";
+const calNorm = (n) => String(n || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(p => p && !["CB", "BC", "CD", "CLUB", "BALONCESTO", "BASKET", "FEMENINO", "FEM", "SAD", "DE", "DEL", "LA", "EL", "LAS", "LOS"].includes(p)).join(" ");
+const calMismo = (a, b) => { const x = calNorm(a), y = calNorm(b); return !!x && !!y && (x === y || x.startsWith(y) || y.startsWith(x)); };
+const calMiEq = () => { try { return localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { return ""; } };
+function calHoja(pestana) {
+  return new Promise((res, rej) => {
+    const cb = "__calCb" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), s = document.createElement("script");
+    const fin = () => { clearTimeout(t); delete window[cb]; s.remove(); };
+    const t = setTimeout(() => { fin(); rej(new Error("TIMEOUT")); }, 15000);
+    window[cb] = (j) => { fin(); try {
+      const cols = j.table.cols.map((c, i) => (c.label || "c" + i).trim());
+      res((j.table.rows || []).map(r => { const o = {}; cols.forEach((c, i) => { const x = r.c && r.c[i]; o[c] = x ? String(x.f != null ? x.f : (x.v == null ? "" : x.v)) : ""; }); return o; }));
+    } catch (e) { rej(e); } };
+    s.onerror = () => { fin(); rej(new Error("RED")); };
+    s.src = "https://docs.google.com/spreadsheets/d/" + CAL_SHEET + "/gviz/tq?tqx=" + encodeURIComponent("out:json;responseHandler:" + cb) + "&sheet=" + encodeURIComponent(pestana) + "&headers=1";
+    document.head.appendChild(s);
+  });
+}
+async function calCargarFeb(forzar) {
+  if (CAL.feb && !forzar) return;
+  CAL.febEstado = "cargando";
+  let tem = "2026"; try { tem = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
+  const suf = tem === "2025" ? "" : "_" + tem;
+  try {
+    const f = await calHoja("Resultados" + suf);
+    CAL.feb = f.filter(r => r.Local && r.Visitante).map(r => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(r.Fecha || ""); return { fecha: m ? m[3] + "-" + m[2] + "-" + m[1] : "", hora: (r.Hora || "").trim(), local: r.Local, visitante: r.Visitante, pl: r.Pts_Local, pv: r.Pts_Visitante, jugado: r.Jugado === "Si", jornada: r.Jornada || "", fase: r.Fase || "", pid: r.PartidoID || "" }; }).filter(r => r.fecha);
+    CAL.febEstado = "ok"; try { localStorage.setItem("cal_feb_cache", JSON.stringify({ tem, feb: CAL.feb })); } catch (e) { /* nada */ }
+  } catch (e) {
+    let c = null; try { c = JSON.parse(localStorage.getItem("cal_feb_cache") || "null"); } catch (x) { /* nada */ }
+    if (c && c.feb) { CAL.feb = c.feb; CAL.febEstado = "cache"; } else { CAL.feb = []; CAL.febEstado = "error"; }
+  }
+}
+function calEventos() {
+  const out = [], eq = calMiEq();
+  if (CAL.filtro.feb && eq) (CAL.feb || []).forEach(p => { const loc = calMismo(p.local, eq), vis = calMismo(p.visitante, eq); if (!loc && !vis) return;
+    out.push({ id: "f" + (p.pid || p.fecha + p.local), tipo: "feb", fecha: p.fecha, hora: p.hora, titulo: (loc ? "vs " + p.visitante : "en " + p.local), cat: eq, feb: p, ro: true }); });
+  CAL.ev.forEach(e => { if (CAL.filtro[e.tipo] && (!CAL.cat || e.cat === CAL.cat)) out.push(e); });
+  if (CAL.filtro.plan) D.planes.forEach(p => { if (p.fecha) out.push({ id: "p" + p.id, tipo: "plan", fecha: String(p.fecha).slice(0, 10), hora: ((p.data && p.data.inicio) || ""), titulo: p.nombre || "Plan de entreno", cat: "", plan: p, ro: true }); });
+  return out.sort((a, b) => (a.fecha + (a.hora || "99")).localeCompare(b.fecha + (b.hora || "99")));
+}
+function calResultado(p) { if (!p.jugado || p.pl === "" || p.pv === "") return null; const eq = calMiEq(), loc = calMismo(p.local, eq), a = parseInt(p.pl, 10), b = parseInt(p.pv, 10); if (isNaN(a) || isNaN(b)) return null; const mio = loc ? a : b, su = loc ? b : a; return { txt: mio + "-" + su, gano: mio > su }; }
+const calChip = (e) => { const t = CAL_TIPOS[e.tipo], r = e.feb ? calResultado(e.feb) : null;
+  return `<div class="cal-ch" data-e="${esc(e.id)}" style="--c:${t.c};" title="${esc((e.hora ? e.hora + " · " : "") + e.titulo + (e.cat ? " · " + e.cat : ""))}"><span>${e.hora ? '<b>' + esc(e.hora) + '</b> ' : ""}${t.i} ${esc(e.titulo)}</span>${r ? `<i class="${r.gano ? "g" : "p"}">${r.txt}</i>` : ""}</div>`; };
+function pintarCalendario(v) {
+  if (CAL.ev === null) CAL.ev = calLeer();
+  if (!CAL.mes) { const h = new Date(); CAL.mes = new Date(h.getFullYear(), h.getMonth(), 1); }
+  if (!CAL.vista) CAL.vista = esMovil() ? "agenda" : "mes";
+  if (!CAL.feb && CAL.febEstado !== "cargando") calCargarFeb().then(() => { if (seccion === "calendario" && $("calCuerpo")) calPintar(); });
+  v.innerHTML = `<div class="cab"><h2>Calendario</h2><span class="esp"></span>
+      <button class="gris" id="calEq" title="Equipo de la FEB que se sincroniza">⭐ <span id="calEqT"></span></button>
+      <button class="gris" id="calIcs" title="Descargar para Apple Calendar, Google Calendar…">⬇ .ics</button>
+      ${puedeEscribir ? '<button class="naranja" id="calNuevo">＋ Nuevo evento</button>' : ""}</div>
+    <div class="cal-bar"><div class="cal-nav"><button class="gris" id="calPrev" aria-label="Mes anterior">‹</button><b id="calTit"></b><button class="gris" id="calNext" aria-label="Mes siguiente">›</button><button class="gris" id="calHoy">Hoy</button></div>
+      <div class="cal-vista"><button class="gris" data-vv="mes">Mes</button><button class="gris" data-vv="agenda">Agenda</button></div></div>
+    <div class="cal-filtros" id="calFil"></div><div id="calProx"></div><div id="calCuerpo"></div><p class="peq" id="calPie" style="margin-top:10px;"></p>`;
+  $("calPrev").onclick = () => { CAL.mes = new Date(CAL.mes.getFullYear(), CAL.mes.getMonth() - 1, 1); calPintar(); };
+  $("calNext").onclick = () => { CAL.mes = new Date(CAL.mes.getFullYear(), CAL.mes.getMonth() + 1, 1); calPintar(); };
+  $("calHoy").onclick = () => { const h = new Date(); CAL.mes = new Date(h.getFullYear(), h.getMonth(), 1); calPintar(); };
+  v.querySelectorAll("[data-vv]").forEach(b => b.onclick = () => { CAL.vista = b.dataset.vv; calPintar(); });
+  $("calEq").onclick = calElegirEquipo; $("calIcs").onclick = calIcs;
+  if ($("calNuevo")) $("calNuevo").onclick = () => calForm(null, calISO(new Date()));
+  calPintar();
+}
+function calPintar() {
+  if (!$("calCuerpo")) return;
+  const eq = calMiEq(); $("calEqT").textContent = eq || "Elegir equipo";
+  const evs = calEventos(), y = CAL.mes.getFullYear(), m = CAL.mes.getMonth(), hoy = calISO(new Date());
+  $("calTit").textContent = CAL_MESES[m] + " " + y;
+  document.querySelectorAll("[data-vv]").forEach(b => b.classList.toggle("on", b.dataset.vv === CAL.vista));
+  const cats = [...new Set(CAL.ev.map(e => e.cat).filter(Boolean))].sort();
+  $("calFil").innerHTML = Object.keys(CAL_TIPOS).map(k => `<button class="cal-f${CAL.filtro[k] ? " on" : ""}" data-f="${k}" style="--c:${CAL_TIPOS[k].c};">${CAL_TIPOS[k].i} ${CAL_TIPOS[k].n}</button>`).join("") +
+    (cats.length ? `<select id="calCat"><option value="">Todas las categorías</option>${cats.map(c => `<option${c === CAL.cat ? " selected" : ""}>${esc(c)}</option>`).join("")}</select>` : "");
+  $("calFil").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { CAL.filtro[b.dataset.f] = !CAL.filtro[b.dataset.f]; calPintar(); });
+  if ($("calCat")) $("calCat").onchange = (e) => { CAL.cat = e.target.value; calPintar(); };
+  // próximos
+  const prox = evs.filter(e => e.fecha >= hoy).slice(0, 4);
+  $("calProx").innerHTML = prox.length ? `<div class="cal-prox">${prox.map(e => { const t = CAL_TIPOS[e.tipo], d = Math.round((calFecha(e.fecha) - calFecha(hoy)) / 864e5); return `<div class="cal-pc" data-e="${esc(e.id)}" style="--c:${t.c};"><small>${d === 0 ? "HOY" : d === 1 ? "MAÑANA" : "EN " + d + " DÍAS"}</small><b>${t.i} ${esc(e.titulo)}</b><span>${esc(calFecha(e.fecha).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }))}${e.hora ? " · " + esc(e.hora) : ""}${e.cat ? " · " + esc(e.cat) : ""}</span></div>`; }).join("")}</div>` : "";
+  const porDia = {}; evs.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
+  let h = "";
+  if (CAL.vista === "mes") {
+    const primero = new Date(y, m, 1), off = (primero.getDay() + 6) % 7, nd = new Date(y, m + 1, 0).getDate(), tot = Math.ceil((off + nd) / 7) * 7;
+    h = `<div class="cal-mes"><div class="cal-sem">${CAL_DIAS.map(d => `<span>${d}</span>`).join("")}</div><div class="cal-grid">`;
+    for (let i = 0; i < tot; i++) {
+      const d = new Date(y, m, 1 - off + i), iso = calISO(d), lista = porDia[iso] || [], fuera = d.getMonth() !== m;
+      h += `<div class="cal-d${fuera ? " fuera" : ""}${iso === hoy ? " hoy" : ""}" data-d="${iso}"><div class="cal-n">${d.getDate()}</div>${lista.slice(0, 3).map(calChip).join("")}${lista.length > 3 ? `<div class="cal-mas">+${lista.length - 3} más</div>` : ""}<div class="cal-pt">${lista.slice(0, 5).map(e => `<i style="background:${CAL_TIPOS[e.tipo].c}"></i>`).join("")}</div></div>`;
+    }
+    h += "</div></div>";
+  } else {
+    const del = Object.keys(porDia).filter(f => f.slice(0, 7) === y + "-" + String(m + 1).padStart(2, "0")).sort();
+    h = `<div class="cal-ag">${del.length ? del.map(f => { const d = calFecha(f); return `<div class="cal-ag-d${f === hoy ? " hoy" : ""}"><div class="cal-ag-f"><b>${d.getDate()}</b><span>${CAL_DIAS_L[(d.getDay() + 6) % 7].slice(0, 3)}</span></div><div class="cal-ag-l">${porDia[f].map(e => { const t = CAL_TIPOS[e.tipo], r = e.feb ? calResultado(e.feb) : null; return `<div class="cal-ag-e" data-e="${esc(e.id)}" style="--c:${t.c};"><b>${t.i} ${esc(e.titulo)}</b><span>${e.hora ? esc(e.hora) : "Todo el día"}${e.hora && e.fin ? "–" + esc(e.fin) : ""}${e.cat ? " · " + esc(e.cat) : ""}${e.lugar ? " · 📍 " + esc(e.lugar) : ""}</span>${r ? `<i class="${r.gano ? "g" : "p"}">${r.gano ? "V" : "D"} ${r.txt}</i>` : ""}</div>`; }).join("")}</div></div>`; }).join("") : '<p class="vacio">No hay eventos este mes.</p>'}</div>`;
+  }
+  $("calCuerpo").innerHTML = h;
+  $("calCuerpo").querySelectorAll("[data-d]").forEach(c => c.onclick = (ev) => { if (ev.target.closest("[data-e]")) return; calDia(c.dataset.d); });
+  document.querySelectorAll("#vista [data-e]").forEach(c => c.onclick = (ev) => { ev.stopPropagation(); const e = evs.find(x => x.id === c.dataset.e); if (e) calAbrir(e); });
+  const msg = { cargando: "Cargando partidos de la FEB…", cache: "📴 Partidos de la FEB de la última vez (sin conexión).", error: "No se pudieron leer los partidos de la FEB. Revisa tu conexión.", ok: "" }[CAL.febEstado] || "";
+  $("calPie").textContent = !eq ? "Elige tu equipo con ⭐ para que sus partidos de la FEB aparezcan solos." : msg;
+}
+function calAbrir(e) {
+  if (e.plan) { abrirPlan(e.plan); return; }
+  if (e.feb) {
+    const p = e.feb, r = calResultado(p);
+    ventana(`<h3>${CAL_TIPOS.feb.i} ${esc(p.local)} — ${esc(p.visitante)}</h3><p class="peq" style="margin:0 0 10px;">${esc(calFecha(p.fecha).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}${p.hora ? " · " + esc(p.hora) : ""}</p>
+      ${r ? `<div class="cal-res ${r.gano ? "g" : "p"}">${r.gano ? "Victoria" : "Derrota"} ${p.pl}–${p.pv}</div>` : '<p class="peq">Aún sin jugar.</p>'}
+      <p class="peq">${[p.fase, p.jornada].filter(Boolean).map(esc).join(" · ")}</p><p class="peq">Este partido viene de la FEB y se actualiza solo.</p>
+      <div class="pie-m"><button class="gris" id="cfX">Cerrar</button>${puedeEscribir ? '<button class="naranja" id="cfN">＋ Anotar en mi calendario</button>' : ""}</div>`);
+    $("cfX").onclick = cerrarVentana; if ($("cfN")) $("cfN").onclick = () => calForm(null, p.fecha, { tipo: "otro", titulo: "Preparar: " + e.titulo, hora: "", cat: e.cat });
+    return;
+  }
+  if (!puedeEscribir) { calVer(e); return; }
+  calForm(e);
+}
+function calVer(e) { const t = CAL_TIPOS[e.tipo]; ventana(`<h3>${t.i} ${esc(e.titulo)}</h3><p class="peq">${esc(solofecha(e.fecha))}${e.hora ? " · " + esc(e.hora) + (e.fin ? "–" + esc(e.fin) : "") : ""}${e.cat ? " · " + esc(e.cat) : ""}${e.lugar ? " · 📍 " + esc(e.lugar) : ""}</p>${e.notas ? `<p style="white-space:pre-wrap;">${esc(e.notas)}</p>` : ""}<div class="pie-m"><button class="gris" id="cfX">Cerrar</button></div>`); $("cfX").onclick = cerrarVentana; }
+function calDia(iso) {
+  const l = calEventos().filter(e => e.fecha === iso), d = calFecha(iso);
+  ventana(`<h3>${esc(d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }))}</h3>${l.length ? `<div class="cal-ag-l" id="cdL">${l.map(e => { const t = CAL_TIPOS[e.tipo]; return `<div class="cal-ag-e" data-e="${esc(e.id)}" style="--c:${t.c};"><b>${t.i} ${esc(e.titulo)}</b><span>${e.hora ? esc(e.hora) : "Todo el día"}${e.cat ? " · " + esc(e.cat) : ""}</span></div>`; }).join("")}</div>` : '<p class="peq">Nada este día.</p>'}
+    <div class="pie-m"><button class="gris" id="cdX">Cerrar</button>${puedeEscribir ? '<button class="naranja" id="cdN">＋ Añadir aquí</button>' : ""}</div>`);
+  $("cdX").onclick = cerrarVentana; if ($("cdN")) $("cdN").onclick = () => calForm(null, iso);
+  document.querySelectorAll("#cdL [data-e]").forEach(c => c.onclick = () => { const e = l.find(x => x.id === c.dataset.e); cerrarVentana(); if (e) calAbrir(e); });
+}
+function calForm(e, fecha, pre) {
+  if (!puedeEscribir) return;
+  const n = !e, x = e || Object.assign({ id: idNuevo("c"), tipo: "entreno", titulo: "", fecha: fecha || calISO(new Date()), hora: "18:00", fin: "19:30", cat: (CAL.ev.slice(-1)[0] || {}).cat || "", rival: "", lugar: "", notas: "" }, pre || {});
+  const cats = [...new Set(CAL.ev.map(z => z.cat).filter(Boolean))];
+  ventana(`<h3>${n ? "Nuevo evento" : "Editar evento"}</h3>
+    <div class="cal-tp">${["entreno", "partido", "otro"].map(k => `<button class="gris${x.tipo === k ? " on" : ""}" data-t="${k}" style="--c:${CAL_TIPOS[k].c};">${CAL_TIPOS[k].i} ${CAL_TIPOS[k].n}</button>`).join("")}</div>
+    <label>Título</label><input id="ceT" value="${esc(x.titulo)}" placeholder="Ej: Entreno cadetes, Partido vs …">
+    <label>Categoría / equipo</label><input id="ceC" list="dlcc" value="${esc(x.cat || "")}" placeholder="Ej: Cadete A"><datalist id="dlcc">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
+    <div class="dos"><div><label>Fecha</label><input type="date" id="ceF" value="${esc(x.fecha)}"></div><div><label>Desde</label><input type="time" id="ceH" value="${esc(x.hora || "")}"></div></div>
+    <div class="dos"><div><label>Hasta</label><input type="time" id="ceFin" value="${esc(x.fin || "")}"></div><div><label>Lugar</label><input id="ceL" value="${esc(x.lugar || "")}" placeholder="Pabellón…"></div></div>
+    <div id="ceRivW" ${x.tipo === "partido" ? "" : "hidden"}><label>Rival</label><input id="ceR" value="${esc(x.rival || "")}" placeholder="Equipo rival"></div>
+    <label>Notas</label><textarea id="ceN" style="min-height:70px;">${esc(x.notas || "")}</textarea>
+    ${n ? `<label>Repetir cada semana hasta (opcional)</label><input type="date" id="ceRep">` : ""}
+    <div class="pie-m">${n ? "" : '<button class="rojo" id="ceD">Borrar</button>'}<span class="esp"></span><button class="gris" id="ceX">Cancelar</button><button class="naranja" id="ceG">Guardar</button></div>`);
+  let tipo = x.tipo;
+  document.querySelectorAll(".cal-tp [data-t]").forEach(b => b.onclick = () => { tipo = b.dataset.t; document.querySelectorAll(".cal-tp [data-t]").forEach(z => z.classList.toggle("on", z === b)); $("ceRivW").hidden = tipo !== "partido"; });
+  $("ceX").onclick = cerrarVentana;
+  $("ceG").onclick = async () => {
+    const f = $("ceF").value; if (!f) { aviso("Elige la fecha."); return; }
+    let t = $("ceT").value.trim(); const rival = $("ceR").value.trim();
+    if (!t) t = tipo === "partido" ? (rival ? "Partido vs " + rival : "Partido") : tipo === "entreno" ? "Entreno" : "Evento";
+    const base = Object.assign({}, x, { tipo, titulo: t, cat: $("ceC").value.trim(), fecha: f, hora: $("ceH").value, fin: $("ceFin").value, lugar: $("ceL").value.trim(), rival, notas: $("ceN").value });
+    if (n) {
+      const hasta = $("ceRep") && $("ceRep").value;
+      if (hasta && hasta > f) { const serie = idNuevo("s"); let d = calFecha(f), k = 0; while (calISO(d) <= hasta && k < 120) { CAL.ev.push(Object.assign({}, base, { id: idNuevo("c") + k, fecha: calISO(d), serie })); d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7, 12); k++; } }
+      else CAL.ev.push(base);
+    } else { const i = CAL.ev.findIndex(z => z.id === x.id); if (i >= 0) CAL.ev[i] = base; }
+    if (await calGuardar()) { cerrarVentana(); const d = calFecha(f); CAL.mes = new Date(d.getFullYear(), d.getMonth(), 1); calPintar(); aviso("Guardado ✓"); }
+  };
+  if ($("ceD")) $("ceD").onclick = async () => {
+    let todos = false; if (x.serie && CAL.ev.filter(z => z.serie === x.serie).length > 1) todos = confirm("Este evento se repite cada semana.\n\nAceptar = borrar TODA la serie\nCancelar = borrar solo este");
+    else if (!confirm("¿Borrar «" + x.titulo + "»?")) return;
+    CAL.ev = CAL.ev.filter(z => todos ? z.serie !== x.serie : z.id !== x.id);
+    if (await calGuardar()) { cerrarVentana(); calPintar(); aviso("Borrado"); }
+  };
+}
+function calElegirEquipo() {
+  const lista = [...new Set((CAL.feb || []).flatMap(p => [p.local, p.visitante]))].sort((a, b) => a.localeCompare(b, "es")), eq = calMiEq();
+  ventana(`<h3>Mi equipo en la FEB</h3><p class="peq" style="margin:0 0 6px;">Sus partidos (fecha, hora y resultado) aparecen solos en el calendario.</p>
+    <label>Equipo</label><select id="ceqS"><option value="">— Ninguno —</option>${lista.map(t => `<option${calMismo(t, eq) && calNorm(t) === calNorm(eq) ? " selected" : ""}>${esc(t)}</option>`).join("")}</select>
+    ${lista.length ? "" : '<p class="peq">No se pudo leer la lista de equipos todavía. Cierra y vuelve a probar en unos segundos.</p>'}
+    <div class="pie-m"><button class="gris" id="ceqX">Cancelar</button><button class="naranja" id="ceqG">Guardar</button></div>`);
+  $("ceqX").onclick = cerrarVentana;
+  $("ceqG").onclick = () => { try { localStorage.setItem("lf2_mi_equipo", $("ceqS").value); } catch (e) { /* nada */ } cerrarVentana(); calPintar(); };
+}
+function calIcs() {
+  const ev = calEventos(), z = (s) => String(s || "").replace(/[\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+  const f = (iso, h) => iso.replace(/-/g, "") + (h ? "T" + h.replace(":", "") + "00" : "");
+  const sumar = (iso) => calISO(new Date(calFecha(iso).getTime() + 864e5));
+  let s = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ScoutFlow//Calendario//ES\r\nCALSCALE:GREGORIAN\r\n";
+  ev.forEach(e => { s += "BEGIN:VEVENT\r\nUID:" + e.id + "@scoutflow\r\nDTSTAMP:" + new Date().toISOString().replace(/[-:]|\.\d+/g, "") + "\r\n";
+    if (e.hora) { let fin = e.fin; if (!fin) { const [hh, mm] = e.hora.split(":").map(Number); fin = String((hh + 1) % 24).padStart(2, "0") + ":" + String(mm).padStart(2, "0"); } s += "DTSTART:" + f(e.fecha, e.hora) + "\r\nDTEND:" + f(e.fecha, fin) + "\r\n"; }
+    else s += "DTSTART;VALUE=DATE:" + f(e.fecha) + "\r\nDTEND;VALUE=DATE:" + f(sumar(e.fecha)) + "\r\n";
+    s += "SUMMARY:" + z((e.cat && e.tipo !== "feb" ? "[" + e.cat + "] " : "") + e.titulo) + "\r\n" + (e.lugar ? "LOCATION:" + z(e.lugar) + "\r\n" : "") + (e.notas ? "DESCRIPTION:" + z(e.notas) + "\r\n" : "") + "END:VEVENT\r\n"; });
+  s += "END:VCALENDAR\r\n";
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([s], { type: "text/calendar" })); a.download = "calendario-scoutflow.ics"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  aviso("Calendario descargado ✓");
+}
+
 $("perfil").addEventListener("click", formEquipo);
 
 
@@ -2266,7 +2475,7 @@ function soloPartido(email) {
   abrirPartido();
 }
 const flagSoloPartido = () => { try { return localStorage.getItem("sf_solo_partido") === "1"; } catch (e) { return false; } };
-const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { n: "Gratis", e: ["calendario", "jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
