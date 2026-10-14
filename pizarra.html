@@ -415,6 +415,58 @@
     button{min-height:40px;} .fase .fh button,.zoombar button,.fmas,.fgrip{min-height:0;} .col-herr .acciones button{min-height:46px;} input,select,textarea{font-size:16px;}
     body{-webkit-tap-highlight-color:transparent;} .caja-pista svg,.lienzo svg{touch-action:none;}
   }
+
+  /* ====== aspecto limpio del editor (escritorio), como The Hoops Geek ====== */
+  @media (min-width:761px){
+    body.editor .barra-ed{height:64px;padding:0 20px;gap:6px;}
+    body.editor #btnCerrarEd{background:transparent;border:0;font-size:20px;padding:8px 10px;color:var(--ink);border-radius:8px;} body.editor #btnCerrarEd:hover{background:#f1f3f5;}
+    body.editor .barra-ed #nombre{font-size:17px;font-weight:700;width:min(300px,22vw);text-overflow:ellipsis;}
+    body.editor .barra-ed .tabs{gap:6px;}
+    body.editor .barra-ed .tabs button{font-size:15px;font-weight:600;padding:10px 18px;border-radius:9px;color:#4b5563;background:transparent;}
+    body.editor .barra-ed .tabs button:hover{background:#f1f3f5;}
+    body.editor .barra-ed .tabs button.on{background:#3f9c86;color:#fff;}
+    body.editor .barra-ed .ic{background:transparent;border:0;color:#6b7280;font-size:22px;padding:6px 10px;border-radius:8px;} body.editor .barra-ed .ic:hover:not(:disabled){background:#f1f3f5;color:var(--ink);} body.editor .barra-ed .ic:disabled{opacity:.3;}
+    body.editor #btnGuardar{background:#3f9c86;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-size:15px;font-weight:700;}
+    body.editor #btnDatos{background:transparent;border:0;color:#4b5563;font-size:14px;font-weight:600;padding:8px 10px;border-radius:8px;} body.editor #btnDatos:hover{background:#f1f3f5;}
+    /* columna izquierda */
+    body.editor .col-pasos{padding:14px 14px 20px;}
+    body.editor .col-pasos .acc{display:flex !important;justify-content:space-between;gap:2px;margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid #eceff1;}
+    body.editor .col-pasos .acc button{flex:1;background:transparent;border:0;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:9px;font-size:12px;font-weight:600;}
+    body.editor .col-pasos .acc button:hover{background:#f1f3f5;}
+    body.editor .col-pasos .acc button i{font-style:normal;font-size:21px;line-height:1;}
+    body.editor .lista-fases{gap:2px;max-height:none;overflow:visible;}
+    body.editor .fase{border:3px solid transparent;border-radius:10px;background:#f3e6d2;box-shadow:0 0 0 1px #e5e7eb;}
+    body.editor .fase:hover{box-shadow:0 0 0 1px #cbd5e1;}
+    body.editor .fase.on{border-color:#2f7bd8;box-shadow:none;}
+    body.editor .fase .fh{opacity:0;transition:opacity .12s;background:rgba(27,36,50,.72);} body.editor .fase:hover .fh,body.editor .fase.on:focus-within .fh{opacity:1;}
+    body.editor .fflecha{color:#b6bec8;margin:2px 0;font-size:16px;}
+    /* centro */
+    body.editor .col-pista{background:#f4f5f6;}
+    body.editor .lienzo{padding:28px 32px 92px;}
+    body.editor .lienzo .caja-pista{border-radius:22px;box-shadow:0 2px 14px rgba(0,0,0,.07);background:#e9cfa8;}
+    body.editor .zoombar{top:auto;bottom:50px;box-shadow:0 4px 20px rgba(0,0,0,.12);}
+    body.editor #zmLista{top:auto;bottom:52px;}
+    body.editor .col-pista .hint{background:transparent;text-align:center;color:#8a94a0;padding:8px 20px 10px;}
+    body.editor .col-pista .leyenda{border-top:1px solid #eceff1;}
+    /* derecha */
+    body.editor .col-herr{padding:20px 24px;}
+    body.editor .herr h3{font-family:inherit;font-weight:800;font-size:15px;letter-spacing:.2px;text-transform:uppercase;margin:0 0 12px;color:#1b2432;}
+    body.editor .herr .bloque{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #eceff1;}
+    body.editor .acciones{grid-template-columns:1fr 1fr;gap:10px;}
+    body.editor .acciones button{flex-direction:row;justify-content:flex-start;gap:10px;padding:0 14px;height:58px;min-height:0;font-size:15px;font-weight:600;text-align:left;border-radius:12px;background:#2b3441;}
+    body.editor .acciones button:hover{background:#38424f;}
+    body.editor .acciones button{white-space:nowrap;letter-spacing:0;} body.editor .acciones.sec button,body.editor .acciones button.suave{white-space:nowrap;}
+    body.editor .acciones button.on{background:var(--orange);}
+    body.editor .acciones.sec{grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+    body.editor .acciones.sec button{height:42px;padding:0 6px;justify-content:center;font-size:13px;border-radius:10px;background:#f3f4f6;color:var(--ink);border:1.5px solid #e5e7eb;}
+    body.editor .acciones.sec button.on{background:var(--orange);color:#fff;border-color:var(--orange);}
+    body.editor .acciones button.suave{background:#f3f4f6;color:var(--ink);border:1.5px solid #e5e7eb;height:46px;justify-content:center;}
+    body.editor .paleta{gap:10px;margin-bottom:10px;}
+    body.editor .paleta button{height:46px;font-size:15px;font-weight:600;border:1.5px solid #d5d9df;color:var(--ink);background:#fff;}
+    body.editor .paleta button.c{border:2px solid #2b3441;border-radius:50%;}
+    body.editor .paleta button.puesta{background:#e8f1ff;border-color:#2f7bd8;}
+    body.editor .paleta button.x{color:#d12b4a;}
+  }
 </style>
 </head>
 <body>
@@ -467,15 +519,15 @@
 
     <div class="barra-ed">
       <div class="tabs" id="tabsEd">
-        <button data-p="Draw" class="on">✏️ Dibujar</button>
-        <button data-p="Anim">▶ Animar</button>
-        <button data-p="Text">📝 Texto</button>
-        <button data-p="Vid">🎬 Vídeos</button>
-        <button data-p="Out">📄 Salida</button>
+        <button data-p="Draw" class="on">Dibujar</button>
+        <button data-p="Anim">Animar</button>
+        <button data-p="Text">Texto</button>
+        <button data-p="Vid">Vídeos</button>
+        <button data-p="Out">Salida</button>
       </div>
       <button class="ic" id="btnUndo" title="Deshacer">↶</button>
       <button class="ic" id="btnRedo" title="Rehacer">↷</button>
-      <button class="naranja" id="btnGuardar">💾 Guardar</button>
+      <button class="naranja" id="btnGuardar">Guardar</button>
     </div>
 
     <!-- ---- DIBUJAR ---- -->
@@ -483,10 +535,10 @@
       <div class="dib">
         <div class="col-pasos">
           <div class="acc">
-            <button id="btnNuevoPaso" title="Nueva fase donde acaba esta: cada jugadora aparece donde terminó su línea">➡ Siguiente</button>
-            <button id="btnDupPaso" title="Copia esta fase tal cual">⧉ Clonar</button>
-            <button id="btnVacioPaso" title="Nueva fase con las jugadoras donde están ahora, sin líneas">▢ Vacía</button>
-            <button id="btnImpPaso" title="Trae una fase de otra jugada y la añade después de esta">⤓ Importar</button>
+            <button id="btnNuevoPaso" title="Nueva fase donde acaba esta: cada jugadora aparece donde terminó su línea"><i>➜</i><span>Siguiente</span></button>
+            <button id="btnDupPaso" title="Copia esta fase tal cual"><i>⧉</i><span>Clonar</span></button>
+            <button id="btnVacioPaso" title="Nueva fase con las jugadoras donde están ahora, sin líneas"><i>▢</i><span>Vacía</span></button>
+            <button id="btnImpPaso" title="Trae una fase de otra jugada y la añade después de esta"><i>⤓</i><span>Importar</span></button>
             <button id="btnQuitarPaso" title="Quita esta fase">🗑 Quitar</button>
           </div>
           <div class="panel-ops" id="panelOps"></div>
@@ -716,7 +768,7 @@
    ============================================================ */
 const TIPOS = ["Ataque", "Saque de fondo", "Saque de banda", "Contra zona", "Presion", "Ultimos segundos", "Otra"];
 const CLAVE = "scoutflow_pizarra_jugadas_v1", BORRADOR = "scoutflow_pizarra_borrador_v2";
-const S = 33, ANCHO = 15, FONDO = 14, ARO = { x: 7.5, y: 1.575 };
+const S = 33, ANCHO = 15, FONDO = 14, ARO = { x: 7.5, y: 1.575 }, MG = 26;   /* MG = margen de madera alrededor de las líneas */
 const TINTA = "#23262d";
 const COLOR = { corte: TINTA, bote: TINTA, pase: TINTA, pantalla: TINTA, tiro: TINTA, mueve: TINTA, entrega: TINTA };
 const NOMBRE_ACCION = { corte: "Corte", bote: "Bote", pase: "Pase", pantalla: "Pantalla", tiro: "Tiro", mueve: "Movimiento", entrega: "Mano a mano" };
@@ -801,18 +853,18 @@ function maderaSvg() {
   if (MADERA) return MADERA;
   let sem = 20261008; const rnd = () => (sem = (sem * 1664525 + 1013904223) % 4294967296) / 4294967296;
   const tonos = ["#ecd3ab", "#e9cfa6", "#eed6b1", "#e7cca2", "#ebd1a9", "#e8cfa7", "#edd4ad", "#e6cba2"];
-  const W = ANCHO * S + 20, H = FONDO * S + 20;
-  let x = -10, o = `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#e9cfa8"/>`;
-  while (x < W - 10) {
-    const w = 17 + rnd() * 17; let y = -10;
-    while (y < H - 10) {
-      const h = Math.min(80 + rnd() * 230, H - 10 - y);
+  const W = ANCHO * S + 2 * MG, H = FONDO * S + 2 * MG;
+  let x = -MG, o = `<rect x="${-MG}" y="${-MG}" width="${W}" height="${H}" fill="#e9cfa8"/>`;
+  while (x < W - MG) {
+    const w = 17 + rnd() * 17; let y = -MG;
+    while (y < H - MG) {
+      const h = Math.min(80 + rnd() * 230, H - MG - y);
       o += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w + 0.6).toFixed(1)}" height="${(h + 0.6).toFixed(1)}" fill="${tonos[Math.floor(rnd() * tonos.length)]}"/>`;
       y += h;
     }
     x += w;
   }
-  o += `<rect x="-10" y="-10" width="${W}" height="${H}" fill="#b98a55" opacity=".02"/>`;
+  o += `<rect x="${-MG}" y="${-MG}" width="${W}" height="${H}" fill="#b98a55" opacity=".02"/>`;
   return (MADERA = o);
 }
 function pistaFondo() {
@@ -986,7 +1038,7 @@ function svgPaso(j, i, opciones) {
   if (opciones.todas) { for (let k = 0; k < i; k++) j.pasos[k].lineas.forEach(l => { lineas += lineaSvg(l, 0.2); }); }
   p.lineas.forEach(l => { lineas += lineaSvg(l, 1); });
   const MINI_CSS = opciones.mini ? `<style>svg.sfm g[data-linea] path[fill="none"]{stroke-width:4.4px!important}svg.sfm g[data-linea] line{stroke-width:5px!important}svg.sfm text[font-size="23"]{font-size:40px!important;paint-order:stroke;stroke:#f2dfbd;stroke-width:4px;stroke-linejoin:round}svg.sfm text[font-size="13"]{font-size:26px!important;paint-order:stroke;stroke:#f6e6c9;stroke-width:6px}svg.sfm g[stroke="#d9304f"]{stroke-width:6.5px}svg.sfm circle[r="18"]{stroke-width:3.6px}</style>` : "";
-  const VB = opciones.mini ? `-3 -3 ${ANCHO * S + 6} ${FONDO * S + 6}` : `-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}`;
+  const VB = opciones.mini ? `-14 -14 ${ANCHO * S + 28} ${FONDO * S + 28}` : `${-MG} ${-MG} ${ANCHO * S + 2 * MG} ${FONDO * S + 2 * MG}`;
   return `<svg xmlns="http://www.w3.org/2000/svg"${opciones.mini ? ' class="sfm"' : ""} viewBox="${VB}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${MINI_CSS}${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${opciones.rotulo && p.mostrarTitulo && p.titulo ? rotuloSvg(p.titulo, 1) : ""}${CLIP_FIN}</svg>`;
 }
 const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
@@ -1145,7 +1197,7 @@ function fotogramaAnim(j, caja, i, t, dur) {
   fijarEtq(j, j.pasos[i]);
   const E = estadoEn(j, i, t, dur);
   let lineas = ""; E.vis.forEach(v => { lineas += lineaSvg(recorteLinea(v.l, v.f), 1); });
-  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 ${ANCHO * S + 20} ${FONDO * S + 20}">${CLIP_INI}${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}${rotuloFase(j, i, t, dur)}${CLIP_FIN}</svg>`;
+  caja.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-MG} ${-MG} ${ANCHO * S + 2 * MG} ${FONDO * S + 2 * MG}">${CLIP_INI}${pistaFondo()}${objetosSvg(j.pasos[i].objs, false)}${lineas}${jugadoresSvg(E.pos, E.balon, false)}${rotuloFase(j, i, t, dur)}${CLIP_FIN}</svg>`;
 }
 const PAUSA_FASE = 450;
 /* Segmentos de tiempo de una jugada (de la fase "desde" a la "hasta") */
@@ -2044,7 +2096,7 @@ function png() {
   volcarCampos();
   const img = new Image();
   img.onload = () => {
-    const c = document.createElement("canvas"); c.width = 1000; c.height = Math.round(1000 * (FONDO * S + 20) / (ANCHO * S + 20));
+    const c = document.createElement("canvas"); c.width = 1000; c.height = Math.round(1000 * (FONDO * S + 2 * MG) / (ANCHO * S + 2 * MG));
     c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
     c.toBlob(b => descargar(nombreArchivo() + "_fase" + (paso + 1) + ".png", b), "image/png");
   };
@@ -2133,7 +2185,7 @@ function pintarSoloFases() {
 /* ---------- zoom y mano (editor de escritorio) ---------- */
 const ZOOM_ON = EDITOR && window.matchMedia("(min-width:761px)").matches;
 let zoom = 1, manoPan = false, panIni = null;
-function fitAncho() { const L = $("lienzo"); const aw = L.clientWidth - 56, ah = L.clientHeight - 130; return Math.max(240, Math.min(aw, ah * (ANCHO * S + 20) / (FONDO * S + 20))); }
+function fitAncho() { const L = $("lienzo"); const aw = L.clientWidth - 56, ah = L.clientHeight - 130; return Math.max(240, Math.min(aw, ah * (ANCHO * S + 2 * MG) / (FONDO * S + 2 * MG))); }
 function aplicarZoom() { if (!ZOOM_ON) return; const L = $("lienzo"); if (!L.clientWidth) return; $("pista").style.width = Math.round(fitAncho() * zoom) + "px"; $("zmPct").textContent = Math.round(zoom * 100) + "%"; }
 function fijarZoom(z, centrar) { zoom = Math.max(0.4, Math.min(3.5, Math.round(z * 100) / 100)); aplicarZoom(); if (centrar) { const L = $("lienzo"); L.scrollLeft = (L.scrollWidth - L.clientWidth) / 2; L.scrollTop = (L.scrollHeight - L.clientHeight) / 2; } }
 if (ZOOM_ON) {
@@ -2190,7 +2242,7 @@ function iniciarPartido() {
   const leerMenus = () => { try { const m = JSON.parse(localStorage.getItem(CLAVE_MEN) || "[]"); return Array.isArray(m) ? m : []; } catch (e) { return []; } };
   const E = { lista: [], pin: leerPin(), menus: leerMenus(), q: "", filtro: "todas", j: null, i: 0, op: 0, parar: null, lapiz: false, color: "#ff4d4d", trazos: [], actual: null, herr: "lapiz", w: 2.2 };
   const caja = $("ptCaja"), pista = $("ptPista"), cv = $("ptDib"), ctx = cv.getContext("2d");
-  const RAT = (ANCHO * S + 20) / (FONDO * S + 20); let zi = 0; const ZS = [1, 1.5, 2, 2.6];
+  const RAT = (ANCHO * S + 2 * MG) / (FONDO * S + 2 * MG); let zi = 0; const ZS = [1, 1.5, 2, 2.6];
   const medir = () => { const z = caja.parentNode, w = z.clientWidth, h = z.clientHeight; if (!w || !h) return; const base = Math.min(w, h * RAT) * ZS[zi]; caja.style.width = Math.floor(base) + "px"; caja.style.height = Math.floor(base / RAT) + "px"; };
   new ResizeObserver(medir).observe(caja.parentNode); window.addEventListener("resize", medir); window.addEventListener("orientationchange", () => setTimeout(medir, 200)); medir();
   const COLS = ["#ff4d4d", "#ffd24d", "#3fd0ff", "#ffffff", "#111111"];
@@ -2880,7 +2932,7 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
     if (window.matchMedia("(min-width:761px)").matches) {
       // barra superior: volver, nombre, pestanas, deshacer, datos y guardar (como en la otra app)
       const bar = document.querySelector(".barra-ed"), nom = $("nombre").parentElement;
-      $("btnCerrarEd").textContent = "✕ Volver"; bar.prepend(nom); bar.prepend($("btnCerrarEd"));
+      $("btnCerrarEd").textContent = "✕"; $("btnCerrarEd").title = "Volver"; bar.prepend(nom); bar.prepend($("btnCerrarEd"));
       bar.insertBefore($("btnDatos"), $("btnGuardar"));
       document.querySelector(".datos-ed").classList.add("plegado");
     }
