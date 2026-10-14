@@ -555,6 +555,10 @@
   .vacio{text-align:center;color:var(--soft);padding:38px 20px;font-size:14.5px;}
   #menuPop{border-radius:12px;box-shadow:0 14px 40px rgba(20,30,40,.18);} #menuPop button{display:flex;align-items:center;gap:10px;font-weight:500;}
   svg.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .dlg-f{position:fixed;inset:0;background:rgba(20,30,40,.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .dlg{background:#fff;border-radius:16px;padding:22px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);} .dlg p{margin:0 0 18px;font-size:15.5px;line-height:1.45;font-weight:500;}
+  .dlg-b{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;} .dlg-b button{padding:10px 16px;border:1px solid var(--line);background:#fff;color:var(--ink);}
+  .dlg-b .dlg-p{background:#d64545;border-color:#d64545;color:#fff;} .dlg-b .dlg-ok{background:var(--g);border-color:var(--g);color:#fff;}
   /* inicio */
   .ini{max-width:1180px;} .ini h1{font-size:34px;font-weight:700;letter-spacing:-.9px;margin:2px 0 4px;} .ini-sub{color:var(--soft);margin:0 0 26px;font-size:15.5px;}
   .ini-g3{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;} .ini-g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
@@ -632,6 +636,19 @@ const fechaTxt = (iso) => { if (!iso) return ""; const d = new Date(iso); if (is
 const solofecha = (f) => { if (!f) return "—"; const d = new Date(f + "T12:00:00"); return isNaN(d) ? f : d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }); };
 const tamTxt = (b) => !b ? "" : b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB";
 let temporal;
+
+function dialogo(msg, botones) {
+  return new Promise((res) => {
+    const f = document.createElement("div"); f.className = "dlg-f";
+    f.innerHTML = `<div class="dlg" role="dialog"><p>${esc(msg)}</p><div class="dlg-b">${botones.map((b, i) => `<button data-i="${i}" class="${b[2] === "peligro" ? "dlg-p" : b[2] === "ok" ? "dlg-ok" : "dlg-n"}">${esc(b[0])}</button>`).join("")}</div></div>`;
+    const fin = (v) => { document.removeEventListener("keydown", tecla, true); f.remove(); res(v); };
+    const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); fin(null); } };
+    document.addEventListener("keydown", tecla, true);
+    f.onclick = (e) => { if (e.target === f) fin(null); const b = e.target.closest("button[data-i]"); if (b) fin(botones[Number(b.dataset.i)][1]); };
+    document.body.appendChild(f); const p = f.querySelector(".dlg-p,.dlg-ok"); if (p) p.focus();
+  });
+}
+async function confirmar(msg, si) { const peligro = /borrar|eliminar|quitar|dejar de|salir sin/i.test(msg); return (await dialogo(msg, [["Cancelar", false, "n"], [si || (/borrar/i.test(msg) ? "Borrar" : /eliminar/i.test(msg) ? "Eliminar" : /quitar/i.test(msg) ? "Quitar" : /dejar de/i.test(msg) ? "Dejar de compartir" : /salir sin/i.test(msg) ? "Salir sin guardar" : "Aceptar"), true, peligro ? "peligro" : "ok"]])) === true; }
 function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporal); temporal = setTimeout(() => a.classList.remove("ver"), 2600); }
 
 const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : null;
@@ -857,7 +874,7 @@ function pintarCarpetas(v, tipo) {
   const selItems = () => D[tipo].filter(x => seleccion.has(x.id));
   if ($("sTag")) $("sTag").onclick = () => editarTags(tipo, selItems());
   if ($("sMov")) $("sMov").onclick = () => moverACarpeta(tipo, selItems());
-  if ($("sDel")) $("sDel").onclick = async () => { const l = selItems(); if (!confirm("¿Borrar " + l.length + " elemento" + (l.length > 1 ? "s" : "") + "? No se puede deshacer.")) return; for (const x of l) await borrarFila(TABLA_DE[tipo], x.id); seleccion.clear(); await cargarTodo(); pintar(); };
+  if ($("sDel")) $("sDel").onclick = async () => { const l = selItems(); if (!await confirmar("¿Borrar " + l.length + " elemento" + (l.length > 1 ? "s" : "") + "? No se puede deshacer.")) return; for (const x of l) await borrarFila(TABLA_DE[tipo], x.id); seleccion.clear(); await cargarTodo(); pintar(); };
   if (tipo === "jugadas" || tipo === "ejercicios") pedirMiniaturas(items);
   v.querySelectorAll(".selc").forEach(c => { c.addEventListener("click", (e) => e.stopPropagation()); c.addEventListener("change", () => { if (c.checked) seleccion.add(c.dataset.s); else seleccion.delete(c.dataset.s); redib(); }); });
   v.querySelectorAll("[data-car]").forEach(el => {
@@ -958,7 +975,7 @@ async function compartirEnlace(tipo, x) {
 }
 async function dejarDeCompartir(tipo, x) {
   let tk = ""; try { tk = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ }
-  if (!tk || !confirm("¿Dejar de compartir «" + x.nombre + "»? El enlace dejará de funcionar.")) return;
+  if (!tk || !await confirmar("¿Dejar de compartir «" + x.nombre + "»? El enlace dejará de funcionar.")) return;
   const { error } = await nube.from("compartidos").delete().eq("token", tk);
   if (error) { aviso("No se pudo: " + error.message); return; }
   try { localStorage.removeItem(TK_K(x.id)); } catch (e) { /* nada */ }
@@ -1042,7 +1059,7 @@ async function duplicar(tipo, x) {
   const c = clonar(x); c.id = idNuevo(tipo[0]); c.nombre = (c.nombre || "") + " (copia)"; if (tipo === "jugadas") { c.compartida = false; c.data.id = c.id; c.data.nombre = c.nombre; c.data.compartida = false; }
   if (await guardarFila(TABLA_DE[tipo], c)) { aviso("Duplicado"); await cargarTodo(); pintar(); }
 }
-async function borrarElemento(tipo, x) { if (!confirm("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
+async function borrarElemento(tipo, x) { if (!await confirmar("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
 async function alternarComp(x) { const c = clonar(x); c.compartida = !c.compartida; c.data.compartida = c.compartida; if (await guardarFila("jugadas", c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); await cargarTodo(); pintar(); } }
 function nuevoElemento(tipo) {
   if (!puedeCrear(tipo)) return;
@@ -1593,7 +1610,7 @@ function formEjercicio(x) {
     <div class="pie-m">${nuevo || !puedeEscribir ? "" : '<button class="rojo" id="ejB" style="margin-right:auto;">🗑 Borrar</button>'}<button class="gris" id="ejX">${puedeEscribir ? "Cancelar" : "Cerrar"}</button>${puedeEscribir ? '<button class="naranja" id="ejG">Guardar</button>' : ""}</div>`, true);
   if ($("ejA")) $("ejA").onchange = () => { if ($("ejA").value) $("ejV").value = $("ejA").value; };
   $("ejX").onclick = cerrarVentana;
-  if ($("ejB")) $("ejB").onclick = async () => { if (confirm("¿Borrar «" + x.nombre + "»?") && await borrarFila("ejercicios", x.id)) { cerrarVentana(); await cargarTodo(); pintar(); } };
+  if ($("ejB")) $("ejB").onclick = async () => { if (await confirmar("¿Borrar «" + x.nombre + "»?") && await borrarFila("ejercicios", x.id)) { cerrarVentana(); await cargarTodo(); pintar(); } };
   if ($("ejG")) $("ejG").onclick = async () => {
     x.nombre = $("ejN").value.trim(); if (!x.nombre) { aviso("Ponle un título."); return; }
     x.carpeta = $("ejC").value.trim(); d.categoria = $("ejK").value; d.minutos = Number($("ejM").value) || 0; d.materiales = $("ejMat").value.trim(); d.descripcion = $("ejD").value; d.jugadaId = $("ejJ").value; d.video = $("ejV").value.trim();
@@ -1947,7 +1964,7 @@ function pintarLibro(v) {
   v.querySelectorAll("[data-ver]").forEach(b => b.onclick = () => { const r = por(b.dataset.ver); const m = ventana(`<h3>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h3><div class="peq">${fechaTxt(r.fecha)}</div><div style="max-height:62vh;overflow:auto;">${libroHtml(r)}</div><div class="pie-m"><button class="gris" id="lbC">Cerrar</button><button class="naranja" id="lbP">🖨 PDF</button></div>`, true); $("lbC").onclick = cerrarVentana; $("lbP").onclick = () => { cerrarVentana(); imprimirLibro(r); }; });
   v.querySelectorAll("[data-pdf]").forEach(b => b.onclick = () => imprimirLibro(por(b.dataset.pdf)));
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
-    if (!confirm("¿Borrar este partido del libro?")) return; const id = b.dataset.del;
+    if (!await confirmar("¿Borrar este partido del libro?")) return; const id = b.dataset.del;
     try { const l = JSON.parse(localStorage.getItem("scoutflow-libro") || "[]").filter(r => r.id !== id); localStorage.setItem("scoutflow-libro", JSON.stringify(l)); } catch (e) { /* nada */ }
     await borrarFila("archivos", id); await cargarTodo(); pintar();
   });
@@ -2476,8 +2493,8 @@ function calForm(e, fecha, pre) {
     if (await calGuardar()) { cerrarVentana(); const d = calFecha(f); CAL.mes = new Date(d.getFullYear(), d.getMonth(), 1); calPintar(); aviso("Guardado ✓"); }
   };
   if ($("ceD")) $("ceD").onclick = async () => {
-    let todos = false; if (x.serie && CAL.ev.filter(z => z.serie === x.serie).length > 1) todos = confirm("Este evento se repite cada semana.\n\nAceptar = borrar TODA la serie\nCancelar = borrar solo este");
-    else if (!confirm("¿Borrar «" + x.titulo + "»?")) return;
+    let todos = false; if (x.serie && CAL.ev.filter(z => z.serie === x.serie).length > 1) { const r = await dialogo("Este evento se repite cada semana. ¿Qué quieres borrar?", [["Toda la serie", "serie", "peligro"], ["Solo este", "uno", "peligro"], ["Cancelar", "no", ""]]); if (r === "no" || !r) return; todos = r === "serie"; }
+    else if (!await confirmar("¿Borrar «" + x.titulo + "»?")) return;
     CAL.ev = CAL.ev.filter(z => todos ? z.serie !== x.serie : z.id !== x.id);
     if (await calGuardar()) { cerrarVentana(); calPintar(); aviso("Borrado"); }
   };
