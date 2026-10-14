@@ -213,7 +213,7 @@
     <div class="grupo-panel" data-grupo="tests" hidden>
     <div class="caja" id="cajaListaTests">
       <h2>Tests para las jugadoras</h2>
-      <p class="expl">Crea un test con muchas preguntas y decide cuántas le salen a cada jugadora: a cada una le tocan preguntas distintas, en distinto orden. Cada jugadora solo puede responderlo una vez, y aquí ves quién lo hizo, quién no y cuántas acertó.</p>
+      <p class="expl">Crea un test con preguntas para <b>todas</b>, solo para <b>exteriores</b> o solo para <b>interiores</b>. Las preguntas <b>fijas</b> les salen a todas las que les toquen por su grupo (mismas preguntas); el resto va a un sorteo y a cada una le salen otras distintas. Si una jugadora juega de exterior e interior, la marcas en las dos y hace un solo test con las preguntas de ambas. Cada jugadora lo responde una vez y tú ves quién lo hizo, quién no, qué contestó y dónde falló.</p>
       <div id="listaTests" class="cargando">Cargando...</div>
       <button class="boton" id="btnNuevoTest">+ Nuevo test</button>
       <div id="avisoTests"></div>
@@ -222,10 +222,13 @@
       <h2 id="tituloEditorTest">Nuevo test</h2>
       <label>Título</label>
       <input id="teTitulo" maxlength="80" placeholder="Por ejemplo: Defensa del pick and roll">
-      <label>Preguntas que le salen a cada jugadora</label>
-      <input id="teN" type="number" min="1" value="5" style="max-width:120px;">
+      <label>Preguntas al azar que le salen a cada jugadora (además de las fijas)</label>
+      <input id="teN" type="number" min="0" value="5" style="max-width:120px;">
       <p class="expl" id="teAyudaN" style="margin:6px 0 0;"></p>
       <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;margin-top:14px;"><input type="checkbox" id="teCorr" checked style="width:auto;"> Al terminar, enseñarle qué falló y la respuesta correcta</label>
+      <label>Posición de cada jugadora</label>
+      <p class="expl" style="margin:0 0 6px;">Marca Exterior, Interior o las dos. Se guarda al tocar y vale para todos los tests. Las que no tengan ninguna solo harán las preguntas de «Todas».</p>
+      <div id="tePos"></div><div id="avisoPos"></div>
       <label>Quién lo hace</label>
       <select id="tePara"><option value="todas">Todas las jugadoras</option><option value="elegidas">Solo las que elija</option></select>
       <div id="teElegidas" hidden style="margin-top:8px;"></div>
@@ -235,6 +238,8 @@
       <div class="pestanas" style="margin:10px 0 0;"><button id="teAddP" class="activa" style="background:var(--ink);border-color:var(--ink);color:#fff;">+ Añadir pregunta</button></div>
       <details class="pegar"><summary>Pegar varias preguntas de golpe</summary>
         <p class="expl" style="margin:8px 0;">Una pregunta por bloque, con una línea en blanco entre bloques. La primera línea es la pregunta, las siguientes son las opciones y la correcta empieza por *.</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px;"><select id="tePegarGrupo" style="max-width:190px;"><option value="todas">Para todas</option><option value="ext">Solo exteriores</option><option value="int">Solo interiores</option></select>
+          <label style="display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;margin:0;"><input type="checkbox" id="tePegarFija" style="width:auto;"> Fijas (les salen a todas)</label></div>
         <textarea id="tePegar" rows="7" placeholder="¿Quién ayuda en el pick and roll?&#10;a) La que defiende al balón&#10;*b) La del lado débil&#10;c) Nadie&#10;&#10;¿Cuántos segundos tiene el ataque?&#10;a) 30&#10;*b) 24&#10;c) 20"></textarea>
         <button class="boton fina gris" id="tePegarOk" type="button">Añadir esas preguntas</button>
       </details>
@@ -1225,7 +1230,7 @@ async function cargarTestsPanel() {
       <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
         <b style="flex:1;min-width:160px;">${esc(t.titulo)}</b>
         <span style="font-size:12px;font-weight:800;color:${t.abierto ? "var(--verde)" : "var(--ink-soft)"};">${t.abierto ? "ABIERTO" : "CERRADO"}</span></div>
-      <div style="font-size:13px;color:var(--ink-soft);margin:4px 0 8px;">${bank} preguntas en total · a cada una le salen ${Math.min(t.n_preguntas, bank)} · han respondido <b>${hechos} de ${dest.length}</b></div>
+      <div style="font-size:13px;color:var(--ink-soft);margin:4px 0 8px;">${bank} preguntas (${(t.preguntas || []).filter(p => p.fija).length} fijas · ${(t.preguntas || []).filter(p => p.grupo === "ext").length} ext. · ${(t.preguntas || []).filter(p => p.grupo === "int").length} int.) · ${t.n_preguntas} al azar a cada una · han respondido <b>${hechos} de ${dest.length}</b></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="boton fina" data-tr="${t.id}">Ver resultados</button>
         <button class="boton fina gris" data-te="${t.id}">Editar</button>
@@ -1258,7 +1263,7 @@ function abrirEditorTest(id) {
     corr: t ? t.mostrar_correccion : true,
     para: t && t.jugadoras ? "elegidas" : "todas",
     sel: new Set(t && t.jugadoras ? t.jugadoras : []),
-    preguntas: t ? JSON.parse(JSON.stringify(t.preguntas || [])) : [{ id: nidT(), texto: "", opciones: ["", "", "", ""], correcta: 0 }],
+    preguntas: t ? JSON.parse(JSON.stringify(t.preguntas || [])) : [{ id: nidT(), texto: "", opciones: ["", "", "", ""], correcta: 0, grupo: "todas", fija: false }],
     bloqueado: empezado
   };
   $("tituloEditorTest").textContent = t ? "Editar test" : "Nuevo test";
@@ -1274,6 +1279,7 @@ function pintarEditorTest() {
   $("teElegidas").querySelectorAll("[data-tj]").forEach(c => c.addEventListener("change", () => {
     const k = c.getAttribute("data-tj"); if (c.checked) TE.sel.add(k); else TE.sel.delete(k);
   }));
+  pintarPosiciones();
   $("teBloqueo").innerHTML = TE.bloqueado
     ? `<div class="aviso mal" style="margin-top:12px;">Hay jugadoras que ya han empezado este test, así que las preguntas no se pueden cambiar (se descuadrarían sus respuestas). Puedes cambiar el título, quién lo hace y abrirlo o cerrarlo. Para otras preguntas, crea un test nuevo.</div>` : "";
   const dis = TE.bloqueado ? "disabled" : "";
@@ -1281,6 +1287,9 @@ function pintarEditorTest() {
     <div style="display:flex;gap:8px;align-items:center;"><b>${i + 1}.</b>
       <textarea rows="2" data-pt="${i}" placeholder="Escribe la pregunta" ${dis} style="flex:1;">${esc(p.texto)}</textarea>
       <button class="boton fina gris" data-pdel="${i}" ${dis} title="Quitar la pregunta" style="margin:0;">✕</button></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;">
+      <select data-pg="${i}" ${dis} style="max-width:170px;margin:0;"><option value="todas" ${(p.grupo || "todas") === "todas" ? "selected" : ""}>Para todas</option><option value="ext" ${p.grupo === "ext" ? "selected" : ""}>Solo exteriores</option><option value="int" ${p.grupo === "int" ? "selected" : ""}>Solo interiores</option></select>
+      <label style="display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;margin:0;"><input type="checkbox" data-pf="${i}" ${p.fija ? "checked" : ""} ${dis} style="width:auto;"> Fija (sale a todas)</label></div>
     <div style="font-size:12px;color:var(--ink-soft);margin:8px 0 4px;">Opciones · marca la correcta</div>
     ${p.opciones.map((o, k) => `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
       <input type="radio" name="co${i}" data-pc="${i}|${k}" ${p.correcta === k ? "checked" : ""} ${dis} style="width:auto;">
@@ -1289,6 +1298,8 @@ function pintarEditorTest() {
     <button class="boton fina gris" data-poa="${i}" ${dis || p.opciones.length >= 6 ? "disabled" : ""}>+ Opción</button></div>`).join("");
   const q = $("tePreguntas");
   q.querySelectorAll("[data-pt]").forEach(x => x.addEventListener("input", () => { TE.preguntas[+x.getAttribute("data-pt")].texto = x.value; ayudaN(); }));
+  q.querySelectorAll("[data-pg]").forEach(x => x.addEventListener("change", () => { TE.preguntas[+x.getAttribute("data-pg")].grupo = x.value; ayudaN(); }));
+  q.querySelectorAll("[data-pf]").forEach(x => x.addEventListener("change", () => { TE.preguntas[+x.getAttribute("data-pf")].fija = x.checked; ayudaN(); }));
   q.querySelectorAll("[data-po]").forEach(x => x.addEventListener("input", () => { const [i, k] = x.getAttribute("data-po").split("|").map(Number); TE.preguntas[i].opciones[k] = x.value; }));
   q.querySelectorAll("[data-pc]").forEach(x => x.addEventListener("change", () => { const [i, k] = x.getAttribute("data-pc").split("|").map(Number); TE.preguntas[i].correcta = k; }));
   q.querySelectorAll("[data-pdel]").forEach(x => x.addEventListener("click", () => { TE.preguntas.splice(+x.getAttribute("data-pdel"), 1); pintarEditorTest(); }));
@@ -1302,18 +1313,31 @@ function pintarEditorTest() {
   ayudaN();
 }
 function ayudaN() {
-  const total = TE.preguntas.filter(p => p.texto.trim()).length, n = parseInt($("teN").value, 10) || 0;
-  $("teAyudaN").textContent = total
-    ? (n >= total ? `Tienes ${total} preguntas: a todas les saldrán las mismas, solo cambia el orden. Para que les toquen preguntas distintas, escribe más preguntas que las que salen a cada una.`
-                  : `Tienes ${total} preguntas: a cada jugadora le saldrán ${n} elegidas al azar, y las opciones también cambian de orden.`)
+  const v = TE.preguntas.filter(p => p.texto.trim()), n = parseInt($("teN").value, 10) || 0;
+  const g = (k) => v.filter(p => (p.grupo || "todas") === k), fj = (l) => l.filter(p => p.fija).length;
+  const linea = (nom, ks) => { const l = v.filter(p => ks.includes(p.grupo || "todas")), f = fj(l), b = l.length - f; return `${nom}: ${f} fijas + ${Math.min(n, b)} al azar de ${b} = ${f + Math.min(n, b)} preguntas`; };
+  $("teAyudaN").innerHTML = v.length
+    ? `Total ${v.length} preguntas (${g("todas").length} para todas, ${g("ext").length} exteriores, ${g("int").length} interiores).<br>${linea("Solo exterior", ["todas", "ext"])} · ${linea("Solo interior", ["todas", "int"])} · ${linea("Las dos posiciones", ["todas", "ext", "int"])}.`
     : "";
+}
+const POS_ET = { ext: "Exterior", int: "Interior" };
+function pintarPosiciones() {
+  const c = $("tePos"); if (!c) return;
+  c.innerHTML = jugadoras.map(j => { const p = j.posiciones || []; return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0;"><span style="flex:1;min-width:130px;font-size:14px;">${esc(j.nombre)}</span>${["ext", "int"].map(k => `<button type="button" class="boton fina ${p.includes(k) ? "" : "gris"}" data-pj="${esc(j.id)}|${k}" style="margin:0;">${POS_ET[k]}</button>`).join("")}</div>`; }).join("") || `<div class="vacio">Aún no hay jugadoras.</div>`;
+  c.querySelectorAll("[data-pj]").forEach(b => b.addEventListener("click", async () => {
+    const [id, k] = b.getAttribute("data-pj").split("|"), j = jugadoras.find(x => String(x.id) === id); if (!j) return;
+    const ant = j.posiciones || [], nuevo = ant.includes(k) ? ant.filter(x => x !== k) : ant.concat(k);
+    const { error } = await sb.from("jugadoras").update({ posiciones: nuevo.length ? nuevo : null }).eq("id", j.id);
+    if (error) { avisar("avisoPos", /posiciones|schema cache|column/i.test(error.message) ? "Falta ejecutar tests2.sql una vez en Supabase > SQL Editor." : "No se ha podido guardar: " + error.message, "mal"); return; }
+    avisar("avisoPos", "", "ok"); j.posiciones = nuevo.length ? nuevo : null; pintarPosiciones();
+  }));
 }
 
 function parsePegado(t) {
   return String(t || "").split(/\n\s*\n/).map(b => b.split("\n").map(x => x.trim()).filter(Boolean)).filter(l => l.length >= 3).map(l => {
     let correcta = 0;
     const ops = l.slice(1).map((x, i) => { const m = /^\*\s*/.test(x); x = x.replace(/^\*\s*/, "").replace(/^[a-fA-F][.)]\s*/, ""); if (m) correcta = i; return x; });
-    return { id: nidT(), texto: l[0].replace(/^\d+[.)]\s*/, ""), opciones: ops, correcta };
+    return { id: nidT(), texto: l[0].replace(/^\d+[.)]\s*/, ""), opciones: ops, correcta, grupo: $("tePegarGrupo").value, fija: $("tePegarFija").checked };
   });
 }
 
@@ -1332,12 +1356,12 @@ async function guardarTest() {
       if (!(corr || "").trim()) { avisar("avisoEditorTest", `En la pregunta ${i + 1} la opción correcta está vacía.`, "mal"); return; }
       let nc = 0; p.opciones.forEach((o, k) => { if (o.trim()) { if (k === p.correcta) nc = ops.length; ops.push(o.trim()); } });
       if (ops.length < 2) { avisar("avisoEditorTest", `La pregunta ${i + 1} necesita al menos 2 opciones.`, "mal"); return; }
-      preguntas.push({ id: p.id, texto: p.texto.trim(), opciones: ops, correcta: nc });
+      preguntas.push({ id: p.id, texto: p.texto.trim(), opciones: ops, correcta: nc, grupo: p.grupo || "todas", fija: !!p.fija });
     }
     if (!preguntas.length) { avisar("avisoEditorTest", "Añade al menos una pregunta.", "mal"); return; }
   }
-  if (!(n >= 1)) { avisar("avisoEditorTest", "Pon cuántas preguntas le salen a cada jugadora (1 o más).", "mal"); return; }
-  if (n > preguntas.length) { avisar("avisoEditorTest", `Has escrito ${preguntas.length} preguntas, así que no pueden salir ${n}. Baja el número o añade más preguntas.`, "mal"); return; }
+  if (!(n >= 0)) { avisar("avisoEditorTest", "Pon cuántas preguntas al azar le salen a cada jugadora (0 si todas son fijas).", "mal"); return; }
+  if (!preguntas.some(p => p.fija) && n < 1) { avisar("avisoEditorTest", "No hay preguntas fijas, así que pon al menos 1 al azar.", "mal"); return; }
   TE.para = $("tePara").value;
   if (TE.para === "elegidas" && !TE.sel.size) { avisar("avisoEditorTest", "Elige al menos una jugadora.", "mal"); return; }
   const fila = { titulo, n_preguntas: n, mostrar_correccion: $("teCorr").checked, jugadoras: TE.para === "elegidas" ? [...TE.sel] : null };
@@ -1371,8 +1395,10 @@ async function verResultadosTest(id) {
     else if (estado === "curso") der = `<span style="color:var(--ink-soft);">Empezó, no ha enviado</span>`;
     else der = `<span style="color:var(--rojo);font-weight:800;">Sin hacer</span>`;
     return `<div class="item" style="display:flex;align-items:center;gap:8px;padding:8px 10px;flex-wrap:wrap;">
-      <b style="flex:1;min-width:130px;">${esc(j.nombre)}</b><span>${der}</span>
-      ${i ? `<button class="boton fina gris" data-reset="${i.id}" title="Borra su respuesta para que pueda repetirlo" style="margin:0;">Reiniciar</button>` : ""}</div>`;
+      <b style="flex:1;min-width:130px;">${esc(j.nombre)}${(j.posiciones || []).length ? ` <small style="font-weight:600;color:var(--ink-soft);">${(j.posiciones || []).map(k => POS_ET[k]).join(" + ")}</small>` : ""}</b><span>${der}</span>
+      ${estado === "hecho" ? `<button class="boton fina" data-det="${i.id}" style="margin:0;">Ver respuestas</button>` : ""}
+      ${i ? `<button class="boton fina gris" data-reset="${i.id}" title="Borra su respuesta para que pueda repetirlo" style="margin:0;">Reiniciar</button>` : ""}
+      <div data-detc="${i ? i.id : ""}" hidden style="flex-basis:100%;"></div></div>`;
   };
   // por pregunta: cuántas veces salió y cuántas se acertó
   const est = {};
@@ -1380,19 +1406,31 @@ async function verResultadosTest(id) {
     const i = de(j), r = i.respuestas || {};
     (i.servidas || []).forEach(s => {
       const q = (t.preguntas || []).find(p => p.id === s.id); if (!q) return;
-      const e = est[q.id] || (est[q.id] = { q, v: 0, ok: 0 }); e.v++;
-      if (r[q.id] !== null && r[q.id] !== undefined && Number(r[q.id]) === Number(q.correcta)) e.ok++;
+      const e = est[q.id] || (est[q.id] = { q, v: 0, ok: 0, si: [], no: [] }); e.v++;
+      if (r[q.id] !== null && r[q.id] !== undefined && Number(r[q.id]) === Number(q.correcta)) { e.ok++; e.si.push(j.nombre); } else e.no.push(j.nombre + (r[q.id] === null || r[q.id] === undefined ? " (sin contestar)" : " → " + (q.opciones[r[q.id]] || "?")));
     });
   });
+  const etiq = (q) => `<small style="font-weight:800;color:var(--ink-soft);">${q.fija ? "FIJA · " : ""}${q.grupo === "ext" ? "EXTERIORES" : q.grupo === "int" ? "INTERIORES" : "TODAS"} </small>`;
+  const detalle = (i) => (i.servidas || []).map(sv => {
+    const q = (t.preguntas || []).find(p => p.id === sv.id); if (!q) return "";
+    const r = (i.respuestas || {})[q.id], hay = r !== null && r !== undefined, ok = hay && Number(r) === Number(q.correcta);
+    return `<div style="padding:7px 0;border-top:1px solid var(--wood-line);font-size:13.5px;"><div>${ok ? "✅" : "❌"} ${etiq(q)}${esc(q.texto)}</div>
+      <div style="margin-top:2px;color:${ok ? "var(--verde)" : "var(--rojo)"};">Contestó: <b>${hay ? esc(q.opciones[r] || "?") : "sin contestar"}</b></div>${ok ? "" : `<div style="color:var(--verde);">Correcta: <b>${esc(q.opciones[q.correcta])}</b></div>`}</div>`; }).join("");
   const dif = Object.values(est).sort((a, b) => (a.ok / a.v) - (b.ok / b.v) || b.v - a.v);
   caja.innerHTML = `<h2>${esc(t.titulo)}</h2>
     <p class="expl" style="margin-bottom:10px;">Han respondido <b>${hechas.length} de ${dest.length}</b>${hechas.length ? ` · acierto medio <b>${pct(totA, totT)}%</b> (${totA} de ${totT})` : ""}.${enCurso.length ? ` ${enCurso.length} lo han empezado sin enviar.` : ""}</p>
     ${sin.length ? `<label>Sin hacer (${sin.length})</label>${sin.map(j => fila(j, "sin")).join("")}` : ""}
     ${enCurso.length ? `<label>Empezado, sin enviar (${enCurso.length})</label>${enCurso.map(j => fila(j, "curso")).join("")}` : ""}
     ${hechas.length ? `<label>Hecho (${hechas.length})</label>${hechas.slice().sort((a, b) => (de(b).aciertos / (de(b).total || 1)) - (de(a).aciertos / (de(a).total || 1))).map(j => fila(j, "hecho")).join("")}` : ""}
-    ${dif.length ? `<label style="margin-top:16px;">Preguntas, de la más fallada a la menos</label>${dif.map(e => `<div class="item" style="padding:8px 10px;"><div style="font-size:14px;">${esc(e.q.texto)}</div><div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px;">Acertada ${pct(e.ok, e.v)}% · ${e.ok} de ${e.v} jugadoras a las que les salió · correcta: ${esc(e.q.opciones[e.q.correcta])}</div></div>`).join("")}` : ""}
+    ${dif.length ? `<label style="margin-top:16px;">Preguntas, de la más fallada a la menos</label>${dif.map(e => `<div class="item" style="padding:8px 10px;"><div style="font-size:14px;">${etiq(e.q)}${esc(e.q.texto)}</div><div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px;">Acertada ${pct(e.ok, e.v)}% · ${e.ok} de ${e.v} jugadoras a las que les salió · correcta: ${esc(e.q.opciones[e.q.correcta])}</div>
+      <details style="margin-top:5px;font-size:13px;"><summary style="cursor:pointer;">Quién acertó y quién falló</summary>${e.si.length ? `<div style="color:var(--verde);margin-top:4px;">✓ ${e.si.map(esc).join(", ")}</div>` : ""}${e.no.length ? `<div style="color:var(--rojo);margin-top:4px;">✗ ${e.no.map(esc).join("; ")}</div>` : ""}</details></div>`).join("")}` : ""}
     <div class="pestanas" style="margin:14px 0 0;"><button id="trCerrar">Volver a la lista</button></div><div id="avisoResultados"></div>`;
   $("trCerrar").addEventListener("click", () => { caja.hidden = true; });
+  caja.querySelectorAll("[data-det]").forEach(b => b.addEventListener("click", () => {
+    const i = ints.find(x => x.id === b.getAttribute("data-det")), c = caja.querySelector(`[data-detc="${i.id}"]`);
+    if (!c.hidden) { c.hidden = true; b.textContent = "Ver respuestas"; return; }
+    c.innerHTML = detalle(i) || '<div class="vacio">Sin detalle.</div>'; c.hidden = false; b.textContent = "Ocultar";
+  }));
   caja.querySelectorAll("[data-reset]").forEach(b => b.addEventListener("click", async () => {
     if (!confirm("¿Borrar su respuesta para que pueda hacer el test otra vez?")) return;
     const { error } = await sb.from("test_intentos").delete().eq("id", b.getAttribute("data-reset"));
@@ -1402,7 +1440,7 @@ async function verResultadosTest(id) {
   caja.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 $("btnNuevoTest").addEventListener("click", () => abrirEditorTest(null));
-$("teAddP").addEventListener("click", () => { TE.preguntas.push({ id: nidT(), texto: "", opciones: ["", "", "", ""], correcta: 0 }); pintarEditorTest(); });
+$("teAddP").addEventListener("click", () => { TE.preguntas.push({ id: nidT(), texto: "", opciones: ["", "", "", ""], correcta: 0, grupo: "todas", fija: false }); pintarEditorTest(); });
 $("tePegarOk").addEventListener("click", () => {
   const nuevas = parsePegado($("tePegar").value);
   if (!nuevas.length) { avisar("avisoEditorTest", "No he encontrado preguntas. Cada bloque necesita la pregunta y al menos 2 opciones.", "mal"); return; }
