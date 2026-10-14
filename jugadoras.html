@@ -7,7 +7,7 @@
 <title>Mi perfil · ScoutFlow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Archivo+Black&family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 <style>
   :root{
@@ -374,6 +374,17 @@
       --white:#1d242e; --suave:#232b36; --verde-suave:#16302a; --rojo-suave:#33211a;
     }
   }
+
+  /* ---- tema ScoutFlow (verde, Inter) ---- */
+  :root[data-tema="claro"]{--wood:#f5f6f7;--wood-line:#e4e7eb;--suave:#f1f3f5;--orange:#3f9c86;--orange-dark:#2f7f6c;--ink:#1f2933;--ink-soft:#66717d;--sombra:rgba(20,30,40,.08);}
+  body{font-family:'Inter','Archivo',system-ui,sans-serif;}
+  h1,h2,h3,.sub,.marca b,.asientos .as b{font-family:'Inter',system-ui,sans-serif !important;font-weight:700 !important;letter-spacing:-.4px;}
+  .marca .bola{background:#e0602a !important;} .marca span{color:#e0602a !important;}
+  .caja{border-width:1px;border-radius:16px;box-shadow:0 1px 2px rgba(20,30,40,.05);}
+  button{font-family:inherit;font-weight:600;}
+  input:focus,select:focus,textarea:focus{outline:0;border-color:#3f9c86 !important;box-shadow:0 0 0 3px rgba(63,156,134,.15);}
+  input[type=password],input[type=text]{width:100%;font-family:inherit;font-size:16px;padding:13px 14px;border:1.5px solid var(--wood-line);border-radius:10px;background:var(--suave);color:var(--ink);}
+  label.chk,label:has(input[type=checkbox]){text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;display:flex;gap:8px;align-items:center;}
 </style>
 </head>
 <body>
@@ -1657,7 +1668,7 @@ async function cargarTests() {
     </div>`;
   }).join("");
   caja.querySelectorAll("[data-test]").forEach(b => b.addEventListener("click", () => {
-    if (b.getAttribute("data-estado") === "pendiente" && !confirm("Solo puedes responder este test una vez. ¿Empezar ahora?")) return;
+    if (b.getAttribute("data-estado") === "pendiente" && !confirm("Solo puedes responder este test una vez y algunas preguntas tienen tiempo. ¿Empezar ahora?")) return;
     empezarTest(b.getAttribute("data-test"));
   }));
 }
@@ -1670,6 +1681,7 @@ async function empezarTest(id) {
   if (data.hecho) { cargarTests(); return; }
   const resp = {};
   const pregs = data.preguntas || [];
+  if (pregs.some(p => Number(p.seg) > 0)) { testCronometrado(id, data, pregs); return; }
   caja.innerHTML = `<div class="bloque"><h3>${esc(data.titulo)}</h3>
     <p class="expl">${pregs.length} preguntas. Solo puedes enviarlo una vez, así que repasa antes de terminar.</p></div>
     ${pregs.map((p, n) => `<div class="test-preg"><div class="enun"><b>${n + 1}.</b> ${esc(p.texto)}</div>
@@ -1687,6 +1699,48 @@ async function empezarTest(id) {
     mostrarResultadoTest(r.data);
   });
   window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+/* Test con tiempo por pregunta: una pregunta cada vez, sin volver atrás. El avance se guarda
+   para que recargar la página no dé más tiempo. */
+function testCronometrado(id, data, pregs) {
+  const caja = $("tab-tests"), LS = "tq." + id;
+  let est = {}; try { est = JSON.parse(localStorage.getItem(LS) || "{}"); } catch (e) { est = {}; }
+  const resp = est.resp || {}; let i = est.i || 0, t0 = est.t0 || 0, timer = null, enviando = false;
+  const guardar = () => { try { localStorage.setItem(LS, JSON.stringify({ i, t0, resp })); } catch (e) { /* sin almacenamiento */ } };
+  const mostrar = () => {
+    clearInterval(timer);
+    if (i >= pregs.length) return terminar();
+    const p = pregs[i], seg = Number(p.seg) || 0;
+    if (!t0) { t0 = Date.now(); guardar(); }
+    caja.innerHTML = `<div class="bloque"><h3>${esc(data.titulo)}</h3><p class="expl">Pregunta ${i + 1} de ${pregs.length}${seg ? ` · ${seg} segundos` : ""}. No puedes volver atrás.</p>
+      ${seg ? `<div style="height:8px;border-radius:5px;background:var(--wood-line);overflow:hidden;"><div id="tqBarra" style="height:100%;width:100%;background:var(--orange);transition:width .25s linear;"></div></div><p id="tqSeg" style="text-align:right;font-weight:800;margin:4px 0 0;"></p>` : ""}</div>
+      <div class="test-preg"><div class="enun"><b>${i + 1}.</b> ${esc(p.texto)}</div>
+      ${p.opciones.map((o, k) => `<label class="test-op"><input type="radio" name="tq" value="${k}" ${resp[p.id] === k ? "checked" : ""}><span>${esc(o)}</span></label>`).join("")}</div>
+      <button class="boton" id="tqSig">${i === pregs.length - 1 ? "Terminar" : "Siguiente"}</button>`;
+    caja.querySelectorAll("input[name=tq]").forEach(r => r.addEventListener("change", () => { resp[p.id] = Number(r.value); guardar(); }));
+    const pasar = () => { clearInterval(timer); i++; t0 = 0; guardar(); mostrar(); };
+    $("tqSig").addEventListener("click", pasar);
+    if (seg) {
+      const tic = () => {
+        const q = Math.max(0, seg - (Date.now() - t0) / 1000);
+        $("tqBarra").style.width = (100 * q / seg) + "%"; $("tqSeg").textContent = Math.ceil(q) + " s";
+        $("tqBarra").style.background = q <= 5 ? "var(--rojo)" : "var(--orange)";
+        if (q <= 0) pasar();
+      };
+      tic(); timer = setInterval(tic, 250);
+    }
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+  const terminar = async () => {
+    if (enviando) return; enviando = true;
+    caja.innerHTML = `<div class="vacio">Enviando tus respuestas…</div><div id="avisoTest"></div>`;
+    const r = await sb.rpc("test_enviar", { p_test: id, p_resp: resp });
+    if (r.error) { enviando = false; caja.innerHTML = `<div id="avisoTest"></div><button class="boton" id="tqRe">Reintentar envío</button>`; avisar("avisoTest", r.error.message, "mal"); $("tqRe").addEventListener("click", terminar); return; }
+    try { localStorage.removeItem(LS); } catch (e) { /* nada */ }
+    mostrarResultadoTest(r.data);
+  };
+  mostrar();
 }
 
 function mostrarResultadoTest(r) {

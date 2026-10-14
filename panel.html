@@ -7,7 +7,7 @@
 <title>Panel del entrenador · ScoutFlow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Archivo+Black&family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 <style>
   :root{
@@ -142,6 +142,15 @@
       --white:#1d242e; --suave:#232b36; --verde-suave:#16302a; --rojo-suave:#33211a;
     }
   }
+
+  /* ---- tema ScoutFlow (verde, Inter) ---- */
+  :root[data-tema="claro"]{--wood:#f5f6f7;--wood-line:#e4e7eb;--suave:#f1f3f5;--orange:#3f9c86;--orange-dark:#2f7f6c;--ink:#1f2933;--ink-soft:#66717d;--sombra:rgba(20,30,40,.08);}
+  body{font-family:'Inter','Archivo',system-ui,sans-serif;}
+  h1,h2,h3,.sub,.marca b,.asientos .as b{font-family:'Inter',system-ui,sans-serif !important;font-weight:700 !important;letter-spacing:-.4px;}
+  .marca .bola{background:#e0602a !important;} .marca span{color:#e0602a !important;}
+  .caja{border-width:1px;border-radius:16px;box-shadow:0 1px 2px rgba(20,30,40,.05);}
+  button{font-family:inherit;font-weight:600;}
+  input:focus,select:focus,textarea:focus{outline:0;border-color:#3f9c86 !important;box-shadow:0 0 0 3px rgba(63,156,134,.15);}
 </style>
 </head>
 <body>
