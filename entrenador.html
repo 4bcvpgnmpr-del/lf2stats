@@ -306,6 +306,7 @@
     #app,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#pbEd,#aviso{display:none !important;}
     body{background:#fff;}
     #hojaImp{display:block;padding:10mm;font-size:12pt;}
+    @page{@bottom-right{content:"ScoutFlow";font:600 8pt Inter,sans-serif;color:#8a96a3;}} #hojaImp h1{font-family:'Inter',sans-serif !important;font-weight:700 !important;letter-spacing:-.4px;}
     #hojaImp h1{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22pt;margin:0 0 4px;}
     #hojaImp .pbp .pbv-anim{display:none !important;} #hojaImp .pbp{-webkit-print-color-adjust:exact;print-color-adjust:exact;} #hojaImp .pbv-jug{break-inside:avoid;} #hojaImp .pbv-jug.pag{break-before:page;} #hojaImp .pbv-salto{break-after:page;} #hojaImp .pbv-ch{break-after:avoid;} #hojaImp .pbv-portada{height:125mm;min-height:0;padding:0;overflow:hidden;break-after:page;break-inside:avoid;} #hojaImp .pbv-portada img{width:90px;height:90px;} #hojaImp .pbv-portada h1{font-size:2.4em;} #hojaImp .pbv-toc{break-inside:avoid;margin-top:0;} #hojaImp .pbv-toc summary{list-style:none;} #hojaImp .pbv-toc summary::-webkit-details-marker{display:none;}
 
@@ -1031,7 +1032,7 @@ async function renombrarCarpeta(tipo, ruta) {
 async function borrarCarpeta(tipo, ruta) {
   const dentro = D[tipo].filter(y => y.carpeta && enRama(y.carpeta, ruta));
   const sub = rutasCarpetas(tipo).filter(c => c.nombre !== ruta && enRama(c.nombre, ruta)).length;
-  if (!confirm("¿Eliminar la carpeta «" + ultimo(ruta) + "»?" + (sub ? " También sus " + sub + " subcarpetas." : "") + (dentro.length ? " Los " + dentro.length + " elementos que contiene NO se borran: pasan a " + (padreDe(ruta) ? "«" + padreDe(ruta) + "»" : "la raíz") + "." : ""))) return;
+  if (!await confirmar("¿Eliminar la carpeta «" + ultimo(ruta) + "»?" + (sub ? " También sus " + sub + " subcarpetas." : "") + (dentro.length ? " Los " + dentro.length + " elementos que contiene NO se borran: pasan a " + (padreDe(ruta) ? "«" + padreDe(ruta) + "»" : "la raíz") + "." : ""))) return;
   for (const c of D.carpetas.filter(c => c.tipo === tipo && enRama(c.nombre, ruta))) await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", c.nombre);
   for (const x of dentro) await ponerCarpeta(tipo, x, padreDe(ruta));
   if (carpeta && enRama(carpeta, ruta)) carpeta = padreDe(ruta);
@@ -1353,7 +1354,7 @@ function pintarPlaybooks(v) {
   v.querySelectorAll(".fila[data-id]").forEach(el => {
     const p = D.playbooks.find(y => y.id === el.dataset.id);
     el.addEventListener("click", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); });
-    const b = el.querySelector(".mas"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📘 Abrir", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }], ["✏️ Editar playbook", () => abrirPbEd(p, false)], ["⚙ Datos (título, equipo…)", () => formPlaybook(p)], ["⧉ Duplicar", async () => { const c = clonar(p); c.id = idNuevo("b"); c.nombre += " (copia)"; c.compartido = false; pbCaps(c).forEach(k => { k.id = idNuevo("c"); }); if (await guardarFila("playbooks", c)) { await cargarTodo(); pintar(); } }], ["🗑 Eliminar", async () => { if (confirm("¿Borrar el playbook «" + p.nombre + "»? Las jugadas no se borran.") && await borrarFila("playbooks", p.id)) { await cargarTodo(); pintar(); } }, "pel"]]); });
+    const b = el.querySelector(".mas"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📘 Abrir", () => { vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }], ["✏️ Editar playbook", () => abrirPbEd(p, false)], ["⚙ Datos (título, equipo…)", () => formPlaybook(p)], ["⧉ Duplicar", async () => { const c = clonar(p); c.id = idNuevo("b"); c.nombre += " (copia)"; c.compartido = false; pbCaps(c).forEach(k => { k.id = idNuevo("c"); }); if (await guardarFila("playbooks", c)) { await cargarTodo(); pintar(); } }], ["🗑 Eliminar", async () => { if (await confirmar("¿Borrar el playbook «" + p.nombre + "»? Las jugadas no se borran.") && await borrarFila("playbooks", p.id)) { await cargarTodo(); pintar(); } }, "pel"]]); });
   });
 }
 /* ---- estilo del playbook (letra, colores, portada, índice…) ---- */
@@ -1695,7 +1696,7 @@ function pEd() {
   root.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { PL.tab = b.dataset.tab; pEd(); });
   if ($("peUn")) { $("peUn").onclick = deshacerPlan; $("peRe").onclick = rehacerPlan; $("peG").onclick = () => guardarPlan(false); $("peG2").onclick = (e) => abrirMenu(e, [["💾 Guardar y salir", () => guardarPlan(true)], ["🚪 Salir sin guardar", () => cerrarPlan(true)]]); }
   $("peAy").onclick = () => ventana(`<h3>Cómo funciona</h3><p style="line-height:1.5;">• Arrastra <b>⠿</b> para reordenar.<br>• Pulsa los minutos para cambiar el tiempo.<br>• <b>＋</b> vincula un ejercicio de tu biblioteca.<br>• «Añadir segmento ▾»: segmento vacío, reutilizar anteriores o encabezado de sección.<br>• «Vista previa» muestra el plan como quedará.</p><div class="pie-m"><button class="gris" id="ayX">Cerrar</button></div>`) || ($("ayX").onclick = cerrarVentana);
-  $("peMas").onclick = (e) => abrirMenu(e, [["🖨️ Imprimir / PDF", () => imprimirPlan(p)]].concat(ro ? [] : [["⧉ Duplicar plan", async () => { const c = clonar(p); c.id = idNuevo("p"); c.nombre = (c.nombre || "Plan") + " (copia)"; if (await guardarFila("planes", { id: c.id, nombre: c.nombre, carpeta: c.carpeta || "", fecha: c.fecha || null, data: c.data })) { aviso("Duplicado"); await cargarTodo(); PL = null; abrirPlan(D.planes.find(y => y.id === c.id) || c); } }], ...(p.nuevo ? [] : [["🗑 Eliminar plan", async () => { if (confirm("¿Borrar el plan «" + p.nombre + "»?") && await borrarFila("planes", p.id)) cerrarPlan(true); }, "pel"]])]));
+  $("peMas").onclick = (e) => abrirMenu(e, [["🖨️ Imprimir / PDF", () => imprimirPlan(p)]].concat(ro ? [] : [["⧉ Duplicar plan", async () => { const c = clonar(p); c.id = idNuevo("p"); c.nombre = (c.nombre || "Plan") + " (copia)"; if (await guardarFila("planes", { id: c.id, nombre: c.nombre, carpeta: c.carpeta || "", fecha: c.fecha || null, data: c.data })) { aviso("Duplicado"); await cargarTodo(); PL = null; abrirPlan(D.planes.find(y => y.id === c.id) || c); } }], ...(p.nuevo ? [] : [["🗑 Eliminar plan", async () => { if (await confirmar("¿Borrar el plan «" + p.nombre + "»?") && await borrarFila("planes", p.id)) cerrarPlan(true); }, "pel"]])]));
   if (tab === "tl") {
     root.querySelectorAll(".pe-fila").forEach(el => {
       const i = Number(el.dataset.i);
@@ -1910,7 +1911,7 @@ function pintarEquipos(v) {
   $("eqVac").onclick = () => { set.equipos.forEach(e => { e.s = Array(tam).fill(null); }); EQ.sel = null; guardar(); };
   $("eqPdf").onclick = () => imprimirEquipos(set);
   $("eqDup").onclick = () => { const c = clonar(set); c.id = idNuevo("q"); c.nombre += " (copia)"; EQ.sets.push(c); EQ.setId = c.id; guardar(); };
-  $("eqDel").onclick = () => { if (!confirm("¿Borrar «" + set.nombre + "»?")) return; EQ.sets = EQ.sets.filter(s => s !== set); EQ.setId = EQ.sets.length ? EQ.sets[0].id : ""; EQ.sel = null; guardar(); };
+  $("eqDel").onclick = async () => { if (!await confirmar("¿Borrar «" + set.nombre + "»?")) return; EQ.sets = EQ.sets.filter(s => s !== set); EQ.setId = EQ.sets.length ? EQ.sets[0].id : ""; EQ.sel = null; guardar(); };
   v.querySelectorAll("[data-en]").forEach(i => i.onchange = () => { set.equipos[Number(i.dataset.en)].n = i.value.trim() || "Equipo"; guardar(false); });
   v.querySelectorAll("[data-p]").forEach(c => c.onclick = () => { EQ.sel = EQ.sel && EQ.sel.id === c.dataset.p ? null : { id: c.dataset.p, e: -1, s: -1 }; pintarEquipos(v); });
   v.querySelectorAll(".eq-slot").forEach(el => el.onclick = () => {
@@ -2034,14 +2035,14 @@ function pintarMini(v) {
   $("mbN").onchange = () => { pl.nombre = $("mbN").value.trim() || pl.nombre; guardar(); pintarMini(v); };
   const aviso2 = (pen) => { if (pen > 0) aviso("No se pudo cumplir todo (revisa los avisos en rojo)"); };
   $("mbAuto").onclick = () => { aviso2(mbAuto(pl, false)); guardar(); pintarMini(v); };
-  $("mbRe").onclick = () => { if (!confirm("¿Borrar lo marcado y repartir de nuevo?")) return; aviso2(mbAuto(pl, true)); guardar(); pintarMini(v); };
-  $("mbLim").onclick = () => { if (!confirm("¿Quitar todas las marcas?")) return; pl.g = {}; guardar(); pintarMini(v); };
+  $("mbRe").onclick = async () => { if (!await confirmar("¿Borrar lo marcado y repartir de nuevo?")) return; aviso2(mbAuto(pl, true)); guardar(); pintarMini(v); };
+  $("mbLim").onclick = async () => { if (!await confirmar("¿Quitar todas las marcas?")) return; pl.g = {}; guardar(); pintarMini(v); };
   $("mbDup").onclick = () => { const c = clonar(pl); c.id = idNuevo("m"); c.nombre += " (copia)"; EQ.mini.push(c); EQ.miniId = c.id; guardar(); pintarMini(v); };
-  $("mbDel").onclick = () => { if (!confirm("¿Borrar «" + pl.nombre + "»?")) return; EQ.mini = EQ.mini.filter(x => x !== pl); EQ.miniId = EQ.mini.length ? EQ.mini[0].id : ""; guardar(); pintarMini(v); };
+  $("mbDel").onclick = async () => { if (!await confirmar("¿Borrar «" + pl.nombre + "»?")) return; EQ.mini = EQ.mini.filter(x => x !== pl); EQ.miniId = EQ.mini.length ? EQ.mini[0].id : ""; guardar(); pintarMini(v); };
   $("mbAdd").onclick = () => { ventana(`<h3>Añadir jugadora a este partido</h3><p class="peq">Solo cuenta en «${esc(pl.nombre)}»; no se añade a la plantilla.</p><div class="dos"><div><label>Dorsal</label><input id="mxD" inputmode="numeric"></div><div><label>Nombre</label><input id="mxN" placeholder="Nombre"></div></div><div class="pie-m"><button class="gris" id="mxX">Cancelar</button><button class="naranja" id="mxOk">Añadir</button></div>`); $("mxN").focus(); $("mxX").onclick = cerrarVentana;
     const ok = () => { const nm = $("mxN").value.trim(); if (!nm) { aviso("Escribe un nombre"); return; } pl.x = pl.x || []; pl.x.push({ id: idNuevo("x"), nombre: nm, num: $("mxD").value.trim() }); cerrarVentana(); guardar(); pintarMini(v); };
     $("mxOk").onclick = ok; $("mxN").addEventListener("keydown", (e) => { if (e.key === "Enter") ok(); }); };
-  v.querySelectorAll("[data-xq]").forEach(b => b.onclick = () => { const j = (pl.x || []).find(y => y.id === b.dataset.xq); if (!j || !confirm("¿Quitar a " + j.nombre + " de este partido?")) return; pl.x = pl.x.filter(y => y !== j); delete pl.g[j.id]; guardar(); pintarMini(v); });
+  v.querySelectorAll("[data-xq]").forEach(b => b.onclick = async () => { const j = (pl.x || []).find(y => y.id === b.dataset.xq); if (!j || !await confirmar("¿Quitar a " + j.nombre + " de este partido?")) return; pl.x = pl.x.filter(y => y !== j); delete pl.g[j.id]; guardar(); pintarMini(v); });
   v.querySelectorAll("[data-pr]").forEach(c => c.onchange = () => { const j = eqJug(c.dataset.pr); j.pres = c.checked; guardar(); pintarMini(v); });
   v.querySelectorAll(".mb-c").forEach(b => b.onclick = () => { const r = mbFila(pl, b.dataset.j), q = Number(b.dataset.q); r[q] = r[q] ? 0 : 1; guardar(); pintarMini(v); });
 }
@@ -2210,7 +2211,7 @@ function pintarArchivos(v, tipo) {
       else if (b.dataset.a === "ana") abrirAnalisis(pubUrl(a), a.nombre);
       else if (b.dataset.a === "mov") moverACarpeta(tipo, [D[tipo].find(x => x.id === a.id)].filter(Boolean));
       else if (b.dataset.a === "ren") preguntar("Renombrar", "Nombre", a.nombre, async (n) => { if (await guardarFila("archivos", Object.assign({}, a, { nombre: n }))) { await cargarTodo(); pintar(); } });
-      else if (b.dataset.a === "del" && confirm("¿Borrar «" + a.nombre + "»? Los enlaces que lo usen dejarán de funcionar.")) { await nube.storage.from("entrenador").remove([a.ruta]); if (await borrarFila("archivos", a.id)) { await cargarTodo(); pintar(); } }
+      else if (b.dataset.a === "del" && await confirmar("¿Borrar «" + a.nombre + "»? Los enlaces que lo usen dejarán de funcionar.")) { await nube.storage.from("entrenador").remove([a.ruta]); if (await borrarFila("archivos", a.id)) { await cargarTodo(); pintar(); } }
     }));
   });
   v.querySelectorAll("[data-ac]").forEach(b => b.onclick = () => { carpeta = b.dataset.ac === "raiz" ? "" : b.dataset.ac; pintarArchivos(v, tipo); });
@@ -2225,7 +2226,7 @@ function pintarArchivos(v, tipo) {
     await cargarTodo(); pintar(); })],
     ["🗑 Eliminar carpeta", async () => {
       const dentro = D[tipo].filter(x => x.carpeta && enRama(x.carpeta, r));
-      if (!confirm("¿Eliminar la carpeta «" + ultimo(r) + "»?" + (dentro.length ? " Los " + dentro.length + " archivos que contiene NO se borran: pasan a la raíz." : ""))) return;
+      if (!await confirmar("¿Eliminar la carpeta «" + ultimo(r) + "»?" + (dentro.length ? " Los " + dentro.length + " archivos que contiene NO se borran: pasan a la raíz." : ""))) return;
       if (dentro.length) await setCarpArch(dentro.map(x => x.id), "");
       for (const c of D.carpetas.filter(c => c.tipo === tipo && enRama(c.nombre, r))) await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", c.nombre);
       if (carpeta && enRama(carpeta, r)) carpeta = padreDe(r);
