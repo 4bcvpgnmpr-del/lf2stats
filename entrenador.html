@@ -2393,21 +2393,31 @@ async function subir(files, tipo) {
 /* ------------ mi equipo: escudo, nombre y temporada ------------ */
 const temporadaActual = () => { const d = new Date(), y = d.getFullYear(), m = d.getMonth(); const a = m >= 7 ? y : y - 1; return a + "/" + String(a + 1).slice(2); };
 const equipoDe = () => { const r = D.archivos.find(a => a.id === "_equipo"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } return { equipo: o.equipo || "", temporada: o.temporada || "", ruta: (r && r.ruta) || "" }; };
+const entrenadorDe = () => { const r = D.archivos.find(a => a.id === "_entrenador"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } return { nombre: o.nombre || "", ruta: (r && r.ruta) || "" }; };
+const urlPub = (r) => r && nube ? nube.storage.from("entrenador").getPublicUrl(r).data.publicUrl : "";
 function pintarPerfil() {
   const q = equipoDe(), p = $("perfil"); if (!p || !nube) return;
-  const url = q.ruta ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
-  $("perfilAv").innerHTML = url ? `<img src="${esc(url)}" alt="Escudo">` : "🏀"; p.classList.toggle("img", !!url);
-  $("perfilEq").textContent = q.equipo || "Mi equipo"; $("perfilTe").textContent = q.temporada ? "Temporada " + q.temporada : (puedeEscribir ? "Añade tu escudo" : "");
+  const en = entrenadorDe(), url = en.ruta ? urlPub(en.ruta) : (q.ruta ? urlPub(q.ruta) : "");
+  $("perfilAv").innerHTML = url ? `<img src="${esc(url)}" alt="Logo">` : "🏀"; p.classList.toggle("img", !!url);
+  $("perfilEq").textContent = en.nombre || q.equipo || "Mi perfil";
+  $("perfilTe").textContent = en.nombre ? (q.equipo || "Añade tu equipo") : (puedeEscribir ? "Añade tu nombre y logo" : "");
 }
 function formEquipo() {
   if (!puedeEscribir) return;
   const q = equipoDe(); let archivo = null, quitar = false;
   const url0 = q.ruta ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
-  ventana(`<h3>Mi equipo</h3><p class="peq" style="margin:0 0 6px;">El escudo y el nombre del equipo que entrenas esta temporada.</p>
+  const en = entrenadorDe(); let logoArch = null, logoQuitar = false; const logo0 = en.ruta ? urlPub(en.ruta) : "";
+  ventana(`<h3>Mi perfil</h3><p class="peq" style="margin:0 0 6px;">Tu nombre y tu logo de entrenador (salen en la bienvenida y en el menú).</p>
+    <label>Tu nombre</label><input id="enN" value="${esc(en.nombre)}" placeholder="Ej: Emiliano">
+    <label>Tu logo</label><div class="esc-prev"><div class="box" id="enBox">${logo0 ? `<img src="${esc(logo0)}" alt="">` : "🏀"}</div><div><button class="gris" id="enElegir" type="button">Elegir imagen…</button> ${logo0 ? '<button class="gris" id="enQuitar" type="button">Quitar</button>' : ""}<input type="file" id="enFile" accept="image/*" style="display:none;"></div></div>
+    <h3 style="margin-top:18px;font-size:16px;">Mi equipo</h3><p class="peq" style="margin:0 0 6px;">El escudo y el nombre del equipo que entrenas esta temporada.</p>
     <label>Escudo</label><div class="esc-prev"><div class="box" id="eqBox">${url0 ? `<img src="${esc(url0)}" alt="">` : "🏀"}</div><div><button class="gris" id="eqElegir">Elegir imagen…</button> ${url0 ? '<button class="gris" id="eqQuitar">Quitar</button>' : ""}<input type="file" id="eqFile" accept="image/*" style="display:none;"></div></div>
     <label>Equipo</label><input id="eqN" value="${esc(q.equipo)}" placeholder="Ej: Alevín A">
     <label>Temporada</label><input id="eqT" value="${esc(q.temporada || temporadaActual())}" placeholder="2026/27">
     <div class="pie-m"><button class="gris" id="eqX">Cancelar</button><button class="naranja" id="eqG">Guardar</button></div>`);
+  $("enElegir").onclick = () => $("enFile").click();
+  $("enFile").onchange = () => { const f = $("enFile").files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { aviso("La imagen pesa más de 5 MB."); return; } logoArch = f; logoQuitar = false; const r = new FileReader(); r.onload = () => { $("enBox").innerHTML = `<img src="${r.result}" alt="">`; }; r.readAsDataURL(f); };
+  if ($("enQuitar")) $("enQuitar").onclick = () => { logoQuitar = true; logoArch = null; $("enBox").textContent = "🏀"; };
   $("eqElegir").onclick = () => $("eqFile").click();
   $("eqFile").onchange = () => { const f = $("eqFile").files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { aviso("La imagen pesa más de 5 MB."); return; } archivo = f; quitar = false; const r = new FileReader(); r.onload = () => { $("eqBox").innerHTML = `<img src="${r.result}" alt="">`; }; r.readAsDataURL(f); };
   if ($("eqQuitar")) $("eqQuitar").onclick = () => { quitar = true; archivo = null; $("eqBox").textContent = "🏀"; };
@@ -2421,8 +2431,17 @@ function formEquipo() {
       if (ruta) await nube.storage.from("entrenador").remove([ruta]);
       ruta = nueva;
     } else if (quitar && ruta) { await nube.storage.from("entrenador").remove([ruta]); ruta = ""; }
+    let rutaL = en.ruta;
+    if (logoArch) {
+      const limpio = logoArch.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_"), nueva = "escudo/yo-" + Date.now() + "-" + limpio;
+      const { error } = await nube.storage.from("entrenador").upload(nueva, logoArch, { contentType: logoArch.type || undefined, upsert: false });
+      if (error) { aviso("No se pudo subir el logo: " + error.message); return; }
+      if (rutaL) await nube.storage.from("entrenador").remove([rutaL]);
+      rutaL = nueva;
+    } else if (logoQuitar && rutaL) { await nube.storage.from("entrenador").remove([rutaL]); rutaL = ""; }
+    await guardarFila("archivos", { id: "_entrenador", nombre: JSON.stringify({ nombre: $("enN").value.trim() }), tipo: "ajustes", ruta: rutaL || "", mime: "", tamano: 0 });
     const ok = await guardarFila("archivos", { id: "_equipo", nombre: JSON.stringify({ equipo: $("eqN").value.trim(), temporada: $("eqT").value.trim() }), tipo: "ajustes", ruta: ruta || "", mime: "", tamano: 0 });
-    if (ok) { cerrarVentana(); aviso("Equipo guardado ✓"); await cargarTodo(); pintar(); }
+    if (ok) { cerrarVentana(); aviso("Perfil guardado ✓"); await cargarTodo(); pintar(); }
   };
 }
 /* ------------ calendario: partidos de la FEB + entrenos y partidos de otras categorías ------------ */
@@ -2514,7 +2533,7 @@ function pintarInicio(v) {
   const filaJ = (x) => { const d = diagDe(x), nf = d && d.pasos ? d.pasos.length : 0; return `<div class="ini-li" data-j="${esc(x.id)}"><div class="m" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || "<span>🏀</span>"}</div><div><b>${esc(x.nombre || "(sin nombre)")}</b><small>${nf ? nf + (nf === 1 ? " fase" : " fases") : "Sin dibujo"}${x.carpeta ? " · " + esc(x.carpeta) : ""}</small></div></div>`; };
   const prox = evs.slice(0, 5);
   const filaC = (x) => { const t = CAL_TIPOS[x.tipo], r = x.feb ? calResultado(x.feb) : null; return `<div class="ini-li ev" data-ev="1"><span class="pt" style="background:${t.c}"></span><div><b>${esc(corto(x.fecha))} · ${esc(x.titulo)}</b><small>${esc(x.hora || "Todo el día")}${x.cat ? " · " + esc(x.cat) : ""}</small></div></div>`; };
-  v.innerHTML = `<div class="ini"><h1>${saludo}${eq ? ", " + esc(eq) : ""}</h1><p class="ini-sub">${esc(diaT)}</p>
+  v.innerHTML = `<div class="ini"><h1>${saludo}${entrenadorDe().nombre ? ", " + esc(entrenadorDe().nombre) : ""}</h1><p class="ini-sub">${esc(diaT)}</p>
     <div class="ini-g3">${tarjP}${tarjE}${tarjB}</div>
     <div class="ini-g2"><div class="ini-card"><div class="hd"><b>Jugadas recientes</b><a id="iniTodas">Ver todas</a></div>${rec.length ? rec.map(filaJ).join("") : '<div class="vacio">Todavía no hay jugadas.</div>'}</div>
     <div class="ini-card"><div class="hd"><b>Calendario</b><a id="iniCal3">Abrir</a></div>${prox.length ? prox.map(filaC).join("") : '<div class="vacio">Sin eventos próximos.</div>'}</div></div></div>`;
