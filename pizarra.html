@@ -2793,7 +2793,14 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
   document.body.classList.add("visor"); if (PARAMS.get("inline") === "1") document.body.classList.add("inline");
   const v = crearVisor({ pista: "vsPista", leyenda: "vsLeyenda", play: "vsPlay", prev: "vsPrev", next: "vsNext", titulo: "vsTitulo", notas: "vsNotas", videos: "vsVideos", linea: "vsLinea", tiempo: "vsTiempo" }, 1200);
   const altura = () => { try { parent.postMessage({ visorAltura: document.documentElement.scrollHeight }, "*"); } catch (e) { /* nada */ } };
-  window.addEventListener("message", (ev) => { if (ev.data && ev.data.jugada && ev.data.jugada.pasos) { v.abrir(ev.data.jugada); setTimeout(altura, 120); } });
+  window.addEventListener("message", (ev) => {
+    if (ev.data && ev.data.jugada && ev.data.jugada.pasos) {
+      let j = ev.data.jugada;
+      if (typeof ev.data.fase === "number" && j.pasos[ev.data.fase]) j = Object.assign({}, j, { pasos: [j.pasos[ev.data.fase]], opciones: null });   /* solo esa fase */
+      v.abrir(j); setTimeout(altura, 120);
+      if (ev.data.auto) setTimeout(() => { const b = $("vsPlay"); if (b) b.click(); }, 250);
+    }
+  });
   // miniaturas: la biblioteca del Entrenador pide el dibujo de varias jugadas de una vez
   window.addEventListener("message", (ev) => {
     if (ev.data && ev.data.fases && ev.data.fases.jugada) {

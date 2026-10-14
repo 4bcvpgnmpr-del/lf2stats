@@ -405,7 +405,8 @@
   .dj-cuerpo .pista{border-radius:6px;overflow:hidden;background:#eee;min-height:160px;} .dj-cuerpo .pista svg{display:block;width:100%;height:auto;}
   .dj-cuerpo ul{margin:10px 0 6px;padding-left:20px;font-size:16px;line-height:1.5;color:#2b3640;}
   .dj-cuerpo .meta{color:#6b7680;font-size:13px;margin-bottom:10px;}
-  .dj-cuerpo .pista-anim{background:transparent;min-height:0;aspect-ratio:547/514;} .dj-cuerpo .pista-anim iframe{display:block;width:100%;height:100%;border:0;}
+  .pista-w{position:relative;} .dj-cuerpo .pista.anim{background:transparent;min-height:0;aspect-ratio:547/514;} .dj-cuerpo .pista.anim iframe{display:block;width:100%;height:100%;border:0;}
+  .dj-ov{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:10px;padding:22px 12px 8px;border-radius:0 0 6px 6px;background:linear-gradient(to top,rgba(20,24,30,.55),rgba(20,24,30,0));} .dj-ov button{background:transparent;color:#fff;border:0;width:34px;height:34px;border-radius:8px;font-size:20px;padding:0;cursor:pointer;} .dj-ov button:hover{background:rgba(255,255,255,.2);} .dj-ov .ovbar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.4);}
   .dj-fases{display:grid;grid-template-columns:1fr;gap:0 24px;}
   @media (min-width:701px){ .dj-fases{grid-template-columns:1fr 1fr;} .dj-top{padding:10px 24px;} .dj-top b{text-align:left;font-size:19px;} }
 
@@ -2472,31 +2473,36 @@ function abrirDetalle(tipo, x) {
   if (d.pasos && d.pasos.length) {
     h += `<button class="jug-btn" id="djAnim">▶ Reproducir animación completa</button>`;
     h += '<div class="dj-fases">';
-    d.pasos.forEach((q, i) => { const ls = lineas(q.texto); h += `<div class="dj-fase"><h4>${esc(q.titulo || (d.pasos.length > 1 ? "Fase " + (i + 1) : ""))}</h4><div class="pista${i === 0 ? " pista-anim" : ""}" ${i === 0 ? 'id="djAnimBox"' : `data-f="${i}"`}></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}</div>`; });
+    d.pasos.forEach((q, i) => { const ls = lineas(q.texto); h += `<div class="dj-fase"><h4>${esc(q.titulo || (d.pasos.length > 1 ? "Fase " + (i + 1) : ""))}</h4><div class="pista-w"><div class="pista" data-f="${i}"></div><div class="dj-ov"><button type="button" data-play="${i}" aria-label="Ver esta fase en movimiento">▶</button><span class="ovbar"></span><button type="button" data-fs="1" aria-label="Pantalla completa">⛶</button></div></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}</div>`; });
     h += "</div>";
   } else h += '<p class="peq">Todavía no tiene dibujo. Pulsa «Editar» para dibujarla.</p>';
   $("djCuerpo").innerHTML = h; $("djCuerpo").scrollTop = 0; $("detalleJ").classList.add("ver");
   $("djEd").textContent = esJ ? "✏️ Editar jugada" : "✏️ Editar ejercicio";
   if ($("djAnim")) $("djAnim").onclick = () => reproducirDetalle();
   pedirFases(x, tipo, detalleActual.id);
-  /* la primera pista es un reproductor: se anima ahí mismo (▶, barra de progreso y pantalla completa) */
-  const caja = $("djAnimBox");
-  if (caja && d.pasos && d.pasos.length) {
-    const fr = document.createElement("iframe"); fr.title = "Jugada animada"; fr.className = "dj-anim"; inlineWin = null;
-    fr.src = "pizarra.html?visor=1&inline=1&v=" + VERSION; caja.innerHTML = ""; caja.appendChild(fr); inlineWin = fr; inlineJug = Object.assign({}, d, { nombre: x.nombre });
-  }
+  /* cada fase es un reproductor: ▶ la anima ahí mismo (solo esa fase), ⛶ abre la animación completa en grande */
+  inlineWins = [];
+  $("djCuerpo").querySelectorAll(".dj-ov").forEach(ov => {
+    ov.querySelector("[data-fs]").onclick = () => reproducirDetalle();
+    ov.querySelector("[data-play]").onclick = () => {
+      const n = Number(ov.querySelector("[data-play]").dataset.play), caja = ov.previousElementSibling, fr = document.createElement("iframe");
+      fr.title = "Fase " + (n + 1) + " en movimiento"; fr.className = "dj-anim"; fr.src = "pizarra.html?visor=1&inline=1&v=" + VERSION;
+      inlineWins.push({ fr, n, jug: Object.assign({}, d, { nombre: x.nombre }) });
+      caja.classList.add("anim"); caja.innerHTML = ""; caja.appendChild(fr); ov.style.display = "none";
+    };
+  });
 }
-let inlineWin = null, inlineJug = null;
+let inlineWins = [];
 window.addEventListener("message", (ev) => {
-  const d = ev.data || {}; if (!inlineWin || ev.source !== inlineWin.contentWindow) return;
-  if (d.visorListo && inlineJug) { try { inlineWin.contentWindow.postMessage({ jugada: inlineJug }, "*"); } catch (er) { /* nada */ } }
+  const d = ev.data || {}, w = inlineWins.find(q => q.fr.contentWindow === ev.source); if (!w) return;
+  if (d.visorListo) { try { w.fr.contentWindow.postMessage({ jugada: w.jug, fase: w.n, auto: true }, "*"); } catch (er) { /* nada */ } }
   if (d.inlineFS) reproducirDetalle();
 });
 function reproducirDetalle() {
   const { x, tipo } = detalleActual; const diag = diagDe(x); if (!diag) return;
   verJugada(tipo === "jugadas" ? x : { id: x.id, nombre: x.nombre, data: Object.assign({}, diag) });
 }
-$("djAtras").addEventListener("click", () => { $("detalleJ").classList.remove("ver"); detalleActual = null; if (inlineWin) { inlineWin.src = "about:blank"; inlineWin = null; } });
+$("djAtras").addEventListener("click", () => { $("detalleJ").classList.remove("ver"); detalleActual = null; inlineWins.forEach(q => { q.fr.src = "about:blank"; }); inlineWins = []; });
 $("djPlay").addEventListener("click", reproducirDetalle);
 $("djEd").addEventListener("click", () => { if (detalleActual) editarElemento(detalleActual.tipo, detalleActual.x); });
 $("djMas").addEventListener("click", (ev) => { if (!detalleActual) return; const { tipo, x } = detalleActual; abrirMenu(ev, opcionesElemento(tipo, x).map(([t, f, c]) => [t, () => { if (/Eliminar/.test(t)) { $("detalleJ").classList.remove("ver"); } f(); }, c])); });
