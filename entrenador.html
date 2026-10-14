@@ -303,7 +303,7 @@
   @page plan{size:A4;margin:12mm 12mm 16mm;} @page eqs{size:A4 landscape;margin:12mm;}
   #hojaImp{display:none;}
   @media print{
-    #app,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#pbEd,#aviso{display:none !important;}
+    #app,#detalleJ,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#pbEd,#aviso{display:none !important;}
     body{background:#fff;}
     #hojaImp{display:block;padding:10mm;font-size:12pt;}
     @page{@bottom-right{content:"ScoutFlow";font:600 8pt Inter,sans-serif;color:#8a96a3;}} #hojaImp h1{font-family:'Inter',sans-serif !important;font-weight:700 !important;letter-spacing:-.4px;}
@@ -561,6 +561,11 @@
   .dlg-b{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;} .dlg-b button{padding:10px 16px;border:1px solid var(--line);background:#fff;color:var(--ink);}
   .dlg-b .dlg-p{background:#d64545;border-color:#d64545;color:#fff;} .dlg-b .dlg-ok{background:var(--g);border-color:var(--g);color:#fff;}
   .dj-mig .lk{cursor:pointer;} .dj-mig .lk:hover{color:var(--g);text-decoration:underline;}
+  #menuPop .msep{height:1px;background:var(--line);margin:5px 6px;}
+  .cmp{min-width:min(520px,86vw);} .cmp-t{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line);margin-bottom:14px;} .cmp-t .esp{flex:1;} .cmp-t button{background:transparent;color:var(--soft);padding:10px 14px;border-radius:0;border-bottom:3px solid transparent;font-size:15px;} .cmp-t button.on{color:var(--ink);border-bottom-color:var(--g);} .cmp-t #cmpX{border:0;font-size:16px;padding:6px 10px;}
+  .cmp-url{display:flex;gap:8px;margin-bottom:10px;} .cmp-url input{flex:1;} .cmp-url button{background:var(--g);color:#fff;padding:0 16px;} .cmp-un{color:#d64545 !important;border-color:#f1b5b5 !important;margin-top:6px;} .cmp textarea{width:100%;margin:6px 0 10px;font-family:monospace;font-size:12.5px;} .cmp-fases{display:flex;gap:8px;flex-wrap:wrap;}
+  #hojaImp .pdf-fases{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-top:6mm;} #hojaImp .pdf-fase{break-inside:avoid;} #hojaImp .pdf-fh{font-weight:700;margin-bottom:2mm;} #hojaImp .pdf-fd svg{width:100%;height:auto;display:block;border-radius:6px;} #hojaImp .pdf-fase p{font-size:10pt;margin:2mm 0 0;}
+  .cmp-bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:6px 0;} .cmp-bar i{display:block;height:100%;width:40%;background:var(--g);border-radius:6px;animation:cmpb 1.2s ease-in-out infinite;} @keyframes cmpb{0%{margin-left:-40%}100%{margin-left:100%}}
   /* inicio */
   .ini{max-width:1180px;} .ini h1{font-size:34px;font-weight:700;letter-spacing:-.9px;margin:2px 0 4px;} .ini-sub{color:var(--soft);margin:0 0 26px;font-size:15.5px;}
   .ini-g3{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;} .ini-g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
@@ -715,11 +720,11 @@ function pintar() {
 }
 
 /* ------------ menu emergente y ventana ------------ */
-const ICM = { "✏️": '<path d="M4 20h4L19 9l-4-4L4 16z"/>', "📝": '<path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/>', "▶": '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/>', "📤": '<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>', "🙈": '<path d="M3 3l18 18M10.5 5.2A9.5 9.5 0 0 1 21 12a14 14 0 0 1-3 3.8M6.3 6.6A14 14 0 0 0 3 12s3.5 7 9 7a8.7 8.7 0 0 0 3.6-.8"/>', "🔗": '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>', "🚫": '<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>', "🏷": '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>', "📁": '<path d="M3 6a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', "⧉": '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>', "🗑": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', "📂": '<path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v1H3z"/><path d="M3 11h18l-2 8H5z"/>' };
+const ICM = { "⬇": '<path d="M12 4v11m-4-4 4 4 4-4M5 20h14"/>', "⎘": '<path d="M14 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8z"/><path d="M14 4v4h4M10 14h4m-2-2v4"/>', "↪": '<path d="M5 5v6a3 3 0 0 0 3 3h11m-4-4 4 4-4 4"/>', "✏️": '<path d="M4 20h4L19 9l-4-4L4 16z"/>', "📝": '<path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/>', "▶": '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/>', "📤": '<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>', "🙈": '<path d="M3 3l18 18M10.5 5.2A9.5 9.5 0 0 1 21 12a14 14 0 0 1-3 3.8M6.3 6.6A14 14 0 0 0 3 12s3.5 7 9 7a8.7 8.7 0 0 0 3.6-.8"/>', "🔗": '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>', "🚫": '<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>', "🏷": '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>', "📁": '<path d="M3 6a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', "⧉": '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>', "🗑": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', "📂": '<path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v1H3z"/><path d="M3 11h18l-2 8H5z"/>' };
 const menu = $("menuPop");
 function abrirMenu(ev, opciones) {
   ev.stopPropagation();
-  menu.innerHTML = ""; opciones.forEach(([t, f, c]) => { const b = document.createElement("button"); const mi = /^(✏️|📝|▶|📤|🙈|🔗|🚫|🏷|📁|⧉|🗑|📂)\s*(.*)$/.exec(t); if (mi && ICM[mi[1]]) b.innerHTML = '<svg class="ico" viewBox="0 0 24 24">' + ICM[mi[1]] + "</svg><span>" + esc(mi[2]) + "</span>"; else b.textContent = t; if (c) b.className = c; b.addEventListener("click", () => { menu.style.display = "none"; f(); }); menu.appendChild(b); });
+  menu.innerHTML = ""; opciones.forEach(([t, f, c]) => { if (t === "-") { const hr = document.createElement("div"); hr.className = "msep"; menu.appendChild(hr); return; } const b = document.createElement("button"); const mi = /^(⬇|⎘|↪|✏️|📝|▶|📤|🙈|🔗|🚫|🏷|📁|⧉|🗑|📂)\s*(.*)$/.exec(t); if (mi && ICM[mi[1]]) b.innerHTML = '<svg class="ico" viewBox="0 0 24 24">' + ICM[mi[1]] + "</svg><span>" + esc(mi[2]) + "</span>"; else b.textContent = t; if (c) b.className = c; b.addEventListener("click", () => { menu.style.display = "none"; f(); }); menu.appendChild(b); });
   menu.style.display = "block";
   const r = ev.currentTarget.getBoundingClientRect();
   menu.style.left = Math.max(8, Math.min(r.right - 190, innerWidth - 200)) + "px";
@@ -963,17 +968,74 @@ function datosCompartir(tipo, x) {
   const d = x.data || {};
   return { t: "plan", d: { fecha: x.fecha || "", inicio: d.inicio || "", notas: d.notas || "", items: (d.ejercicios || []).map(e => { if (e.sec) return { sec: true, titulo: e.titulo || "Sección" }; const ej = ejDe(e), dd = (ej && ej.data) || {}; return { titulo: tituloSeg(e) || "Ejercicio", min: e.min || 0, notas: e.notas || "", categoria: dd.categoria || "", descripcion: dd.descripcion || "", materiales: dd.materiales || "", diagrama: diagDe(ej) || null }; }) } };
 }
-async function compartirEnlace(tipo, x) {
+async function asegurarEnlace(tipo, x) {
   let tk = ""; try { tk = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ }
   if (!tk) { const a = new Uint8Array(9); crypto.getRandomValues(a); tk = [...a].map(b => b.toString(36).padStart(2, "0")).join("").slice(0, 14); }
   const { t, d } = datosCompartir(tipo, x);
-  aviso("Creando el enlace…");
   const { error } = await nube.from("compartidos").upsert({ token: tk, tipo: t, nombre: x.nombre || "", data: d });
-  if (error) { aviso(/compartidos|relation|schema/i.test(error.message) ? "Falta ejecutar compartir.sql en Supabase" : "No se pudo crear: " + error.message); return; }
+  if (error) { aviso(/compartidos|relation|schema/i.test(error.message) ? "Falta ejecutar compartir.sql en Supabase" : "No se pudo crear: " + error.message); return ""; }
   try { localStorage.setItem(TK_K(x.id), tk); } catch (e) { /* nada */ }
-  const url = enlaceDe(tk);
-  if (navigator.share) { try { await navigator.share({ title: x.nombre || "ScoutFlow", url }); aviso("Enlace compartido (se actualiza al volver a compartir)"); return; } catch (e) { if (e && e.name === "AbortError") return; } }
-  try { await navigator.clipboard.writeText(url); aviso("🔗 Enlace copiado"); } catch (e) { prompt("Copia el enlace:", url); }
+  return enlaceDe(tk);
+}
+function svgAPng(svg, ancho) {
+  return new Promise((ok) => {
+    let t = String(svg); if (!/xmlns=/.test(t)) t = t.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    const m = /viewBox="([\d.\s-]+)"/.exec(t), vb = m ? m[1].trim().split(/\s+/).map(Number) : [0, 0, 400, 400], k = (ancho || 1200) / vb[2];
+    const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); c.width = Math.round(vb[2] * k); c.height = Math.round(vb[3] * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); c.toBlob(ok, "image/png"); }; img.onerror = () => ok(null);
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t);
+  });
+}
+function bajarBlob(blob, nombre) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+async function compartirEnlace(tipo, x) {
+  const dib = (tipo === "jugadas" || tipo === "ejercicios") && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length;
+  let url = "", svgs = null, vid = null, vidPidiendo = false, vidError = "";
+  const m = ventana(`<div class="cmp"><div class="cmp-t"><button data-t="e" class="on">Enlace</button>${dib ? '<button data-t="v">Vídeo</button><button data-t="i">Imagen</button>' : ""}<button data-t="m">Insertar</button><span class="esp"></span><button id="cmpX" aria-label="Cerrar">✕</button></div><div id="cmpB"><p class="peq">Creando el enlace…</p></div></div>`, false);
+  $("cmpX").onclick = cerrarVentana;
+  const pintarTab = (t) => {
+    m.querySelectorAll(".cmp-t [data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+    const B = $("cmpB");
+    if (!url) { B.innerHTML = '<p class="peq">No se pudo crear el enlace.</p>'; return; }
+    if (t === "e") {
+      B.innerHTML = `<div class="cmp-url"><input readonly id="cmpU" value="${esc(url)}"><button id="cmpC" title="Copiar">Copiar</button></div><p class="peq">Cualquiera con el enlace puede verlo (solo lectura). Se actualiza al volver a compartir.</p><button class="gris cmp-un" id="cmpD">Dejar de compartir</button>`;
+      $("cmpU").onclick = () => $("cmpU").select();
+      $("cmpC").onclick = async () => { try { await navigator.clipboard.writeText(url); } catch (e) { $("cmpU").select(); document.execCommand("copy"); } aviso("🔗 Enlace copiado"); };
+      $("cmpD").onclick = async () => { await dejarDeCompartir(tipo, x); cerrarVentana(); };
+    } else if (t === "v") {
+      if (vid) { B.innerHTML = `<p class="peq">Vídeo listo (${esc(vid.ext.toUpperCase())}).</p><button class="naranja" id="cmpV">⬇ Descargar vídeo</button>`; $("cmpV").onclick = () => bajarBlob(vid.blob, (x.nombre || "jugada").replace(/[^\w\-]+/g, "_") + "." + vid.ext); return; }
+      B.innerHTML = '<p class="peq">Grabando la jugada animada… dura lo mismo que la animación. No cierres esta ventana.</p><div class="cmp-bar"><i></i></div>';
+      if (!vidPidiendo) { vidPidiendo = true; pedirVideo(x, (r) => { vidPidiendo = false; if (r && r.blob) { vid = r; } else { vid = null; vidError = (r && r.error) || "No se pudo grabar el vídeo"; } if ($("cmpB") && m.querySelector('.cmp-t [data-t="v"].on')) { if (vid) pintarTab("v"); else $("cmpB").innerHTML = '<p class="peq">' + esc(vidError) + "</p>"; } }); }
+    } else if (t === "m") {
+      const cod = `<iframe src="${url}" width="720" height="640" style="border:0;" allowfullscreen></iframe>`;
+      B.innerHTML = `<p class="peq">Pega este código en tu web o blog:</p><textarea readonly id="cmpE" rows="3">${esc(cod)}</textarea><button class="gris" id="cmpEC">Copiar código</button>`;
+      $("cmpEC").onclick = async () => { try { await navigator.clipboard.writeText(cod); } catch (e) { $("cmpE").select(); document.execCommand("copy"); } aviso("Código copiado"); };
+    } else {
+      B.innerHTML = '<p class="peq">Preparando las fases…</p>';
+      const ver = (lst) => { svgs = lst || []; B.innerHTML = svgs.length ? `<p class="peq">Descarga cada fase como imagen PNG:</p><div class="cmp-fases">${svgs.map((_, i) => `<button class="gris" data-f="${i}">⬇ Fase ${i + 1}</button>`).join("")}</div>` : '<p class="peq">No hay fases que descargar.</p>'; B.querySelectorAll("[data-f]").forEach(b => b.onclick = async () => { const i = Number(b.dataset.f), bl = await svgAPng(svgs[i]); if (bl) bajarBlob(bl, (x.nombre || "jugada").replace(/[^\w\-]+/g, "_") + "_fase" + (i + 1) + ".png"); else aviso("No se pudo crear la imagen"); }); };
+      if (svgs) ver(svgs); else pedirFases(x, tipo, "img|" + x.id + "|" + Date.now(), ver);
+    }
+  };
+  m.querySelectorAll(".cmp-t [data-t]").forEach(b => b.onclick = () => pintarTab(b.dataset.t));
+  try { url = await asegurarEnlace(tipo, x); } catch (e) { url = ""; aviso("No se pudo crear el enlace"); } pintarTab("e");
+}
+function pedirVideo(x, cb) {
+  const diag = diagDe(x); if (!diag || !diag.pasos) { cb(null); return; }
+  const id = "vid|" + x.id + "|" + Date.now(), fr = document.createElement("iframe");
+  fr.style.cssText = "position:fixed;left:0;top:0;width:900px;height:700px;border:0;opacity:0;pointer-events:none;z-index:-1;"; fr.title = "video"; fr.src = "pizarra.html?visor=1&v=" + VERSION;
+  let fin = false; const cerrar = (r) => { if (fin) return; fin = true; window.removeEventListener("message", on); clearTimeout(t); fr.remove(); cb(r); };
+  const on = (ev) => { if (!ev.data) return; if (ev.data.visorListo && ev.source === fr.contentWindow) fr.contentWindow.postMessage({ video: { id, jugada: diag, dur: 1400 } }, "*"); if (ev.data.videoListo && ev.data.videoListo.id === id) cerrar(ev.data.videoListo); };
+  const t = setTimeout(() => cerrar({ error: "Tardó demasiado" }), 180000);
+  window.addEventListener("message", on); document.body.appendChild(fr);
+}
+async function pdfElemento(tipo, x) {
+  const d = diagDe(x) || { pasos: [] };
+  aviso("Preparando el PDF…");
+  const svgs = d.pasos && d.pasos.length ? await new Promise((ok) => { const t = setTimeout(() => ok([]), 8000); pedirFases(x, tipo, "pdf|" + x.id + "|" + Date.now(), (l) => { clearTimeout(t); ok(l || []); }); }) : [];
+  const q = equipoDe(), url = q.ruta && nube ? nube.storage.from("entrenador").getPublicUrl(q.ruta).data.publicUrl : "";
+  const dd = x.data || {}, notas = tipo === "jugadas" ? (d.notas || dd.notas || "") : (dd.descripcion || "");
+  const fases = svgs.map((sv, i) => { const p = d.pasos[i] || {}; return `<div class="pdf-fase"><div class="pdf-fh"><b>${esc(p.titulo || "Fase " + (i + 1))}</b></div><div class="pdf-fd">${sv}</div>${p.texto ? `<p>${esc(p.texto).replace(/\n/g, "<br>")}</p>` : ""}</div>`; }).join("");
+  const h = $("hojaImp"); h.className = "pdf-plan";
+  h.innerHTML = `<div class="pdf-cab"><div><small>${tipo === "jugadas" ? "JUGADA" : "EJERCICIO"}</small><h1>${esc(x.nombre || "(sin nombre)")}</h1><div class="pdf-meta">${[q.equipo, tipo === "ejercicios" ? dd.categoria : "", tipo === "ejercicios" && dd.minutos ? dd.minutos + " min" : ""].filter(Boolean).map(esc).join(" · ")}</div></div>${url ? `<img class="pdf-esc" src="${esc(url)}" alt="">` : ""}</div>${notas ? `<div class="pdf-obj"><b>NOTAS</b>${esc(notas).replace(/\n/g, "<br>")}</div>` : ""}<div class="pdf-fases">${fases}</div><div class="pdf-pie">ScoutFlow · ${esc(x.nombre || "")}</div>`;
+  await esperaImgs(h); window.print();
 }
 async function dejarDeCompartir(tipo, x) {
   let tk = ""; try { tk = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ }
@@ -984,12 +1046,16 @@ async function dejarDeCompartir(tipo, x) {
   aviso("Dejaste de compartirlo");
 }
 function opcionesElemento(tipo, x) {
-  const o = [["✏️ " + (tipo === "jugadas" || tipo === "ejercicios" ? "Editar en la pizarra" : "Abrir"), () => editarElemento(tipo, x)]];
+  const dib = tipo === "jugadas" || tipo === "ejercicios", o = [];
+  o.push(["✏️ " + (dib ? (tipo === "jugadas" ? "Editar jugada" : "Editar ejercicio") : "Abrir"), () => editarElemento(tipo, x)]);
   if (tipo === "ejercicios") o.push(["📝 Editar datos (material, vídeo…)", () => formEjercicio(x)]);
   if (tipo === "jugadas" && puedeEscribir) o.push(["📝 Nombre, equipo y temporada…", () => formJugada(x)]);
+  if (dib && puedeEscribir && puedeCrear(tipo)) o.push(["⎘ Copiar y editar", async () => { const c = await duplicar(tipo, x); const n = c && D[tipo].find(y => y.id === c.id); if (n) editarElemento(tipo, n); }]);
+  o.push(["-"]);
   if (tipo === "jugadas") o.push(["▶ Ver animada", () => verJugada(x)], [x.compartida ? "🙈 Ocultar a las jugadoras" : "📤 Mostrar a las jugadoras", () => alternarComp(x)]);
-  if (puedeEscribir && (tipo === "jugadas" || tipo === "ejercicios" || tipo === "planes")) { o.push(["🔗 Compartir enlace (solo lectura)", () => compartirEnlace(tipo, x)]); let tk0 = ""; try { tk0 = localStorage.getItem(TK_K(x.id)) || ""; } catch (e) { /* nada */ } if (tk0) o.push(["🚫 Dejar de compartir", () => dejarDeCompartir(tipo, x)]); }
-  o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Duplicar", () => duplicar(tipo, x)], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
+  if (puedeEscribir && (dib || tipo === "planes")) o.push(["🔗 Compartir…", () => compartirEnlace(tipo, x)]);
+  if (dib) o.push(["⬇ Descargar PDF", () => pdfElemento(tipo, x)]);
+  o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["-"], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Copiar", () => duplicar(tipo, x)], ["-"], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
   return o;
 }
 async function moverCarpeta(tipo, de, a) {
@@ -1059,7 +1125,8 @@ function moverACarpeta(tipo, lista) {
 async function duplicar(tipo, x) {
   if (!puedeCrear(tipo)) return;
   const c = clonar(x); c.id = idNuevo(tipo[0]); c.nombre = (c.nombre || "") + " (copia)"; if (tipo === "jugadas") { c.compartida = false; c.data.id = c.id; c.data.nombre = c.nombre; c.data.compartida = false; }
-  if (await guardarFila(TABLA_DE[tipo], c)) { aviso("Duplicado"); await cargarTodo(); pintar(); }
+  if (await guardarFila(TABLA_DE[tipo], c)) { aviso("Duplicado"); await cargarTodo(); pintar(); return c; }
+  return null;
 }
 async function borrarElemento(tipo, x) { if (!await confirmar("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
 async function alternarComp(x) { const c = clonar(x); c.compartida = !c.compartida; c.data.compartida = c.compartida; if (await guardarFila("jugadas", c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); await cargarTodo(); pintar(); } }

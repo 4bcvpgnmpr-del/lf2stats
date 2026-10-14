@@ -1253,6 +1253,36 @@ function animarJugada(j, caja, dur, op) {
 }
 const tiempoTxt = (ms) => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
 
+/* graba la jugada animada en un video (mp4 si el navegador puede, si no webm) y lo devuelve al padre */
+function grabarVideo(cfg) {
+  const resp = (o) => { try { parent.postMessage({ videoListo: Object.assign({ id: cfg.id }, o) }, "*"); } catch (e) { /* nada */ } };
+  try {
+    const j = normalizar(JSON.parse(JSON.stringify(cfg.jugada))), W = 960, H = Math.round(W * (FONDO * S + 2 * MG) / (ANCHO * S + 2 * MG));
+    const caja = document.createElement("div"); caja.style.cssText = "position:fixed;left:-9999px;top:0;width:" + W + "px;height:" + H + "px;"; document.body.appendChild(caja);
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d");
+    const tipos = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"], tipo = tipos.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+    if (!tipo) { resp({ error: "Este navegador no puede grabar video" }); caja.remove(); return; }
+    const rec = new MediaRecorder(cv.captureStream(30), { mimeType: tipo, videoBitsPerSecond: 4000000 }), trozos = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) trozos.push(e.data); };
+    rec.onstop = () => { caja.remove(); resp({ blob: new Blob(trozos, { type: tipo.split(";")[0] }), ext: /mp4/.test(tipo) ? "mp4" : "webm" }); };
+    let pend = false;
+    const pintar = () => new Promise((ok) => {
+      const sv = caja.querySelector("svg"); if (!sv) { ok(); return; }
+      const img = new Image(); img.onload = () => { cx.fillStyle = "#fff"; cx.fillRect(0, 0, W, H); cx.drawImage(img, 0, 0, W, H); ok(); }; img.onerror = () => ok();
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(sv));
+    });
+    const dur = Number(cfg.dur) || 1400;
+    fotogramaAnim(j, caja, 0, 0, dur);
+    pintar().then(() => {
+      rec.start(250);
+      animarJugada(j, caja, dur, {
+        enProgreso: () => { if (pend) return; pend = true; pintar().then(() => { pend = false; }); },
+        alAcabar: async () => { while (pend) await new Promise(r => setTimeout(r, 20)); await pintar(); await new Promise(r => setTimeout(r, 400)); rec.stop(); }
+      });
+    });
+  } catch (e) { resp({ error: String(e && e.message || e) }); }
+}
+
 /* ---------- video: youtube, vimeo, archivo o enlace ---------- */
 function videoHtml(u) {
   u = String(u || "").trim(); if (!u) return "";
@@ -2803,6 +2833,7 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
   });
   // miniaturas: la biblioteca del Entrenador pide el dibujo de varias jugadas de una vez
   window.addEventListener("message", (ev) => {
+    if (ev.data && ev.data.video && ev.data.video.jugada) { grabarVideo(ev.data.video); return; }
     if (ev.data && ev.data.fases && ev.data.fases.jugada) {
       const out = []; try { const j = normalizar(JSON.parse(JSON.stringify(ev.data.fases.jugada))); j.pasos.forEach((q, i) => out.push(svgPaso(j, i, {}))); } catch (e) { /* nada */ }
       try { parent.postMessage({ fasesListas: { id: ev.data.fases.id, svgs: out } }, "*"); } catch (e) { /* nada */ }
