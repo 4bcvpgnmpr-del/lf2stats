@@ -272,6 +272,7 @@
 
   .mini-s{flex:none;width:64px;height:48px;border:1px solid #d9dee3;border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:2px;font-size:18px;} .mini-s svg{width:100%;height:100%;display:block;}
   .lista-sel label.it span.mini-s{display:flex;gap:0;}
+  .pe-mini[data-ver]{position:relative;cursor:pointer;} .pe-mini[data-ver]::after,.pe-mini[data-ver]:hover::after{content:"▶";position:absolute;right:3px;bottom:3px;width:20px;height:20px;border-radius:50%;background:rgba(31,41,51,.78);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;} .pe-mini[data-ver]:hover{border-color:var(--pg);box-shadow:0 0 0 2px rgba(63,156,134,.35);}
   .pe-mini{flex:none;width:68px;height:50px;border:1px solid var(--pln);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 8px 0 10px;padding:2px;font-size:18px;} .pe-mini svg{width:100%;height:100%;display:block;} .pe-mini.grande{width:150px;height:110px;margin:0 0 0 10px;}
   .pe-c2{display:flex;align-items:center;} .pe-c3{display:flex;align-items:center;} .pe-c3 input{flex:1;min-width:0;} .pe-rep{flex:none;background:#e8f4f0;color:#2f8f78;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;margin-left:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .eq-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start;} .eq-card{background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:14px;} .eq-card h3{margin:0 0 8px;font-size:16px;}
@@ -526,7 +527,7 @@
 
 <script>
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
-const VERSION = "2026-10-09";
+const VERSION = "2026-10-14";
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const clonar = (o) => JSON.parse(JSON.stringify(o));
@@ -966,12 +967,24 @@ function abrirEditor(id, tabla) {
   $("marcoEd").src = u; $("editorMarco").classList.add("ver");
 }
 async function cerrarEditorMarco() { $("editorMarco").classList.remove("ver"); $("marcoEd").src = "about:blank"; await cargarTodo(); pintar(); }
+const animDe = (ej) => { const d = diagDe(ej); return !!(d && d.pasos && d.pasos.length); };
+function verEjercicio(ej) {
+  if (!ej || !animDe(ej)) { aviso("Este ejercicio no tiene dibujo para animar."); return; }
+  verJugada({ id: ej.id, nombre: ej.nombre, data: Object.assign({}, diagDe(ej)) });
+}
 function verJugada(x) {
   $("tituloVisor").textContent = x.nombre || "Jugada";
   const marco = $("marcoVisor"); window.__enviarJugada = () => { try { marco.contentWindow.postMessage({ jugada: Object.assign({}, x.data, { nombre: x.nombre }) }, "*"); } catch (e) { /* nada */ } };
   marco.onload = () => setTimeout(window.__enviarJugada, 250);
   marco.src = "pizarra.html?visor=1&v=" + VERSION; $("visorMarco").classList.add("ver");
 }
+/* tocar la miniatura de una jugada o ejercicio (playbook) la abre animada en grande */
+document.addEventListener("click", (ev) => {
+  const th = ev.target.closest && ev.target.closest(".pb-th[data-mini]"); if (!th || (typeof bbEditing !== "undefined" && bbEditing)) return;
+  const x = D.jugadas.concat(D.ejercicios).find(y => y.id === th.dataset.mini); if (!x || !animDe(x)) return;
+  ev.stopPropagation(); ev.preventDefault();
+  if (D.jugadas.includes(x)) verJugada(x); else verEjercicio(x);
+}, true);
 $("cerrarVisor").onclick = () => { $("visorMarco").classList.remove("ver"); $("marcoVisor").onload = null; $("marcoVisor").src = "about:blank"; window.__enviarJugada = null; };
 window.addEventListener("message", (ev) => {
   const d = ev.data || {};
@@ -1528,7 +1541,7 @@ function pEd() {
       if (e.sec) return `<div class="pe-fila" data-i="${i}">${asa}<div class="pe-sec"><input data-f="sec" value="${esc(e.titulo || "")}" placeholder="TÍTULO DE SECCIÓN" ${ro ? "disabled" : ""}>${ro ? "" : `<button data-del="${i}" title="Eliminar">${IC.del}</button>`}</div></div>`;
       const ej = ejDe(e);
       return `<div class="pe-fila" data-i="${i}">${asa}<div class="pe-tarj"><div class="pe-c1"><button class="pe-min" data-min="${i}" title="Editar tiempo">${Number(e.min) || 0} min</button></div>
-        <div class="pe-c2">${ej ? `<span class="pe-mini" data-mini="${esc(ej.id)}">${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}<input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio vinculado" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : IC.plus}</button>`}</div>
+        <div class="pe-c2">${ej ? `<span class="pe-mini" data-mini="${esc(ej.id)}"${animDe(ej) ? ` data-ver="${esc(ej.id)}" title="Ver en movimiento"` : ""}>${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}<input data-f="titulo" value="${esc(tituloSeg(e))}" placeholder="Añade el título del ejercicio…" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="pe-vinc" data-v="${i}" title="${ej ? "Cambiar ejercicio vinculado" : "Vincular un ejercicio de la biblioteca"}">${ej ? "🎯" : IC.plus}</button>`}</div>
         <div class="pe-c3">${repDe(e) ? `<span class="pe-rep" title="Reparto vinculado">👥 ${esc(repDe(e).nombre)}</span>` : ""}<input data-f="notas" value="${esc(e.notas || "")}" placeholder="Añade notas aquí…" ${ro ? "disabled" : ""}></div>
         ${ro ? "" : `<div class="pe-c4"><button data-r="${i}" title="Más">${IC.mas}</button><button data-dup="${i}" title="Duplicar">${IC.dup}</button><button data-del="${i}" title="Eliminar">${IC.del}</button></div>`}</div></div>`;
     }).join("");
@@ -1545,13 +1558,14 @@ function pEd() {
     lista.forEach((e) => {
       if (e.sec) { cierra(); sub = 0; secAbierta = true; filas += `<div class="pv-sec">${esc(e.titulo || "Sección")}<span>§SUB§</span></div>`; return; }
       const ini = hmDe(d.inicio, acum), ej = ejDe(e), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; sub += Number(e.min) || 0;
-      filas += `<div class="pv-seg"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}${repDe(e) ? `<div class="pv-d">👥 <b>${esc(repDe(e).nombre)}:</b> ${repDe(e).equipos.map(q => esc(q.n) + " (" + q.s.map(id => id && eqJug(id) ? esc(eqJug(id).nombre) : "").filter(Boolean).join(", ") + ")").join(" · ")}</div>` : ""}</div>${ej ? `<span class="pe-mini grande" data-mini="${esc(ej.id)}">${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}</div>`;
+      filas += `<div class="pv-seg"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}${ej && animDe(ej) ? `<div class="pv-d"><button class="gris" data-ver="${esc(ej.id)}" style="padding:6px 12px;">▶ Ver en movimiento</button></div>` : ""}${repDe(e) ? `<div class="pv-d">👥 <b>${esc(repDe(e).nombre)}:</b> ${repDe(e).equipos.map(q => esc(q.n) + " (" + q.s.map(id => id && eqJug(id) ? esc(eqJug(id).nombre) : "").filter(Boolean).join(", ") + ")").join(" · ")}</div>` : ""}</div>${ej ? `<span class="pe-mini grande" data-mini="${esc(ej.id)}"${animDe(ej) ? ` data-ver="${esc(ej.id)}" title="Ver en movimiento"` : ""}>${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}</div>`;
     });
     cierra();
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><h2 style="font-size:22px;">${esc(p.nombre || "Plan sin título")}</h2><p class="peq" style="margin:2px 0 12px;">${solofecha(p.fecha)} · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · ${total} min · ${d.inicio}–${hmDe(d.inicio, total)}</p>${d.notas ? `<p style="white-space:pre-wrap;margin:0 0 12px;">${esc(d.notas)}</p>` : ""}${filas || '<div class="vacio">Aún no hay segmentos.</div>'}
       ${d.reflexion != null ? `<label>Reflexión</label><textarea id="pvR" style="min-height:90px;" placeholder="¿Qué funcionó? ¿Qué cambiarías?" ${ro ? "disabled" : ""}>${esc(d.reflexion)}</textarea>` : (ro ? "" : '<div style="margin-top:14px;"><button class="gris" id="pvAddR">＋ Añadir reflexión</button></div>')}</div></div>`;
   }
   root.innerHTML = cab + cuerpo;
+  root.querySelectorAll("[data-ver]").forEach(el => el.addEventListener("click", (ev) => { ev.stopPropagation(); verEjercicio(D.ejercicios.find(y => y.id === el.dataset.ver)); }));
   if (tab === "tl" || tab === "pre") pedirMiniaturas(D.ejercicios);
   // eventos
   const volcarCab = () => { p.nombre = $("peT").value; };
