@@ -2470,13 +2470,20 @@ function centroVideo() {
 .cvPop{position:fixed;z-index:10060;background:#18212b;border:1px solid #2c3744;border-radius:10px;padding:6px;min-width:200px;box-shadow:0 12px 30px #000a}.cvPop button{display:block;width:100%;text-align:left;border:0;background:none;color:#e6ebf1;padding:8px 10px;border-radius:6px;font-size:13px}.cvPop button:hover{background:#e0602a}
 .cvPh{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #222d3a;position:sticky;top:0;background:#131b24;z-index:1}.cvPh .e{flex:1}.cvPh button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:99px;padding:5px 11px;font-size:12px;font-weight:700}.cvPh button.on{background:#e0602a;border-color:#e0602a}.cvPh select{background:#18212b;color:#e6ebf1;border:1px solid #2c3744;border-radius:99px;padding:5px 10px;font-size:12px;max-width:220px;width:auto!important;margin:0!important}
 .cvLsB tr.tt td{border-top:2px solid #2c3744;background:#18212b55}.cvLsB td.rz{font-weight:800;color:#fff}.cvLsB td[data-rr]{text-align:center}.cvLsB th{white-space:nowrap}
+.cvHome{position:absolute;left:0;right:0;top:56px;bottom:0;background:#0b0f14;z-index:5;display:flex;flex-direction:column;min-height:0}
+.cvHn{display:flex;gap:4px;padding:0 16px;border-bottom:1px solid #222d3a;background:#0f151c}.cvHn button{border:0;background:none;color:#8b95a3;font:800 13px Inter;letter-spacing:.06em;text-transform:uppercase;padding:14px 16px;border-bottom:3px solid transparent}.cvHn button.on{color:#fff;border-bottom-color:#e0602a}
+.cvHb{display:grid;grid-template-columns:230px minmax(0,1fr);flex:1;min-height:0}.cvHf{padding:16px;border-right:1px solid #222d3a;display:flex;flex-direction:column;gap:10px;overflow:auto}.cvHf label{font-size:12px;color:#8b95a3}.cvHf select,.cvHf input{width:100%!important;background:#18212b;color:#e6ebf1;border:1px solid #2c3744;border-radius:8px;padding:9px;font-size:13px;margin:2px 0 0!important}.cvHf button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:99px;padding:6px 11px;font-size:12px;font-weight:700;text-align:left}.cvHf button.on{background:#e0602a;border-color:#e0602a}
+.cvHl{overflow:auto;padding:6px 14px 20px}.cvHg{display:grid;grid-template-columns:92px minmax(220px,1.3fr) minmax(0,1fr) minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 8px;border-bottom:1px solid #1e2834}.cvHg:hover{background:#ffffff08}.cvHg .cvPe{min-width:0}.cvHs{font-size:12.5px;color:#cfd6de;line-height:1.55;min-width:0}.cvHs small{display:block;color:#586574;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:800}.cvHs b{color:#8fb4ff}
+.cvHg .ac{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.cvHg .ac button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:7px 10px;font-weight:800;font-size:12.5px}.cvHg .ac button.p{background:#e0602a;border-color:#e0602a;color:#fff}.cvHg .ac .no{font-size:11.5px;color:#586574}
+.cvHj{align-content:start;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:14px;overflow:auto;flex:1}.cvHj button{text-align:left;border:1px solid #2c3744;background:#131b24;color:#e6ebf1;border-radius:10px;padding:12px}.cvHj button:hover{border-color:#e0602a}.cvHj b{display:block;font-size:14px}.cvHj span{font-size:12px;color:#8b95a3}
+@media(max-width:820px){.cvHb{grid-template-columns:minmax(0,1fr);overflow:auto}.cvHf{border-right:0;border-bottom:1px solid #222d3a}.cvHg{grid-template-columns:minmax(0,1fr)}.cvHg .ac{justify-content:flex-start}.cvHs{display:none}}
 .cvPt{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #1e2834;cursor:pointer}.cvPt:hover{background:#ffffff0a}.cvPt.on{background:#e0602a22;box-shadow:inset 3px 0 0 #e0602a}
 .cvPf{font-size:12px;color:#8b95a3;line-height:1.5}.cvPf b{display:block;color:#cfd6de}
 .cvPe>div{display:flex;align-items:center;gap:8px;padding:2px 0;font-size:13.5px;color:#9aa4b2}.cvPe>div.w{color:#fff;font-weight:800}.cvPe>div span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cvPe em{font-style:normal;font:800 15px Inter;min-width:28px;text-align:right}
 .cvPe img,.cvEsc{width:22px;height:22px;object-fit:contain;flex:none;border-radius:50%}.cvEsc{display:inline-flex;align-items:center;justify-content:center;background:#2b3644;color:#cfd6de;font:800 9px Inter;font-style:normal}
 .cvPc button{border:0;background:#e0602a;color:#fff;border-radius:6px;padding:7px 10px;font-weight:800;font-size:12.5px}.cvPc .no{font-size:11.5px;color:#586574}
 @media(max-width:820px){.cvMain{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,.9fr) minmax(0,.6fr) minmax(0,1fr)}.cvPl{grid-column:1}.cvLs{grid-row:2;grid-column:1;border-left:0;border-top:1px solid #222d3a}.cvTbW{grid-row:3;grid-column:1}}</style>`;
-  document.body.insertAdjacentHTML("beforeend", css + `<div id="capaCentro"><div class="cvTop"><b>🎬 Centro de vídeo</b><span id="cvCnt" style="color:#8b95a3;font-size:13px"></span><button class="cvX" id="cvX" aria-label="Cerrar">×</button></div>
+  document.body.insertAdjacentHTML("beforeend", css + `<div id="capaCentro"><div class="cvTop"><b>🎬 Centro de vídeo</b><button id="cvHm" style="border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:6px 12px;font-weight:800;font-size:12.5px">🏠 Inicio</button><span id="cvCnt" style="color:#8b95a3;font-size:13px"></span><button class="cvX" id="cvX" aria-label="Cerrar">×</button></div>
   <div class="cvMain"><div class="cvPl"><video id="cvV" controls playsinline></video><div class="cvTit" id="cvT">Elige un clip de la tabla</div>
     <div class="cvCtl"><span>Velocidad</span>${[["0.25", "¼x"], ["0.5", "½x"], ["1", "1x"], ["2", "2x"], ["4", "4x"]].map(([v, t]) => `<button data-sp="${v}" class="${v === "1" ? "on" : ""}">${t}</button>`).join("")}
     <span>Salto</span>${[-15, -5, -2, 2, 5].map(n => `<button data-j="${n}">${n > 0 ? "+" : ""}${n}s</button>`).join("")}<button id="cvPv">⏮</button><button id="cvNx">⏭</button></div></div>
@@ -2609,6 +2616,52 @@ function centroVideo() {
     }
     b.disabled = false; b.textContent = t0;
   };
+  /* ===== Inicio estilo Synergy: partidos / jugadoras ===== */
+  let homeTab = "partidos", homeQ = "", homeVid = true, homeMax = 40;
+  const cierraHome = () => { const h = $c("cvHome"); if (h) h.remove(); };
+  const abreVista = (fx, reproducir) => { Object.assign(F, { equipo: "", jugadora: "", categoria: "", resultado: "", partido: "" }, fx); listaAct = ""; sel.clear(); cierraHome(); panel = "resumen"; pintaPanel(); pintaFiltros(); pintaTabla(); if (reproducir) { const v = vista(); if (v.length) pon(v[0].id); } };
+  const pintaHome = async () => {
+    let h = $c("cvHome"); if (!h) { h = document.createElement("div"); h.id = "cvHome"; h.className = "cvHome"; $c("capaCentro").appendChild(h); }
+    if (!OPP) { h.innerHTML = '<p style="padding:20px;color:#8b95a3">Cargando partidos…</p>'; OPP = await partidosOpciones(); }
+    if (!CAL.escudos) await cargarEscudos();
+    const nav = `<div class="cvHn"><button data-ht="partidos" class="${homeTab === "partidos" ? "on" : ""}">Partidos</button><button data-ht="jugadoras" class="${homeTab === "jugadoras" ? "on" : ""}">Jugadoras</button><button data-ht="listas">Mis listas</button><button data-ht="todo">Todos los clips (${todos.length})</button></div>`;
+    if (homeTab === "jugadoras") {
+      const mp = {}; todos.forEach(x => { const j = (x.m.jugadora || "").trim(); if (!j) return; const k = nn(j), o = mp[k] = mp[k] || { n: j, c: 0, eq: {} }; o.c++; const e = (x.m.equipo || "").trim(); if (e) o.eq[e] = (o.eq[e] || 0) + 1; });
+      const q = homeQ.toLowerCase(), arr = Object.values(mp).filter(o => !q || nn(o.n).includes(nn(q)) || Object.keys(o.eq).some(e => nn(e).includes(nn(q)))).sort((a, b) => b.c - a.c);
+      h.innerHTML = nav + `<div class="cvHf" style="flex-direction:row;border-right:0;border-bottom:1px solid #222d3a"><input id="cvHq" type="search" placeholder="Buscar jugadora o equipo…" value="${esc(homeQ)}" style="max-width:360px"></div><div class="cvHj">${arr.map(o => `<button data-hj="${esc(o.n)}"><b>${esc(o.n)}</b><span>${esc(Object.keys(o.eq).sort((a, b) => o.eq[b] - o.eq[a])[0] || "Sin equipo")} · ${o.c} clip${o.c > 1 ? "s" : ""}</span></button>`).join("") || '<p style="color:#8b95a3">Aún no hay clips con jugadora asignada.</p>'}</div>`;
+    } else {
+      const cnt = {}, jug = {}, cat = {}; todos.forEach(x => { const k = x.m.partido || "-"; cnt[k] = (cnt[k] || 0) + 1; if (x.m.jugadora) { (jug[k] = jug[k] || {})[x.m.jugadora] = (jug[k][x.m.jugadora] || 0) + 1; } if (x.m.categoria) { (cat[k] = cat[k] || {})[x.m.categoria] = (cat[k][x.m.categoria] || 0) + 1; } });
+      const eqsAct = [...eqsSel], miEq = calMiEq(), todosEq = equiposOPP(OPP), q = homeQ.toLowerCase();
+      const juega = (p, l) => l.some(t => calMismo(p.local, t) || calMismo(p.visitante, t));
+      let lst = OPP.filter(p => (!homeVid || cnt[p.k]) && (!eqsAct.length || juega(p, eqsAct)) && (!q || nn(p.local).includes(nn(q)) || nn(p.visitante).includes(nn(q))));
+      const tot = lst.length; lst = lst.slice(0, homeMax);
+      const esc2 = (t) => { const u = (CAL.escudos || {})[calNorm(t)]; return u ? `<img src="${esc(u)}" alt="" loading="lazy">` : `<i class="cvEsc">${esc(String(t).slice(0, 2).toUpperCase())}</i>`; };
+      const top = (o) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, c]) => esc(n) + " <b>" + c + "</b>").join(" · ") || "—";
+      const sin = cnt["-"] || 0;
+      const fila = (p) => { const n = cnt[p.k] || 0, ok = p.jugado && p.pl !== "", gl = ok && Number(p.pl) > Number(p.pv), gv = ok && Number(p.pv) > Number(p.pl);
+        return `<div class="cvHg"><div class="cvPf"><b>${p.fecha ? p.fecha.split("-").reverse().join("/") : ""}</b>${p.jornada ? "<span>Jornada " + esc(p.jornada) + "</span>" : ""}</div>
+          <div class="cvPe"><div class="${gl ? "w" : ""}">${esc2(p.local)}<span>${esc(p.local)}</span><em>${ok ? esc(p.pl) : ""}</em></div><div class="${gv ? "w" : ""}">${esc2(p.visitante)}<span>${esc(p.visitante)}</span><em>${ok ? esc(p.pv) : ""}</em></div></div>
+          <div class="cvHs"><small>Jugadoras con clips</small>${top(jug[p.k])}</div><div class="cvHs"><small>Tipos de jugada</small>${top(cat[p.k])}</div>
+          <div class="ac">${n ? `<button class="p" data-hp="${esc(p.k)}" data-rep="1">▶ ${n} clip${n > 1 ? "s" : ""}</button><button data-hp="${esc(p.k)}">Ver tabla</button>` : '<span class="no">Sin vídeo</span>'}</div></div>`; };
+      h.innerHTML = nav + `<div class="cvHb"><div class="cvHf"><label>Buscar equipo</label><input id="cvHq" type="search" placeholder="Nombre del equipo…" value="${esc(homeQ)}">
+        <label>Mostrar</label><button class="${homeVid ? "on" : ""}" data-hv="1">Solo partidos con vídeo</button><button class="${homeVid ? "" : "on"}" data-hv="0">Todos los partidos</button>
+        <label>Equipos</label><select id="cvHeq"><option value="">＋ Elegir equipos…</option>${miEq ? `<option value="__mi">★ Mi equipo (${esc(miEq)})</option>` : ""}${todosEq.filter(t => !eqsAct.includes(t)).map(t => `<option>${esc(t)}</option>`).join("")}</select>
+        ${eqsAct.map(t => `<button class="on" data-hex="${esc(t)}">${esc(t)} ✕</button>`).join("")}${eqsAct.length ? '<button data-hex="*">Quitar todos</button>' : ""}
+        ${sin ? `<label>Sin clasificar</label><button data-hsin="1">${sin} clip${sin > 1 ? "s" : ""} sin partido</button>` : ""}</div>
+        <div class="cvHl">${lst.length ? lst.map(fila).join("") + (tot > lst.length ? `<div style="padding:12px;text-align:center"><button class="cvHmas" style="border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:8px 16px;font-weight:700">Ver más (${tot - lst.length})</button></div>` : "") : '<p style="padding:20px;color:#8b95a3">' + (homeVid ? "Ningún vídeo tiene partido asignado todavía. Entra en «Todos los clips», marca los clips y usa «Asignar a un partido»." : "No hay partidos.") + "</p>"}<p style="padding:8px;color:#586574;font-size:12px">${tot} partido${tot === 1 ? "" : "s"}</p></div></div>`;
+    }
+    h.querySelectorAll("[data-ht]").forEach(b => b.onclick = () => { const t = b.dataset.ht; if (t === "partidos" || t === "jugadoras") { homeTab = t; homeQ = ""; pintaHome(); } else if (t === "listas") { Object.assign(F, { equipo: "", jugadora: "", categoria: "", resultado: "", partido: "" }); cierraHome(); panel = "listas"; pintaPanel(); pintaFiltros(); pintaTabla(); } else abreVista({}, false); });
+    const q = h.querySelector("#cvHq"); if (q) q.oninput = (e) => { homeQ = e.target.value; const pos = e.target.selectionStart; pintaHome().then(() => { const n = $c("cvHome").querySelector("#cvHq"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} } }); };
+    h.querySelectorAll("[data-hj]").forEach(b => b.onclick = () => abreVista({ jugadora: b.dataset.hj }, false));
+    h.querySelectorAll("[data-hp]").forEach(b => b.onclick = () => abreVista({ partido: b.dataset.hp }, !!b.dataset.rep));
+    h.querySelectorAll("[data-hv]").forEach(b => b.onclick = () => { homeVid = b.dataset.hv === "1"; homeMax = 40; pintaHome(); });
+    h.querySelectorAll("[data-hsin]").forEach(b => b.onclick = () => abreVista({ partido: "-" }, false));
+    const gE = () => { try { localStorage.setItem("cv_eqs", JSON.stringify([...eqsSel])); } catch (e) { /* nada */ } homeMax = 40; pintaHome(); };
+    const se = h.querySelector("#cvHeq"); if (se) se.onchange = (e) => { const v = e.target.value; if (!v) return; if (v === "__mi") { const miEq = calMiEq(); eqsSel.add(OPP.map(p => [p.local, p.visitante]).flat().find(t => calMismo(t, miEq)) || miEq); } else eqsSel.add(v); gE(); };
+    h.querySelectorAll("[data-hex]").forEach(b => b.onclick = () => { if (b.dataset.hex === "*") eqsSel.clear(); else eqsSel.delete(b.dataset.hex); gE(); });
+    const mas = h.querySelector(".cvHmas"); if (mas) mas.onclick = () => { homeMax += 40; pintaHome(); };
+  };
+  $c("cvHm").onclick = () => pintaHome();
   $c("cvPlay").onclick = () => { const v = vista(); if (v.length) pon(v[0].id); };
   $c("cvQ").oninput = (e) => { F.q = e.target.value; pintaTabla(); };
   document.querySelectorAll("#capaCentro [data-f]").forEach(s => s.onchange = () => { F[s.dataset.f] = s.value; pintaTabla(); });
@@ -2634,7 +2687,7 @@ function centroVideo() {
   const cerrar = () => { try { V.pause(); } catch (e) {} document.removeEventListener("keydown", tecla); const c = document.getElementById("capaCentro"); if (c) { c.previousElementSibling && c.previousElementSibling.tagName === "STYLE" && c.previousElementSibling.remove(); c.remove(); } document.querySelectorAll(".cvPop").forEach(x => x.remove()); };
   const tecla = (e) => { if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return; if (e.key === "Escape") cerrar(); else if (e.key === " ") { e.preventDefault(); V.paused ? V.play() : V.pause(); } else if (e.key === "ArrowLeft") V.currentTime = Math.max(0, V.currentTime - 5); else if (e.key === "ArrowRight") V.currentTime += 5; else if (e.key === "ArrowUp") mover(-1); else if (e.key === "ArrowDown") mover(1); };
   document.addEventListener("keydown", tecla); $c("cvX").onclick = cerrar;
-  pintaPanel(); pintaFiltros(); pintaTabla();
+  pintaPanel(); pintaFiltros(); pintaTabla(); pintaHome();
 }
 function pintarArchivos(v, tipo) {
   derivarArch();
