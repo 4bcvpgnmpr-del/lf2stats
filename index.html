@@ -6659,22 +6659,49 @@ function ivMostrar(html, nombre, render) {
 
 /* Informe visual de cualquier seccion: la pantalla que estas viendo, dentro del marco ScoutFlow */
 const IV_SIN = ["mi-equipo", "equipo-detail", "informes", "pizarra", "mis-jugadoras", "fichajes", "scouting"];
-const IV_CSS2 = `.iv .gb{margin:0 48px;background:#f5f6f7;color:#14181c;border-radius:14px;padding:20px;overflow:hidden;font-family:Inter,sans-serif}
-.iv .gb *{max-width:100%}.iv .gb .view{display:block!important}.iv .gb table{width:100%}.iv .gb .panel{border:0!important;box-shadow:none!important;padding:0!important;background:transparent!important}.iv .gb .status{padding:0!important;background:none!important;border:0!important}.iv .hero.h2{padding-bottom:22px}.iv .gt{font:900 italic 56px/1 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.04em;background:linear-gradient(180deg,#fff 30%,#9aa4b2);-webkit-background-clip:text;color:transparent;margin-top:26px}`;
+const IV_CSS2 = `.iv .gp{margin:0 48px 18px;background:linear-gradient(160deg,#151b23,#0f1319);border:1px solid #ffffff14;border-radius:4px;padding:18px 20px;color:#e8edf3}
+.iv .gp h2{margin:0 0 12px;font:900 italic 20px 'Inter Display',Inter;text-transform:uppercase;color:#fff;display:flex;align-items:center;gap:12px}.iv .gp h2:before{content:"";width:6px;height:20px;background:#ff6a2b;transform:skewX(-14deg);box-shadow:0 0 12px #ff6a2b}
+.iv .gp table{width:100%;border-collapse:collapse;font-size:13px}.iv .gp thead,.iv .gp thead tr,.iv .gp th{background:none!important;border-radius:0!important}.iv .gp th,.iv .gp td{text-align:left!important}.iv .gp tbody tr{background:none!important}.iv .gp td{border-top:0!important}.iv .gp th{font:800 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:#8b95a3;text-align:left;padding:8px 6px;border-bottom:2px solid #ff6a2b55}
+.iv .gp td{padding:9px 6px;border-bottom:1px solid #ffffff12;color:#e8edf3;font-weight:600}.iv .gp tr:nth-child(1) td{color:#fff;background:#ff6a2b1c}.iv .gp tr:nth-child(1) td:first-child{box-shadow:inset 3px 0 0 #ff6a2b}
+.iv .gp td:first-child{font:900 italic 18px 'Inter Display',Inter;color:#ff6a2b;width:44px}.iv .gp td img{width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:8px}
+.iv .gp td b,.iv .gp td a{color:#fff;font-weight:800;text-decoration:none}.iv .gp td:nth-child(2){font-weight:800;color:#fff}
+.iv .gp .nota{font-size:11px;color:#8b95a3;margin-top:8px}
+.iv .gb{margin:0 48px 18px;background:#0f1319;border:1px solid #ffffff14;border-radius:4px;padding:20px;color:#e8edf3;font-family:Inter,sans-serif;overflow:hidden}
+.iv .gb h1,.iv .gb h2,.iv .gb h3,.iv .gb h4{font-family:'Inter Display',Inter!important;font-style:italic;font-weight:900!important;text-transform:uppercase;color:#fff!important;letter-spacing:-.01em}
+.iv .gb *{color:inherit;max-width:100%}.iv .gb [class*=card],.iv .gb [class*=kpi],.iv .gb .panel{background:linear-gradient(160deg,#151b23,#0f1319)!important;border:1px solid #ffffff14!important;box-shadow:none!important;border-radius:4px!important}
+.iv .gb [class*=value],.iv .gb [class*=num],.iv .gb b,.iv .gb strong{font-family:'Inter Display',Inter!important;font-style:italic;font-weight:900!important;color:#fff!important}
+.iv .gb [class*=label],.iv .gb .hint,.iv .gb small{color:#8b95a3!important;letter-spacing:.1em;text-transform:uppercase}
+.iv .gb .view{display:block!important}.iv .gb table{width:100%;font-size:13px}.iv .gb th{color:#8b95a3!important;text-transform:uppercase;letter-spacing:.14em;font-size:10px;background:none!important}.iv .gb td{border-color:#ffffff14!important;background:none!important}
+.iv .gb img{max-width:100%}.iv .gb .status{color:#8b95a3!important}
+.iv .hero.h2{padding-bottom:22px}.iv .gt{font:900 italic 56px/1 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.04em;background:linear-gradient(180deg,#fff 30%,#9aa4b2);-webkit-background-clip:text;color:transparent;margin-top:26px}`;
+
 function informeVisualVistaHtml(id) {
   const sec = document.getElementById("view-" + id); if (!sec) return null;
   const clon = sec.cloneNode(true);
   const orig = sec.querySelectorAll("canvas");
   clon.querySelectorAll("canvas").forEach((c, i) => { try { const im = document.createElement("img"); im.src = orig[i].toDataURL("image/png"); im.style.width = "100%"; c.replaceWith(im); } catch (e) { c.remove(); } });
-  clon.querySelectorAll("button, input, select, textarea, .toolbar, .subnav, .back-btn, .no-iv, script, style").forEach(e => e.remove());
+  clon.querySelectorAll("button, input, select, textarea, .toolbar, .subnav, .back-btn, .no-iv, script, style, .table-scroll > .hint").forEach(e => e.remove());
   clon.removeAttribute("id"); clon.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
   const titulo = (typeof NOMBRE_VISTA !== "undefined" && NOMBRE_VISTA[id]) || id;
   const eq = (typeof miEquipo !== "undefined" && miEquipo) ? miEquipo : "";
   const esc = eq ? escudoUrlFor(eq) : "";
   const temp = (document.getElementById("selTemporada") || {}).value || "";
+  const tablas = [...clon.querySelectorAll("table")].filter(t => t.querySelectorAll("tbody tr").length);
+  let cuerpo;
+  if (tablas.length) {
+    cuerpo = tablas.slice(0, 4).map(t => {
+      const prev = (() => { let e = t.closest(".table-scroll") || t; for (let k = 0; k < 4 && e; k++) { const p = e.previousElementSibling; if (p && /^H[1-4]$/.test(p.tagName)) return p.textContent.trim(); e = p || e.parentElement; } return ""; })();
+      const filas = [...t.querySelectorAll("tbody tr")].slice(0, 15);
+      const cab = [...t.querySelectorAll("thead th")];
+      const mx = filas.length > 14 ? "" : "";
+      return `<div class="gp">${prev ? `<h2>${escapeHtml(prev)}</h2>` : ""}<table><thead><tr>${cab.map(h => `<th>${escapeHtml(h.textContent.trim())}</th>`).join("")}</tr></thead><tbody>${filas.map(r => `<tr>${[...r.children].map(c => `<td>${c.innerHTML}</td>`).join("")}</tr>`).join("")}</tbody></table>${t.querySelectorAll("tbody tr").length > 15 ? `<div class="nota">Primeras 15 filas</div>` : ""}</div>`;
+    }).join("");
+  } else {
+    cuerpo = `<div class="gb">${clon.innerHTML}</div>`;
+  }
   return `<div class="iv" data-iv><style>${IV_CSS2}</style><div class="hero h2"><div class="bar"><span class="live">SCOUTFLOW · ESTADÍSTICAS</span><span><b>${escapeHtml(temp)}</b></span></div>
     <div class="ttl" style="margin-top:22px;gap:20px">${esc ? `<div class="hex" style="width:84px;height:95px"><i style="width:75px;height:85px"><img src="${escapeAttr(esc)}" alt="" style="width:46px;height:46px"></i></div>` : ""}<div><div class="gt" style="margin-top:0">${escapeHtml(titulo)}</div><div class="sub">${escapeHtml(String(eq).toUpperCase())}</div></div></div></div>
-    <div class="gb">${clon.outerHTML}</div><div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(titulo.toUpperCase())}</span></div></div>`;
+    ${cuerpo}<div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(titulo.toUpperCase())}</span></div></div>`;
 }
 function abrirInformeVisualVista(id) {
   const h = informeVisualVistaHtml(id);
