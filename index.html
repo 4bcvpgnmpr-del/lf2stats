@@ -6796,15 +6796,17 @@ const IV_CSS5 = `
 .xx .xvl a{display:block;background:var(--xc);border:1px solid var(--xl);border-left:3px solid var(--xa);padding:12px 16px;margin-bottom:8px;color:var(--xf);text-decoration:none;font-weight:700}
 .ivx{max-width:100%}.iv{max-width:100%}
 @media(min-width:1000px){
-#ivCapa.ancho [data-iv]{width:2800px!important;max-width:none!important}
-#ivCapa.ancho .xx{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:40px;align-items:start}
-#ivCapa.ancho .xx .xs.full{grid-column:1/-1}#ivCapa.ancho .xx .xs.dos{grid-column:span 2}
-#ivCapa.ancho .xx .xfg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 22px}#ivCapa.ancho .xx .xfg .xfx{grid-template-columns:200px minmax(0,1fr);gap:4px 14px}#ivCapa.ancho .xx .xfg .xfv{min-height:300px}#ivCapa.ancho .xx .xfg .xfm img{max-width:100%}
-#ivCapa.ancho .xx .xfg .xfx{margin-bottom:0}
-#ivCapa.ancho .xx .xs.dos .xmp{grid-template-columns:minmax(0,440px) 1fr}
-#ivCapa.ancho .xx .xld{grid-template-columns:repeat(6,1fr)}
-#ivCapa.ancho .iv-scroll{overflow-x:auto}
+#ivCapa.ancho [data-iv]{width:1300px!important;max-width:none!important}
+#ivCapa.ancho .xx{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:48px;align-items:start}
+#ivCapa.ancho .xx .xs.full{grid-column:1/-1}
+#ivCapa.ancho .xx .xfg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 26px}
+#ivCapa.ancho .xx .xfg .xfx{margin-bottom:0;grid-template-columns:230px minmax(0,1fr);gap:4px 16px}
+#ivCapa.ancho .xx .xfg .xfv{min-height:330px}
+#ivCapa.ancho .xx .xfg .xfm img{max-width:100%}
+#ivCapa.ancho .xx .xmp{grid-template-columns:1fr}
+#ivCapa.ancho .xx .xld{grid-template-columns:repeat(3,1fr)}
 }
+@media print{#ivCapa.ancho [data-iv]{width:100%!important}#ivCapa.ancho .xx{display:block!important}#ivCapa.ancho .xx .xfg{display:block!important}#ivCapa.ancho .xx .xfg .xfx{margin-bottom:16px!important}}
 #ivCapa .xx .xtb thead,#ivCapa .xx .xtb thead tr,#ivCapa .xx .xtb thead th{background:var(--xc2)!important;color:var(--xm)!important}
 @media(max-width:760px){
 .ivx,.iv{width:100%!important}
@@ -6882,7 +6884,7 @@ function ivExtras(nombre, dat) {
   if (jug.length) S.push(`${H("Jugadas del rival · " + jug.length)}${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < (IV_LIVIANO ? 120000 : 600000))).slice(0, 4);
     return `<div class="xjg"><span class="gt">${esc((j.tipo || "Otra").toUpperCase())}</span><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${escapeAttr(x)}" alt="" loading="lazy">`).join("")}</div>` : ""}</div>`; }).join("")}`);
   const COMPLETA = /Plantilla|Tabla de la plantilla|Líderes|Jugadas del rival|Últimos partidos|Puntos por partido|Estadísticas de la temporada|Vídeos/;
-  return `<div class="xx">${S.map(x => `<div class="xs${COMPLETA.test(x.slice(0, 160)) ? " full" : /Mapa de tiro del equipo/.test(x.slice(0, 160)) ? " dos" : ""}">${x}</div>`).join("")}</div>`;
+  return `<div class="xx">${S.map(x => `<div class="xs${COMPLETA.test(x.slice(0, 160)) ? " full" : ""}">${x}</div>`).join("")}</div>`;
 }
 
 /* ===== Informe visual de una jugadora (perfil completo: estadísticas, tiros, partidos, notas, vídeos) ===== */
@@ -6950,7 +6952,7 @@ function ivAjusta() {
   const capa = document.getElementById("ivCapa"); if (!capa) return;
   const sc = capa.querySelector(".iv-scroll"), ancho = !!capa.querySelector(".iv-est button[data-comp]") && ivCompletoActivo() && !!sc.querySelector(".xx") && innerWidth >= 1000;
   capa.classList.toggle("ancho", ancho);
-  sc.style.zoom = ancho ? String(Math.min(1, (innerWidth - 24) / 2800)) : "";
+  sc.style.zoom = ancho ? String(Math.min(1, (innerWidth - 24) / 1300)) : "";
 }
 function ivMostrar(html, nombre, render, conCompleto) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
@@ -7022,8 +7024,7 @@ function ivMostrar(html, nombre, render, conCompleto) {
       await Promise.all(cambios.map(([, im2]) => im2.complete ? 0 : new Promise(ok => { im2.onload = im2.onerror = ok; })));
       const restaurar = () => cambios.forEach(([sv, im2]) => { im2.remove(); sv.style.display = ""; });
       const rw = raiz.scrollWidth || raiz.offsetWidth || 1, rh = raiz.scrollHeight || raiz.offsetHeight || 1;
-      const objetivo = (zoomAntes ? Number(zoomAntes) || 1 : 1) * Math.max(2, window.devicePixelRatio || 2);
-      const esc2 = Math.max(0.5, Math.min(objetivo, 15000 / rh, Math.sqrt(100e6 / (rw * rh))));
+      const esc2 = Math.max(0.5, Math.min(2, 15000 / rh, Math.sqrt(100e6 / (rw * rh))));
       let lienzo; try { lienzo = await window.html2canvas(raiz, { scale: esc2, width: rw, height: rh, windowWidth: Math.max(rw, document.documentElement.clientWidth), logging: false, useCORS: true, backgroundColor: fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" }); } finally { restaurar(); }
       if (malas.length) setTimeout(() => alert("Algunas fotos o escudos no se pudieron incluir en la imagen (la web de origen no lo permite). En «Imprimir / PDF» sí salen."), 300);
       lienzo.toBlob((bl) => { if (!bl) { alert("La imagen es demasiado grande para este navegador. Usa «Imprimir / PDF»."); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
