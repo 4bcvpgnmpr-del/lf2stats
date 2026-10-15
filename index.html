@@ -25,7 +25,7 @@
     --ink-soft:#4b5768;
     --orange:#e0602a;
     --orange-dark:#b8481c;
-    --teal:#2f6f5e;
+    --teal:#c44f1e;
     --white:#ffffff;
     --suave:#fdf6ee;
     --hover:#fbf3ea;
@@ -1626,7 +1626,7 @@
   #barraLateral nav button.active{background:var(--orange);color:#fff;}
   /* tarjetas del inicio más limpias */
   .kpi-card{border:1px solid var(--wood-line) !important;border-radius:18px !important;box-shadow:0 1px 2px rgba(20,30,40,.05) !important;text-align:left;} .kpi-card:not(.pending):hover{transform:translateY(-2px) !important;box-shadow:0 10px 26px rgba(20,30,40,.10) !important;}
-  .kpi-card.highlight{border-color:var(--wood-line) !important;} .kpi-card.highlight .kpi-label{color:#2f7f6c;} .kpi-card.pending{border-style:dashed !important;}
+  .kpi-card.highlight{border-color:var(--wood-line) !important;} .kpi-card.highlight .kpi-label{color:#c44f1e;} .kpi-card.pending{border-style:dashed !important;}
   .kpi-card .kpi-value{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.8px;} .kpi-card .kpi-label{text-align:left;}
   .kpi-card.con-av{text-align:left;}
   .panel{border:1px solid var(--wood-line) !important;border-radius:18px !important;box-shadow:0 1px 2px rgba(20,30,40,.05) !important;}
@@ -1649,18 +1649,18 @@
   th{border-bottom:1px solid var(--wood-line) !important;font-size:11px !important;letter-spacing:.7px !important;color:var(--ink-soft);font-weight:700;padding:12px 10px !important;}
   th:first-child{border-top-left-radius:10px;} th:last-child{border-top-right-radius:10px;}
   td{padding:11px 10px !important;border-bottom:1px solid #eef0f2 !important;} tbody tr:last-child td{border-bottom:0 !important;}
-  tbody tr:hover{background:#f6faf9 !important;} [data-tema="oscuro"] tbody tr:hover{background:rgba(63,156,134,.12) !important;}
+  tbody tr:hover{background:#fff7f2 !important;} [data-tema="oscuro"] tbody tr:hover{background:rgba(224,96,42,.12) !important;}
   .table-scroll th{position:sticky;top:0;z-index:2;background:#f1f3f5;}
   /* ---- tema unificado con Entrenador (gris frío, Inter) ---- */
-  :root:not([data-tema="oscuro"]){--wood:#f5f6f7;--wood-line:#e4e7eb;--ink:#1f2933;--ink-soft:#66717d;--suave:#f1f3f5;--hover:#f6faf9;}
+  :root:not([data-tema="oscuro"]){--wood:#f5f6f7;--wood-line:#e4e7eb;--ink:#1f2933;--ink-soft:#66717d;--suave:#f1f3f5;--hover:#fff7f2;}
   body{font-family:'Inter','Archivo',system-ui,sans-serif !important;-webkit-font-smoothing:antialiased;}
   h1,h2,h3,h4{font-family:'Inter',system-ui,sans-serif !important;font-weight:700;letter-spacing:-.4px;}
   button,input,select,textarea{font-family:inherit;}
   select,input[type=text],input[type=search],input:not([type]){border-color:var(--wood-line) !important;border-radius:10px !important;}
-  input:focus,select:focus{outline:0;border-color:#3f9c86 !important;box-shadow:0 0 0 3px rgba(63,156,134,.15);}
+  input:focus,select:focus{outline:0;border-color:#e0602a !important;box-shadow:0 0 0 3px rgba(224,96,42,.15);}
   /* ---- inicio: tarjeta de tu equipo y líderes con foto ---- */
   .hero-g{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:18px;}
-  .hero-next{background:linear-gradient(135deg,#2f7f6c,#3f9c86);color:#fff;border-radius:18px;padding:22px 24px;position:relative;overflow:hidden;} .hero-next:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.09);}
+  .hero-next{background:linear-gradient(135deg,#14181c,#2b3036);color:#fff;border-radius:18px;padding:22px 24px;position:relative;overflow:hidden;} .hero-next:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.09);}
   .hero-next small,.hero-kpi small{font-weight:800;letter-spacing:.9px;font-size:11px;opacity:.85;display:block;} .hero-next p{margin:12px 0 0;opacity:.92;position:relative;z-index:1;}
   .hero-vs{display:flex;align-items:center;justify-content:space-around;gap:10px;margin-top:14px;position:relative;z-index:1;} .hero-eq{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;flex:1;min-width:0;} .hero-eq b{font-size:15px;line-height:1.2;} .hero-sep{font-weight:800;opacity:.7;font-size:14px;}
   .hero-esc{width:64px;height:64px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:30px;} .hero-esc img{width:100%;height:100%;object-fit:contain;padding:6px;box-sizing:border-box;}
@@ -1678,8 +1678,8 @@
   #barraLateral nav h4:first-child{margin-top:4px;}
   #barraLateral nav button{display:flex;align-items:center;gap:12px;font-family:'Inter',sans-serif;font-weight:500;font-size:14px;padding:10px 12px;border-radius:10px;}
   #barraLateral nav button .i{width:22px;display:flex;justify-content:center;flex:none;opacity:.85;}
-  #barraLateral nav button.active{background:#e8f3f0;color:#2f7f6c;font-weight:600;box-shadow:inset 3px 0 0 #3f9c86;} #barraLateral nav button.active .i{opacity:1;}
-  [data-tema="oscuro"] #barraLateral nav button.active{background:rgba(63,156,134,.2);color:#7fd1bd;}
+  #barraLateral nav button.active{background:#fdeee6;color:#c44f1e;font-weight:600;box-shadow:inset 3px 0 0 #e0602a;} #barraLateral nav button.active .i{opacity:1;}
+  [data-tema="oscuro"] #barraLateral nav button.active{background:rgba(224,96,42,.2);color:#ff9a6b;}
   .marca-app b{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.4px;}
   .pie-lateral button{font-family:'Inter',sans-serif;font-weight:500;font-size:13px;}
   .pie-lateral{border-top:1.5px solid var(--wood-line);padding-top:12px;margin-top:10px;display:flex;flex-direction:column;gap:8px;}
@@ -1736,7 +1736,7 @@
   }
   .pie-lateral button:hover{border-color:var(--orange);}
   .pie-lateral button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
-  #barraLateral .pie-lateral button{border:0;background:transparent;text-align:left;border-radius:10px;padding:9px 12px;font-family:'Inter',sans-serif;font-weight:500;color:var(--ink-soft);} #barraLateral .pie-lateral button:hover{background:var(--suave);color:var(--ink);} #barraLateral .pie-lateral button.active{background:#e8f3f0;color:#2f7f6c;}
+  #barraLateral .pie-lateral button{border:0;background:transparent;text-align:left;border-radius:10px;padding:9px 12px;font-family:'Inter',sans-serif;font-weight:500;color:var(--ink-soft);} #barraLateral .pie-lateral button:hover{background:var(--suave);color:var(--ink);} #barraLateral .pie-lateral button.active{background:#fdeee6;color:#c44f1e;}
   #grupoBar{max-width:1400px;margin:14px auto 0;padding:0 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   #grupoBar .lbl{font-weight:700;font-size:13.5px;color:var(--ink-soft);}
   #grupoBar button{
@@ -2567,7 +2567,7 @@ function compareTeams(rows, chartContainer) {
     if (teamChart) teamChart.destroy();
     if (typeof Chart === "undefined") return;
     const ctx = chartContainer.querySelector(".teamCanvas").getContext("2d");
-    const palette = ["#e0602a", "#2f6f5e", "#1b2432", "#c9a03a"];
+    const palette = ["#e0602a", "#c44f1e", "#1b2432", "#c9a03a"];
     teamChart = new Chart(ctx, {
       type: "bar",
       data: {
@@ -2615,7 +2615,7 @@ function comparePlayers(rows, chartContainer) {
   if (typeof Chart === "undefined") return;
   const chartKeys = statKeys.filter(k => k !== "PJ");
   const ctx = chartContainer.querySelector(".playerCanvas").getContext("2d");
-  const palette = ["#e0602a", "#2f6f5e"];
+  const palette = ["#e0602a", "#c44f1e"];
   playerChart = new Chart(ctx, {
     type: "bar",
     data: {
@@ -12262,7 +12262,7 @@ function dibujarCuartos(partidoId, nombreL, nombreV) {
         { label: nombreL, data: oer(d.local), backgroundColor: relleno ? "rgba(224,96,42,0.3)" : "rgba(224,96,42,0.75)",
           borderColor: "#b8481c", borderRadius: 4, fill: relleno, tension: 0.3, pointRadius: esBarra ? 0 : 4 },
         { label: nombreV, data: oer(d.visitante), backgroundColor: relleno ? "rgba(47,111,94,0.3)" : "rgba(47,111,94,0.75)",
-          borderColor: "#2f6f5e", borderRadius: 4, fill: relleno, tension: 0.3, pointRadius: esBarra ? 0 : 4 },
+          borderColor: "#c44f1e", borderRadius: 4, fill: relleno, tension: 0.3, pointRadius: esBarra ? 0 : 4 },
       ],
     },
     options: {
