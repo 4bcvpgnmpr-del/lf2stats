@@ -1624,9 +1624,27 @@
   }
   #barraLateral nav button:hover{background:var(--suave);color:var(--ink);}
   #barraLateral nav button.active{background:var(--orange);color:#fff;}
+  /* tarjetas del inicio más limpias */
+  .kpi-card{border:1px solid var(--wood-line) !important;border-radius:18px !important;box-shadow:0 1px 2px rgba(20,30,40,.05) !important;text-align:left;} .kpi-card:not(.pending):hover{transform:translateY(-2px) !important;box-shadow:0 10px 26px rgba(20,30,40,.10) !important;}
+  .kpi-card.highlight{border-color:var(--wood-line) !important;} .kpi-card.highlight .kpi-label{color:#2f7f6c;} .kpi-card.pending{border-style:dashed !important;}
+  .kpi-card .kpi-value{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.8px;} .kpi-card .kpi-label{text-align:left;}
+  .kpi-card.con-av{text-align:left;}
+  .panel{border:1px solid var(--wood-line) !important;border-radius:18px !important;box-shadow:0 1px 2px rgba(20,30,40,.05) !important;}
+  .section-title{font-family:'Inter',sans-serif !important;font-weight:700;letter-spacing:-.4px;}
+  /* ---- inicio: tarjeta de tu equipo y líderes con foto ---- */
+  .hero-g{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:18px;}
+  .hero-next{background:linear-gradient(135deg,#2f7f6c,#3f9c86);color:#fff;border-radius:18px;padding:22px 24px;position:relative;overflow:hidden;} .hero-next:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.09);}
+  .hero-next small,.hero-kpi small{font-weight:800;letter-spacing:.9px;font-size:11px;opacity:.85;display:block;} .hero-next p{margin:12px 0 0;opacity:.92;position:relative;z-index:1;}
+  .hero-vs{display:flex;align-items:center;justify-content:space-around;gap:10px;margin-top:14px;position:relative;z-index:1;} .hero-eq{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;flex:1;min-width:0;} .hero-eq b{font-size:15px;line-height:1.2;} .hero-sep{font-weight:800;opacity:.7;font-size:14px;}
+  .hero-esc{width:64px;height:64px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:30px;} .hero-esc img{width:100%;height:100%;object-fit:contain;padding:6px;box-sizing:border-box;}
+  .hero-kpi{background:var(--white);border:1px solid var(--wood-line);border-radius:18px;padding:20px 22px;} .hero-kpi small{color:var(--ink-soft);opacity:1;}
+  .hero-nums{display:flex;gap:26px;margin:12px 0 14px;} .hero-nums b{display:block;font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1.1;} .hero-nums span{font-size:12px;color:var(--ink-soft);}
+  .hero-racha{display:flex;align-items:center;gap:6px;} .hero-racha .t{font-size:12px;color:var(--ink-soft);margin-right:4px;} .hero-racha .vd{width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;} .hero-racha .vd.v{background:#2f9e6b;} .hero-racha .vd.d{background:#d64545;}
+  @media (max-width:900px){.hero-g{grid-template-columns:1fr;}}
+  .kpi-card.con-av{display:flex;align-items:center;gap:14px;} .kpi-card.con-av .kpi-tx{min-width:0;flex:1;} .kpi-av{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:top center;background:var(--wood-line);flex:none;} .kpi-av.esc{border-radius:12px;object-fit:contain;background:#fff;padding:4px;box-sizing:border-box;} .kpi-av.ini{display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:var(--ink-soft);}
   /* ---- menú lateral profesional (mismo estilo que Entrenador) ---- */
   #barraLateral{font-family:'Inter','Archivo',system-ui,sans-serif;padding:16px 12px;}
-  #barraLateral nav{gap:2px;}
+  #barraLateral nav{gap:2px;flex-wrap:nowrap;min-height:0;}
   #barraLateral nav h4{margin:14px 12px 6px;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#7e8da3;font-weight:800;}
   #barraLateral nav h4:first-child{margin-top:4px;}
   #barraLateral nav button{display:flex;align-items:center;gap:12px;font-family:'Inter',sans-serif;font-weight:500;font-size:14px;padding:10px 12px;border-radius:10px;}
@@ -1855,6 +1873,7 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
 <main>
 
   <section id="view-inicio" class="view">
+    <div id="dashHero"></div>
     <div class="kpi-grid" id="kpiGrid">
       <div class="status">Cargando resumen de la competicion...</div>
     </div>
@@ -2990,22 +3009,23 @@ function renderDashboard() {
     { label: "Jugadoras", value: nJugadoras },
     { label: "Jornadas jugadas", value: maxPart || "N/D" },
     { label: "Puntos / partido (liga)", value: ppgLiga || "N/D" },
-    { label: "Mejor ataque", value: mejorAtaque || "N/D", sub: mejorAtaqueVal > -Infinity ? `${String(mejorAtaqueVal).replace(".", ",")} pts/partido` : "", isName: true, highlight: true },
-    { label: "Maxima anotadora", value: maxAnotadora ? maxAnotadora["Jugador"].display : "N/D", sub: maxAnotadora ? `${mediaOf(maxAnotadora).display} pts/partido` : "", isName: true, highlight: true },
+    { label: "Mejor ataque", value: mejorAtaque || "N/D", sub: mejorAtaqueVal > -Infinity ? `${String(mejorAtaqueVal).replace(".", ",")} pts/partido` : "", isName: true, highlight: true, img: mejorAtaque ? escudoUrlFor(mejorAtaque) : "", esc: true },
+    { label: "Maxima anotadora", value: maxAnotadora ? maxAnotadora["Jugador"].display : "N/D", sub: maxAnotadora ? `${mediaOf(maxAnotadora).display} pts/partido` : "", isName: true, highlight: true, img: maxAnotadora ? fotoJugadora(cellText(maxAnotadora, "Jugador"), cellText(maxAnotadora, "Equipo"), maxAnotadora["FotoURL"] ? maxAnotadora["FotoURL"].display : "") : "", ini: maxAnotadora ? cellText(maxAnotadora, "Jugador") : "" },
   ];
 
+  const avKpi = (c) => c.img ? `<img class="kpi-av${c.esc ? " esc" : ""}" loading="lazy" src="${escapeAttr(c.img)}" alt="" onerror="this.remove()">` : (c.ini ? `<span class="kpi-av ini">${escapeHtml(c.ini.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase())}</span>` : "");
   let html = cards.map(c => `
-    <div class="kpi-card${c.highlight ? " highlight" : ""}">
-      <div class="kpi-label">${escapeHtml(c.label)}</div>
+    <div class="kpi-card${c.highlight ? " highlight" : ""}${c.isName && (c.img || c.ini) ? " con-av" : ""}">
+      ${avKpi(c)}<div class="kpi-tx"><div class="kpi-label">${escapeHtml(c.label)}</div>
       <div class="kpi-value${c.isName ? " is-name" : ""}">${escapeHtml(String(c.value))}</div>
-      ${c.sub ? `<div class="kpi-sub">${escapeHtml(c.sub)}</div>` : ""}
+      ${c.sub ? `<div class="kpi-sub">${escapeHtml(c.sub)}</div>` : ""}</div>
     </div>`).join("");
 
   html += mejorDefensa
-    ? `<div class="kpi-card highlight">
-        <div class="kpi-label">Mejor defensa</div>
+    ? `<div class="kpi-card highlight con-av">
+        ${avKpi({ img: escudoUrlFor(mejorDefensa), esc: true })}<div class="kpi-tx"><div class="kpi-label">Mejor defensa</div>
         <div class="kpi-value is-name">${escapeHtml(mejorDefensa)}</div>
-        <div class="kpi-sub">${mejorDefensaVal.toFixed(1).replace(".", ",")} pts recibidos/partido</div>
+        <div class="kpi-sub">${mejorDefensaVal.toFixed(1).replace(".", ",")} pts recibidos/partido</div></div>
       </div>`
     : `<div class="kpi-card pending">
         <div class="kpi-label">Mejor defensa</div>
@@ -3014,10 +3034,10 @@ function renderDashboard() {
       </div>`;
 
   html += mvpValoracion
-    ? `<div class="kpi-card highlight">
-        <div class="kpi-label">Lider en Valoracion</div>
+    ? `<div class="kpi-card highlight con-av">
+        ${avKpi({ img: fotoJugadora(cellText(mvpValoracion, "Jugador"), cellText(mvpValoracion, "Equipo"), mvpValoracion["FotoURL"] ? mvpValoracion["FotoURL"].display : ""), ini: cellText(mvpValoracion, "Jugador") })}<div class="kpi-tx"><div class="kpi-label">Lider en Valoracion</div>
         <div class="kpi-value is-name">${escapeHtml(mvpValoracion["Jugador"].display)}</div>
-        <div class="kpi-sub">${mediaOf(mvpValoracion).display} de valoracion/partido</div>
+        <div class="kpi-sub">${mediaOf(mvpValoracion).display} de valoracion/partido</div></div>
       </div>`
     : `<div class="kpi-card pending">
         <div class="kpi-label">Lider en Valoracion</div>
@@ -3026,6 +3046,7 @@ function renderDashboard() {
       </div>`;
 
   grid.innerHTML = html;
+  pintarHeroInicio();
 
   const resultBox = document.getElementById("dashResultados");
   const jugados = resultados ? resultados.rows.filter(r => r["Jugado"] && r["Jugado"].display === "Si" &&
@@ -3075,6 +3096,32 @@ function renderDashboard() {
   }
 }
 
+function pintarHeroInicio() {
+  const box = document.getElementById("dashHero"); if (!box) return;
+  if (!miEquipo || !resultados) { box.innerHTML = ""; return; }
+  const ps = partidosDeEquipo(miEquipo), jug = ps.filter(p => p.jugado), prox = ps.filter(p => !p.jugado)[0];
+  const g = jug.filter(p => p.gano === true).length, pe = jug.filter(p => p.gano === false).length;
+  const racha = jug.slice(-5).map(p => `<span class="vd ${p.gano ? "v" : "d"}">${p.gano ? "V" : "D"}</span>`).join("");
+  let pos = "";
+  if (clasificacion && clasificacion.rows) {
+    const obj = normalizarEquipo(equipoOficial(miEquipo)), r = clasificacion.rows.find(x => normalizarEquipo(equipoOficial(cellText(x, "Equipo"))) === obj);
+    if (r) pos = cellText(r, "Clas") || cellText(r, "Pos") || cellText(r, "Posicion") || "";
+  }
+  const nombreMio = miEquipo, esc1 = (n) => { const u = escudoUrlFor(n); return `<span class="hero-esc">${u ? `<img src="${escapeAttr(u)}" alt="" onerror="this.remove()">` : "🏀"}</span>`; };
+  let izq;
+  if (prox) {
+    const loc = prox.esLocal ? nombreMio : prox.rival, vis = prox.esLocal ? prox.rival : nombreMio;
+    izq = `<div class="hero-next"><small>PRÓXIMO PARTIDO${prox.jornada ? " · JORNADA " + escapeHtml(prox.jornada) : ""}</small>
+      <div class="hero-vs"><div class="hero-eq">${esc1(loc)}<b>${escapeHtml(loc)}</b></div><div class="hero-sep">VS</div><div class="hero-eq">${esc1(vis)}<b>${escapeHtml(vis)}</b></div></div>
+      <p>${prox.esLocal ? "🏠 En casa" : "🚌 Fuera de casa"}${prox.fecha ? " · " + escapeHtml(prox.fecha) : ""}${prox.hora ? " · " + escapeHtml(prox.hora) : ""}</p></div>`;
+  } else {
+    izq = `<div class="hero-next"><small>TU EQUIPO</small><div class="hero-vs"><div class="hero-eq">${esc1(nombreMio)}<b>${escapeHtml(nombreMio)}</b></div></div><p>No hay más partidos programados.</p></div>`;
+  }
+  const der = `<div class="hero-kpi"><small>${escapeHtml(nombreMio)}</small>
+    <div class="hero-nums"><div><b>${pos ? escapeHtml(pos) + "º" : "–"}</b><span>Clasificación</span></div><div><b>${g}-${pe}</b><span>Victorias-derrotas</span></div></div>
+    <div class="hero-racha"><span class="t">Racha</span>${racha || '<span class="peq">Sin partidos jugados</span>'}</div></div>`;
+  box.innerHTML = `<div class="hero-g">${izq}${der}</div>`;
+}
 function rankRowHtml(row, index, valueCol, nameCol, teamCol) {
   const pos = index + 1;
   const medal = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : pos;
@@ -8498,6 +8545,7 @@ function guardarMiEquipo(nombre) {
   miEquipo = nombre;
   try { localStorage.setItem("lf2_mi_equipo", nombre); } catch (e) { /* sin guardar, no pasa nada */ }
   pintarTarjetaEquipo();
+  try { pintarHeroInicio(); } catch (e) { /* nada */ }
   renderMiEquipo();
 }
 
