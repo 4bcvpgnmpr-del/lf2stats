@@ -2519,7 +2519,31 @@ function centroVideo() {
       ${listas.slice().sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0) || String(b.actualizada).localeCompare(String(a.actualizada))).map(l => `<tr data-l="${esc(l.id)}" class="${listaAct === l.id ? "on" : ""}"><td><button class="st ${l.fav ? "on" : ""}" data-fav="${esc(l.id)}">★</button></td><td>${esc(l.titulo)}</td><td>${f(l.creada)}</td><td>${f(l.actualizada)}</td><td>${l.items.length}</td><td><button class="st" data-lm="${esc(l.id)}" style="color:#9aa4b2">⋯</button></td></tr>`).join("")}</tbody></table>`;
     $c("cvLsB").querySelectorAll("tr[data-l]").forEach(tr => tr.onclick = () => { listaAct = tr.dataset.l; sel.clear(); pintaListas(); pintaFiltros(); pintaTabla(); });
     $c("cvLsB").querySelectorAll("[data-fav]").forEach(b => b.onclick = async (e) => { e.stopPropagation(); const l = listas.find(x => x.id === b.dataset.fav); l.fav = !l.fav; await guardarListas(listas); pintaListas(); });
-    $c("cvLsB").querySelectorAll("[data-lm]").forEach(b => b.onclick = (e) => { e.stopPropagation(); const l = listas.find(x => x.id === b.dataset.lm); pop(e, [["✏️ Renombrar", async () => { const n = prompt("Nombre de la lista", l.titulo); if (n && n.trim()) { l.titulo = n.trim(); l.actualizada = new Date().toISOString(); await guardarListas(listas); pintaListas(); } }], ["▶ Reproducir", () => { listaAct = l.id; pintaListas(); pintaTabla(); const v = vista(); if (v.length) pon(v[0].id); }], ["🗑 Borrar lista", async () => { if (!confirm("¿Borrar la lista «" + l.titulo + "»? Los vídeos no se borran.")) return; listas = listas.filter(x => x !== l); if (listaAct === l.id) listaAct = ""; await guardarListas(listas); pintaListas(); pintaFiltros(); pintaTabla(); }]]); });
+    $c("cvLsB").querySelectorAll("[data-lm]").forEach(b => b.onclick = (e) => { e.stopPropagation(); const l = listas.find(x => x.id === b.dataset.lm); pop(e, [["✏️ Renombrar", async () => { const n = prompt("Nombre de la lista", l.titulo); if (n && n.trim()) { l.titulo = n.trim(); l.actualizada = new Date().toISOString(); await guardarListas(listas); pintaListas(); } }], ["📤 Enviar a las jugadoras", () => enviarJug(l.titulo, l.items.map(id => todos.find(t => t.id === id)).filter(Boolean)) ], ["▶ Reproducir", () => { listaAct = l.id; pintaListas(); pintaTabla(); const v = vista(); if (v.length) pon(v[0].id); }], ["🗑 Borrar lista", async () => { if (!confirm("¿Borrar la lista «" + l.titulo + "»? Los vídeos no se borran.")) return; listas = listas.filter(x => x !== l); if (listaAct === l.id) listaAct = ""; await guardarListas(listas); pintaListas(); pintaFiltros(); pintaTabla(); }]]); });
+  };
+  const enviarJug = async (titulo, vids) => {
+    if (!vids.length) { aviso("No hay clips que enviar"); return; }
+    const { data, error } = await nube.from("jugadoras").select("id,nombre").order("nombre");
+    if (error || !data || !data.length) { aviso("No hay jugadoras en el panel todavía."); return; }
+    document.querySelectorAll(".cvDlg").forEach(x => x.remove());
+    const d = document.createElement("div"); d.className = "cvPop cvDlg"; d.style.cssText = "left:50%;top:8%;transform:translateX(-50%);padding:16px;width:min(460px,94vw);max-height:84vh;overflow:auto";
+    d.innerHTML = `<b style="display:block;font-size:16px">Enviar a las jugadoras</b><p style="margin:4px 0 10px;color:#8b95a3;font-size:12.5px">${vids.length} clip(s) · les salen en la pestaña Vídeos de su app.</p>
+      <label style="font-size:12px;color:#8b95a3">Título</label><input id="cvET" value="${esc(titulo)}" style="width:100%;padding:8px;margin:2px 0 8px;background:#0f151c;color:#e6ebf1;border:1px solid #2c3744;border-radius:6px">
+      <label style="font-size:12px;color:#8b95a3">Nota (opcional)</label><input id="cvEN" style="width:100%;padding:8px;margin:2px 0 8px;background:#0f151c;color:#e6ebf1;border:1px solid #2c3744;border-radius:6px">
+      <div style="border:1px solid #2c3744;border-radius:8px;padding:6px 10px;max-height:240px;overflow:auto"><label style="display:flex;gap:8px;align-items:center;padding:4px 0"><input type="checkbox" id="cvETo"> <b>Todas</b></label>${data.map(j => `<label style="display:flex;gap:8px;align-items:center;padding:4px 0"><input type="checkbox" class="cvEJ" value="${esc(j.id)}"> ${esc(j.nombre)}</label>`).join("")}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button id="cvEX">Cancelar</button><button id="cvEG" style="background:#e0602a;color:#fff">Enviar</button></div>`;
+    document.body.appendChild(d);
+    document.getElementById("cvETo").onchange = (e) => d.querySelectorAll(".cvEJ").forEach(c => { c.checked = e.target.checked; });
+    document.getElementById("cvEX").onclick = () => d.remove();
+    document.getElementById("cvEG").onclick = async (e) => {
+      const ids = [...d.querySelectorAll(".cvEJ:checked")].map(c => c.value); if (!ids.length) { aviso("Elige al menos una jugadora"); return; }
+      const tit = document.getElementById("cvET").value.trim() || titulo, nota = document.getElementById("cvEN").value.trim() || null;
+      e.target.disabled = true; e.target.textContent = "Enviando…";
+      const filas = ids.flatMap(id => vids.map((v, i) => ({ jugadora_id: id, titulo: vids.length > 1 ? tit + " · " + (i + 1) + "/" + vids.length + (v.m.categoria ? " " + v.m.categoria : "") : tit, url: v.url, nota: v.m.nota && !nota ? v.m.nota : nota })));
+      const { error: e2 } = await nube.from("clips").insert(filas);
+      if (e2) { aviso("No se pudo enviar: " + e2.message); e.target.disabled = false; e.target.textContent = "Enviar"; return; }
+      d.remove(); aviso("Enviado a " + ids.length + " jugadora(s) ✓");
+    };
   };
   const pop = (e, ops) => { document.querySelectorAll(".cvPop").forEach(x => x.remove()); const d = document.createElement("div"); d.className = "cvPop"; ops.forEach(([t, f]) => { const b = document.createElement("button"); b.textContent = t; b.onclick = () => { d.remove(); f(); }; d.appendChild(b); }); document.body.appendChild(d); const r = e.currentTarget.getBoundingClientRect(); d.style.left = Math.max(8, Math.min(r.left, innerWidth - d.offsetWidth - 8)) + "px"; d.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - d.offsetHeight - 8)) + "px"; setTimeout(() => document.addEventListener("click", () => d.remove(), { once: true }), 0); };
   const flecha = (k) => orden.k === k ? (orden.d > 0 ? " ▲" : " ▼") : "";
@@ -2564,6 +2588,7 @@ function centroVideo() {
       document.getElementById("cvPE").onchange = (e) => { document.getElementById("cvPS").innerHTML = '<option value="">— Quitar partido —</option>' + opcionesPartido(OPP, e.target.value); };
       document.getElementById("cvPG").onclick = async () => { const k = document.getElementById("cvPS").value, o = OPP.find(p => p.k === k); if (await asignarPartidoLote(ids, k, o ? o.txt : "")) { const M2 = metaVideos(); todos.forEach(t => { t.m = M2[t.id] || {}; }); d.remove(); sel.clear(); pintaPanel(); pintaFiltros(); pintaTabla(); aviso("Partido asignado ✓"); } };
     }]);
+    ops.push(["📤 Enviar selección a las jugadoras…", () => enviarJug(listaAct ? ((listas.find(x => x.id === listaAct) || {}).titulo || "Clips") : "Clips", ids.map(id => todos.find(t => t.id === id)).filter(Boolean))]);
     if (listaAct) ops.push(["➖ Quitar de esta lista", async () => { const l = listas.find(x => x.id === listaAct); l.items = l.items.filter(i => !ids.includes(i)); l.actualizada = new Date().toISOString(); if (await guardarListas(listas)) { sel.clear(); pintaListas(); pintaTabla(); } }]);
     pop(e, ops);
   };
