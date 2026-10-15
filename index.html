@@ -6364,7 +6364,7 @@ function ivLineas(txt, max) {
   return String(txt || "").split(/\n|•|·|;/).map(s => s.replace(/^[\s\-–*\d.)]+/, "").trim()).filter(Boolean).slice(0, max);
 }
 /* ---- Estilos del informe visual ---- */
-const IV_ESTILOS = [["fut", "Futurista"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"]];
+const IV_ESTILOS = [["fut", "Futurista"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"], ["est", "Estadio"], ["rev", "Revista"], ["dos", "Dossier"], ["car", "Carreras"], ["cin", "Cine"]];
 const IV_CSS3 = `
 [data-iv]{font-family:Inter,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 [data-iv] *{box-sizing:border-box}
@@ -6462,6 +6462,105 @@ const IV_CSS3 = `
 .piz .cl{display:flex;gap:16px;align-items:center;border:2px solid #ffffff44;border-radius:12px;padding:12px 18px;margin-bottom:10px}.piz .cl i{flex:none;background:var(--o);color:#fff;font:900 12px Inter;letter-spacing:.14em;font-style:normal;padding:6px 10px;border-radius:6px}.piz .cl b{font-size:15.5px}
 .piz .ftb{border-top:3px dashed #ffffff33;color:#aeb4bb;margin-top:30px}.piz .ftb b{color:#fff}
 `;
+const IV_CSS4 = `
+/* ESTADIO: degradado naranja a negro con paneles de cristal */
+.est{background:linear-gradient(180deg,#e0602a 0,#7a2a0e 22%,#14181c 48%,#0b0d10 100%);color:#fff}
+.est .hd{padding:32px 48px 26px;position:relative;overflow:hidden}.est .hd .wm{position:absolute;right:-50px;top:-30px;width:360px;height:360px;object-fit:contain;opacity:.14;filter:brightness(3) grayscale(1)}
+.est .hd small{font-size:11px;letter-spacing:.3em;font-weight:800;position:relative;color:#ffd9c7}.est h1{position:relative;font:900 italic 78px/.95 'Inter Display',Inter;letter-spacing:-.04em;text-transform:uppercase;margin-top:12px}
+.est .rr{position:relative;display:flex;gap:10px;margin-top:18px;align-items:center}.est .rr span{background:#ffffff26;border:1px solid #ffffff40;border-radius:99px;padding:7px 16px;font-weight:800;font-size:13px;backdrop-filter:blur(6px)}
+.est .rr i{font-style:normal;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;background:#fff;color:#14181c;margin-left:4px}.est .rr i.L{background:#14181c;color:#fff;border:1px solid #fff}
+.est .wrap{padding:0 48px 8px}.est .gl{background:#ffffff12;border:1px solid #ffffff24;border-radius:18px;padding:20px 22px;backdrop-filter:blur(8px);margin-bottom:14px}
+.est .k4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}.est .k4 div{background:#ffffff14;border:1px solid #ffffff26;border-radius:18px;padding:18px;text-align:center}
+.est .k4 b{display:block;font:900 italic 46px/1 'Inter Display',Inter;letter-spacing:-.04em}.est .k4 span{font-size:10px;letter-spacing:.2em;font-weight:700;color:#ffd9c7}.est .k4 em{display:block;font-style:normal;font-size:12px;font-weight:800;margin-top:4px}
+.est h3{font:900 italic 18px 'Inter Display',Inter;text-transform:uppercase;margin-bottom:12px;letter-spacing:.01em}.est .up{color:#6dffb4}.est .dn{color:#ff9aa4}
+.est .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}.est .g2 .gl{margin:0}.est .it s{flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:#14181c;text-decoration:none;font-weight:900;display:flex;align-items:center;justify-content:center}.est .d s{background:#ff9aa4}.est .f s{background:#6dffb4}
+.est .pl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}.est .pc{background:#ffffff14;border:1px solid #ffffff26;border-radius:18px;padding:18px;text-align:center;position:relative}
+.est .pc .av{width:76px;height:76px;margin:0 auto 10px;border-color:#fff}.est .pc h4{font:900 italic 17px 'Inter Display',Inter;text-transform:uppercase}.est .pc small{font-size:10px;letter-spacing:.18em;color:#ffd9c7;font-weight:800}
+.est .pc .nu{position:absolute;right:14px;top:8px;font:900 italic 30px 'Inter Display',Inter;opacity:.5}.est .pc .b{display:grid;grid-template-columns:repeat(3,1fr);margin-top:12px}.est .pc .b b{display:block;font:900 italic 24px 'Inter Display',Inter}.est .pc .b span{font-size:9.5px;letter-spacing:.14em;color:#ffd9c7;font-weight:700}
+.est .cl{display:flex;gap:16px;align-items:center;margin-bottom:10px}.est .cl i{flex:none;width:44px;height:44px;border-radius:50%;background:#fff;color:#e0602a;font:900 italic 24px 'Inter Display',Inter;display:flex;align-items:center;justify-content:center}.est .cl b{font-size:16px}
+.est .ftb{color:#ffffff99;margin-top:14px}.est .ftb i{color:#fff}
+/* REVISTA: editorial blanco con titulares grandes */
+.rev{background:#fbfaf8;color:#14181c}.rev .hd{padding:34px 54px 18px;border-bottom:3px solid #14181c}
+.rev .top{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.3em;font-weight:800;border-bottom:1px solid #14181c;padding-bottom:10px}.rev .top b{color:#e0602a}
+.rev h1{font:italic 900 96px/.92 Georgia,'Times New Roman',serif;letter-spacing:-.03em;margin:22px 0 10px}.rev .de{display:flex;align-items:center;gap:16px}.rev .de .cr{width:60px;height:60px;border:1px solid #14181c}
+.rev .de p{font:italic 18px Georgia,serif;color:#444;max-width:600px;line-height:1.4;white-space:pre-line}
+.rev .wrap{padding:6px 54px}.rev h3{font:800 11px Inter;letter-spacing:.3em;text-transform:uppercase;margin:30px 0 14px;display:flex;gap:12px;align-items:center}.rev h3:before{content:"";width:30px;height:4px;background:#e0602a}
+.rev .k4{display:grid;grid-template-columns:repeat(4,1fr);border-top:2px solid #14181c;border-bottom:2px solid #14181c}.rev .k4 div{padding:16px 10px;border-right:1px solid #ccc}.rev .k4 div:last-child{border:0}
+.rev .k4 b{display:block;font:italic 900 52px/1 Georgia,serif;letter-spacing:-.04em}.rev .k4 span{font-size:10px;letter-spacing:.2em;font-weight:800;color:#666}.rev .k4 em{display:block;font-style:normal;font-size:11.5px;font-weight:800;margin-top:3px}.rev .up{color:#1f9d5c}.rev .dn{color:#d64545}
+.rev .g2{display:grid;grid-template-columns:1fr 1fr;gap:34px}.rev .it{border-bottom:1px solid #ddd;padding-bottom:10px}.rev .it s{flex:none;font:italic 900 20px Georgia,serif;text-decoration:none;color:#e0602a}.rev .d .it s{color:#d64545}
+.rev .pl{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.rev .pc{border-top:4px solid #14181c;padding-top:12px}.rev .pc .av{width:84px;height:84px;border-radius:0;border:0;float:left;margin-right:12px;font-size:26px}
+.rev .pc h4{font:italic 900 20px/1.1 Georgia,serif}.rev .pc small{font-size:10px;letter-spacing:.2em;font-weight:800;color:#e0602a}.rev .pc .b{clear:both;display:grid;grid-template-columns:repeat(3,1fr);padding-top:12px}.rev .pc .b b{display:block;font:italic 900 26px Georgia,serif}.rev .pc .b span{font-size:9.5px;letter-spacing:.14em;color:#666;font-weight:700}
+.rev .cl{display:flex;gap:18px;align-items:baseline;border-bottom:1px solid #ddd;padding:12px 0}.rev .cl i{font:italic 900 40px Georgia,serif;color:#e0602a;width:40px}.rev .cl b{font:italic 700 20px Georgia,serif}
+.rev .ftb{margin-top:24px;border-top:3px solid #14181c;color:#666}
+/* DOSSIER: barra lateral oscura y contenido a la derecha */
+.dos{background:#f1f3f5;display:grid;grid-template-columns:290px 1fr;color:#14181c}.dos .sd{background:#14181c;color:#fff;padding:30px 24px;position:relative}.dos .sd:after{content:"";position:absolute;right:0;top:0;bottom:0;width:5px;background:#e0602a}
+.dos .sd .cr{width:130px;height:130px;margin:0 auto;border:5px solid #e0602a}.dos .sd h1{font:900 italic 28px/1.05 'Inter Display',Inter;text-transform:uppercase;text-align:center;margin:18px 0 4px;letter-spacing:-.02em}.dos .sd .sb{text-align:center;font-size:10.5px;letter-spacing:.2em;color:#e0602a;font-weight:800}
+.dos .sd .kk{margin-top:26px}.dos .sd .kk div{padding:12px 0;border-top:1px solid #ffffff22}.dos .sd .kk b{display:block;font:900 italic 36px/1 'Inter Display',Inter;letter-spacing:-.03em}.dos .sd .kk span{font-size:10px;letter-spacing:.18em;color:#aeb4bb;font-weight:700}.dos .sd .kk em{font-style:normal;font-size:11px;font-weight:800;margin-left:6px}
+.dos .up{color:#2bff9a}.dos .dn{color:#ff7a85}.dos .fm{display:flex;gap:5px;justify-content:center;margin-top:20px}.dos .fm i{font-style:normal;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;background:#1f9d5c}.dos .fm i.L{background:#d64545}
+.dos .mn{padding:28px 30px}.dos .mn h3{font:900 italic 16px 'Inter Display',Inter;text-transform:uppercase;display:flex;gap:10px;align-items:center;margin:0 0 12px}.dos .mn h3:before{content:"";width:6px;height:18px;background:#e0602a}
+.dos .cd{background:#fff;border:1px solid #e4e7eb;border-radius:12px;padding:16px 18px;margin-bottom:16px}.dos .res{font-size:14px;line-height:1.65;white-space:pre-line}
+.dos .it s{flex:none;width:8px;border-radius:4px;background:#1f9d5c}.dos .d .it s{background:#d64545}.dos .pl{display:grid;gap:10px}.dos .pc{display:grid;grid-template-columns:58px 1fr auto;gap:14px;align-items:center;background:#fff;border:1px solid #e4e7eb;border-radius:12px;padding:12px 16px}
+.dos .pc h4{font:900 italic 16px 'Inter Display',Inter;text-transform:uppercase}.dos .pc small{font-size:10px;letter-spacing:.16em;color:#e0602a;font-weight:800}.dos .pc .b{display:flex;gap:16px}.dos .pc .b b{display:block;font:900 italic 22px 'Inter Display',Inter;text-align:center}.dos .pc .b span{font-size:9.5px;color:#6b7280;letter-spacing:.12em;font-weight:700;display:block;text-align:center}.dos .pc p{grid-column:2/4;font-size:12px;color:#6b7280}
+.dos .cl{display:flex;gap:14px;align-items:center;margin-bottom:8px;font-size:14px}.dos .cl i{flex:none;width:30px;height:30px;border-radius:8px;background:#e0602a;color:#fff;font:900 italic 16px 'Inter Display',Inter;display:flex;align-items:center;justify-content:center}
+.dos .ft3{grid-column:1/3;background:#14181c;color:#aeb4bb;padding:14px 30px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.14em;font-weight:700}.dos .ft3 b{color:#fff}.dos .ft3 i{color:#e0602a;font-style:normal}
+/* CARRERAS: bloques de color, rayas y numeros gigantes */
+.car{background:#fff;color:#14181c}.car .hd{background:#14181c;color:#fff;padding:28px 48px 0;position:relative;overflow:hidden}
+.car .hd:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 46px,#e0602a 46px 60px);opacity:.22}.car .hd small{position:relative;font-size:11px;letter-spacing:.3em;font-weight:800;color:#e0602a}
+.car .tt{position:relative;display:flex;align-items:flex-end;gap:20px;padding:10px 0 26px}.car h1{font:900 italic 92px/.9 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.05em;flex:1}.car .cr{width:110px;height:110px;border:5px solid #e0602a}
+.car .stp{display:grid;grid-template-columns:repeat(4,1fr);background:#e0602a;color:#fff;position:relative}.car .stp div{padding:14px 20px;border-right:3px solid #14181c}.car .stp b{display:block;font:900 italic 54px/1 'Inter Display',Inter;letter-spacing:-.05em}.car .stp span{font-size:10.5px;letter-spacing:.16em;font-weight:800}.car .stp em{font-style:normal;font-size:12px;font-weight:900;color:#14181c;margin-left:6px}
+.car .wrap{padding:8px 48px}.car h3{font:900 italic 30px 'Inter Display',Inter;text-transform:uppercase;margin:28px 0 12px;display:inline-block;background:#14181c;color:#fff;padding:4px 16px;transform:skewX(-10deg)}
+.car .res{font-size:16px;font-weight:600;line-height:1.6;white-space:pre-line}.car .g2{display:grid;grid-template-columns:1fr 1fr;gap:0;border:3px solid #14181c}.car .g2>div{padding:16px 20px}.car .g2 .d{border-left:3px solid #14181c;background:#fdeee6}
+.car .it s{flex:none;width:12px;height:12px;margin-top:5px;background:#1f9d5c;transform:skewX(-10deg);text-decoration:none;font-size:0}.car .d .it s{background:#d64545}
+.car .pl{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:3px solid #14181c}.car .pc{padding:16px;border-right:3px solid #14181c;position:relative;overflow:hidden}.car .pc:last-child{border:0}
+.car .pc .nu{position:absolute;right:6px;top:-18px;font:900 italic 110px 'Inter Display',Inter;color:#e0602a;opacity:.18}.car .pc .av{width:70px;height:70px;border-color:#14181c;position:relative}.car .pc h4{font:900 italic 18px 'Inter Display',Inter;text-transform:uppercase;margin-top:8px;position:relative}
+.car .pc small{font-size:10px;letter-spacing:.18em;font-weight:800;color:#e0602a;position:relative}.car .pc .b{display:grid;grid-template-columns:repeat(3,1fr);margin-top:10px;position:relative}.car .pc .b b{display:block;font:900 italic 28px 'Inter Display',Inter}.car .pc .b span{font-size:9.5px;letter-spacing:.14em;color:#6b7280;font-weight:700}
+.car .cl{display:flex;align-items:center;gap:16px;border-bottom:3px solid #14181c;padding:10px 0}.car .cl i{font:900 italic 64px/1 'Inter Display',Inter;color:#e0602a;width:60px}.car .cl b{font-size:18px}
+.car .ftb{background:#14181c;color:#aeb4bb;margin-top:26px}.car .ftb b{color:#fff}.car .up{color:#14181c}.car .dn{color:#14181c;opacity:.7}
+/* CINE: escudo gigante de fondo y datos en tercio inferior */
+.cin{background:#0b0d10;color:#fff}.cin .hero{position:relative;height:420px;overflow:hidden;background:radial-gradient(600px 400px at 70% 40%,#e0602a55,transparent 70%),linear-gradient(#0b0d10,#14181c)}
+.cin .hero .wm{position:absolute;right:-60px;top:-20px;width:520px;height:520px;object-fit:contain;opacity:.22;filter:brightness(2.2) grayscale(.4)}.cin .hero:after{content:"";position:absolute;left:0;right:0;bottom:0;height:60%;background:linear-gradient(transparent,#0b0d10)}
+.cin .hero .in{position:absolute;left:48px;right:48px;bottom:26px;z-index:2}.cin small{font-size:11px;letter-spacing:.34em;font-weight:800;color:#e0602a}.cin h1{font:900 italic 100px/.88 'Inter Display',Inter;letter-spacing:-.05em;text-transform:uppercase;margin:10px 0 16px}
+.cin .lt{display:flex;gap:2px}.cin .lt div{background:#14181c;border-top:3px solid #e0602a;padding:12px 24px}.cin .lt div:first-child{background:#e0602a;border-color:#fff}.cin .lt b{display:block;font:900 italic 32px/1 'Inter Display',Inter}.cin .lt span{font-size:10px;letter-spacing:.2em;font-weight:700;color:#ffffffaa}
+.cin .wrap{padding:6px 48px}.cin h3{font:800 12px Inter;letter-spacing:.34em;text-transform:uppercase;color:#e0602a;margin:30px 0 14px;display:flex;gap:12px;align-items:center}.cin h3:after{content:"";flex:1;height:1px;background:#ffffff22}
+.cin .res{font-size:15px;line-height:1.7;color:#cfd6de;white-space:pre-line}.cin .g2{display:grid;grid-template-columns:1fr 1fr;gap:20px}.cin .it s{flex:none;width:3px;background:#2bff9a;border-radius:2px;font-size:0;text-decoration:none}.cin .d .it s{background:#ff4d5e}
+.cin .pl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.cin .pc{position:relative;background:#14181c;overflow:hidden;border-bottom:3px solid #e0602a}.cin .pc .av{width:100%;height:150px;border-radius:0;border:0;font-size:46px;background:linear-gradient(160deg,#2b3036,#14181c)}.cin .pc .av img{object-position:top}
+.cin .pc .nu{position:absolute;right:10px;top:6px;font:900 italic 44px 'Inter Display',Inter;color:#e0602a;text-shadow:0 2px 8px #000}.cin .pc .tx{padding:12px 16px 16px}.cin .pc small{font-size:10px;letter-spacing:.2em}.cin .pc h4{font:900 italic 18px 'Inter Display',Inter;text-transform:uppercase;margin:3px 0 8px}.cin .pc .b{display:grid;grid-template-columns:repeat(3,1fr)}.cin .pc .b b{display:block;font:900 italic 22px 'Inter Display',Inter}.cin .pc .b span{font-size:9.5px;letter-spacing:.14em;color:#8b95a3;font-weight:700}
+.cin .cl{display:flex;align-items:center;gap:20px;padding:14px 0;border-bottom:1px solid #ffffff22}.cin .cl i{font:900 italic 48px/1 'Inter Display',Inter;color:#e0602a;width:50px}.cin .cl b{font-size:17px}
+.cin .ftb{border-top:1px solid #ffffff22;color:#8b95a3;margin-top:26px}.cin .ftb b{color:#fff}.cin .up{color:#2bff9a}.cin .dn{color:#ff7a85}
+`;
+function ivRender2(est, d) {
+  const pie = () => `<div class="ftb"><b>Scout<i>Flow</i></b><span>${escapeHtml(d.oficial.toUpperCase())}</span></div>`;
+  const ju = d.jugadoras, cl = d.claves;
+  const k = (x) => x.v == null ? "—" : d_fmt(x.v);
+  const dl = (x) => x.v == null ? "" : `<em class="${x.v >= x.avg ? "up" : "dn"}">${x.v >= x.avg ? "▲ +" : "▼ "}${d_fmt(x.v - x.avg)}</em>`;
+  const forma = d.forma.map(g => `<i class="${g ? "" : "L"}">${g ? "V" : "D"}</i>`).join("");
+  const wm = d.escudo ? `<img class="wm" src="${escapeAttr(d.escudo)}" alt="">` : "";
+  const pcs = (con) => ju.map(p => `<div class="pc">${p.dorsal ? `<span class="nu">${escapeHtml(p.dorsal)}</span>` : ""}${con === "cin" ? `${ivAv(p)}<div class="tx"><small>${escapeHtml(p.pos)}</small><h4>${escapeHtml(p.nombre)}</h4><div class="b">${ivStats3(p)}</div></div>` : con === "dos" ? `${ivAv(p)}<div><small>${escapeHtml(p.pos)}${p.dorsal ? " · #" + escapeHtml(p.dorsal) : ""}</small><h4>${escapeHtml(p.nombre)}</h4></div><div class="b">${ivStats3(p)}</div>${p.nota ? `<p>${escapeHtml(p.nota)}</p>` : ""}` : `${ivAv(p)}<small>${escapeHtml(p.pos)}</small><h4>${escapeHtml(p.nombre)}</h4><div class="b">${ivStats3(p)}</div>`}</div>`).join("");
+  const clv = cl.map((c, i) => `<div class="cl"><i>${i + 1}</i><b>${escapeHtml(c)}</b></div>`).join("");
+  if (est === "est") return `<div class="ivx est" data-iv><div class="hd">${wm}<small>SCOUTING REPORT · ${escapeHtml(d.jornada || "INFORME PREVIO")}</small><h1>${escapeHtml(d.oficial)}</h1><div class="rr">${d.record ? `<span>${d.record.v} – ${d.record.d}</span>` : ""}${forma}</div></div>
+    <div class="wrap"><div class="k4">${d.kpis.map(x => `<div><b>${k(x)}</b><span>${x.t}</span>${dl(x)}</div>`).join("")}</div>
+    ${d.resumen ? `<div class="gl"><h3>Cómo juegan</h3><p style="font-size:15px;line-height:1.65;white-space:pre-line">${escapeHtml(d.resumen)}</p></div>` : ""}
+    <div class="g2"><div class="gl f"><h3>Puntos fuertes</h3>${ivItems(d.fuertes, "+")}</div><div class="gl d"><h3>Puntos débiles</h3>${ivItems(d.debiles, "−")}</div></div>
+    ${ju.length ? `<div class="pl">${pcs("")}</div>` : ""}${cl.length ? `<div class="gl"><h3>Claves del partido</h3>${clv}</div>` : ""}</div>${pie()}</div>`;
+  if (est === "rev") return `<div class="ivx rev" data-iv><div class="hd"><div class="top"><span>SCOUTING <b>REPORT</b></span><span>${escapeHtml(d.jornada || "INFORME PREVIO")}</span></div><h1>${escapeHtml(d.oficial)}</h1><div class="de">${ivEscudoHtml(d)}<p>${escapeHtml(d.resumen || "Informe previo al partido.")}</p></div></div>
+    <div class="wrap"><h3>Números clave</h3><div class="k4">${d.kpis.map(x => `<div><b>${k(x)}</b><span>${x.t}</span>${dl(x)}</div>`).join("")}</div>
+    <div class="g2"><div class="f"><h3>Puntos fuertes</h3>${ivItems(d.fuertes, "+")}</div><div class="d"><h3>Puntos débiles</h3>${ivItems(d.debiles, "−")}</div></div>
+    ${ju.length ? `<h3>Jugadoras a vigilar</h3><div class="pl">${pcs("")}</div>` : ""}${cl.length ? `<h3>Claves del partido</h3>${clv}` : ""}</div>${pie()}</div>`;
+  if (est === "dos") return `<div class="ivx dos" data-iv><div class="sd">${ivEscudoHtml(d)}<h1>${escapeHtml(d.oficial)}</h1><div class="sb">${escapeHtml(d.jornada || "SCOUTING")}</div>
+    <div class="kk">${d.kpis.map(x => `<div><span>${x.t}</span><b>${k(x)}${dl(x)}</b></div>`).join("")}</div>${forma ? `<div class="fm">${forma}</div>` : ""}</div>
+    <div class="mn">${d.resumen ? `<h3>Resumen</h3><div class="cd res">${escapeHtml(d.resumen)}</div>` : ""}
+    <h3>Puntos fuertes</h3><div class="cd f">${ivItems(d.fuertes, "")}</div><h3>Puntos débiles</h3><div class="cd d">${ivItems(d.debiles, "")}</div>
+    ${ju.length ? `<h3>Jugadoras a vigilar</h3><div class="pl" style="margin-bottom:16px">${pcs("dos")}</div>` : ""}${cl.length ? `<h3>Claves del partido</h3><div class="cd">${cl.map((c, i) => `<div class="cl"><i>${i + 1}</i><b>${escapeHtml(c)}</b></div>`).join("")}</div>` : ""}</div>
+    <div class="ft3"><b>Scout<i>Flow</i></b><span>${escapeHtml(d.oficial.toUpperCase())}</span></div></div>`;
+  if (est === "car") return `<div class="ivx car" data-iv><div class="hd"><small>SCOUTING REPORT · ${escapeHtml(d.jornada || "INFORME PREVIO")}</small><div class="tt"><h1>${escapeHtml(d.oficial)}</h1>${ivEscudoHtml(d)}</div></div>
+    <div class="stp">${d.kpis.map(x => `<div><span>${x.t}</span><b>${k(x)}</b>${dl(x)}</div>`).join("")}</div>
+    <div class="wrap">${d.resumen ? `<h3>Cómo juegan</h3><div class="res">${escapeHtml(d.resumen)}</div>` : ""}<h3>Fuertes y débiles</h3><div class="g2"><div class="f"><b style="font:900 italic 16px 'Inter Display',Inter">PUNTOS FUERTES</b>${ivItems(d.fuertes, "")}</div><div class="d"><b style="font:900 italic 16px 'Inter Display',Inter">PUNTOS DÉBILES</b>${ivItems(d.debiles, "")}</div></div>
+    ${ju.length ? `<h3>A vigilar</h3><div class="pl">${pcs("")}</div>` : ""}${cl.length ? `<h3>Claves</h3>${clv}` : ""}</div>${pie()}</div>`;
+  return `<div class="ivx cin" data-iv><div class="hero">${wm}<div class="in"><small>SCOUTING REPORT · ${escapeHtml(d.jornada || "INFORME PREVIO")}</small><h1>${escapeHtml(d.oficial)}</h1>
+    <div class="lt">${d.record ? `<div><b>${d.record.v} – ${d.record.d}</b><span>RÉCORD</span></div>` : ""}${d.kpis.slice(0, 3).map(x => `<div><b>${k(x)}</b><span>${x.t}</span></div>`).join("")}</div></div></div>
+    <div class="wrap">${d.resumen ? `<h3>Cómo juegan</h3><div class="res">${escapeHtml(d.resumen)}</div>` : ""}<h3>Análisis</h3><div class="g2"><div class="f"><b style="color:#2bff9a;font-size:11px;letter-spacing:.24em">▲ PUNTOS FUERTES</b>${ivItems(d.fuertes, "")}</div><div class="d"><b style="color:#ff7a85;font-size:11px;letter-spacing:.24em">▼ PUNTOS DÉBILES</b>${ivItems(d.debiles, "")}</div></div>
+    ${ju.length ? `<h3>Jugadoras a vigilar</h3><div class="pl">${pcs("cin")}</div>` : ""}${cl.length ? `<h3>Claves del partido</h3>${clv}` : ""}</div>${pie()}</div>`;
+}
 function ivEscudoHtml(d, clase) { return `<div class="cr ${clase || ""}">${d.escudo ? `<img src="${escapeAttr(d.escudo)}" alt="" onerror="this.outerHTML='${escapeAttr(d.sigla)}'">` : escapeHtml(d.sigla)}</div>`; }
 function ivMiEscudoHtml(d, clase) { const m = d.mio; return `<div class="cr ${clase || ""}">${m && m.escudo ? `<img src="${escapeAttr(m.escudo)}" alt="" onerror="this.outerHTML='${escapeAttr(m.sigla)}'">` : escapeHtml(m ? m.sigla : "")}</div>`; }
 function ivAv(p) { return `<div class="av">${p.foto ? `<img src="${escapeAttr(p.foto)}" alt="" onerror="this.remove()">` : escapeHtml(p.ini)}</div>`; }
@@ -6470,6 +6569,7 @@ function ivDeltaHtml(k) { if (k.v == null) return ""; const dl = k.v - k.avg, up
 function d_fmt(x) { return fmtNum(Math.round(x * 10) / 10); }
 function ivStats3(p) { return [["PT", "PTS"], ["RT", "REB"], ["AS", "AST"]].map(([k, l]) => `<div><b>${escapeHtml(String(p[k] == null ? "—" : p[k]))}</b><span>${l}</span></div>`).join(""); }
 function ivRender(est, d) {
+  if (["est", "rev", "dos", "car", "cin"].includes(est)) return ivRender2(est, d);
   const pie = (cl) => `<div class="ftb"><b>Scout<i>Flow</i></b><span>${escapeHtml(d.oficial.toUpperCase())}</span></div>`;
   const kpi = (k) => `<div><b>${k.v == null ? "—" : d_fmt(k.v)}</b><span>${k.t}</span>${ivDeltaHtml(k)}</div>`;
   const ju = d.jugadoras, cl = d.claves;
@@ -6622,7 +6722,7 @@ function abrirInformeVisual(nombre) {
 }
 function ivMostrar(html, nombre, render) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
-  if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}</style>`);
+  if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}${IV_CSS4}</style>`);
   const actual = ivEstiloGuardado();
   const chips = render ? `<div class="iv-est">${IV_ESTILOS.map(([k, t]) => `<button data-est="${k}" class="${k === actual ? "on" : ""}">${t}</button>`).join("")}</div>` : "";
   document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPng">Descargar imagen</button><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div>${chips}<div class="iv-scroll">${html}</div></div>`);

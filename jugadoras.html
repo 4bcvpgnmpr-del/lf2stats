@@ -1990,7 +1990,7 @@ function seccionRivalHtml(sc) {
   }
 
   if (sc.tipo === "playbook" && (sc.capitulos || []).length) {
-    return `<div class="seccion-rival">${tit}${sc.capitulos.map(c => `<div class="sr-tit" style="margin-top:12px;color:var(--ink);">${esc(c.titulo)}</div>
+    return `<div class="seccion-rival">${tit}${sc.capitulos.map(c => `<div style="margin:16px 0 10px;padding:9px 14px;background:var(--wood,#3f9c86);background:#3f9c86;color:#fff;border-radius:10px;font-weight:800;font-size:14px;letter-spacing:.04em;text-transform:uppercase;">${esc(c.titulo)}</div>
       ${(c.jugadas || []).map(p => { PB_REG.push(p); const n = (p.data && p.data.pasos) ? p.data.pasos.length : 0;
         return `<button class="fila-pb" data-pb="${PB_REG.length - 1}" style="display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--wood-line);background:var(--white);border-radius:12px;padding:11px 12px;margin-bottom:8px;font:inherit;cursor:pointer;">${miniJ("pb" + (PB_REG.length - 1), p.data)}<span style="flex:1;min-width:0;"><b style="display:block;">${esc(p.nombre)}</b><small style="color:var(--ink-soft);">${n} ${n === 1 ? "paso" : "pasos"}</small></span></button>`; }).join("")}`).join("")}</div>`;
   }
