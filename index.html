@@ -6796,12 +6796,12 @@ const IV_CSS5 = `
 .xx .xvl a{display:block;background:var(--xc);border:1px solid var(--xl);border-left:3px solid var(--xa);padding:12px 16px;margin-bottom:8px;color:var(--xf);text-decoration:none;font-weight:700}
 .ivx{max-width:100%}.iv{max-width:100%}
 @media(min-width:1000px){
-#ivCapa.ancho [data-iv]{width:1500px!important;max-width:none!important}
-#ivCapa.ancho .xx{display:grid;grid-template-columns:1fr 1fr;column-gap:44px;align-items:start}
-#ivCapa.ancho .xx .xs.full{grid-column:1/-1}
-#ivCapa.ancho .xx .xfg{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px}
+#ivCapa.ancho [data-iv]{width:2100px!important;max-width:none!important}
+#ivCapa.ancho .xx{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:40px;align-items:start}
+#ivCapa.ancho .xx .xs.full{grid-column:1/-1}#ivCapa.ancho .xx .xs.dos{grid-column:span 2}
+#ivCapa.ancho .xx .xfg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 22px}#ivCapa.ancho .xx .xfg .xfx{grid-template-columns:200px minmax(0,1fr);gap:4px 14px}#ivCapa.ancho .xx .xfg .xfv{min-height:300px}#ivCapa.ancho .xx .xfg .xfm img{max-width:100%}
 #ivCapa.ancho .xx .xfg .xfx{margin-bottom:0}
-#ivCapa.ancho .xx .xmp{grid-template-columns:1fr}
+#ivCapa.ancho .xx .xs.dos .xmp{grid-template-columns:minmax(0,440px) 1fr}
 #ivCapa.ancho .xx .xld{grid-template-columns:repeat(3,1fr)}
 #ivCapa.ancho .iv-scroll{overflow-x:auto}
 }
@@ -6882,7 +6882,7 @@ function ivExtras(nombre, dat) {
   if (jug.length) S.push(`${H("Jugadas del rival · " + jug.length)}${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < (IV_LIVIANO ? 120000 : 600000))).slice(0, 4);
     return `<div class="xjg"><span class="gt">${esc((j.tipo || "Otra").toUpperCase())}</span><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${escapeAttr(x)}" alt="" loading="lazy">`).join("")}</div>` : ""}</div>`; }).join("")}`);
   const COMPLETA = /Plantilla|Tabla de la plantilla|Líderes|Jugadas del rival|Últimos partidos|Puntos por partido|Estadísticas de la temporada|Vídeos/;
-  return `<div class="xx">${S.map(x => `<div class="xs${COMPLETA.test(x.slice(0, 160)) ? " full" : ""}">${x}</div>`).join("")}</div>`;
+  return `<div class="xx">${S.map(x => `<div class="xs${COMPLETA.test(x.slice(0, 160)) ? " full" : /Mapa de tiro del equipo/.test(x.slice(0, 160)) ? " dos" : ""}">${x}</div>`).join("")}</div>`;
 }
 
 /* ===== Informe visual de una jugadora (perfil completo: estadísticas, tiros, partidos, notas, vídeos) ===== */
@@ -6950,7 +6950,7 @@ function ivAjusta() {
   const capa = document.getElementById("ivCapa"); if (!capa) return;
   const sc = capa.querySelector(".iv-scroll"), ancho = !!capa.querySelector(".iv-est button[data-comp]") && ivCompletoActivo() && !!sc.querySelector(".xx") && innerWidth >= 1000;
   capa.classList.toggle("ancho", ancho);
-  sc.style.zoom = ancho ? String(Math.min(1, (innerWidth - 24) / 1500)) : "";
+  sc.style.zoom = ancho ? String(Math.min(1, (innerWidth - 24) / 2100)) : "";
 }
 function ivMostrar(html, nombre, render, conCompleto) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
