@@ -7022,7 +7022,8 @@ function ivMostrar(html, nombre, render, conCompleto) {
       await Promise.all(cambios.map(([, im2]) => im2.complete ? 0 : new Promise(ok => { im2.onload = im2.onerror = ok; })));
       const restaurar = () => cambios.forEach(([sv, im2]) => { im2.remove(); sv.style.display = ""; });
       const rw = raiz.scrollWidth || raiz.offsetWidth || 1, rh = raiz.scrollHeight || raiz.offsetHeight || 1;
-      const esc2 = Math.max(0.5, Math.min(2, 15000 / rh, Math.sqrt(100e6 / (rw * rh))));
+      const objetivo = (zoomAntes ? Number(zoomAntes) || 1 : 1) * Math.max(2, window.devicePixelRatio || 2);
+      const esc2 = Math.max(0.5, Math.min(objetivo, 15000 / rh, Math.sqrt(100e6 / (rw * rh))));
       let lienzo; try { lienzo = await window.html2canvas(raiz, { scale: esc2, width: rw, height: rh, windowWidth: Math.max(rw, document.documentElement.clientWidth), logging: false, useCORS: true, backgroundColor: fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" }); } finally { restaurar(); }
       if (malas.length) setTimeout(() => alert("Algunas fotos o escudos no se pudieron incluir en la imagen (la web de origen no lo permite). En «Imprimir / PDF» sí salen."), 300);
       lienzo.toBlob((bl) => { if (!bl) { alert("La imagen es demasiado grande para este navegador. Usa «Imprimir / PDF»."); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
