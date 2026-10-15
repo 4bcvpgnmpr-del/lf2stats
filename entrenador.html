@@ -217,6 +217,12 @@
   .pe-save{display:inline-flex;} .pe-save button{background:var(--pg);color:#fff;padding:12px 20px;font-size:15px;border-radius:9px 0 0 9px;} .pe-save button+button{border-radius:0 9px 9px 0;border-left:1px solid rgba(255,255,255,.35);padding:12px 12px;}
   .pe-save button:hover{background:var(--pgd);}
   .pe-cuerpo{flex:1;overflow:auto;padding:26px 24px 90px 60px;width:100%;max-width:1620px;margin:0 auto;}
+  .cg-bar{display:flex;height:34px;border-radius:10px;overflow:hidden;background:#eef1f4;margin:6px 0 8px;} .cg-bar>div{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;}
+  .cg-ley{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;margin-bottom:10px;} .cg-ley i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+  .cg-kpi{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;} .cg-kpi div{flex:1;min-width:90px;background:#f4f6f8;border-radius:12px;padding:8px 12px;} .cg-kpi b{display:block;font-size:22px;} .cg-kpi span{font-size:12px;color:#5b6670;}
+  .cg-t{width:100%;border-collapse:collapse;font-size:14px;} .cg-t td,.cg-t th{padding:6px 6px;border-bottom:1px solid #eceff2;text-align:left;} .cg-t th{font-size:12px;color:#5b6670;} .cg-t .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;} .cg-mini{height:8px;border-radius:4px;background:#e8590c;min-width:2px;}
+  .cg-sem{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px;} .cg-sem>span:first-child{width:74px;color:#5b6670;flex:none;} .cg-sem .b{display:flex;height:16px;border-radius:5px;overflow:hidden;} .cg-sem .b>div{height:100%;} .cg-sem .t{font-variant-numeric:tabular-nums;color:#5b6670;}
+  .cg-sin{display:flex;gap:8px;align-items:center;padding:6px 8px;background:#fff8e6;border-radius:10px;margin-bottom:5px;font-size:14px;} .cg-sin select{width:auto;min-height:36px;padding:0 8px;}
   .pe-h{display:flex;align-items:baseline;gap:12px;margin:6px 0 26px 34px;} .pe-h h2{font-size:21px;font-weight:700;margin:0;} .pe-h span{color:#5b6670;font-size:16px;}
   .pe-lista{display:flex;flex-direction:column;gap:10px;}
   .pe-fila{display:flex;align-items:center;gap:10px;} .pe-fila.arr{opacity:.4;} .dst-a{box-shadow:0 -3px 0 var(--pg);} .dst-b{box-shadow:0 3px 0 var(--pg);}
@@ -878,6 +884,7 @@ function pintarCarpetas(v, tipo) {
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
   let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${PLAN_LIM && PLAN_LIM[tipo] != null ? `<span class="peq" style="background:#fff4e6;color:#c2570c;border-radius:999px;padding:4px 10px;font-weight:800;">Muestra: ${D[tipo].length}/${PLAN_LIM[tipo]}</span>` : ""}${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${tipo === "jugadas" ? '<button class="gris" id="bPartido" title="Pizarra en vivo para el banquillo">🏟 Modo partido</button>' : ""}${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
     <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
+      ${tipo === "planes" ? '<button class="gris" id="bCarga" title="Cuánto trabajas de ataque, defensa…">📊 Control de carga</button>' : ""}
       <button class="gris" id="bIr" title="Ir a una carpeta">📂 Carpetas</button>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
       <button class="gris" id="bOrden" title="Ordenar">⇅ ${ORDENES[ordenar]}</button>
@@ -906,6 +913,7 @@ function pintarCarpetas(v, tipo) {
   v.querySelectorAll("[data-r]").forEach(a => { a.onclick = () => { carpeta = a.dataset.r; seleccion.clear(); pintar(); }; soltarEn(a, tipo, a.dataset.r); });
   $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; redib(); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
   $("bFiltro").onclick = () => abrirFiltro(v, tipo);
+  if ($("bCarga")) $("bCarga").onclick = () => controlCarga();
   $("bIr").onclick = (e) => { const rs = rutasCarpetas(tipo).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")); abrirMenu(e, [[(carpeta === "" ? "✓ " : "") + "📂 Todo (raíz)", () => { carpeta = ""; seleccion.clear(); pintar(); }]].concat(rs.map(c => [(carpeta === c.nombre ? "✓ " : "") + "　".repeat(c.nombre.split("/").length - 1) + "📁 " + ultimo(c.nombre) + " (" + c.n + ")", () => { carpeta = c.nombre; seleccion.clear(); pintar(); }]))); };
   v.querySelectorAll("[data-fx]").forEach(a => a.onclick = () => { const k = a.dataset.fx, val = a.dataset.v || true; if (fx[k] && fx[k] === val) delete fx[k]; else fx[k] = val; redib(); });
   v.querySelectorAll("[data-vg]").forEach(a => a.onclick = (e) => { const lst = vistasGuardadas(tipo), i = Number(a.dataset.vg); if (e.target.closest("[data-vx]")) { if (confirm("¿Quitar la vista «" + lst[i].n + "»?")) { lst.splice(i, 1); guardarVistas(tipo, lst); redib(); } return; } const g = lst[i]; busqueda = g.q || ""; filtroTags = (g.t || []).slice(); filtroTipo = g.ti || ""; fx = Object.assign({}, g.fx || {}); if (g.c != null) carpeta = g.c; redib(); });
@@ -1803,6 +1811,56 @@ const tituloSeg = (e) => e.titulo != null && e.titulo !== "" ? e.titulo : (ejDe(
 const segmentos = (d) => (d.ejercicios || []).filter(e => !e.sec);
 const minPlan = (d) => segmentos(d).reduce((a, e) => a + (Number(e.min) || 0), 0);
 let PL = null; // { p, tab, hist, fut, sucio, base }
+/* ------------ control de carga: cuánto se trabaja ataque / defensa / otros ------------ */
+const CG = { per: "mes", car: "", fut: false };
+const CG_COL = { Ataque: "#e8590c", Defensa: "#1971c2", Otros: "#868e96" };
+const grupoCat = (c) => c === "Ataque" || c === "Tiro" ? "Ataque" : c === "Defensa" ? "Defensa" : "Otros";
+const catInferida = (t) => { t = (t || "").toLowerCase(); if (/defens|zona|presi|press|ayuda|rebote defens/.test(t)) return "Defensa"; if (/ataque|ofens|tiro|lanzam|bloqueo|pick|transici|contraata|1x1|2x2|3x3/.test(t)) return "Ataque"; if (/calent/.test(t)) return "Calentamiento"; if (/f[ií]sic|fuerza|resisten/.test(t)) return "Físico"; return ""; };
+const catSeg = (e) => { const ej = ejDe(e); let c = e.cat || (ej && ej.data && ej.data.categoria) || ""; if (!c || c === "Otro") c = catInferida(tituloSeg(e)) || c; return c; };
+const minPorGrupo = (d) => { const r = { Ataque: 0, Defensa: 0, Otros: 0 }; segmentos(d).forEach(e => { r[grupoCat(catSeg(e))] += Number(e.min) || 0; }); return r; };
+function cargaDatos() {
+  const hoy = new Date().toISOString().slice(0, 10), dias = { sem: 7, mes: 28 }[CG.per], ahora = new Date();
+  const desde = CG.per === "temp" ? ((ahora.getMonth() >= 8 ? ahora.getFullYear() : ahora.getFullYear() - 1) + "-09-01") : dias ? new Date(Date.now() - (dias - 1) * 864e5).toISOString().slice(0, 10) : "";
+  const segs = []; let sesiones = 0, sinFecha = 0;
+  D.planes.forEach(p => {
+    if (CG.car && (p.carpeta || "") !== CG.car && !String(p.carpeta || "").startsWith(CG.car + "/")) return;
+    const f = (p.fecha || "").slice(0, 10); if (!f) { sinFecha++; return; } if (desde && f < desde) return; if (!CG.fut && f > hoy) return;
+    let hubo = false; ((p.data && p.data.ejercicios) || []).forEach((e, i) => { if (e.sec) return; const m = Number(e.min) || 0; if (!m) return; hubo = true; segs.push({ p, i, e, f, m, c: catSeg(e) }); }); if (hubo) sesiones++;
+  });
+  return { segs, sesiones, sinFecha };
+}
+function controlCarga() {
+  const { segs, sesiones, sinFecha } = cargaDatos(), tot = segs.reduce((a, x) => a + x.m, 0), pc = (v) => tot ? Math.round(100 * v / tot) : 0;
+  const g = { Ataque: 0, Defensa: 0, Otros: 0 }, cats = {}, sem = {};
+  const clave = (f) => { const d = new Date(f + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
+  segs.forEach(x => { const gr = grupoCat(x.c); g[gr] += x.m; const k = x.c || "Sin clasificar"; (cats[k] = cats[k] || { m: 0, s: new Set() }); cats[k].m += x.m; cats[k].s.add(x.p.id); const w = clave(x.f); (sem[w] = sem[w] || { Ataque: 0, Defensa: 0, Otros: 0 })[gr] += x.m; });
+  const carp = [...new Set(D.planes.map(p => p.carpeta || "").filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  const sin = segs.filter(x => !x.c);
+  const semK = Object.keys(sem).sort().reverse().slice(0, 8), maxS = Math.max(1, ...semK.map(k => sem[k].Ataque + sem[k].Defensa + sem[k].Otros));
+  const dm = (iso) => { const d = new Date(iso + "T12:00:00"); return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }); };
+  const h = `<h3>📊 Control de carga de entrenamiento</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;"><select id="cgP" style="width:auto;">${[["sem", "Última semana"], ["mes", "Últimas 4 semanas"], ["temp", "Temporada"], ["todo", "Todo"]].map(([k, t]) => `<option value="${k}" ${CG.per === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+      <select id="cgC" style="width:auto;"><option value="">Todas las carpetas</option>${carp.map(c => `<option ${CG.car === c ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:14px;margin:0;text-transform:none;letter-spacing:0;font-weight:600;color:inherit;"><input type="checkbox" id="cgF" style="width:auto;" ${CG.fut ? "checked" : ""}> Incluir sesiones futuras</label></div>
+    ${tot ? `<div class="cg-kpi"><div><b>${sesiones}</b><span>sesiones</span></div><div><b>${tot} min</b><span>(${(tot / 60).toFixed(1).replace(".", ",")} h) en total</span></div><div><b>${Math.round(tot / Math.max(1, sesiones))} min</b><span>por sesión</span></div></div>
+    <div class="cg-bar">${["Ataque", "Defensa", "Otros"].filter(k => g[k]).map(k => `<div style="width:${100 * g[k] / tot}%;background:${CG_COL[k]};">${pc(g[k])}%</div>`).join("")}</div>
+    <div class="cg-ley">${["Ataque", "Defensa", "Otros"].map(k => `<span><i style="background:${CG_COL[k]}"></i><b>${k}</b> ${g[k]} min${tot ? " · " + pc(g[k]) + "%" : ""}</span>`).join("")}</div>
+    <table class="cg-t"><tr><th>Categoría</th><th></th><th class="n">Min</th><th class="n">%</th><th class="n">Sesiones</th></tr>${Object.keys(cats).sort((a, b) => cats[b].m - cats[a].m).map(k => `<tr><td>${esc(k)}</td><td style="width:34%;"><div class="cg-mini" style="width:${100 * cats[k].m / Math.max(...Object.values(cats).map(z => z.m))}%;background:${CG_COL[grupoCat(k)]};"></div></td><td class="n">${cats[k].m}</td><td class="n">${pc(cats[k].m)}%</td><td class="n">${cats[k].s.size}</td></tr>`).join("")}</table>
+    <h3 style="font-size:16px;margin:14px 0 4px;">Por semana</h3>${semK.map(k => { const w = sem[k], t = w.Ataque + w.Defensa + w.Otros; return `<div class="cg-sem"><span>sem. ${dm(k)}</span><div class="b" style="width:${60 * t / maxS}%;">${["Ataque", "Defensa", "Otros"].map(c => `<div style="width:${t ? 100 * w[c] / t : 0}%;background:${CG_COL[c]}" title="${c} ${w[c]} min"></div>`).join("")}</div><span class="t">${t} min · A ${w.Ataque} · D ${w.Defensa}</span></div>`; }).join("")}
+    ${sin.length ? `<h3 style="font-size:16px;margin:14px 0 4px;">Sin clasificar (${sin.length})</h3><p class="peq" style="margin:0 0 6px;">Elige qué trabajaste en estos tramos para que cuenten. Si vinculas el ejercicio, su categoría se usa sola.</p>${sin.slice(0, 10).map((x, j) => `<div class="cg-sin"><span style="flex:1;min-width:0;">${esc(tituloSeg(x.e) || "(sin título)")} <span class="peq">· ${x.m} min · ${solofecha(x.f)}</span></span>${puedeEscribir ? `<select data-sn="${j}"><option value="">Asignar…</option>${CATEGORIAS.map(c => `<option>${c}</option>`).join("")}</select>` : ""}</div>`).join("")}${sin.length > 10 ? `<p class="peq">…y ${sin.length - 10} más.</p>` : ""}` : ""}`
+    : '<div class="vacio" style="padding:26px 6px;">No hay sesiones con fecha en este periodo. Pon la fecha en la pestaña Detalles de cada plan para que cuenten aquí.</div>'}
+    ${sinFecha ? `<p class="peq" style="margin-top:10px;">${sinFecha} plan${sinFecha > 1 ? "es" : ""} sin fecha no cuenta${sinFecha > 1 ? "n" : ""}.</p>` : ""}
+    <p class="peq" style="margin-top:10px;">Ataque = ejercicios de categoría Ataque y Tiro · Defensa = categoría Defensa · Otros = el resto (calentamiento, técnica, físico, juego reducido…). Los tramos sin ejercicio vinculado se clasifican por su título cuando se puede.</p>
+    <div class="pie-m"><button class="naranja" id="cgOk">Cerrar</button></div>`;
+  const m = ventana(h, true);
+  $("cgOk").onclick = cerrarVentana;
+  $("cgP").onchange = (e) => { CG.per = e.target.value; controlCarga(); }; $("cgC").onchange = (e) => { CG.car = e.target.value; controlCarga(); }; $("cgF").onchange = (e) => { CG.fut = e.target.checked; controlCarga(); };
+  m.querySelectorAll("[data-sn]").forEach(sel => sel.onchange = async () => {
+    const x = sin[Number(sel.dataset.sn)]; if (!sel.value || !x) return;
+    x.p.data = x.p.data || {}; x.p.data.ejercicios[x.i].cat = sel.value;
+    await guardarFila("planes", { id: x.p.id, nombre: x.p.nombre, carpeta: x.p.carpeta || "", fecha: x.p.fecha || null, data: x.p.data }); controlCarga();
+  });
+}
 const snapPlan = () => JSON.stringify({ n: PL.p.nombre, f: PL.p.fecha, c: PL.p.carpeta, d: PL.p.data });
 function histPlan() { const s = snapPlan(); if (PL.hist[PL.hist.length - 1] === s) return; PL.hist.push(s); if (PL.hist.length > 80) PL.hist.shift(); PL.fut = []; PL.sucio = true; }
 function aplicarSnap(s) { const o = JSON.parse(s); PL.p.nombre = o.n; PL.p.fecha = o.f; PL.p.carpeta = o.c; PL.p.data = o.d; PL.sucio = true; pEd(); }
@@ -1842,7 +1900,7 @@ function pEd() {
         <div class="pe-c3">${repDe(e) ? `<span class="pe-rep" title="Reparto vinculado">👥 ${esc(repDe(e).nombre)}</span>` : ""}<input data-f="notas" value="${esc(e.notas || "")}" placeholder="Añade notas aquí…" ${ro ? "disabled" : ""}></div>
         ${ro ? "" : `<div class="pe-c4"><button data-r="${i}" title="Más">${IC.mas}</button><button data-dup="${i}" title="Duplicar">${IC.dup}</button><button data-del="${i}" title="Eliminar">${IC.del}</button></div>`}</div></div>`;
     }).join("");
-    cuerpo = `<div class="pe-cuerpo"><div class="pe-h"><h2>Cronograma</h2><span>${total} min</span></div>
+    cuerpo = `<div class="pe-cuerpo"><div class="pe-h"><h2>Cronograma</h2><span>${total} min</span>${total ? (() => { const g = minPorGrupo(d); return `<span style="font-size:13.5px;">${["Ataque", "Defensa", "Otros"].filter(k => g[k]).map(k => `<b style="color:${CG_COL[k]};">${k} ${g[k]}\u2032</b>`).join(" · ")}</span>`; })() : ""}</div>
       <div class="pe-lista" id="peLista">${filas || '<div class="vacio">Añade segmentos para montar la sesión.</div>'}</div>
       ${ro ? "" : `<div class="pe-add"><span class="pe-addb"><button id="peAdd">${IC.plus.replace('width="24" height="24"','width="18" height="18"')} Añadir segmento</button><button id="peAddM" title="Más opciones">${IC.chev}</button></span></div>`}</div>`;
   } else if (tab === "det") {
