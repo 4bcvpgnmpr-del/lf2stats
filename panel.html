@@ -151,6 +151,10 @@
   .caja{border-width:1px;border-radius:16px;box-shadow:0 1px 2px rgba(20,30,40,.05);}
   button{font-family:inherit;font-weight:600;}
   input:focus,select:focus,textarea:focus{outline:0;border-color:#3f9c86 !important;box-shadow:0 0 0 3px rgba(63,156,134,.15);}
+  .dlg-f{position:fixed;inset:0;background:rgba(20,30,40,.5);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .dlg{background:#fff;color:#1f2933;border-radius:16px;padding:22px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.28);} .dlg p{margin:0 0 10px;font-size:15.5px;line-height:1.45;font-weight:600;} .dlg p.sec{font-weight:400;font-size:14px;color:#66717d;}
+  .dlg-b{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;} .dlg-b button{padding:10px 18px;border:1px solid #e4e7eb;background:#fff;color:#1f2933;border-radius:10px;font-weight:600;font-family:inherit;font-size:14px;cursor:pointer;}
+  .dlg-b .dlg-p{background:#d64545;border-color:#d64545;color:#fff;} .dlg-b .dlg-ok{background:#3f9c86;border-color:#3f9c86;color:#fff;}
 </style>
 </head>
 <body>
@@ -470,6 +474,19 @@ const CONFIG = {
 const VERSION = "2026-10-12t";
 
 const $ = (id) => document.getElementById(id);
+function confirmar(msg, si, peligro) {
+  return new Promise((res) => {
+    const f = document.createElement("div"); f.className = "dlg-f";
+    const partes = String(msg).split(/\n\s*\n/);
+    f.innerHTML = '<div class="dlg" role="dialog">' + partes.map((t, i) => '<p' + (i ? ' class="sec"' : '') + '>' + esc(t).replace(/\n/g, "<br>") + "</p>").join("") + '<div class="dlg-b"><button class="dlg-n">Cancelar</button><button class="' + (peligro === false || /enviar|solo puedes/i.test(msg) ? "dlg-ok" : "dlg-p") + '">' + esc(si || (/^¿?borrar/i.test(msg) ? "Borrar" : /^¿?quitar/i.test(msg) ? "Quitar" : /enviar/i.test(msg) ? "Enviar" : "Aceptar")) + "</button></div></div>";
+    const fin = (v) => { document.removeEventListener("keydown", tecla, true); f.remove(); res(v); };
+    const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); fin(false); } };
+    document.addEventListener("keydown", tecla, true);
+    f.onclick = (e) => { if (e.target === f) fin(false); };
+    f.querySelector(".dlg-n").onclick = () => fin(false); f.querySelector(".dlg-b button:last-child").onclick = () => fin(true);
+    document.body.appendChild(f); f.querySelector(".dlg-b button:last-child").focus();
+  });
+}
 const esc = (t) => String(t == null ? "" : t)
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -778,7 +795,7 @@ async function alternarAlta(boton) {
   boton.disabled = true;
 
   if (id) {
-    if (!confirm(`¿Quitar a ${nombre}?\n\nSe borran tambien sus mensajes, videos y objetivos.`)) {
+    if (!await confirmar(`¿Quitar a ${nombre}?\n\nSe borran tambien sus mensajes, videos y objetivos.`)) {
       boton.disabled = false; return;
     }
     const { error } = await sb.from("jugadoras").delete().eq("id", id);
@@ -1140,7 +1157,7 @@ async function anadirEntrenador() {
   cargarEntrenadores();
 }
 async function quitarEntrenador(correo) {
-  if (!confirm(`¿Quitar el asiento de entrenador a ${correo}?`)) return;
+  if (!await confirmar(`¿Quitar el asiento de entrenador a ${correo}?`)) return;
   const { error } = await sb.from("entrenadores").delete().eq(colCorreoEntrenador, correo);
   if (error) { avisar("avisoEnt", "No se ha podido quitar: " + error.message, "mal"); return; }
   cargarEntrenadores();
@@ -1259,7 +1276,7 @@ async function cargarTestsPanel() {
   }));
   caja.querySelectorAll("[data-tb]").forEach(b => b.addEventListener("click", async () => {
     const t = TESTS.find(x => x.id === b.getAttribute("data-tb"));
-    if (!confirm(`¿Borrar el test «${t.titulo}»?\n\nSe borran también las respuestas de todas las jugadoras. No se puede deshacer.`)) return;
+    if (!await confirmar(`¿Borrar el test «${t.titulo}»?\n\nSe borran también las respuestas de todas las jugadoras. No se puede deshacer.`)) return;
     const { error } = await sb.from("tests").delete().eq("id", t.id);
     if (error) { avisar("avisoTests", "No se ha podido borrar: " + error.message, "mal"); return; }
     $("cajaResultadosTest").hidden = true;
@@ -1446,7 +1463,7 @@ async function verResultadosTest(id) {
     c.innerHTML = detalle(i) || '<div class="vacio">Sin detalle.</div>'; c.hidden = false; b.textContent = "Ocultar";
   }));
   caja.querySelectorAll("[data-reset]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirm("¿Borrar su respuesta para que pueda hacer el test otra vez?")) return;
+    if (!await confirmar("¿Borrar su respuesta para que pueda hacer el test otra vez?")) return;
     const { error } = await sb.from("test_intentos").delete().eq("id", b.getAttribute("data-reset"));
     if (error) { avisar("avisoResultados", "No se ha podido reiniciar: " + error.message, "mal"); return; }
     await cargarTestsPanel(); verResultadosTest(id);
@@ -1482,7 +1499,7 @@ async function cargarInformes() {
     <div class="acciones"><button class="boton fina borrar" data-informe="${esc(i.id)}">Quitarlo</button></div>
   </div>`).join("");
   caja.querySelectorAll("[data-informe]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirm("¿Quitar esto? Tus jugadoras dejaran de verlo.")) return;
+    if (!await confirmar("¿Quitar esto? Tus jugadoras dejaran de verlo.")) return;
     const id = b.getAttribute("data-informe");
     const inf = data.find(x => String(x.id) === id);
     const { error: e2 } = await sb.from("informes").delete().eq("id", id);
@@ -1545,7 +1562,7 @@ async function enviarObjetivo() {
 async function quitarJugadora() {
   if (!elegida) return;
   const nombre = elegida.nombre;
-  if (!confirm(`¿Quitar a ${nombre}?\n\nSe borran tambien sus mensajes, videos y objetivos. No se puede deshacer.`)) return;
+  if (!await confirmar(`¿Quitar a ${nombre}?\n\nSe borran tambien sus mensajes, videos y objetivos. No se puede deshacer.`)) return;
   const { error } = await sb.from("jugadoras").delete().eq("id", elegida.id);
   if (error) { avisar("avisoQuitar", "No se ha podido quitar: " + error.message, "mal"); return; }
   elegida = null;
@@ -1599,7 +1616,7 @@ async function cargarHistorial() {
   caja.innerHTML = trozos.length ? trozos.join("")
     : `<div class="vacio">Todavia no le has mandado nada.</div>`;
   caja.querySelectorAll("[data-borrar]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirm("¿Borrar esto? No se puede deshacer.")) return;
+    if (!await confirmar("¿Borrar esto? No se puede deshacer.")) return;
     await sb.from(b.getAttribute("data-borrar")).delete().eq("id", b.getAttribute("data-id"));
     cargarHistorial();
   }));

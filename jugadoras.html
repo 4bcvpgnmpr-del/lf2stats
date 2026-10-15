@@ -385,6 +385,10 @@
   input:focus,select:focus,textarea:focus{outline:0;border-color:#3f9c86 !important;box-shadow:0 0 0 3px rgba(63,156,134,.15);}
   input[type=password],input[type=text]{width:100%;font-family:inherit;font-size:16px;padding:13px 14px;border:1.5px solid var(--wood-line);border-radius:10px;background:var(--suave);color:var(--ink);}
   label.chk,label:has(input[type=checkbox]){text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;display:flex;gap:8px;align-items:center;}
+  .dlg-f{position:fixed;inset:0;background:rgba(20,30,40,.5);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .dlg{background:#fff;color:#1f2933;border-radius:16px;padding:22px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.28);} .dlg p{margin:0 0 10px;font-size:15.5px;line-height:1.45;font-weight:600;} .dlg p.sec{font-weight:400;font-size:14px;color:#66717d;}
+  .dlg-b{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;} .dlg-b button{padding:10px 18px;border:1px solid #e4e7eb;background:#fff;color:#1f2933;border-radius:10px;font-weight:600;font-family:inherit;font-size:14px;cursor:pointer;}
+  .dlg-b .dlg-p{background:#d64545;border-color:#d64545;color:#fff;} .dlg-b .dlg-ok{background:#3f9c86;border-color:#3f9c86;color:#fff;}
 </style>
 </head>
 <body>
@@ -496,6 +500,19 @@ const VERSION = "2026-10-02x";
    UTILIDADES
    ============================================================ */
 const $ = (id) => document.getElementById(id);
+function confirmar(msg, si, peligro) {
+  return new Promise((res) => {
+    const f = document.createElement("div"); f.className = "dlg-f";
+    const partes = String(msg).split(/\n\s*\n/);
+    f.innerHTML = '<div class="dlg" role="dialog">' + partes.map((t, i) => '<p' + (i ? ' class="sec"' : '') + '>' + esc(t).replace(/\n/g, "<br>") + "</p>").join("") + '<div class="dlg-b"><button class="dlg-n">Cancelar</button><button class="' + (peligro === false || /enviar|solo puedes/i.test(msg) ? "dlg-ok" : "dlg-p") + '">' + esc(si || (/^¿?borrar/i.test(msg) ? "Borrar" : /^¿?quitar/i.test(msg) ? "Quitar" : /enviar/i.test(msg) ? "Enviar" : "Aceptar")) + "</button></div></div>";
+    const fin = (v) => { document.removeEventListener("keydown", tecla, true); f.remove(); res(v); };
+    const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); fin(false); } };
+    document.addEventListener("keydown", tecla, true);
+    f.onclick = (e) => { if (e.target === f) fin(false); };
+    f.querySelector(".dlg-n").onclick = () => fin(false); f.querySelector(".dlg-b button:last-child").onclick = () => fin(true);
+    document.body.appendChild(f); f.querySelector(".dlg-b button:last-child").focus();
+  });
+}
 const esc = (t) => String(t == null ? "" : t)
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -1667,8 +1684,8 @@ async function cargarTests() {
            <button class="boton" data-test="${esc(t.id)}" data-estado="${esc(t.estado)}">${t.estado === "en_curso" ? "Continuar el test" : "Empezar el test"}</button>`}
     </div>`;
   }).join("");
-  caja.querySelectorAll("[data-test]").forEach(b => b.addEventListener("click", () => {
-    if (b.getAttribute("data-estado") === "pendiente" && !confirm("Solo puedes responder este test una vez y algunas preguntas tienen tiempo. ¿Empezar ahora?")) return;
+  caja.querySelectorAll("[data-test]").forEach(b => b.addEventListener("click", async () => {
+    if (b.getAttribute("data-estado") === "pendiente" && !await confirmar("Solo puedes responder este test una vez y algunas preguntas tienen tiempo. ¿Empezar ahora?")) return;
     empezarTest(b.getAttribute("data-test"));
   }));
 }
@@ -1691,8 +1708,8 @@ async function empezarTest(id) {
   caja.querySelectorAll("input[type=radio]").forEach(r => r.addEventListener("change", () => { resp[r.getAttribute("data-q")] = Number(r.value); }));
   $("tEnviar").addEventListener("click", async () => {
     const sin = pregs.filter(p => resp[p.id] === undefined).length;
-    if (sin && !confirm(`Te quedan ${sin} sin responder y contarán como falladas. ¿Enviar igualmente?`)) return;
-    if (!sin && !confirm("¿Enviar tus respuestas? No podrás cambiarlas.")) return;
+    if (sin && !await confirmar(`Te quedan ${sin} sin responder y contarán como falladas. ¿Enviar igualmente?`)) return;
+    if (!sin && !await confirmar("¿Enviar tus respuestas? No podrás cambiarlas.")) return;
     $("tEnviar").disabled = true;
     const r = await sb.rpc("test_enviar", { p_test: id, p_resp: resp });
     if (r.error) { $("tEnviar").disabled = false; avisar("avisoTest", r.error.message, "mal"); return; }
