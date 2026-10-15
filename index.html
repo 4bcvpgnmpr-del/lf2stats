@@ -6453,6 +6453,9 @@ function informeVisualHtml(nombre) {
 function abrirInformeVisual(nombre) {
   const html = informeVisualHtml(nombre);
   if (!html) { alert("Todavía no hay estadísticas cargadas."); return; }
+  ivMostrar(html, nombre);
+}
+function ivMostrar(html, nombre) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
   if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}</style>`);
   document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPng">Descargar imagen</button><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div><div class="iv-scroll">${html}</div></div>`);
@@ -6477,6 +6480,41 @@ function abrirInformeVisual(nombre) {
     b.disabled = false; b.textContent = "Descargar imagen";
   };
 }
+
+
+/* Informe visual de cualquier seccion: la pantalla que estas viendo, dentro del marco ScoutFlow */
+const IV_SIN = ["mi-equipo", "equipo-detail", "informes", "pizarra", "mis-jugadoras", "fichajes", "scouting"];
+const IV_CSS2 = `.iv .gb{margin:0 48px;background:#f5f6f7;color:#14181c;border-radius:14px;padding:20px;overflow:hidden;font-family:Inter,sans-serif}
+.iv .gb *{max-width:100%}.iv .gb .view{display:block!important}.iv .gb table{width:100%}.iv .gb .panel{border:0!important;box-shadow:none!important;padding:0!important;background:transparent!important}.iv .gb .status{padding:0!important;background:none!important;border:0!important}.iv .hero.h2{padding-bottom:22px}.iv .gt{font:900 italic 56px/1 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.04em;background:linear-gradient(180deg,#fff 30%,#9aa4b2);-webkit-background-clip:text;color:transparent;margin-top:26px}`;
+function informeVisualVistaHtml(id) {
+  const sec = document.getElementById("view-" + id); if (!sec) return null;
+  const clon = sec.cloneNode(true);
+  const orig = sec.querySelectorAll("canvas");
+  clon.querySelectorAll("canvas").forEach((c, i) => { try { const im = document.createElement("img"); im.src = orig[i].toDataURL("image/png"); im.style.width = "100%"; c.replaceWith(im); } catch (e) { c.remove(); } });
+  clon.querySelectorAll("button, input, select, textarea, .toolbar, .subnav, .back-btn, .no-iv, script, style").forEach(e => e.remove());
+  clon.removeAttribute("id"); clon.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
+  const titulo = (typeof NOMBRE_VISTA !== "undefined" && NOMBRE_VISTA[id]) || id;
+  const eq = (typeof miEquipo !== "undefined" && miEquipo) ? miEquipo : "";
+  const esc = eq ? escudoUrlFor(eq) : "";
+  const temp = (document.getElementById("selTemporada") || {}).value || "";
+  return `<div class="iv"><style>${IV_CSS2}</style><div class="hero h2"><div class="bar"><span class="live">SCOUTFLOW · ESTADÍSTICAS</span><span><b>${escapeHtml(temp)}</b></span></div>
+    <div class="ttl" style="margin-top:22px;gap:20px">${esc ? `<div class="hex" style="width:84px;height:95px"><i style="width:75px;height:85px"><img src="${escapeAttr(esc)}" alt="" style="width:46px;height:46px"></i></div>` : ""}<div><div class="gt" style="margin-top:0">${escapeHtml(titulo)}</div><div class="sub">${escapeHtml(String(eq).toUpperCase())}</div></div></div></div>
+    <div class="gb">${clon.outerHTML}</div><div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(titulo.toUpperCase())}</span></div></div>`;
+}
+function abrirInformeVisualVista(id) {
+  const h = informeVisualVistaHtml(id);
+  if (!h) return;
+  ivMostrar(h, id);
+}
+(function () {
+  const b = document.createElement("button");
+  b.id = "btnIVFlota"; b.textContent = "Informe visual";
+  b.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:900;border:0;border-radius:99px;padding:12px 20px;font:800 14px Inter,sans-serif;background:#14181c;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;display:none;border-left:4px solid #ff6a2b";
+  b.addEventListener("click", () => abrirInformeVisualVista(vistaActual));
+  document.body.appendChild(b);
+  const base = showView;
+  showView = function (id, esVuelta) { const r = base(id, esVuelta); try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
+})();
 
 function plantillaHtml(nombre) {
   const filas = plantillaDe(nombre);
@@ -8957,6 +8995,7 @@ function renderMiEquipo() {
         <button class="btn-partido" id="verPerfilEquipo">Ver perfil completo</button>
         <button class="btn-partido" id="verScoutingEquipo" style="background:var(--teal,#1f7a5a);">Scouting</button>
         <button class="btn-partido" id="enviarMiEquipo">Enviar a mis jugadoras</button>
+        <button class="btn-partido" id="informeVisualMi" style="background:#14181c;">Informe visual</button>
         <button class="btn-partido" id="verQuintetosEquipo">Sus quintetos</button>
         <button class="btn-partido" id="cambiarMiEquipo" style="background:var(--ink);">Cambiar de equipo</button>
       </div>
@@ -8980,6 +9019,8 @@ function renderMiEquipo() {
   const cambiar = document.getElementById("cambiarMiEquipo");
   if (cambiar) cambiar.addEventListener("click", () => guardarMiEquipo(""));
 
+  const btnIVMi = document.getElementById("informeVisualMi");
+  if (btnIVMi) btnIVMi.addEventListener("click", () => abrirInformeVisual(nombre));
   const btnEnviarMi = document.getElementById("enviarMiEquipo");
   if (btnEnviarMi) btnEnviarMi.addEventListener("click", () => abrirEnvioJugadoras(nombre, "equipo"));
   const btnScoutMi = document.getElementById("verScoutingEquipo");
