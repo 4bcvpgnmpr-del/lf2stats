@@ -1153,7 +1153,16 @@ async function duplicar(tipo, x) {
   return null;
 }
 async function borrarElemento(tipo, x) { if (!await confirmar("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
-async function alternarComp(x) { const c = clonar(x); c.compartida = !c.compartida; c.data.compartida = c.compartida; if (await guardarFila("jugadas", c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); await cargarTodo(); pintar(); } }
+function alternarComp(x) {
+  if (x.compartida) return alternarComp2(x);
+  const tipos = TIPOS_JUG.includes(x.tipo) || !x.tipo ? TIPOS_JUG : TIPOS_JUG.concat([x.tipo]);
+  ventana(`<h3>Enviar a las jugadoras</h3><p style="margin:0 0 8px;color:var(--ink-soft);font-size:13.5px;">Elige en qué apartado la verán (por ejemplo Saque de banda o Saque de fondo).</p>
+    <label>Apartado</label><select id="ejT">${tipos.map(t => `<option ${t === x.tipo ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
+    <div class="pie-m"><button class="gris" id="ejX">Cancelar</button><button class="naranja" id="ejG">Enviar</button></div>`);
+  $("ejX").onclick = cerrarVentana;
+  $("ejG").onclick = () => { const t = $("ejT").value; cerrarVentana(); alternarComp2(x, t); };
+}
+async function alternarComp2(x, tipoN) { const c = clonar(x); if (tipoN) { c.tipo = tipoN; c.data.tipo = tipoN; } c.compartida = !c.compartida; c.data.compartida = c.compartida; if (await guardarFila("jugadas", c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); await cargarTodo(); pintar(); } }
 function nuevoElemento(tipo) {
   if (!puedeCrear(tipo)) return;
   if (tipo === "jugadas") return abrirEditor("");
@@ -1533,7 +1542,7 @@ function formPlaybook(p, alGuardar) {
     <div class="dos"><div><label>Equipo</label><input id="pbE" value="${esc(p.equipo || "")}"></div><div><label>Temporada</label><input id="pbT" value="${esc(p.temporada || "")}" placeholder="2026/27"></div></div>
     <label>Notas de introducción</label><textarea id="pbNo" style="min-height:70px;">${esc(p.data.notas || "")}</textarea>
     <label>Escudo de la portada</label><div class="esc-prev"><div class="box" id="pbEBox"></div><div><select id="pbEMod" style="margin-bottom:6px;"><option value="">Mi equipo</option><option value="otro">Otro escudo (rival…)</option><option value="none">Sin escudo</option></select><div id="pbEBt" style="display:none;"><button class="gris" id="pbEEl" type="button">Elegir imagen…</button><input type="file" id="pbEFile" accept="image/*" style="display:none;"></div></div></div>
-    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible en “El rival” (jugadoras)</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible para las jugadoras</label>
     <div class="pie-m"><button class="gris" id="pbX">Cancelar</button><button class="naranja" id="pbG">${nuevo ? "Crear y añadir jugadas" : "Guardar"}</button></div>`);
   $("pbX").onclick = cerrarVentana;
   const pubUrl = (r) => r && nube ? nube.storage.from("entrenador").getPublicUrl(r).data.publicUrl : "";
