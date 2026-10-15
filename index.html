@@ -8686,6 +8686,7 @@ function tarjetaFichaje(item, liga) {
       </label>
     </div>
     <textarea class="nota-fichaje" rows="2" placeholder="Por que te interesa, que aporta, que dudas tienes...">${escapeHtml(item.nota || "")}</textarea>
+    <div class="vids-fichaje" data-clave="${escapeAttr(clave)}" style="margin-top:10px;"><p class="hint" style="margin:0;">🎬 Cargando vídeos…</p></div>
   </div>`;
 }
 
@@ -8743,6 +8744,52 @@ function renderFichajes() {
     <div class="perfiles-plantilla" style="margin-top:16px;">${visibles.map(i => tarjetaFichaje(i, liga)).join("")}</div>`;
   wireFichajes();
   wireRankClicks(box);
+  cargarVideosFichajes(box);
+}
+
+/* Vídeos de Entrenador (Vídeos) en la ficha de cada candidata: los suyos salen solos y puedes añadir más */
+let VID_ENT = null;
+async function leerVideosEntrenador() {
+  if (VID_ENT) return VID_ENT;
+  const c = clienteJugadoras(); if (!c) return null;
+  const { data: ses } = await c.auth.getSession(); if (!ses || !ses.session) return { sinSesion: true };
+  const { data, error } = await c.from("archivos").select("id,nombre,tipo,ruta").in("tipo", ["video", "ajustes"]);
+  if (error) return null;
+  let meta = {}; const m = (data || []).find(x => x.id === "_meta_videos"); try { meta = JSON.parse((m && m.nombre) || "{}") || {}; } catch (e) { /* nada */ }
+  const vids = (data || []).filter(x => x.tipo === "video").map(x => Object.assign({}, x, { m: meta[x.id] || {}, url: c.storage.from("entrenador").getPublicUrl(x.ruta).data.publicUrl }));
+  VID_ENT = { vids }; return VID_ENT;
+}
+const normNombre = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+async function cargarVideosFichajes(box) {
+  const cajas = [...box.querySelectorAll(".vids-fichaje")]; if (!cajas.length) return;
+  const R = await leerVideosEntrenador();
+  cajas.forEach(caja => {
+    const item = listaFichajes()[caja.getAttribute("data-clave")]; if (!item) return;
+    if (!R || R.sinSesion) { caja.innerHTML = `<p class="hint" style="margin:0;">🎬 ${R ? "Entra en <b>Panel</b> para ver tus vídeos de Entrenador aquí." : "No se pudieron leer tus vídeos."}</p>`; return; }
+    const pintar = () => {
+      const extra = new Set(item.vids || []), yo = normNombre(item.nombre);
+      const suyos = R.vids.filter(v => extra.has(v.id) || (v.m.jugadora && normNombre(v.m.jugadora) === yo));
+      const otros = R.vids.filter(v => !suyos.includes(v));
+      caja.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><b class="hint" style="margin:0;">🎬 Vídeos (${suyos.length})</b>
+        ${otros.length ? `<select class="vid-add" style="max-width:240px;"><option value="">＋ Añadir vídeo…</option>${otros.map(v => `<option value="${escapeAttr(v.id)}">${escapeHtml([v.m.equipo, v.m.jugadora, v.m.categoria].filter(Boolean).join(" · ") || v.nombre)}</option>`).join("")}</select>` : ""}</div>
+        ${suyos.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">${suyos.map(v => `<span style="display:inline-flex;align-items:center;gap:4px;"><button class="btn-partido vid-ver" data-id="${escapeAttr(v.id)}" style="padding:6px 10px;font-size:12.5px;">▶ ${escapeHtml(v.m.categoria || v.nombre)}</button>${extra.has(v.id) ? `<button class="scout-borrar vid-quitar" data-id="${escapeAttr(v.id)}" title="Quitar de esta ficha">✕</button>` : ""}</span>`).join("")}</div>` : ""}`;
+      caja.querySelectorAll(".vid-ver").forEach(b => b.addEventListener("click", () => { const v = R.vids.find(x => x.id === b.getAttribute("data-id")); if (v) verVideoFichaje(v, item); }));
+      caja.querySelectorAll(".vid-quitar").forEach(b => b.addEventListener("click", () => { item.vids = (item.vids || []).filter(i => i !== b.getAttribute("data-id")); scoutGuardar(); pintar(); }));
+      const sel = caja.querySelector(".vid-add"); if (sel) sel.addEventListener("change", () => { if (!sel.value) return; item.vids = (item.vids || []).concat(sel.value); scoutGuardar(); pintar(); });
+    };
+    pintar();
+  });
+}
+function verVideoFichaje(v, item) {
+  const viejo = document.getElementById("capaVidFich"); if (viejo) viejo.remove();
+  document.body.insertAdjacentHTML("beforeend", `<div id="capaVidFich" style="position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#0f1319;border-radius:14px;padding:14px;max-width:760px;width:100%;color:#fff;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><b style="flex:1;">${escapeHtml(item.nombre)} · ${escapeHtml([v.m.categoria, v.m.equipo].filter(Boolean).join(" · ") || v.nombre)}</b><button id="cvfX" style="border:0;background:none;color:#fff;font-size:24px;cursor:pointer;">×</button></div>
+      <video src="${escapeAttr(v.url)}" controls autoplay playsinline style="width:100%;max-height:70vh;background:#000;border-radius:8px;"></video>
+      ${v.m.nota ? `<p style="margin:8px 0 0;color:#cfd6de;">${escapeHtml(v.m.nota)}</p>` : ""}</div></div>`);
+  const cerrar = () => { const c = document.getElementById("capaVidFich"); if (c) c.remove(); };
+  document.getElementById("cvfX").onclick = cerrar;
+  document.getElementById("capaVidFich").addEventListener("click", (e) => { if (e.target.id === "capaVidFich") cerrar(); });
 }
 
 function buscadorFichajesHtml() {
