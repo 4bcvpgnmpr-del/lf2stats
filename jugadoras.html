@@ -1883,9 +1883,19 @@ function pedirMinisPend() {
 }
 try { let tmr = null; new MutationObserver(() => { clearTimeout(tmr); tmr = setTimeout(pedirMinisPend, 150); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { /* nada */ }
 const PB_REG = [];
+/* el informe visual va en un marco aparte: se ajusta a su altura cuando carga */
+(function () {
+  const ajustar = (f) => { try { const d = f.contentDocument; if (d && d.documentElement) f.style.height = d.documentElement.scrollHeight + "px"; } catch (e) { /* nada */ } };
+  document.addEventListener("load", (e) => { const f = e.target; if (f && f.classList && f.classList.contains("vis-frame")) { ajustar(f); setTimeout(() => ajustar(f), 800); setTimeout(() => ajustar(f), 2500); } }, true);
+  window.addEventListener("resize", () => document.querySelectorAll(".vis-frame").forEach(ajustar));
+})();
 function seccionRivalHtml(sc) {
   if (!sc) return "";
   const tit = `<div class="sr-tit">${esc(sc.titulo || "")}</div>`;
+
+  if (sc.tipo === "visual" && sc.doc) {
+    return `<div class="seccion-rival" style="padding:0;overflow:hidden;">${tit}<iframe class="vis-frame" sandbox="allow-same-origin" srcdoc="${esc(sc.doc)}" style="width:100%;height:700px;border:0;display:block;background:#0b0d10;"></iframe></div>`;
+  }
 
   if (sc.tipo === "pdf" && (sc.archivos || []).length) {
     return `<div class="seccion-rival">${tit}${sc.archivos.map(a => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
@@ -2029,7 +2039,7 @@ async function leerOrdenApp() {
 }
 const ordenSecciones = (lista) => {
   const o = (ordenApp && ordenApp.secciones) || [];
-  const pos = (sc) => { const k = o.indexOf(sc.tipo || "texto"); return k < 0 ? 999 : k; };
+  const pos = (sc) => { const k = o.indexOf(sc.tipo || "texto"); return k < 0 ? (sc.tipo === "visual" ? -1 : 999) : k; };
   return [...(lista || [])].map((x, n) => [x, n]).sort((a, b) => pos(a[0]) - pos(b[0]) || a[1] - b[1]).map(x => x[0]);
 };
 function aplicarOrdenPestanas() {

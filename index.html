@@ -6772,7 +6772,17 @@ const IV_CSS5 = `
 .cin .nb .et{display:inline-block;margin:6px 6px 0 0;font:700 10.5px Inter;letter-spacing:.1em;border:1px solid #ffffff33;border-radius:99px;padding:3px 9px;color:#aeb4bb}
 .cin .jg{background:#14181c;padding:14px 18px;margin-bottom:12px;break-inside:avoid}.cin .jg h5{font:900 italic 16px 'Inter Display',Inter;text-transform:uppercase;margin:0 0 4px}.cin .jg .gt{font-size:10px;letter-spacing:.2em;font-weight:800;color:#27e0ff}.cin .jg p{font-size:13.5px;color:#cfd6de;margin:6px 0 0;white-space:pre-line}
 .cin .jg .im{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px}.cin .jg .im img{width:100%;background:#fff;display:block}
+.ivx{max-width:100%}
+@media(max-width:760px){.ivx{width:100%!important}.cin .hero{height:340px}.cin .hero .in{left:18px;right:18px}.cin h1{font-size:46px!important}.cin .wrap{padding:6px 18px}.cin .g2,.cin .pl,.cin .ld{grid-template-columns:1fr}.cin .lt{flex-wrap:wrap}.cin .lt div{padding:10px 14px}.cin .lt b{font-size:24px}.cin .xr{grid-template-columns:1fr 110px}.cin .xv{white-space:nowrap}.cin .xr .n{grid-column:1/-1}.cin .rs{grid-template-columns:72px 34px 1fr 76px}.cin .fx{grid-template-columns:110px 1fr}.cin .fx h4{font-size:17px;padding-right:46px}.cin .fx .nu{font-size:40px}.cin .ftb{padding:16px 18px}.cin .cl i{font-size:36px;width:38px}}
 `;
+let IV_LIVIANO = false;
+/* El informe Completo como documento independiente (se manda a las jugadoras y se ve dentro de su app) */
+async function ivDocumentoCompleto(nombre) {
+  try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
+  let h = null; IV_LIVIANO = true; try { h = informeVisualHtml(nombre, "ful"); } finally { IV_LIVIANO = false; }
+  if (!h) return null;
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#0b0d10;font-family:Inter,system-ui,sans-serif}img{max-width:100%}' + IV_CSS + IV_CSS3 + IV_CSS4 + IV_CSS5 + '</style></head><body>' + h + '</body></html>';
+}
 function ivCompleto(nombre, dat) {
   const esc = escapeHtml;
   const f = scoutFicha("equipos", nombre), inf = fichaInforme(nombre), campos = (f.informe && f.informe.campos) || {};
@@ -6819,7 +6829,7 @@ function ivCompleto(nombre, dat) {
   if (extra.length || notas.length) S.push(`<h3>Notas del entrenador</h3>${extra.map(c => `<div class="nb"><b class="t">${esc(c.titulo)}</b>${esc(String(campos[c.id]).trim())}</div>`).join("")}${notas.map(n => `<div class="nb">${esc(String(n.texto).trim())}${(n.etiquetas || []).length ? `<div>${n.etiquetas.map(e => `<span class="et">${esc(e)}</span>`).join("")}</div>` : ""}</div>`).join("")}`);
   // 5. jugadas del rival
   const jug = (f.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length || j.enlace);
-  if (jug.length) S.push(`<h3>Jugadas del rival · ${jug.length}</h3>${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < 600000)).slice(0, 4);
+  if (jug.length) S.push(`<h3>Jugadas del rival · ${jug.length}</h3>${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < (IV_LIVIANO ? 120000 : 600000))).slice(0, 4);
     return `<div class="jg"><span class="gt">${esc((j.tipo || "Otra").toUpperCase())}</span><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${escapeAttr(x)}" alt="" loading="lazy">`).join("")}</div>` : ""}</div>`; }).join("")}`);
   return base.slice(0, corte) + S.join("") + base.slice(corte);
 }
@@ -8145,6 +8155,11 @@ async function abrirEnvioJugadoras(nombre, modo) {
              style="width:100%;padding:10px;border:1.5px solid var(--wood-line);border-radius:8px;font-family:inherit;font-size:14.5px;background:var(--suave);color:var(--ink);">
     </div>`;
 
+  const visBloque = esEquipo ? "" : `<div style="margin-top:14px;padding:12px;border:1.5px solid var(--naranja,#e0602a);border-radius:10px;">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="envVisual" checked style="margin-top:4px;">
+      <span><b style="font-size:14.5px;">Informe visual completo</b><span class="hint" style="display:block;margin-top:3px;">El informe con fotos, escudo, estadísticas, mapas de tiro, notas y jugadas de cada jugadora. Lo ven dentro de la app, sin PDF.</span></span></label>
+    </div>`;
+
   const pbBloque = esEquipo ? "" : `<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--wood-line);border-radius:10px;">
       <b style="font-size:14.5px;">Playbook del rival (de Entrenador)</b>
       <p class="hint" style="margin:3px 0 8px;">Elige un playbook que hayas hecho en la app del Entrenador: lo veran con sus jugadas animadas.</p>
@@ -8170,6 +8185,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
                   cursor:pointer;color:var(--ink-soft);">×</button>
         </div>
         ${cuerpo}
+        ${visBloque}
         ${pdfBloque}
         ${pbBloque}
         ${vidBloque}
@@ -8234,7 +8250,8 @@ async function abrirEnvioJugadoras(nombre, modo) {
     const pbElegido = (selPb && selPb.value !== "") ? PBS[Number(selPb.value)] : null;
     const vidsEl = [...document.querySelectorAll("[data-envvid]:checked")].map(i => VIDS_ENV[Number(i.getAttribute("data-envvid"))]).filter(Boolean);
     const seccionVid = vidsEl.length ? { tipo: "videos", titulo: "Vídeos del rival", videos: vidsEl.map(v => ({ titulo: [v.m.jugadora, v.m.categoria].filter(Boolean).join(" · ") || v.nombre, url: v.url, nota: v.m.nota || "", etiquetas: v.m.categoria ? [v.m.categoria] : [] })) } : null;
-    if (!elegidos.length && !archivoPdf && !enlacePdf && !pbElegido && !seccionVid) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
+    const visOn = !!(document.getElementById("envVisual") && document.getElementById("envVisual").checked);
+    if (!elegidos.length && !archivoPdf && !enlacePdf && !pbElegido && !seccionVid && !visOn) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
     if (archivoPdf && archivoPdf.size > 45 * 1024 * 1024) { avisoEnvio("El PDF pesa mas de 45 MB. Comprimelo o pega un enlace.", "error"); return; }
 
     mandar.disabled = true; mandar.textContent = archivoPdf ? "Subiendo el PDF..." : "Mandando...";
@@ -8253,6 +8270,13 @@ async function abrirEnvioJugadoras(nombre, modo) {
       seccionesPdf.push({ nombre: archivoPdf.name, url: pub.publicUrl });
     }
     if (enlacePdf) seccionesPdf.push({ nombre: esEquipo ? "Playbook del equipo (PDF)" : "Playbook del rival (PDF)", url: enlacePdf });
+    let seccionVis = null;
+    if (visOn) {
+      mandar.textContent = "Preparando el informe visual...";
+      const doc = await ivDocumentoCompleto(nombre);
+      if (doc && doc.length > 6000000) { mandar.disabled = false; mandar.textContent = "Mandar a todas"; avisoEnvio("El informe visual pesa demasiado (" + Math.round(doc.length / 1048576) + " MB). Quita imágenes grandes de las jugadas o desmárcalo.", "error"); return; }
+      if (doc) seccionVis = { tipo: "visual", titulo: "Informe visual completo", doc };
+    }
     mandar.textContent = "Mandando...";
     let seccionPb = null;
     if (pbElegido) {
@@ -8271,7 +8295,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
       titulo: esEquipo ? "Mi equipo: " + oficial : "Scouting: " + oficial,
       rival: esEquipo ? "__MI_EQUIPO__" : oficial,
       partido: partido || null,
-      secciones: (seccionVid ? [seccionVid] : []).concat(seccionPb ? [seccionPb] : []).concat(seccionesPdf.length ? [{ tipo: "pdf", titulo: esEquipo ? "Playbook en PDF" : "Playbook del rival (PDF)", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
+      secciones: (seccionVis ? [seccionVis] : []).concat(seccionVid ? [seccionVid] : []).concat(seccionPb ? [seccionPb] : []).concat(seccionesPdf.length ? [{ tipo: "pdf", titulo: esEquipo ? "Playbook en PDF" : "Playbook del rival (PDF)", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
         ? t.carga
         : { tipo: "texto", titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto })),
     });
