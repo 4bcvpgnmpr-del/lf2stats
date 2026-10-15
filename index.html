@@ -6775,8 +6775,8 @@ const IV_CSS5 = `
 .xx .xmp{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:20px;align-items:start}.xx .xmp img{width:100%;display:block;border-radius:6px;background:#f3e6d2}.xx .xmp small{display:block;margin-top:6px;font-size:11px;color:var(--xm);letter-spacing:.08em}
 .xx table.xtb{width:100%;border-collapse:collapse;font-size:12.5px}.xx table.xtb th{font:800 10px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--xm)!important;text-align:center;padding:8px 6px;border-bottom:2px solid var(--xa);background:none!important}.xx table.xtb td{padding:8px 6px;text-align:center;border:0!important;border-bottom:1px solid var(--xl)!important;color:var(--xf)!important;background:none!important}.xx table.xtb th:first-child,.xx table.xtb td:first-child{text-align:left}.xx table.xtb td:first-child{font-weight:700;white-space:nowrap}.xx table.xtb tr{background:none!important}
 .xx .xtbw{overflow-x:auto}
-.xx .xfx{display:grid;grid-template-columns:170px 1fr;gap:4px 20px;background:var(--xc);border:1px solid var(--xl);border-bottom:3px solid var(--xa);margin-bottom:16px;position:relative;overflow:hidden;break-inside:avoid}
-.xx .xfv{grid-row:1/4;position:relative;min-height:230px;background:linear-gradient(160deg,var(--xc2),var(--xc));display:flex;align-items:center;justify-content:center;font:900 italic 44px 'Inter Display',Inter,sans-serif;color:var(--xm)}.xx .xfv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 8%}.xx .xfv:after{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(transparent,var(--xc))}
+.xx .xfx{display:grid;grid-template-columns:270px 1fr;gap:4px 20px;background:var(--xc);border:1px solid var(--xl);border-bottom:3px solid var(--xa);margin-bottom:16px;position:relative;overflow:hidden;break-inside:avoid}
+.xx .xfv{grid-row:1/4;position:relative;min-height:360px;background:linear-gradient(160deg,var(--xc2),var(--xc));display:flex;align-items:center;justify-content:center;font:900 italic 44px 'Inter Display',Inter,sans-serif;color:var(--xm)}.xx .xfv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%;image-rendering:-webkit-optimize-contrast;filter:contrast(1.06) saturate(1.08)}.xx .xfv:after{content:"";position:absolute;left:0;right:0;bottom:0;height:18%;background:linear-gradient(transparent,var(--xc))}
 .xx .xnu{position:absolute;right:14px;top:4px;font:900 italic 58px 'Inter Display',Inter,sans-serif;color:var(--xa);opacity:.9}
 .xx .xft{padding:16px 16px 0 0}.xx .xft small{font-size:10px;letter-spacing:.2em;font-weight:800;color:var(--xa)}.xx .xft h4{font:900 italic 21px 'Inter Display',Inter,sans-serif;text-transform:uppercase;margin:3px 0 10px;padding-right:70px}
 .xx .xch{display:flex;gap:6px;flex-wrap:wrap}.xx .xch span{background:var(--xc2);padding:6px 10px;font-size:11px;color:var(--xm);letter-spacing:.06em}.xx .xch b{color:var(--xf);font-size:14px;margin-left:5px}
@@ -6804,7 +6804,7 @@ const IV_CSS5 = `
 .ivx .hd{flex-wrap:wrap}.ivx .mt{flex-wrap:wrap}
 .cin .hero{height:340px}.cin .hero .in{left:18px;right:18px}.cin .lt{flex-wrap:wrap}.cin .lt div{padding:10px 14px}.cin .lt b{font-size:24px}.cin .cl i{font-size:36px;width:38px}
 .ivx .ftb,.iv .ftr{padding:16px 18px}
-.xx .xr{grid-template-columns:1fr 110px}.xx .xr .n{grid-column:1/-1}.xx .xfx{grid-template-columns:110px 1fr}.xx .xft h4{font-size:17px;padding-right:46px}.xx .xnu{font-size:40px}.xx .xld{grid-template-columns:1fr}.xx .xmp{grid-template-columns:1fr}.xx .xkg{grid-template-columns:1fr 1fr}.cin .hero .in .nm{font-size:34px!important;max-width:100%}.cin .hero .jph{opacity:.45;width:70%}.xx .xrs b.m{font-size:16px}.xx .xrs{grid-template-columns:72px 34px 1fr 84px}}
+.xx .xr{grid-template-columns:1fr 110px}.xx .xr .n{grid-column:1/-1}.xx .xfx{grid-template-columns:150px 1fr}.xx .xfv{min-height:260px}.xx .xft h4{font-size:17px;padding-right:46px}.xx .xnu{font-size:40px}.xx .xld{grid-template-columns:1fr}.xx .xmp{grid-template-columns:1fr}.xx .xkg{grid-template-columns:1fr 1fr}.cin .hero .in .nm{font-size:34px!important;max-width:100%}.cin .hero .jph{opacity:.45;width:70%}.xx .xrs b.m{font-size:16px}.xx .xrs{grid-template-columns:72px 34px 1fr 84px}}
 `;
 let IV_LIVIANO = false, IV_DAT = null;
 const ivCompletoActivo = () => { try { return localStorage.getItem("iv_completo") === "1"; } catch (e) { return false; } };
@@ -6842,8 +6842,6 @@ function ivExtras(nombre, dat) {
     if (mt) S.push(`${H("Mapa de tiro del equipo")}<div class="xmp"><div><img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mt.svg)}" alt=""><small>${mt.tiros} TIROS · ${String(mt.pct).replace(".", ",")} % DE ACIERTO</small></div>
       <div class="xtbw"><table class="xtb"><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>${(mt.zonas || []).map(z => `<tr><td>${esc(z.zona)}</td><td>${z.a}/${z.i}</td><td>${z.pct != null ? String(z.pct).replace(".", ",") : "-"}</td><td>${z.pps != null ? String(z.pps).replace(".", ",") : "-"}</td></tr>`).join("")}</tbody></table></div></div>`); } catch (e) { /* sin tiros */ }
   // resultados
-  const pts = partidosDeEquipo(nombre);
-  if (pts.length) S.push(`${H("Resultados y calendario")}${pts.map(p => `<div class="xrs"><small>${p.jornada ? "J" + esc(p.jornada) : ""}${p.fecha ? " · " + esc(p.fecha) : ""}</small><i class="${p.jugado && p.gano !== null ? (p.gano ? "" : "L") : "N"}">${p.jugado && p.gano !== null ? (p.gano ? "V" : "D") : "·"}</i><span>${p.esLocal ? "vs" : "en"} <b>${esc(p.rival)}</b></span><b class="m">${p.jugado && p.pf != null ? p.pf + "-" + p.pc : "Próximo"}</b></div>`).join("")}`);
   // plantilla
   const plant = plantillaDe(nombre);
   if (plant.length) {
