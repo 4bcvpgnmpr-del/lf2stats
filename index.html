@@ -1636,6 +1636,21 @@
   .kpi-card .kpi-label{text-align:center !important;} .kpi-card .kpi-tx{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%;flex:none !important;}
   .kpi-card .kpi-value{margin:2px 0;} .kpi-card .kpi-value.is-name{font-size:15px;line-height:1.25;overflow-wrap:anywhere;max-width:100%;letter-spacing:-.3px;} .kpi-card .kpi-sub{overflow-wrap:anywhere;}
   .kpi-card .kpi-av{width:64px;height:64px;}
+  /* ---- fichas de jugadora y tablas, estilo ScoutFlow ---- */
+  .hero-jug{background:linear-gradient(135deg,#2f7f6c,#3f9c86) !important;border-radius:20px !important;padding:24px 28px !important;gap:26px !important;position:relative;overflow:hidden;box-shadow:0 8px 28px rgba(47,127,108,.22);}
+  .hero-jug:after{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none;}
+  .hj-foto img,.hj-foto .placeholder{width:104px !important;height:130px !important;border-radius:16px !important;background:rgba(255,255,255,.18) !important;box-shadow:0 4px 14px rgba(0,0,0,.18);}
+  .hj-info h2,.hj-dato b,.hj-num{font-family:'Inter',sans-serif !important;font-weight:800;letter-spacing:-.6px;} .hj-info h2{font-size:30px !important;}
+  .hj-equipo{color:#fff !important;opacity:.92;} .hj-dato span,.hj-nota .hint,.hj-num small{color:rgba(255,255,255,.78) !important;} .hj-num{color:#fff !important;}
+  .hj-etiqueta{color:#fff !important;} .hj-dorsal{background:#e0602a !important;font-family:'Inter',sans-serif;font-weight:800;}
+  .kpi-jug,.stat-big{border:1px solid var(--wood-line) !important;border-radius:16px !important;background:var(--white);box-shadow:0 1px 2px rgba(20,30,40,.05);}
+  .kpi-jug b,.stat-big .v{font-family:'Inter',sans-serif !important;font-weight:800;letter-spacing:-.6px;}
+  table thead{background:#f1f3f5;} [data-tema="oscuro"] table thead{background:rgba(255,255,255,.06);}
+  th{border-bottom:1px solid var(--wood-line) !important;font-size:11px !important;letter-spacing:.7px !important;color:var(--ink-soft);font-weight:700;padding:12px 10px !important;}
+  th:first-child{border-top-left-radius:10px;} th:last-child{border-top-right-radius:10px;}
+  td{padding:11px 10px !important;border-bottom:1px solid #eef0f2 !important;} tbody tr:last-child td{border-bottom:0 !important;}
+  tbody tr:hover{background:#f6faf9 !important;} [data-tema="oscuro"] tbody tr:hover{background:rgba(63,156,134,.12) !important;}
+  .table-scroll th{position:sticky;top:0;z-index:2;background:#f1f3f5;}
   /* ---- inicio: tarjeta de tu equipo y líderes con foto ---- */
   .hero-g{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:18px;}
   .hero-next{background:linear-gradient(135deg,#2f7f6c,#3f9c86);color:#fff;border-radius:18px;padding:22px 24px;position:relative;overflow:hidden;} .hero-next:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.09);}
