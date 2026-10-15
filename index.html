@@ -1611,6 +1611,7 @@
     background:var(--white);border-right:1.5px solid var(--wood-line);
     display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh;
   }
+  .tarj-eq{display:flex;align-items:center;gap:12px;background:var(--suave,#f3f4f6);border-radius:14px;padding:10px 12px;margin:0 0 14px;cursor:pointer;} .tarj-eq:hover{filter:brightness(.97);} .tarj-eq .av{width:42px;height:42px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;font-size:22px;} .tarj-eq .av img{width:100%;height:100%;object-fit:contain;} .tarj-eq b{display:block;font-size:15px;line-height:1.2;} .tarj-eq small{display:block;color:var(--ink-soft);font-size:12px;margin-top:2px;}
   .marca-app{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 6px;}
   .marca-app .logo-bola{color:var(--orange);font-size:26px;line-height:1;}
   .marca-app b{font-family:'Archivo Black',sans-serif;font-size:17px;display:block;}
@@ -1801,6 +1802,7 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
     <span class="logo-bola">●</span>
     <div><b>Scout<span>Flow</span></b><small>Estadísticas</small><small id="marcaTemporada" style="display:none">Liga Femenina 2</small></div><span class="chev">▾</span>
   </div>
+  <div class="tarj-eq" id="tarjetaEquipo" role="button" tabindex="0" title="Mi equipo"></div>
   <div class="sel-temporada">
     <label for="selTemporada">Temporada</label>
     <select id="selTemporada"></select>
@@ -8470,9 +8472,17 @@ function dashboardMiEquipo(nombre, partidos, jugados, pendientes, proximo) {
 let miEquipo = "";
 try { miEquipo = localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { miEquipo = ""; }
 
+function pintarTarjetaEquipo() {
+  const c = document.getElementById("tarjetaEquipo"); if (!c) return;
+  const sel = document.getElementById("selTemporada"), temp = sel && sel.selectedOptions && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent.trim() : "";
+  const url = miEquipo ? escudoUrlFor(miEquipo) : "";
+  c.innerHTML = `<span class="av">${url ? `<img src="${escapeAttr(url)}" alt="" onerror="this.remove()">` : "🏀"}</span><div><b>${escapeHtml(miEquipo || "Elige tu equipo")}</b><small>${miEquipo ? (temp ? "Temporada " + escapeHtml(temp) : "Mi equipo") : "Toca para elegirlo"}</small></div>`;
+  if (!c._ok) { c._ok = true; const ir = () => { const b = document.querySelector('#mainNav button[data-view="mi-equipo"]'); if (b) b.click(); }; c.addEventListener("click", ir); c.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); }); const st = document.getElementById("selTemporada"); if (st) st.addEventListener("change", () => setTimeout(pintarTarjetaEquipo, 50)); }
+}
 function guardarMiEquipo(nombre) {
   miEquipo = nombre;
   try { localStorage.setItem("lf2_mi_equipo", nombre); } catch (e) { /* sin guardar, no pasa nada */ }
+  pintarTarjetaEquipo();
   renderMiEquipo();
 }
 
@@ -8568,6 +8578,7 @@ function jugadorasDestacadas(teamName, cuantas) {
 }
 
 function renderMiEquipo() {
+  pintarTarjetaEquipo();
   const box = document.getElementById("miEquipoContent");
   if (!box) return;
   const listaEquipos = listaDeEquipos(true);

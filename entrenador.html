@@ -2397,10 +2397,10 @@ const entrenadorDe = () => { const r = D.archivos.find(a => a.id === "_entrenado
 const urlPub = (r) => r && nube ? nube.storage.from("entrenador").getPublicUrl(r).data.publicUrl : "";
 function pintarPerfil() {
   const q = equipoDe(), p = $("perfil"); if (!p || !nube) return;
-  const en = entrenadorDe(), url = en.ruta ? urlPub(en.ruta) : (q.ruta ? urlPub(q.ruta) : "");
+  const en = entrenadorDe(), url = en.ruta ? urlPub(en.ruta) : "";
   $("perfilAv").innerHTML = url ? `<img src="${esc(url)}" alt="Logo">` : "🏀"; p.classList.toggle("img", !!url);
-  $("perfilEq").textContent = en.nombre || q.equipo || "Mi perfil";
-  $("perfilTe").textContent = en.nombre ? (q.equipo || "Añade tu equipo") : (puedeEscribir ? "Añade tu nombre y logo" : "");
+  $("perfilEq").textContent = en.nombre || "Mi perfil";
+  $("perfilTe").textContent = en.nombre ? "Entrenador" : (puedeEscribir ? "Añade tu nombre y logo" : "");
 }
 function formEquipo() {
   if (!puedeEscribir) return;
