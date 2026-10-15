@@ -2519,18 +2519,20 @@ function centroVideo() {
     $c("cvLsB").querySelectorAll(".cvPh [data-p]").forEach(b => b.onclick = () => { F.partido = b.dataset.p; pintaPartidos(); pintaFiltros(); pintaTabla(); });
     $c("cvLsB").querySelectorAll(".cvPt").forEach(r => r.onclick = (e) => { const k = r.dataset.p; if (!cnt[k]) return; F.partido = k; pintaPartidos(); pintaFiltros(); pintaTabla(); if (e.target.closest("[data-pv]")) { const v = vista(); if (v.length) pon(v[0].id); } });
   };
+  let agr = "categoria";
   const pintaResumen = () => {
     const base = enLista().filter(x => (!F.equipo || x.m.equipo === F.equipo) && (!F.jugadora || nn(x.m.jugadora) === nn(F.jugadora)) && (!F.partido || (F.partido === "-" ? !x.m.partido : x.m.partido === F.partido)));
     const res = [...new Set(base.map(x => x.m.resultado).filter(Boolean))], cats = {};
-    base.forEach(x => { const c = x.m.categoria || "Sin categoría", r = x.m.resultado || "—"; (cats[c] = cats[c] || { t: 0, r: {} }).t++; cats[c].r[r] = (cats[c].r[r] || 0) + 1; });
+    base.forEach(x => { const c = (agr === "jugadora" ? x.m.jugadora : x.m.categoria) || (agr === "jugadora" ? "Sin jugadora" : "Sin categoría"), r = x.m.resultado || "—"; (cats[c] = cats[c] || { t: 0, r: {} }).t++; cats[c].r[r] = (cats[c].r[r] || 0) + 1; });
     const orden = Object.entries(cats).sort((a, b) => b[1].t - a[1].t), tot = base.length;
     const titulo = [F.jugadora, F.equipo, F.partido && F.partido !== "-" ? ((OPP || []).find(p => p.k === F.partido) || {}).txt : ""].filter(Boolean).join(" · ") || "Todos los clips";
     const cols = res.concat(res.length ? ["—"] : []).filter((r, i, a) => r !== "—" || base.some(x => !x.m.resultado));
     const pct = (c) => { const a = c.r["Canasta"] || 0, f = c.r["Fallo"] || 0; return a + f ? Math.round(a / (a + f) * 100) + "%" : "—"; };
-    $c("cvLsB").innerHTML = `<div class="cvPh"><b style="font-size:13px">${esc(titulo)} · ${tot} clips</b></div>${tot ? `<table><thead><tr><th>Tipo de jugada</th><th>Clips</th>${cols.map(r => `<th>${esc(r)}</th>`).join("")}<th>% acierto</th></tr></thead><tbody>
+    $c("cvLsB").innerHTML = `<div class="cvPh"><b style="font-size:13px">${esc(titulo)} · ${tot} clips</b> <select id="cvAgr" style="margin-left:8px"><option value="categoria"${agr === "categoria" ? " selected" : ""}>Por tipo de jugada</option><option value="jugadora"${agr === "jugadora" ? " selected" : ""}>Por jugadora</option></select></div>${tot ? `<table><thead><tr><th>${agr === "jugadora" ? "Jugadora" : "Tipo de jugada"}</th><th>Clips</th>${cols.map(r => `<th>${esc(r)}</th>`).join("")}<th>% acierto</th></tr></thead><tbody>
       ${orden.map(([c, d]) => `<tr data-rc="${esc(c)}"><td><b>${esc(c)}</b></td><td>${d.t}</td>${cols.map(r => `<td class="${d.r[r] ? "rz" : ""}" data-rr="${esc(r)}">${d.r[r] || "·"}</td>`).join("")}<td>${pct(d)}</td></tr>`).join("")}
       <tr class="tt"><td><b>Total</b></td><td>${tot}</td>${cols.map(r => `<td>${base.filter(x => (x.m.resultado || "—") === r).length}</td>`).join("")}<td>${pct({ r: base.reduce((a, x) => { const k = x.m.resultado || "—"; a[k] = (a[k] || 0) + 1; return a; }, {}) })}</td></tr></tbody></table><p style="padding:8px 12px;color:#8b95a3;font-size:12px">Pulsa una fila o un número para ver esos clips en la tabla. Filtra antes por jugadora, equipo o partido.</p>` : '<p style="padding:14px;color:#8b95a3">No hay clips con estos filtros.</p>'}`;
-    $c("cvLsB").querySelectorAll("tr[data-rc]").forEach(tr => tr.onclick = (e) => { const c = tr.dataset.rc, td = e.target.closest("td[data-rr]"); F.categoria = c === "Sin categoría" ? "" : c; F.resultado = td ? (td.dataset.rr === "—" ? "" : td.dataset.rr) : ""; pintaFiltros(); pintaTabla(); });
+    $c("cvLsB").querySelector("#cvAgr") && ($c("cvLsB").querySelector("#cvAgr").onchange = (e) => { agr = e.target.value; pintaResumen(); });
+    $c("cvLsB").querySelectorAll("tr[data-rc]").forEach(tr => tr.onclick = (e) => { const c = tr.dataset.rc, td = e.target.closest("td[data-rr]"); if (agr === "jugadora") F.jugadora = c === "Sin jugadora" ? "" : c; else F.categoria = c === "Sin categoría" ? "" : c; F.resultado = td ? (td.dataset.rr === "—" ? "" : td.dataset.rr) : ""; pintaFiltros(); pintaTabla(); });
   };
   const pintaPanel = () => { document.querySelectorAll("#capaCentro [data-pn]").forEach(b => b.classList.toggle("on", b.dataset.pn === panel)); panel === "listas" ? pintaListas() : panel === "resumen" ? pintaResumen() : pintaPartidos(); };
   const pintaListas = () => {
