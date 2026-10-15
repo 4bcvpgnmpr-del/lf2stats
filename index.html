@@ -3723,6 +3723,7 @@ function showEquipoDetail(teamName) {
    PERFIL DE JUGADORA
    ============================================================ */
 function showJugadoraDetail(playerName) {
+  JUG_VISTA = playerName;
   const row = jugadoras.rows.find(r => r["Jugador"] && r["Jugador"].display === playerName);
   if (!row) { if (grupoActivo) { setGrupo(""); showJugadoraDetail(playerName); } return; }
   const url = fotoJugadora(playerName, row["Equipo"] ? row["Equipo"].display : "",
@@ -3804,6 +3805,7 @@ function showJugadoraDetail(playerName) {
   };
 
   document.getElementById("jugadoraDetailContent").innerHTML = `
+    <div style="margin:0 0 10px;"><button class="btn-partido" id="btnInformeJug" style="background:#14181c;">Informe visual de la jugadora</button></div>
     ${cabeceraJugadoraHtml(playerName, row, url)}
     <div class="stat-big-grid">
       ${bigStat(rob, "Robos por partido")}
@@ -3881,6 +3883,7 @@ function showJugadoraDetail(playerName) {
       <div class="panel" id="scoutJugadora">${scoutingPanelHtml("jugadoras", playerName)}</div>
     </div>
   `;
+  { const bj = document.getElementById("btnInformeJug"); if (bj) bj.addEventListener("click", () => abrirInformeVisualJugadora(playerName)); }
   const cajaScoutJ = document.getElementById("scoutJugadora");
   if (cajaScoutJ) {
     const recargar = () => { cajaScoutJ.innerHTML = scoutingPanelHtml("jugadoras", playerName); wireScouting(cajaScoutJ, recargar); };
@@ -6364,7 +6367,7 @@ function ivLineas(txt, max) {
   return String(txt || "").split(/\n|•|·|;/).map(s => s.replace(/^[\s\-–*\d.)]+/, "").trim()).filter(Boolean).slice(0, max);
 }
 /* ---- Estilos del informe visual ---- */
-const IV_ESTILOS = [["fut", "Futurista"], ["ful", "Completo"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"], ["est", "Estadio"], ["rev", "Revista"], ["dos", "Dossier"], ["car", "Carreras"], ["cin", "Cine"]];
+const IV_ESTILOS = [["fut", "Futurista"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"], ["est", "Estadio"], ["rev", "Revista"], ["dos", "Dossier"], ["car", "Carreras"], ["cin", "Cine"]];
 const IV_CSS3 = `
 [data-iv]{font-family:Inter,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 [data-iv] *{box-sizing:border-box}
@@ -6647,7 +6650,12 @@ function resumenParaIA(nombre) {
   return L.join("\n");
 }
 
-function informeVisualHtml(nombre, estilo) {
+function informeVisualHtml(nombre, estilo, completo) {
+  const h = informeVisualBase(nombre, estilo);
+  if (!h) return h;
+  return (completo === undefined ? ivCompletoActivo() : completo) ? ivInyectar(h, nombre, IV_DAT) : h;
+}
+function informeVisualBase(nombre, estilo) {
   const oficial = equipoOficial(nombre), fuente = datosLiga ? datosLiga.equipos : equipos;
   if (!fuente) return null;
   const { baseType } = groupTotalMediaCols(equipoStatCols());
@@ -6734,7 +6742,7 @@ function informeVisualHtml(nombre, estilo) {
       return { nombre: p.jugadora, pos: nt.posicion || "JUGADORA CLAVE", dorsal: p.dorsal || "", foto: p.foto || "", ini: p.jugadora.split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase(), PT: p.PT, RT: p.RT, AS: p.AS, nota: nt.texto ? String(nt.texto).slice(0, 110) : "" }; }),
     claves, resumen,
     mio: miN ? { nombre: miN, escudo: escudoUrlFor(miN), sigla: String(miN).split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase(), rec: parMi.length ? parMi.filter(x => x.gano).length + "-" + parMi.filter(x => !x.gano).length + " en liga" : "" } : null };
-  if (estilo === "ful") return ivCompleto(nombre, dat);
+  IV_DAT = dat;
   if (estilo && estilo !== "fut") return ivRender(estilo, dat);
   return `<div class="iv" data-iv><div class="hero"><div class="bar"><span class="live">SCOUTING REPORT</span><span>${prox ? `<b>${escapeHtml(prox.jornada ? "JORNADA " + prox.jornada : "PRÓXIMO PARTIDO")}</b>` : ""}</span></div>
     <div class="ttl"><div class="hex"><i>${escudo ? `<img src="${escapeAttr(escudo)}" alt="" onerror="this.outerHTML='<b>${escapeAttr(sigla)}</b>'">` : `<b>${escapeHtml(sigla)}</b>`}</i></div>
@@ -6752,108 +6760,197 @@ function informeVisualHtml(nombre, estilo) {
 }
 
 const IV_CSS5 = `
-.cin .xr{display:grid;grid-template-columns:150px 1fr 120px;gap:14px;align-items:center;margin-bottom:12px}.cin .xr .n{font:800 12px Inter;letter-spacing:.16em;text-transform:uppercase;color:#cfd6de}
-.cin .xt{position:relative;height:18px;background:#1b2128}.cin .xt i{position:absolute;inset:0 auto 0 0;background:#e0602a}.cin .xt i.up{background:#2bff9a}.cin .xt i.dn{background:#ff4d5e}.cin .xt u{position:absolute;top:-4px;bottom:-4px;width:3px;background:#fff;text-decoration:none}
-.cin .xv{font:900 italic 20px 'Inter Display',Inter;text-align:right}.cin .xv small{display:block;font:700 10px Inter;color:#8b95a3;letter-spacing:.12em;font-style:normal}
-.cin .xl{display:flex;gap:18px;flex-wrap:wrap;color:#8b95a3;font-size:11.5px;margin:2px 0 6px}.cin .xl i{display:inline-block;width:9px;height:9px;margin-right:6px}
-.cin .xa{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.cin .xa div{background:#14181c;border-top:3px solid #27e0ff;padding:10px 18px}.cin .xa b{display:block;font:900 italic 24px 'Inter Display',Inter}.cin .xa span{font-size:10px;letter-spacing:.18em;color:#8b95a3;font-weight:700}
-.cin .rs{display:grid;grid-template-columns:120px 40px 1fr 96px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff1c;font-size:14px}.cin .rs small{font-size:11px;letter-spacing:.12em;color:#8b95a3}.cin .rs b.m{font:900 italic 20px 'Inter Display',Inter;text-align:right}
-.cin .rs i{font-style:normal;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;border-radius:5px;background:#1f9d5c}.cin .rs i.L{background:#d64545}.cin .rs i.N{background:#2a3138;color:#8b95a3}
-.cin .fx{display:grid;grid-template-columns:170px 1fr;gap:4px 20px;background:#14181c;border-bottom:3px solid #e0602a;margin-bottom:16px;position:relative;overflow:hidden;break-inside:avoid}
-.cin .fx .fv{grid-row:1/4;position:relative;min-height:230px;background:linear-gradient(160deg,#2b3036,#14181c);display:flex;align-items:center;justify-content:center;font:900 italic 44px 'Inter Display',Inter;color:#ffffff55}.cin .fx .fv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 8%}.cin .fx .fv:after{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(transparent,#14181c)}
-.cin .fx .nu{position:absolute;right:14px;top:4px;font:900 italic 58px 'Inter Display',Inter;color:#e0602a;opacity:.9;text-shadow:0 2px 8px #000}
-.cin .fx .ft{padding:16px 16px 0 0}.cin .fx small{font-size:10px;letter-spacing:.2em;font-weight:800;color:#e0602a}.cin .fx h4{font:900 italic 21px 'Inter Display',Inter;text-transform:uppercase;margin:3px 0 10px;padding-right:70px}
-.cin .fx .ch{display:flex;gap:6px;flex-wrap:wrap}.cin .fx .ch span{background:#1f262d;padding:6px 10px;font-size:11px;color:#8b95a3;letter-spacing:.06em}.cin .fx .ch b{color:#fff;font-size:14px;margin-left:5px}
-.cin .fx .fn{padding:6px 16px 0 0;font-size:14px;line-height:1.55;color:#cfd6de;white-space:pre-line}.cin .fx .fm{padding:6px 16px 16px 0}.cin .fx .fm img{width:100%;max-width:330px;display:block;border-radius:6px;background:#f3e6d2}.cin .fx .fm span{display:block;margin-top:4px;font-size:11px;color:#8b95a3;letter-spacing:.08em}
-.cin .fx.sinm .fm{display:none}
-.cin .ld{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.cin .ld>div{background:#14181c;padding:12px 14px;border-top:3px solid #e0602a}.cin .ld b.t{display:block;font:800 11px Inter;letter-spacing:.16em;text-transform:uppercase;color:#e0602a;margin-bottom:6px}.cin .ld p{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;margin:0;border-bottom:1px solid #ffffff14}.cin .ld p b{font-weight:800}
-.cin .tbw{overflow-x:auto}.cin table.tb{width:100%;border-collapse:collapse;font-size:12.5px}.cin table.tb thead,.cin table.tb thead tr,.cin table.tb tbody tr{background:none!important}.cin table.tb th,.cin table.tb td{color:#e8edf3!important}.cin table.tb th{color:#8b95a3!important;background:none!important;font:800 10px Inter;letter-spacing:.14em;text-transform:uppercase;color:#8b95a3;text-align:center;padding:8px 6px;border-bottom:2px solid #e0602a}.cin table.tb th:first-child,.cin table.tb td:first-child{text-align:left}.cin table.tb td{padding:8px 6px;text-align:center;border:0!important;border-bottom:1px solid #ffffff14!important}.cin table.tb td:first-child{font-weight:700;white-space:nowrap}
-.cin .nb{background:#14181c;border-left:3px solid #e0602a;padding:14px 18px;margin-bottom:12px;font-size:14.5px;line-height:1.6;color:#dfe5ea;white-space:pre-line}.cin .nb b.t{display:block;font:800 11px Inter;letter-spacing:.18em;text-transform:uppercase;color:#e0602a;margin-bottom:6px}
-.cin .nb .et{display:inline-block;margin:6px 6px 0 0;font:700 10.5px Inter;letter-spacing:.1em;border:1px solid #ffffff33;border-radius:99px;padding:3px 9px;color:#aeb4bb}
-.cin .jg{background:#14181c;padding:14px 18px;margin-bottom:12px;break-inside:avoid}.cin .jg h5{font:900 italic 16px 'Inter Display',Inter;text-transform:uppercase;margin:0 0 4px}.cin .jg .gt{font-size:10px;letter-spacing:.2em;font-weight:800;color:#27e0ff}.cin .jg p{font-size:13.5px;color:#cfd6de;margin:6px 0 0;white-space:pre-line}
-.cin .jg .im{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px}.cin .jg .im img{width:100%;background:#fff;display:block}
-.ivx{max-width:100%}
-@media(max-width:760px){.ivx{width:100%!important}.cin .hero{height:340px}.cin .hero .in{left:18px;right:18px}.cin h1{font-size:46px!important}.cin .wrap{padding:6px 18px}.cin .g2,.cin .pl,.cin .ld{grid-template-columns:1fr}.cin .lt{flex-wrap:wrap}.cin .lt div{padding:10px 14px}.cin .lt b{font-size:24px}.cin .xr{grid-template-columns:1fr 110px}.cin .xv{white-space:nowrap}.cin .xr .n{grid-column:1/-1}.cin .rs{grid-template-columns:72px 34px 1fr 76px}.cin .fx{grid-template-columns:110px 1fr}.cin .fx h4{font-size:17px;padding-right:46px}.cin .fx .nu{font-size:40px}.cin .ftb{padding:16px 18px}.cin .cl i{font-size:36px;width:38px}}
+.xx{--xf:#14181c;--xm:#6b7280;--xl:#dfe3e8;--xc:#fff;--xc2:#f1f3f5;--xa:#e0602a;--xg:#16a06a;--xr:#d64545;margin-top:6px;font-family:Inter,system-ui,sans-serif;color:var(--xf);text-align:left}
+.ivx.cin .xx,.ivx.est .xx,.ivx.piz .xx,.iv .xx{--xf:#e8edf3;--xm:#8b95a3;--xl:#ffffff1f;--xc:#14181c;--xc2:#1f262d;--xg:#2bff9a;--xr:#ff4d5e}
+.ivx.est .xx{--xc:#ffffff14;--xc2:#ffffff1a}.iv .xx{--xa:#ff6a2b}
+.xx .xh{font:800 12px Inter,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:var(--xa);margin:34px 0 14px;display:flex;gap:12px;align-items:center}.xx .xh:after{content:"";flex:1;height:1px;background:var(--xl)}
+.ivx.car .xx .xh,.ivx.pos .xx .xh{font:900 italic 24px 'Inter Display',Inter,sans-serif;letter-spacing:-.01em;color:var(--xf)}
+.xx .xr{display:grid;grid-template-columns:150px 1fr 120px;gap:14px;align-items:center;margin-bottom:12px}.xx .xr .n{font:800 12px Inter;letter-spacing:.14em;text-transform:uppercase}
+.xx .xt{position:relative;height:18px;background:var(--xc2)}.xx .xt i{position:absolute;inset:0 auto 0 0;background:var(--xa)}.xx .xt i.up{background:var(--xg)}.xx .xt i.dn{background:var(--xr)}.xx .xt u{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--xf);text-decoration:none}
+.xx .xv{font:900 italic 20px 'Inter Display',Inter,sans-serif;text-align:right;white-space:nowrap}.xx .xv small{display:block;font:700 10px Inter;color:var(--xm);letter-spacing:.12em;font-style:normal}
+.xx .xl{display:flex;gap:18px;flex-wrap:wrap;color:var(--xm);font-size:11.5px;margin:2px 0 6px}.xx .xl i{display:inline-block;width:9px;height:9px;margin-right:6px}
+.xx .xa{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.xx .xa div{background:var(--xc);border:1px solid var(--xl);border-top:3px solid var(--xa);padding:10px 18px}.xx .xa b{display:block;font:900 italic 24px 'Inter Display',Inter,sans-serif}.xx .xa span{font-size:10px;letter-spacing:.18em;color:var(--xm);font-weight:700}
+.xx .xrs{display:grid;grid-template-columns:120px 40px 1fr 96px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--xl);font-size:14px}.xx .xrs small{font-size:11px;letter-spacing:.12em;color:var(--xm)}.xx .xrs b.m{font:900 italic 20px 'Inter Display',Inter,sans-serif;text-align:right}
+.xx .xrs i{font-style:normal;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;border-radius:5px;background:#1f9d5c;color:#fff}.xx .xrs i.L{background:#d64545}.xx .xrs i.N{background:var(--xc2);color:var(--xm)}
+.xx .xmp{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:20px;align-items:start}.xx .xmp img{width:100%;display:block;border-radius:6px;background:#f3e6d2}.xx .xmp small{display:block;margin-top:6px;font-size:11px;color:var(--xm);letter-spacing:.08em}
+.xx table.xtb{width:100%;border-collapse:collapse;font-size:12.5px}.xx table.xtb th{font:800 10px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--xm)!important;text-align:center;padding:8px 6px;border-bottom:2px solid var(--xa);background:none!important}.xx table.xtb td{padding:8px 6px;text-align:center;border:0!important;border-bottom:1px solid var(--xl)!important;color:var(--xf)!important;background:none!important}.xx table.xtb th:first-child,.xx table.xtb td:first-child{text-align:left}.xx table.xtb td:first-child{font-weight:700;white-space:nowrap}.xx table.xtb tr{background:none!important}
+.xx .xtbw{overflow-x:auto}
+.xx .xfx{display:grid;grid-template-columns:170px 1fr;gap:4px 20px;background:var(--xc);border:1px solid var(--xl);border-bottom:3px solid var(--xa);margin-bottom:16px;position:relative;overflow:hidden;break-inside:avoid}
+.xx .xfv{grid-row:1/4;position:relative;min-height:230px;background:linear-gradient(160deg,var(--xc2),var(--xc));display:flex;align-items:center;justify-content:center;font:900 italic 44px 'Inter Display',Inter,sans-serif;color:var(--xm)}.xx .xfv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 8%}.xx .xfv:after{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(transparent,var(--xc))}
+.xx .xnu{position:absolute;right:14px;top:4px;font:900 italic 58px 'Inter Display',Inter,sans-serif;color:var(--xa);opacity:.9}
+.xx .xft{padding:16px 16px 0 0}.xx .xft small{font-size:10px;letter-spacing:.2em;font-weight:800;color:var(--xa)}.xx .xft h4{font:900 italic 21px 'Inter Display',Inter,sans-serif;text-transform:uppercase;margin:3px 0 10px;padding-right:70px}
+.xx .xch{display:flex;gap:6px;flex-wrap:wrap}.xx .xch span{background:var(--xc2);padding:6px 10px;font-size:11px;color:var(--xm);letter-spacing:.06em}.xx .xch b{color:var(--xf);font-size:14px;margin-left:5px}
+.xx .xfn{padding:6px 16px 0 0;font-size:14px;line-height:1.55;white-space:pre-line}.xx .xfm{padding:6px 16px 16px 0}.xx .xfm img{width:100%;max-width:330px;display:block;border-radius:6px;background:#f3e6d2}.xx .xfm span{display:block;margin-top:4px;font-size:11px;color:var(--xm);letter-spacing:.08em}.xx .xfx.sinm .xfm{display:none}
+.xx .xld{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.xx .xld>div{background:var(--xc);border:1px solid var(--xl);padding:12px 14px;border-top:3px solid var(--xa)}.xx .xld b.t{display:block;font:800 11px Inter;letter-spacing:.16em;text-transform:uppercase;color:var(--xa);margin-bottom:6px}.xx .xld p{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0;margin:0;border-bottom:1px solid var(--xl)}.xx .xld p b{font-weight:800}
+.xx .xnb{background:var(--xc);border:1px solid var(--xl);border-left:3px solid var(--xa);padding:14px 18px;margin-bottom:12px;font-size:14.5px;line-height:1.6;white-space:pre-line}.xx .xnb b.t{display:block;font:800 11px Inter;letter-spacing:.18em;text-transform:uppercase;color:var(--xa);margin-bottom:6px}
+.xx .xnb .et{display:inline-block;margin:6px 6px 0 0;font:700 10.5px Inter;letter-spacing:.1em;border:1px solid var(--xl);border-radius:99px;padding:3px 9px;color:var(--xm)}
+.xx .xjg{background:var(--xc);border:1px solid var(--xl);padding:14px 18px;margin-bottom:12px;break-inside:avoid}.xx .xjg h5{font:900 italic 16px 'Inter Display',Inter,sans-serif;text-transform:uppercase;margin:0 0 4px}.xx .xjg .gt{font-size:10px;letter-spacing:.2em;font-weight:800;color:var(--xa)}.xx .xjg p{font-size:13.5px;margin:6px 0 0;white-space:pre-line}
+.xx .xjg .im{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px}.xx .xjg .im img{width:100%;background:#fff;display:block}
+.cin .hero .jph{position:absolute;right:0;bottom:0;height:100%;width:48%;object-fit:cover;object-position:50% 10%;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 45%);mask-image:linear-gradient(90deg,transparent,#000 45%)}
+.cin .hero .in .nm{font:900 italic 60px/.92 'Inter Display',Inter,sans-serif!important;letter-spacing:-.04em;text-transform:uppercase;margin:10px 0 16px;max-width:64%}
+.xx .xkg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.xx .xkc{background:var(--xc);border:1px solid var(--xl);border-top:3px solid var(--xa);padding:12px 14px}.xx .xkc span{display:block;font:800 10px Inter;letter-spacing:.16em;color:var(--xm);text-transform:uppercase}.xx .xkc b{display:block;font:900 italic 30px 'Inter Display',Inter,sans-serif;margin:2px 0}.xx .xkc em{font-style:normal;font-size:11px;font-weight:700;color:var(--xm)}.xx .xkc em.alto{color:var(--xg)}.xx .xkc em.bajo{color:var(--xr)}
+.xx .xev{display:flex;gap:6px;align-items:flex-end;height:150px;padding-top:20px}.xx .xev>div{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}.xx .xev i{display:block;width:100%;background:var(--xa);position:relative;min-height:3px}.xx .xev i b{position:absolute;top:-17px;left:0;right:0;text-align:center;font:800 11px Inter}.xx .xev span{font:700 9px Inter;color:var(--xm);margin-top:5px;letter-spacing:.06em}
+.xx .xet{display:inline-block;background:var(--xa);color:#000;font:800 12px Inter;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;margin:0 0 6px}
+.xx .xvl a{display:block;background:var(--xc);border:1px solid var(--xl);border-left:3px solid var(--xa);padding:12px 16px;margin-bottom:8px;color:var(--xf);text-decoration:none;font-weight:700}
+.ivx{max-width:100%}.iv{max-width:100%}
+@media(max-width:760px){
+.ivx,.iv{width:100%!important}
+.ivx .wrap,.iv .wrap{padding-left:18px!important;padding-right:18px!important}
+.ivx .hd,.iv .hero,.ivx .sd,.ivx .mn{padding-left:18px!important;padding-right:18px!important}
+.ivx h1,.iv h1{font-size:42px!important;line-height:.98!important}
+.ivx .g2,.ivx .pl,.iv .g2,.iv .pl,.iv .sw,.ivx .sc{grid-template-columns:1fr!important}
+.ivx .k4,.iv .k4,.ivx .band,.ivx .stp{grid-template-columns:1fr 1fr!important}
+.dos{grid-template-columns:minmax(0,1fr)!important}.dos .mn{min-width:0}.dos .ft3{grid-column:1!important}.tv .mt{flex-direction:column!important;align-items:flex-start!important;gap:10px}.tv .tm h2{font-size:24px!important}.tv .vs{align-self:center}.iv .rec{flex-wrap:wrap}.iv .fm{flex-wrap:wrap}.ivx .rr{flex-wrap:wrap}
+.ivx .hd{flex-wrap:wrap}.ivx .mt{flex-wrap:wrap}
+.cin .hero{height:340px}.cin .hero .in{left:18px;right:18px}.cin .lt{flex-wrap:wrap}.cin .lt div{padding:10px 14px}.cin .lt b{font-size:24px}.cin .cl i{font-size:36px;width:38px}
+.ivx .ftb,.iv .ftr{padding:16px 18px}
+.xx .xr{grid-template-columns:1fr 110px}.xx .xr .n{grid-column:1/-1}.xx .xfx{grid-template-columns:110px 1fr}.xx .xft h4{font-size:17px;padding-right:46px}.xx .xnu{font-size:40px}.xx .xld{grid-template-columns:1fr}.xx .xmp{grid-template-columns:1fr}.xx .xkg{grid-template-columns:1fr 1fr}.cin .hero .in .nm{font-size:34px!important;max-width:100%}.cin .hero .jph{opacity:.45;width:70%}.xx .xrs b.m{font-size:16px}.xx .xrs{grid-template-columns:72px 34px 1fr 84px}}
 `;
-let IV_LIVIANO = false;
-/* El informe Completo como documento independiente (se manda a las jugadoras y se ve dentro de su app) */
-async function ivDocumentoCompleto(nombre) {
+let IV_LIVIANO = false, IV_DAT = null;
+const ivCompletoActivo = () => { try { return localStorage.getItem("iv_completo") === "1"; } catch (e) { return false; } };
+/* El informe (con todo) como documento independiente: se manda a las jugadoras y se ve dentro de su app */
+async function ivDocumentoCompleto(nombre, estilo) {
   try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
-  let h = null; IV_LIVIANO = true; try { h = informeVisualHtml(nombre, "ful"); } finally { IV_LIVIANO = false; }
+  let h = null; IV_LIVIANO = true; try { h = informeVisualHtml(nombre, estilo || "cin", true); } finally { IV_LIVIANO = false; }
   if (!h) return null;
-  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#0b0d10;font-family:Inter,system-ui,sans-serif}img{max-width:100%}' + IV_CSS + IV_CSS3 + IV_CSS4 + IV_CSS5 + '</style></head><body>' + h + '</body></html>';
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#0b0d10;font-family:Inter,system-ui,sans-serif}img{max-width:100%}' + IV_CSS + IV_CSS3 + IV_CSS4 + IV_CSS5 + '</style></head><body>' + h + '</body></html>';
 }
-function ivCompleto(nombre, dat) {
+/* Mete el bloque "completo" antes del pie del informe, sea cual sea el estilo */
+function ivInyectar(html, nombre, dat) {
+  const marcas = ['</div><div class="ftb">', '</div><div class="ftr">', '</div>\n    <div class="ft3">'];
+  let pos = -1; marcas.forEach(m => { const k = html.lastIndexOf(m); if (k > pos) pos = k; });
+  if (pos < 0) return html;
+  return html.slice(0, pos) + ivExtras(nombre, dat || {}) + html.slice(pos);
+}
+function ivExtras(nombre, dat) {
   const esc = escapeHtml;
   const f = scoutFicha("equipos", nombre), inf = fichaInforme(nombre), campos = (f.informe && f.informe.campos) || {};
-  const base = ivRender2("cin", Object.assign({}, dat, { jugadoras: [] }));
-  const corte = base.lastIndexOf('</div><div class="ftb">');
-  if (corte < 0) return base;
-  const S = [];
-  // 1. números del equipo frente a la liga
+  const S = [], H = (t) => `<div class="xh">${t}</div>`;
+  // números del equipo frente a la liga
   const ej = (dat.ejes || []).filter(e => e.v != null);
   if (ej.length) {
-    const barras = ej.map(e => { const esc2 = Math.max(e.v, e.avg || 0) * 1.15 || 1, w = Math.round(e.v / esc2 * 100), m = e.avg != null ? Math.round(e.avg / esc2 * 100) : null;
+    const barras = ej.map(e => { const e2 = Math.max(e.v, e.avg || 0) * 1.15 || 1, w = Math.round(e.v / e2 * 100), m = e.avg != null ? Math.round(e.avg / e2 * 100) : null;
       const cl = e.avg == null ? "" : e.v > e.avg * 1.02 ? "up" : e.v < e.avg * 0.98 ? "dn" : "";
       return `<div class="xr"><span class="n">${esc(e.t)}</span><div class="xt"><i class="${cl}" style="width:${w}%"></i>${m != null ? `<u style="left:${m}%"></u>` : ""}</div><div class="xv">${d_fmt(e.v)}${esc(e.u || "")}${e.avg != null ? `<small>LIGA ${d_fmt(e.avg)}${esc(e.u || "")}</small>` : ""}</div></div>`; }).join("");
     let av = "";
     try { const a = (avanzadasCalculo && avanzadasCalculo.equipos) ? metricasEquipo(avanzadasCalculo.equipos.get(equipoOficial(nombre))) : null;
       if (a) av = `<div class="xa">${[["ORtg", a.ortg], ["DRtg", a.drtg], ["Ritmo", a.ritmo]].filter(x => x[1] != null).map(x => `<div><b>${fmtNum(x[1])}</b><span>${x[0].toUpperCase()}</span></div>`).join("")}</div>`; } catch (e) { /* sin avanzadas */ }
-    S.push(`<h3>Números del equipo frente a la liga</h3>${barras}<div class="xl"><span><i style="background:#2bff9a"></i>Mejor que la liga</span><span><i style="background:#ff4d5e"></i>Peor que la liga</span><span><i style="background:#fff;width:3px"></i>Media de la liga</span></div>${av}`);
+    S.push(`${H("Números del equipo frente a la liga")}${barras}<div class="xl"><span><i style="background:var(--xg)"></i>Mejor que la liga</span><span><i style="background:var(--xr)"></i>Peor que la liga</span><span><i style="background:var(--xf);width:3px"></i>Media de la liga</span></div>${av}`);
   }
-  // 2. resultados
+  // mapa de tiro del equipo
+  try { const mt = mapaTiroParaEnvio(null, nombre);
+    if (mt) S.push(`${H("Mapa de tiro del equipo")}<div class="xmp"><div><img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mt.svg)}" alt=""><small>${mt.tiros} TIROS · ${String(mt.pct).replace(".", ",")} % DE ACIERTO</small></div>
+      <div class="xtbw"><table class="xtb"><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>${(mt.zonas || []).map(z => `<tr><td>${esc(z.zona)}</td><td>${z.a}/${z.i}</td><td>${z.pct != null ? String(z.pct).replace(".", ",") : "-"}</td><td>${z.pps != null ? String(z.pps).replace(".", ",") : "-"}</td></tr>`).join("")}</tbody></table></div></div>`); } catch (e) { /* sin tiros */ }
+  // resultados
   const pts = partidosDeEquipo(nombre);
-  if (pts.length) S.push(`<h3>Resultados y calendario</h3>${pts.map(p => `<div class="rs"><small>${p.jornada ? "J" + esc(p.jornada) : ""}${p.fecha ? " · " + esc(p.fecha) : ""}</small><i class="${p.jugado && p.gano !== null ? (p.gano ? "" : "L") : "N"}">${p.jugado && p.gano !== null ? (p.gano ? "V" : "D") : "·"}</i><span>${p.esLocal ? "vs" : "en"} <b>${esc(p.rival)}</b></span><b class="m">${p.jugado && p.pf != null ? p.pf + "-" + p.pc : "Próximo"}</b></div>`).join("")}`);
-  // 3. todas las jugadoras
+  if (pts.length) S.push(`${H("Resultados y calendario")}${pts.map(p => `<div class="xrs"><small>${p.jornada ? "J" + esc(p.jornada) : ""}${p.fecha ? " · " + esc(p.fecha) : ""}</small><i class="${p.jugado && p.gano !== null ? (p.gano ? "" : "L") : "N"}">${p.jugado && p.gano !== null ? (p.gano ? "V" : "D") : "·"}</i><span>${p.esLocal ? "vs" : "en"} <b>${esc(p.rival)}</b></span><b class="m">${p.jugado && p.pf != null ? p.pf + "-" + p.pc : "Próximo"}</b></div>`).join("")}`);
+  // plantilla
   const plant = plantillaDe(nombre);
   if (plant.length) {
     const fich = plant.map(p => {
       const nt = notaJugadora(inf, p.jugadora), chips = todasStatsJugadora(p.jugadora, nombre).map(d => `<span title="${escapeAttr(d.titulo || "")}">${esc(d.et)}<b>${esc(d.v)}</b></span>`).join("");
       const mp = (typeof mapaTiroParaEnvio === "function") ? mapaTiroParaEnvio(p.jugadora, nombre) : null;
       const ini = p.jugadora.split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase();
-      return `<div class="fx${mp ? "" : " sinm"}"><div class="fv">${esc(ini)}${p.foto ? `<img src="${escapeAttr(p.foto)}" alt="" onerror="this.remove()">` : ""}</div>${p.dorsal ? `<span class="nu">${esc(p.dorsal)}</span>` : ""}
-        <div class="ft"><small>${esc(nt.posicion || "JUGADORA")}${p.partidos ? " · " + esc(p.partidos) + " PARTIDOS" : ""}</small><h4>${esc(p.jugadora)}</h4><div class="ch">${chips}</div></div>
-        ${nt.texto ? `<div class="fn">${esc(nt.texto)}</div>` : "<div></div>"}
-        <div class="fm">${mp ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mp.svg)}" alt=""><span>MAPA DE TIRO · ${mp.tiros} TIROS · ${String(mp.pct).replace(".", ",")} %</span>` : ""}</div></div>`; }).join("");
-    S.push(`<h3>Plantilla completa · ${plant.length} jugadoras</h3>${fich}`);
-    // líderes
+      return `<div class="xfx${mp ? "" : " sinm"}"><div class="xfv">${esc(ini)}${p.foto ? `<img src="${escapeAttr(p.foto)}" alt="" onerror="this.remove()">` : ""}</div>${p.dorsal ? `<span class="xnu">${esc(p.dorsal)}</span>` : ""}
+        <div class="xft"><small>${esc(nt.posicion || "JUGADORA")}${p.partidos ? " · " + esc(p.partidos) + " PARTIDOS" : ""}</small><h4>${esc(p.jugadora)}</h4><div class="xch">${chips}</div></div>
+        ${nt.texto ? `<div class="xfn">${esc(nt.texto)}</div>` : "<div></div>"}
+        <div class="xfm">${mp ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mp.svg)}" alt=""><span>MAPA DE TIRO · ${mp.tiros} TIROS · ${String(mp.pct).replace(".", ",")} %</span>` : ""}</div></div>`; }).join("");
+    S.push(`${H("Plantilla completa · " + plant.length + " jugadoras")}${fich}`);
     const lid = STATS_FICHA.map(([, corta, larga]) => { const con = plant.map(p => ({ j: p.jugadora, v: parseSpanishNumber(p[corta]), t: p[corta] })).filter(x => x.v !== null && x.t !== "" && x.t != null).sort((a, b) => b.v - a.v).slice(0, 3);
       return con.length ? `<div><b class="t">${esc(larga)}</b>${con.map(x => `<p><span>${esc(x.j)}</span><b>${esc(String(x.t))}</b></p>`).join("")}</div>` : ""; }).join("");
-    if (lid) S.push(`<h3>Líderes del equipo</h3><div class="ld">${lid}</div>`);
+    if (lid) S.push(`${H("Líderes del equipo")}<div class="xld">${lid}</div>`);
     const cols = STATS_FICHA.map(([, corta]) => corta);
-    S.push(`<h3>Tabla de la plantilla</h3><div class="tbw"><table class="tb"><thead><tr><th>Jugadora</th><th>PJ</th>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${plant.map(p => `<tr><td>${p.dorsal ? esc(p.dorsal) + " · " : ""}${esc(p.jugadora)}</td><td>${esc(p.partidos || "")}</td>${cols.map(c => `<td>${p[c] != null && p[c] !== "" ? esc(String(p[c])) : "-"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+    S.push(`${H("Tabla de la plantilla")}<div class="xtbw"><table class="xtb"><thead><tr><th>Jugadora</th><th>PJ</th>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${plant.map(p => `<tr><td>${p.dorsal ? esc(p.dorsal) + " · " : ""}${esc(p.jugadora)}</td><td>${esc(p.partidos || "")}</td>${cols.map(c => `<td>${p[c] != null && p[c] !== "" ? esc(String(p[c])) : "-"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
   }
-  // 4. notas del entrenador
+  // notas del entrenador
   const extra = CAMPOS_ENVIO.filter(c => !["estilo", "fortalezas", "debilidades", "claves"].includes(c.id) && String(campos[c.id] || "").trim());
   const notas = (f.notas || []).filter(n => String(n.texto || "").trim());
-  if (extra.length || notas.length) S.push(`<h3>Notas del entrenador</h3>${extra.map(c => `<div class="nb"><b class="t">${esc(c.titulo)}</b>${esc(String(campos[c.id]).trim())}</div>`).join("")}${notas.map(n => `<div class="nb">${esc(String(n.texto).trim())}${(n.etiquetas || []).length ? `<div>${n.etiquetas.map(e => `<span class="et">${esc(e)}</span>`).join("")}</div>` : ""}</div>`).join("")}`);
-  // 5. jugadas del rival
+  if (extra.length || notas.length) S.push(`${H("Notas del entrenador")}${extra.map(c => `<div class="xnb"><b class="t">${esc(c.titulo)}</b>${esc(String(campos[c.id]).trim())}</div>`).join("")}${notas.map(n => `<div class="xnb">${esc(String(n.texto).trim())}${(n.etiquetas || []).length ? `<div>${n.etiquetas.map(e => `<span class="et">${esc(e)}</span>`).join("")}</div>` : ""}</div>`).join("")}`);
+  // jugadas del rival
   const jug = (f.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length || j.enlace);
-  if (jug.length) S.push(`<h3>Jugadas del rival · ${jug.length}</h3>${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < (IV_LIVIANO ? 120000 : 600000))).slice(0, 4);
-    return `<div class="jg"><span class="gt">${esc((j.tipo || "Otra").toUpperCase())}</span><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${escapeAttr(x)}" alt="" loading="lazy">`).join("")}</div>` : ""}</div>`; }).join("")}`);
-  return base.slice(0, corte) + S.join("") + base.slice(corte);
+  if (jug.length) S.push(`${H("Jugadas del rival · " + jug.length)}${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < (IV_LIVIANO ? 120000 : 600000))).slice(0, 4);
+    return `<div class="xjg"><span class="gt">${esc((j.tipo || "Otra").toUpperCase())}</span><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${escapeAttr(x)}" alt="" loading="lazy">`).join("")}</div>` : ""}</div>`; }).join("")}`);
+  return `<div class="xx">${S.join("")}</div>`;
+}
+
+/* ===== Informe visual de una jugadora (perfil completo: estadísticas, tiros, partidos, notas, vídeos) ===== */
+let JUG_VISTA = "";
+async function abrirInformeVisualJugadora(nombre) {
+  const row = jugadoras && jugadoras.rows.find(r => r["Jugador"] && r["Jugador"].display === nombre);
+  if (!row) { alert("No hay datos de esta jugadora."); return; }
+  const equipo = row["Equipo"] ? row["Equipo"].display : "";
+  try { await cargarTirosEquipo(equipo); } catch (e) { /* sin mapas */ }
+  if (!partidosCache) { try { partidosCache = await fetchSheetTab("Partidos_Estadisticas"); } catch (e) { /* sin partidos */ } }
+  let vids = []; try { const R = await leerVideosEntrenador(); if (R && R.vids) { const yo = normNombre(nombre); vids = R.vids.filter(v => v.m.jugadora && normNombre(v.m.jugadora) === yo); } } catch (e) { /* sin vídeos */ }
+  ivMostrar(informeVisualJugadoraHtml(nombre, row, vids), nombre);
+}
+function informeVisualJugadoraHtml(nombre, row, vids) {
+  const esc = escapeHtml, equipo = row["Equipo"] ? row["Equipo"].display : "";
+  const st = estadisticasJugadora(nombre, equipo), m = metricasJugadora(row), liga = ligaComparable();
+  const impacto = liga.length >= 10 ? indiceImpacto(m, liga) : null;
+  const etiqueta = impacto ? (impacto.valor >= 80 ? "Jugadora determinante" : (impacto.valor >= 65 ? "Jugadora importante" : (impacto.valor >= 45 ? "Rotación" : "Complemento"))) : "";
+  const f = scoutFicha("jugadoras", nombre);
+  let fi = null; try { fi = listaFichajes()[claveFichaje(nombre, equipo)] || null; } catch (e) { /* sin fichaje */ }
+  const escudo = escudoUrlFor(equipo);
+  const foto = st.foto || "";
+  const H = (t) => `<div class="xh">${t}</div>`, S = [];
+  if (etiqueta) S.push(`<div style="margin-top:22px"><span class="xet">${esc(etiqueta)}</span>${fi && fi.puesto ? ` <span class="xet" style="background:transparent;color:var(--xa);border:1.5px solid var(--xa)">${esc(fi.puesto)}</span>` : ""}</div>`);
+  // números clave frente a la liga
+  const claves = [["PTS", "Puntos", ""], ["REB", "Rebotes", ""], ["AST", "Asistencias", ""], ["2P%", "% T2", "%"], ["3P%", "% T3", "%"], ["TL%", "% T. libres", "%"], ["TS%", "TS %", "%"], ["eFG%", "eFG %", "%"], ["PER", "Pérdidas", ""], ["AST/TO", "Ast / pérdida", ""], ["USO%", "Uso %", "%"], ["MIN", "Minutos", ""]];
+  const kp = claves.filter(([k]) => m[k] !== null && m[k] !== undefined).map(([k, t, suf]) => { let d = null; try { d = puestosYpercentiles(k, m[k], liga); } catch (e) { /* sin ranking */ }
+    return `<div class="xkc"><span>${esc(t)}</span><b>${fmtNum(m[k])}${suf}</b>${d ? `<em class="${d.percentil >= 75 ? "alto" : (d.percentil <= 25 ? "bajo" : "")}">${d.puesto}º de ${d.total}</em>` : ""}</div>`; }).join("");
+  if (kp) S.push(`${H("Números clave · puesto en la liga")}<div class="xkg">${kp}</div>`);
+  // todas las estadísticas
+  const chips = todasStatsJugadora(nombre, equipo).map(d => `<span title="${escapeAttr(d.titulo || "")}">${esc(d.et)}<b>${esc(d.v)}</b></span>`).join("");
+  if (chips) S.push(`${H("Estadísticas de la temporada")}<div class="xch" style="display:flex;gap:6px;flex-wrap:wrap">${chips}</div>`);
+  // mapa de tiro
+  try { const mt = mapaTiroParaEnvio(nombre, equipo);
+    if (mt) S.push(`${H("Mapa de tiro")}<div class="xmp"><div><img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mt.svg)}" alt=""><small>${mt.tiros} TIROS · ${String(mt.pct).replace(".", ",")} % DE ACIERTO</small></div>
+      <div class="xtbw"><table class="xtb"><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>${(mt.zonas || []).map(z => `<tr><td>${esc(z.zona)}</td><td>${z.a}/${z.i}</td><td>${z.pct != null ? String(z.pct).replace(".", ",") : "-"}</td><td>${z.pps != null ? String(z.pps).replace(".", ",") : "-"}</td></tr>`).join("")}</tbody></table></div></div>`); } catch (e) { /* sin tiros */ }
+  // evolución y partidos
+  let ps = []; try { ps = partidosDeJugadora(nombre, equipo); } catch (e) { /* sin partidos */ }
+  if (ps.length) {
+    const ult = ps.slice(-15), mx = Math.max(1, ...ult.map(x => x.pt || 0));
+    S.push(`${H("Puntos por partido")}<div class="xev">${ult.map(x => `<div><i style="height:${Math.max(3, (x.pt || 0) / mx * 100)}%"><b>${fmtNum(x.pt)}</b></i><span>${esc(String(x.rival || "").slice(0, 3).toUpperCase())}</span></div>`).join("")}</div>`);
+    S.push(`${H("Últimos partidos")}<div class="xtbw"><table class="xtb"><thead><tr><th>Rival</th><th>MIN</th><th>PT</th><th>TC</th><th>T3</th><th>TL</th><th>REB</th><th>AST</th><th>PÉR</th><th>+/-</th><th>VAL</th></tr></thead><tbody>${[...ps].reverse().slice(0, 12).map(x => `<tr><td>${x.casa === null ? "" : (x.casa ? "vs " : "@ ")}${esc(x.rival || "")}</td><td>${fmtNum(x.min)}</td><td><b>${fmtNum(x.pt)}</b></td><td>${x.tc.a}/${x.tc.i}</td><td>${x.t3.a}/${x.t3.i}</td><td>${x.tl.a}/${x.tl.i}</td><td>${fmtNum(x.reb)}</td><td>${fmtNum(x.as)}</td><td>${fmtNum(x.bp)}</td><td>${x.mm > 0 ? "+" : ""}${fmtNum(x.mm)}</td><td>${fmtNum(x.va)}</td></tr>`).join("")}</tbody></table></div>`);
+  }
+  // notas y ficha de fichaje
+  const notas = (f.notas || []).filter(n => String(n.texto || "").trim());
+  const datosFi = fi ? [["Prioridad", fi.prioridad], ["Puesto", fi.puesto], ["Nacionalidad", fi.pais], ["Liga", fi.liga]].filter(x => x[1]) : [];
+  if (notas.length || (fi && (fi.nota || datosFi.length))) S.push(`${H("Notas del entrenador")}${fi && datosFi.length ? `<div class="xch" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${datosFi.map(x => `<span>${esc(x[0])}<b>${esc(x[1])}</b></span>`).join("")}</div>` : ""}${fi && fi.nota ? `<div class="xnb"><b class="t">Fichaje</b>${esc(fi.nota)}</div>` : ""}${notas.map(n => `<div class="xnb">${esc(String(n.texto).trim())}${(n.etiquetas || []).length ? `<div>${n.etiquetas.map(e => `<span class="et">${esc(e)}</span>`).join("")}</div>` : ""}</div>`).join("")}`);
+  if ((vids || []).length) S.push(`${H("Vídeos · " + vids.length)}<div class="xvl">${vids.map(v => `<a href="${escapeAttr(v.url)}" target="_blank" rel="noopener">▶ ${esc([v.m.categoria, v.m.equipo].filter(Boolean).join(" · ") || v.nombre)}</a>`).join("")}</div>`);
+  const tiles = [["PTS", m.PTS], ["REB", m.REB], ["AST", m.AST], ["VAL", st.VAL]].filter(x => x[1] !== null && x[1] !== undefined && x[1] !== "");
+  const wm = escudo ? `<img class="wm" src="${escapeAttr(escudo)}" alt="">` : "";
+  return `<div class="ivx cin" data-iv><div class="hero">${wm}${foto ? `<img class="jph" src="${escapeAttr(foto)}" alt="" onerror="this.remove()">` : ""}<div class="in"><small>SCOUTING · ${esc(String(equipo).toUpperCase())}${st.dorsal ? " · #" + esc(st.dorsal) : ""}</small><div class="nm">${esc(nombre)}</div>
+    <div class="lt">${st.partidos ? `<div><b>${esc(st.partidos)}</b><span>PARTIDOS</span></div>` : ""}${tiles.map(([k, v]) => `<div><b>${fmtNum(v)}</b><span>${k}</span></div>`).join("")}</div></div></div>
+    <div class="wrap"><div class="xx">${S.join("")}</div></div><div class="ftb"><b>Scout<i>Flow</i></b><span>${esc(String(nombre).toUpperCase())}</span></div></div>`;
 }
 function ivEstiloGuardado() { try { return localStorage.getItem("iv_estilo") || "fut"; } catch (e) { return "fut"; } }
 function abrirInformeVisual(nombre) {
   const render = (est) => informeVisualHtml(nombre, est);
   const html = render(ivEstiloGuardado());
   if (!html) { alert("Todavía no hay estadísticas cargadas."); return; }
-  ivMostrar(html, nombre, render);
+  ivMostrar(html, nombre, render, true);
   // los mapas de tiro llegan despues: si se está viendo el Completo, se repinta al tenerlos
-  try { Promise.resolve(cargarTirosEquipo(nombre)).then(() => { const sc = document.querySelector("#ivCapa .iv-scroll"); if (sc && ivEstiloGuardado() === "ful") { const h = render("ful"); if (h) sc.innerHTML = h; } }).catch(() => {}); } catch (e) { /* sin mapas */ }
+  try { Promise.resolve(cargarTirosEquipo(nombre)).then(() => { const sc = document.querySelector("#ivCapa .iv-scroll"); if (sc && ivCompletoActivo()) { const h = render("ful"); if (h) sc.innerHTML = h; } }).catch(() => {}); } catch (e) { /* sin mapas */ }
 }
-function ivMostrar(html, nombre, render) {
+function ivMostrar(html, nombre, render, conCompleto) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
   if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}${IV_CSS4}${IV_CSS5}</style>`);
   const actual = ivEstiloGuardado();
-  const chips = render ? `<div class="iv-est">${IV_ESTILOS.map(([k, t]) => `<button data-est="${k}" class="${k === actual ? "on" : ""}">${t}</button>`).join("")}</div>` : "";
+  const chips = render ? `<div class="iv-est">${IV_ESTILOS.map(([k, t]) => `<button data-est="${k}" class="${k === actual ? "on" : ""}">${t}</button>`).join("")}${conCompleto ? `<button data-comp="1" class="${ivCompletoActivo() ? "on" : ""}" style="border-color:#ff6a2b">＋ Completo</button>` : ""}</div>` : "";
   document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPng">Descargar imagen</button><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div>${chips}<div class="iv-scroll">${html}</div></div>`);
   if (!document.getElementById("ivEstilo2")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo2">#ivCapa .iv-est{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}#ivCapa .iv-est button{border:1px solid #ffffff33;background:transparent;color:#fff;border-radius:99px;padding:7px 14px;font:700 12.5px Inter,sans-serif;cursor:pointer}#ivCapa .iv-est button.on{background:#fff;color:#14181c}</style>`);
-  document.querySelectorAll("#ivCapa .iv-est button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#ivCapa .iv-est button[data-comp]").forEach(b => b.addEventListener("click", () => {
+    try { localStorage.setItem("iv_completo", ivCompletoActivo() ? "0" : "1"); } catch (e) { /* nada */ }
+    const h = render(ivEstiloGuardado()); if (!h) return;
+    document.querySelector("#ivCapa .iv-scroll").innerHTML = h; b.classList.toggle("on", ivCompletoActivo());
+  }));
+  document.querySelectorAll("#ivCapa .iv-est button[data-est]").forEach(b => b.addEventListener("click", () => {
     const est = b.getAttribute("data-est"); try { localStorage.setItem("iv_estilo", est); } catch (e) { /* nada */ }
     const h = render(est); if (!h) return;
     document.querySelector("#ivCapa .iv-scroll").innerHTML = h;
-    document.querySelectorAll("#ivCapa .iv-est button").forEach(x => x.classList.toggle("on", x === b));
+    document.querySelectorAll("#ivCapa .iv-est button[data-est]").forEach(x => x.classList.toggle("on", x === b));
   }));
   const cerrar = () => { document.body.classList.remove("iv-print"); const c = document.getElementById("ivCapa"); if (c) c.remove(); };
   document.getElementById("ivCerrar").onclick = cerrar;
@@ -6926,6 +7023,7 @@ function informeVisualVistaHtml(id) {
     ${cuerpo}<div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(titulo.toUpperCase())}</span></div></div>`;
 }
 function abrirInformeVisualVista(id) {
+  if (id === "jugadora-detail" && JUG_VISTA) { abrirInformeVisualJugadora(JUG_VISTA); return; }
   const h = informeVisualVistaHtml(id);
   if (!h) return;
   ivMostrar(h, id);
@@ -8158,6 +8256,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
   const visBloque = esEquipo ? "" : `<div style="margin-top:14px;padding:12px;border:1.5px solid var(--naranja,#e0602a);border-radius:10px;">
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="envVisual" checked style="margin-top:4px;">
       <span><b style="font-size:14.5px;">Informe visual completo</b><span class="hint" style="display:block;margin-top:3px;">El informe con fotos, escudo, estadísticas, mapas de tiro, notas y jugadas de cada jugadora. Lo ven dentro de la app, sin PDF.</span></span></label>
+      <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:8px;">Estilo <select id="envVisualEstilo" style="padding:6px;border:1.5px solid var(--wood-line);border-radius:8px;background:var(--suave);color:var(--ink);">${IV_ESTILOS.map(([k, t]) => `<option value="${k}" ${k === (ivEstiloGuardado() === "fut" ? "cin" : ivEstiloGuardado()) ? "selected" : ""}>${t}</option>`).join("")}</select> <span>(Cine y Futurista se ven mejor en el móvil)</span></label>
     </div>`;
 
   const pbBloque = esEquipo ? "" : `<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--wood-line);border-radius:10px;">
@@ -8273,7 +8372,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
     let seccionVis = null;
     if (visOn) {
       mandar.textContent = "Preparando el informe visual...";
-      const doc = await ivDocumentoCompleto(nombre);
+      const doc = await ivDocumentoCompleto(nombre, (document.getElementById("envVisualEstilo") || {}).value || "cin");
       if (doc && doc.length > 6000000) { mandar.disabled = false; mandar.textContent = "Mandar a todas"; avisoEnvio("El informe visual pesa demasiado (" + Math.round(doc.length / 1048576) + " MB). Quita imágenes grandes de las jugadas o desmárcalo.", "error"); return; }
       if (doc) seccionVis = { tipo: "visual", titulo: "Informe visual completo", doc };
     }
