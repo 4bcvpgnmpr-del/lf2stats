@@ -6795,6 +6795,17 @@ const IV_CSS5 = `
 .xx .xet{display:inline-block;background:var(--xa);color:#000;font:800 12px Inter;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;margin:0 0 6px}
 .xx .xvl a{display:block;background:var(--xc);border:1px solid var(--xl);border-left:3px solid var(--xa);padding:12px 16px;margin-bottom:8px;color:var(--xf);text-decoration:none;font-weight:700}
 .ivx{max-width:100%}.iv{max-width:100%}
+@media(min-width:1000px){
+#ivCapa.ancho [data-iv]{width:1500px!important;max-width:none!important}
+#ivCapa.ancho .xx{display:grid;grid-template-columns:1fr 1fr;column-gap:44px;align-items:start}
+#ivCapa.ancho .xx .xs.full{grid-column:1/-1}
+#ivCapa.ancho .xx .xfg{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px}
+#ivCapa.ancho .xx .xfg .xfx{margin-bottom:0}
+#ivCapa.ancho .xx .xmp{grid-template-columns:1fr}
+#ivCapa.ancho .xx .xld{grid-template-columns:repeat(3,1fr)}
+#ivCapa.ancho .iv-scroll{overflow-x:auto}
+}
+#ivCapa .xx .xtb thead,#ivCapa .xx .xtb thead tr,#ivCapa .xx .xtb thead th{background:var(--xc2)!important;color:var(--xm)!important}
 @media(max-width:760px){
 .ivx,.iv{width:100%!important}
 .ivx .wrap,.iv .wrap{padding-left:18px!important;padding-right:18px!important}
@@ -6855,7 +6866,7 @@ function ivExtras(nombre, dat) {
         <div class="xft"><small>${esc(nt.posicion || "JUGADORA")}${p.partidos ? " · " + esc(p.partidos) + " PARTIDOS" : ""}</small><h4>${esc(p.jugadora)}</h4><div class="xch">${chips}</div></div>
         ${nt.texto ? `<div class="xfn">${esc(nt.texto)}</div>` : "<div></div>"}
         <div class="xfm">${mp ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mp.svg)}" alt=""><span>MAPA DE TIRO · ${mp.tiros} TIROS · ${String(mp.pct).replace(".", ",")} %</span>` : ""}</div></div>`; }).join("");
-    S.push(`${H("Plantilla completa · " + plant.length + " jugadoras")}${fich}`);
+    S.push(`${H("Plantilla completa · " + plant.length + " jugadoras")}<div class="xfg">${fich}</div>`);
     const lid = STATS_FICHA.map(([, corta, larga]) => { const con = plant.map(p => ({ j: p.jugadora, v: parseSpanishNumber(p[corta]), t: p[corta] })).filter(x => x.v !== null && x.t !== "" && x.t != null).sort((a, b) => b.v - a.v).slice(0, 3);
       return con.length ? `<div><b class="t">${esc(larga)}</b>${con.map(x => `<p><span>${esc(x.j)}</span><b>${esc(String(x.t))}</b></p>`).join("")}</div>` : ""; }).join("");
     if (lid) S.push(`${H("Líderes del equipo")}<div class="xld">${lid}</div>`);
@@ -6870,7 +6881,8 @@ function ivExtras(nombre, dat) {
   const jug = (f.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length || j.enlace);
   if (jug.length) S.push(`${H("Jugadas del rival · " + jug.length)}${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < (IV_LIVIANO ? 120000 : 600000))).slice(0, 4);
     return `<div class="xjg"><span class="gt">${esc((j.tipo || "Otra").toUpperCase())}</span><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${escapeAttr(x)}" alt="" loading="lazy">`).join("")}</div>` : ""}</div>`; }).join("")}`);
-  return `<div class="xx">${S.join("")}</div>`;
+  const COMPLETA = /Plantilla|Tabla de la plantilla|Líderes|Jugadas del rival|Últimos partidos|Puntos por partido|Estadísticas de la temporada|Vídeos/;
+  return `<div class="xx">${S.map(x => `<div class="xs${COMPLETA.test(x.slice(0, 160)) ? " full" : ""}">${x}</div>`).join("")}</div>`;
 }
 
 /* ===== Informe visual de una jugadora (perfil completo: estadísticas, tiros, partidos, notas, vídeos) ===== */
@@ -6934,6 +6946,12 @@ function abrirInformeVisual(nombre) {
   // los mapas de tiro llegan despues: si se está viendo el Completo, se repinta al tenerlos
   try { Promise.resolve(cargarTirosEquipo(nombre)).then(() => { const sc = document.querySelector("#ivCapa .iv-scroll"); if (sc && ivCompletoActivo()) { const h = render("ful"); if (h) sc.innerHTML = h; } }).catch(() => {}); } catch (e) { /* sin mapas */ }
 }
+function ivAjusta() {
+  const capa = document.getElementById("ivCapa"); if (!capa) return;
+  const sc = capa.querySelector(".iv-scroll"), ancho = !!capa.querySelector(".iv-est button[data-comp]") && ivCompletoActivo() && !!sc.querySelector(".xx") && innerWidth >= 1000;
+  capa.classList.toggle("ancho", ancho);
+  sc.style.zoom = ancho ? String(Math.min(1, (innerWidth - 24) / 1500)) : "";
+}
 function ivMostrar(html, nombre, render, conCompleto) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
   if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}${IV_CSS4}${IV_CSS5}</style>`);
@@ -6944,19 +6962,21 @@ function ivMostrar(html, nombre, render, conCompleto) {
   document.querySelectorAll("#ivCapa .iv-est button[data-comp]").forEach(b => b.addEventListener("click", () => {
     try { localStorage.setItem("iv_completo", ivCompletoActivo() ? "0" : "1"); } catch (e) { /* nada */ }
     const h = render(ivEstiloGuardado()); if (!h) return;
-    document.querySelector("#ivCapa .iv-scroll").innerHTML = h; b.classList.toggle("on", ivCompletoActivo());
+    document.querySelector("#ivCapa .iv-scroll").innerHTML = h; b.classList.toggle("on", ivCompletoActivo()); ivAjusta();
   }));
   document.querySelectorAll("#ivCapa .iv-est button[data-est]").forEach(b => b.addEventListener("click", () => {
     const est = b.getAttribute("data-est"); try { localStorage.setItem("iv_estilo", est); } catch (e) { /* nada */ }
     const h = render(est); if (!h) return;
     document.querySelector("#ivCapa .iv-scroll").innerHTML = h;
-    document.querySelectorAll("#ivCapa .iv-est button[data-est]").forEach(x => x.classList.toggle("on", x === b));
+    document.querySelectorAll("#ivCapa .iv-est button[data-est]").forEach(x => x.classList.toggle("on", x === b)); ivAjusta();
   }));
+  ivAjusta();
   const cerrar = () => { document.body.classList.remove("iv-print"); const c = document.getElementById("ivCapa"); if (c) c.remove(); };
   document.getElementById("ivCerrar").onclick = cerrar;
   document.getElementById("ivPdf").onclick = () => { document.body.classList.add("iv-print"); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("iv-print"), 500); }, 100); };
   document.getElementById("ivPng").onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true; b.textContent = "Creando imagen...";
+    const scEl = document.querySelector("#ivCapa .iv-scroll"), zoomAntes = scEl ? scEl.style.zoom : ""; if (scEl) scEl.style.zoom = "";
     try {
       if (!window.html2canvas) {
         const fuentes = ["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js", "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js", "https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"];
@@ -6966,6 +6986,19 @@ function ivMostrar(html, nombre, render, conCompleto) {
       const raiz = document.querySelector("#ivCapa [data-iv]"), malas = [];
       // las imagenes de la FEB solo se pueden meter en la imagen si el servidor lo permite
       await Promise.all([...raiz.querySelectorAll("img")].map(async (im, i) => {
+        if (/^data:image\/svg/.test(im.src)) {
+          // SVG sin tamano propio (mapas de tiro): se dibuja a mano en un lienzo con su proporcion real
+          try {
+            let txt = decodeURIComponent(im.src.replace(/^data:image\/svg\+xml[^,]*,/, ""));
+            const vb = /viewBox="([\d.\s-]+)"/.exec(txt); if (!vb) return;
+            const [, , vw, vh] = vb[1].trim().split(/\s+/).map(Number); if (!vw || !vh) return;
+            txt = txt.replace(/^<svg /, '<svg width="' + vw + '" height="' + vh + '" ').replace(/(<svg[^>]*?)\swidth="[^"]*"\s+height="[^"]*"(?=[^>]*?width=)/, "$1");
+            const img2 = new Image(); await new Promise((ok, ko) => { img2.onload = ok; img2.onerror = ko; img2.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(txt); });
+            const k = Math.min(3, 2400 / Math.max(vw, vh)), cv = document.createElement("canvas"); cv.width = Math.round(vw * k); cv.height = Math.round(vh * k);
+            cv.getContext("2d").drawImage(img2, 0, 0, cv.width, cv.height); im.src = cv.toDataURL("image/png");
+          } catch (e) { /* se queda como estaba */ }
+          return;
+        }
         if (/^data:/.test(im.src)) return;
         const aData = async (u) => { const r = await fetch(u, { mode: "cors" }); if (!r.ok) throw new Error("x"); const bl = await r.blob(); return await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }); };
         try { im.src = await aData(im.src); }
@@ -6994,6 +7027,7 @@ function ivMostrar(html, nombre, render, conCompleto) {
       if (malas.length) setTimeout(() => alert("Algunas fotos o escudos no se pudieron incluir en la imagen (la web de origen no lo permite). En «Imprimir / PDF» sí salen."), 300);
       lienzo.toBlob((bl) => { if (!bl) { alert("La imagen es demasiado grande para este navegador. Usa «Imprimir / PDF»."); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
     } catch (e) { alert("No se pudo crear la imagen" + (e && e.message ? " (" + e.message + ")" : "") + ". Usa «Imprimir / PDF» o haz una captura de pantalla."); }
+    if (scEl) scEl.style.zoom = zoomAntes;
     b.disabled = false; b.textContent = "Descargar imagen";
   };
 }
