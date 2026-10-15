@@ -480,6 +480,20 @@
     body.editor .paleta button.x{color:#d12b4a;}
   }
 </style>
+<style id="sfTemaCss">
+html.oscuro{filter:invert(1) hue-rotate(180deg);background:#fff}
+html.oscuro img,html.oscuro video,html.oscuro canvas,html.oscuro iframe,html.oscuro #capaCentro,html.oscuro .sf-tema{filter:invert(1) hue-rotate(180deg)}
+.sf-tema{position:fixed;left:12px;bottom:12px;z-index:2147483000;width:38px;height:38px;border-radius:50%;border:1px solid #cfd6de;background:#fff;color:#1b2432;font-size:18px;line-height:1;padding:0;cursor:pointer;box-shadow:0 2px 8px #0003;opacity:.75}.sf-tema:hover{opacity:1}
+@media print{html.oscuro,html.oscuro img,html.oscuro video,html.oscuro canvas,html.oscuro iframe,html.oscuro #capaCentro{filter:none}.sf-tema{display:none}}
+</style>
+<script>
+(function(){var K="sf_tema",d=document.documentElement;function g(){try{return localStorage.getItem(K)}catch(e){return null}}
+function ap(o){d.classList.toggle("oscuro",o);var b=document.getElementById("sfTemaB");if(b){b.textContent=o?"☀️":"🌙";b.title=o?"Cambiar a modo claro":"Cambiar a modo oscuro"}}
+ap(g()==="oscuro");
+document.addEventListener("DOMContentLoaded",function(){var b=document.createElement("button");b.id="sfTemaB";b.className="sf-tema";b.type="button";b.setAttribute("aria-label","Modo claro / oscuro");
+b.onclick=function(){var o=!d.classList.contains("oscuro");try{localStorage.setItem(K,o?"oscuro":"claro")}catch(e){}ap(o)};document.body.appendChild(b);ap(d.classList.contains("oscuro"))});
+window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscuro")});})();
+</script>
 </head>
 <body>
 <div class="wrap">
