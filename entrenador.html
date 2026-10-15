@@ -2481,7 +2481,7 @@ function centroVideo() {
     <div class="cvCtl"><span>Velocidad</span>${[["0.25", "¼x"], ["0.5", "½x"], ["1", "1x"], ["2", "2x"], ["4", "4x"]].map(([v, t]) => `<button data-sp="${v}" class="${v === "1" ? "on" : ""}">${t}</button>`).join("")}
     <span>Salto</span>${[-15, -5, -2, 2, 5].map(n => `<button data-j="${n}">${n > 0 ? "+" : ""}${n}s</button>`).join("")}<button id="cvPv">⏮</button><button id="cvNx">⏭</button></div></div>
   <div class="cvLs"><div class="cvH"><button class="tb on" data-pn="listas">Mis listas</button><button class="tb" data-pn="partidos">Partidos</button><button class="tb" data-pn="resumen">Resumen</button><span class="e"></span><button id="cvNL">＋ Nueva lista</button></div><div class="cvLsB" id="cvLsB"></div></div>
-  <div class="cvTbW"><div class="cvF"><input type="search" id="cvQ" placeholder="Buscar…">${["equipo", "jugadora", "categoria"].map(k => `<select data-f="${k}"></select>`).join("")}<span class="e"></span><button id="cvAdd" class="p">Guardar selección como lista</button><button id="cvPlay">▶ Reproducir todo</button></div><div class="cvJ" id="cvJ"></div><div class="cvTb" id="cvTb"></div></div></div></div>`);
+  <div class="cvTbW"><div class="cvF"><input type="search" id="cvQ" placeholder="Buscar…">${["equipo", "jugadora", "categoria"].map(k => `<select data-f="${k}"></select>`).join("")}<span class="e"></span><button id="cvAdd" class="p">Guardar selección como lista</button><button id="cvPlay">▶ Reproducir todo</button><button id="cvDl" title="Descarga los clips marcados (o todos los de la tabla)">⬇ Descargar</button></div><div class="cvJ" id="cvJ"></div><div class="cvTb" id="cvTb"></div></div></div></div>`);
   const $c = (id) => document.getElementById(id), V = $c("cvV");
   const enLista = () => { if (!listaAct) return todos; const l = listas.find(x => x.id === listaAct); return l ? l.items.map(id => todos.find(t => t.id === id)).filter(Boolean) : todos; };
   const vista = () => {
@@ -2594,6 +2594,19 @@ function centroVideo() {
   document.querySelectorAll("#capaCentro [data-sp]").forEach(b => b.onclick = () => { document.querySelectorAll("#capaCentro [data-sp]").forEach(x => x.classList.toggle("on", x === b)); V.playbackRate = Number(b.dataset.sp); });
   document.querySelectorAll("#capaCentro [data-j]").forEach(b => b.onclick = () => { V.currentTime = Math.max(0, Math.min(V.duration || 1e9, V.currentTime + Number(b.dataset.j))); });
   $c("cvPv").onclick = () => mover(-1); $c("cvNx").onclick = () => mover(1);
+  $c("cvDl").onclick = async (e) => {
+    const v = vista(), m = v.filter(x => sel.has(x.id)), L = m.length ? m : v; if (!L.length) return;
+    if (L.length > 3 && !confirm("Se van a descargar " + L.length + " vídeos, uno detrás de otro. Si el navegador pregunta, permite las descargas múltiples. ¿Seguir?")) return;
+    const b = e.currentTarget, t0 = b.textContent; b.disabled = true;
+    for (let i = 0; i < L.length; i++) {
+      b.textContent = "⬇ " + (i + 1) + "/" + L.length;
+      const x = L[i], ext = ((x.url || "").split("?")[0].match(/\.(\w{2,4})$/) || [, "mp4"])[1], base = [String(i + 1).padStart(2, "0"), x.m.jugadora, x.m.categoria, x.m.resultado].filter(Boolean).join("_").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9_-]+/g, "-");
+      try { const r = await fetch(x.url), bl = await r.blob(), u = URL.createObjectURL(bl), a = document.createElement("a"); a.href = u; a.download = base + "." + ext; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+      catch (_) { const a = document.createElement("a"); a.href = x.url; a.target = "_blank"; a.download = base + "." + ext; document.body.appendChild(a); a.click(); a.remove(); }
+      await new Promise(r => setTimeout(r, 700));
+    }
+    b.disabled = false; b.textContent = t0;
+  };
   $c("cvPlay").onclick = () => { const v = vista(); if (v.length) pon(v[0].id); };
   $c("cvQ").oninput = (e) => { F.q = e.target.value; pintaTabla(); };
   document.querySelectorAll("#capaCentro [data-f]").forEach(s => s.onchange = () => { F[s.dataset.f] = s.value; pintaTabla(); });
