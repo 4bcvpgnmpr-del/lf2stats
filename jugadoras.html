@@ -2137,7 +2137,11 @@ async function cargarClips() {
   try { localStorage.setItem(kv, JSON.stringify(lista.map(c => c.id))); } catch (_) {}
   caja.innerHTML = lista.map(c => `<div class="clip">${marcoVideo(c.url, c.segundos)}
     <div class="texto"><b>${esc(c.titulo || "Video")}</b>${nuevo(c) ? ' <span style="background:#f26a21;color:#fff;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:6px">NUEVO</span>' : ""}
-    ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}</div></div>`).join("");
+    ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}
+    ${c.comentario ? `<p style="background:rgba(242,106,33,.12);border-radius:8px;padding:6px 10px;font-size:13px;">💬 Tu comentario: ${esc(c.comentario)}</p>` : ""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="boton fina" data-cv="${esc(c.id)}" ${c.visto_at ? "disabled" : ""}>${c.visto_at ? "✔ Visto" : "Marcar como visto"}</button><button class="boton fina" data-cc="${esc(c.id)}">💬 ${c.comentario ? "Cambiar comentario" : "Comentar"}</button></div></div></div>`).join("");
+  caja.querySelectorAll("[data-cv]").forEach(b => b.onclick = async () => { b.disabled = true; const { error: er } = await sb.rpc("clip_feedback", { p_clip: String(b.dataset.cv), p_visto: true }); if (er) { b.disabled = false; alert("No se pudo guardar: " + er.message); } else b.textContent = "✔ Visto"; });
+  caja.querySelectorAll("[data-cc]").forEach(b => b.onclick = async () => { const t = prompt("Escribe tu comentario para el entrenador:"); if (!t || !t.trim()) return; const { error: er } = await sb.rpc("clip_feedback", { p_clip: String(b.dataset.cc), p_visto: true, p_comentario: t.trim() }); if (er) alert("No se pudo guardar: " + er.message); else cargarClips(); });
 }
 
 /* ============================================================

@@ -1598,6 +1598,8 @@ async function cargarHistorial() {
     <div class="cab"><b>${esc(c.titulo || "Video")}</b><span>${esc(fechaCorta(c.fecha))}</span></div>
     <p style="font-size:13px;color:var(--ink-soft);word-break:break-all;">${esc(c.url)}</p>
     ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}
+    <p style="font-size:13px;margin:4px 0;color:${c.visto_at ? "#2e9e5b" : "var(--ink-soft)"};">${c.visto_at ? "✔ Visto " + esc(fechaCorta(c.visto_at)) : "Sin ver todavía"}</p>
+    ${c.comentario ? `<p style="background:rgba(224,96,42,.1);border-radius:8px;padding:7px 10px;font-size:13.5px;">💬 ${esc(c.comentario)}</p>` : ""}
     <div class="acciones"><button class="boton fina borrar" data-borrar="clips" data-id="${esc(c.id)}">Borrar</button></div>
   </div>`);
 
