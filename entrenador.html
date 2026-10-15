@@ -2441,7 +2441,7 @@ function centroVideo() {
   if (!todos.length) { aviso("Aún no hay vídeos"); return; }
   let listas = leerListas(), listaAct = "", sel = new Set(), actual = "", orden = { k: "fecha", d: -1 };
   const F = { q: "", equipo: "", jugadora: "", categoria: "", partido: "", resultado: "" };
-  let panel = "listas", OPP = null, soloVid = true;
+  let panel = "listas", OPP = null, soloVid = true, maxP = 60, eqsSel = new Set((() => { try { return JSON.parse(localStorage.getItem("cv_eqs") || "[]"); } catch (e) { return []; } })());
   const mmss = (s) => s == null || !isFinite(s) ? "—" : Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
   const fch = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }); };
   const txt = (x) => x.m.nota || x.nombre;
@@ -2468,7 +2468,7 @@ function centroVideo() {
 .cvF button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700}.cvF button.p{background:#e0602a;border-color:#e0602a;color:#fff}.cvF .e{flex:1}
 .cvJ{display:flex;flex-direction:column;gap:6px;overflow-x:auto;padding:0 10px 8px;flex:none}.cvJ>div{display:flex;gap:6px}.cvJ button{flex:none;border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:99px;padding:5px 11px;font-size:12.5px;font-weight:700}.cvJ button.on{background:#e0602a;border-color:#e0602a}.cvJ i{font-style:normal;opacity:.7;margin-left:4px}.cvTb{overflow:auto;flex:1}.cvTb th{cursor:pointer}.cvTb input[type=checkbox]{width:16px;height:16px;accent-color:#e0602a}
 .cvPop{position:fixed;z-index:10060;background:#18212b;border:1px solid #2c3744;border-radius:10px;padding:6px;min-width:200px;box-shadow:0 12px 30px #000a}.cvPop button{display:block;width:100%;text-align:left;border:0;background:none;color:#e6ebf1;padding:8px 10px;border-radius:6px;font-size:13px}.cvPop button:hover{background:#e0602a}
-.cvPh{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #222d3a;position:sticky;top:0;background:#131b24;z-index:1}.cvPh .e{flex:1}.cvPh button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:99px;padding:5px 11px;font-size:12px;font-weight:700}.cvPh button.on{background:#e0602a;border-color:#e0602a}
+.cvPh{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #222d3a;position:sticky;top:0;background:#131b24;z-index:1}.cvPh .e{flex:1}.cvPh button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:99px;padding:5px 11px;font-size:12px;font-weight:700}.cvPh button.on{background:#e0602a;border-color:#e0602a}.cvPh select{background:#18212b;color:#e6ebf1;border:1px solid #2c3744;border-radius:99px;padding:5px 10px;font-size:12px;max-width:220px;width:auto!important;margin:0!important}
 .cvPt{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #1e2834;cursor:pointer}.cvPt:hover{background:#ffffff0a}.cvPt.on{background:#e0602a22;box-shadow:inset 3px 0 0 #e0602a}
 .cvPf{font-size:12px;color:#8b95a3;line-height:1.5}.cvPf b{display:block;color:#cfd6de}
 .cvPe>div{display:flex;align-items:center;gap:8px;padding:2px 0;font-size:13.5px;color:#9aa4b2}.cvPe>div.w{color:#fff;font-weight:800}.cvPe>div span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cvPe em{font-style:normal;font:800 15px Inter;min-width:28px;text-align:right}
@@ -2497,15 +2497,23 @@ function centroVideo() {
     if (!CAL.escudos) await cargarEscudos();
     const cnt = {}; todos.forEach(x => { const k = x.m.partido || "-"; cnt[k] = (cnt[k] || 0) + 1; });
     const miEq = calMiEq();
-    let lst = soloVid ? OPP.filter(p => cnt[p.k]) : OPP.filter(p => F.equipo ? (calMismo(p.local, F.equipo) || calMismo(p.visitante, F.equipo)) : (!miEq || calMismo(p.local, miEq) || calMismo(p.visitante, miEq))).slice(0, 80);
-    if (F.equipo && soloVid) lst = lst.filter(p => calMismo(p.local, F.equipo) || calMismo(p.visitante, F.equipo));
+    const sinTil = (x) => calNorm(x), todosEq = equiposOPP(OPP), eqsAct = [...eqsSel];
+    const juega = (p, lista) => lista.some(t => calMismo(p.local, t) || calMismo(p.visitante, t));
+    let lst = OPP.filter(p => !soloVid || cnt[p.k]);
+    if (eqsAct.length) lst = lst.filter(p => juega(p, eqsAct)); else if (F.equipo && soloVid) lst = lst.filter(p => juega(p, [F.equipo]));
+    const totalP = lst.length; lst = lst.slice(0, maxP);
     const sin = cnt["-"] || 0, esc2 = (t) => { const u = (CAL.escudos || {})[calNorm(t)]; return u ? `<img src="${esc(u)}" alt="" loading="lazy">` : `<i class="cvEsc">${esc(String(t).slice(0, 2).toUpperCase())}</i>`; };
     const fila = (p) => { const n = cnt[p.k] || 0, ok = p.jugado && p.pl !== "", gl = ok && Number(p.pl) > Number(p.pv), gv = ok && Number(p.pv) > Number(p.pl);
       return `<div class="cvPt ${F.partido === p.k ? "on" : ""}" data-p="${esc(p.k)}"><div class="cvPf"><b>${p.fecha ? p.fecha.split("-").reverse().join("/") : ""}</b>${p.jornada ? "<span>Jornada " + esc(p.jornada) + "</span>" : ""}</div>
         <div class="cvPe"><div class="${gl ? "w" : ""}">${esc2(p.local)}<span>${esc(p.local)}</span><em>${ok ? esc(p.pl) : ""}</em></div><div class="${gv ? "w" : ""}">${esc2(p.visitante)}<span>${esc(p.visitante)}</span><em>${ok ? esc(p.pv) : ""}</em></div></div>
         <div class="cvPc">${n ? `<button data-pv="${esc(p.k)}">▶ ${n} clip${n > 1 ? "s" : ""}</button>` : `<span class="no">Sin vídeo</span>`}</div></div>`; };
     $c("cvLsB").innerHTML = `<div class="cvPh"><button class="${soloVid ? "on" : ""}" data-sv="1">Con vídeo</button><button class="${soloVid ? "" : "on"}" data-sv="0">Todos los partidos</button><span class="e"></span><button data-p="" class="${F.partido === "" ? "on" : ""}">Ver todos los clips (${todos.length})</button>${sin ? `<button data-p="-" class="${F.partido === "-" ? "on" : ""}">Sin partido (${sin})</button>` : ""}</div>
-      ${lst.length ? lst.map(fila).join("") : '<p style="padding:14px;color:#8b95a3;font-size:13px">' + (soloVid ? "Ningún vídeo tiene partido todavía. Marca clips en la tabla y usa «Asignar a un partido»." : "No hay partidos.") + "</p>"}`;
+      <div class="cvPh"><select id="cvEqAdd"><option value="">＋ Elegir equipos…</option>${miEq ? `<option value="__mi">★ Mi equipo (${esc(miEq)})</option>` : ""}${todosEq.filter(t => !eqsAct.includes(t)).map(t => `<option>${esc(t)}</option>`).join("")}</select>${eqsAct.map(t => `<button class="on" data-eqx="${esc(t)}">${esc(t)} ✕</button>`).join("")}${eqsAct.length ? '<button data-eqx="*">Quitar todos</button>' : '<span style="font-size:12px;color:#8b95a3;align-self:center">Sin elegir: se ven los partidos de todos los equipos</span>'}</div>
+      ${lst.length ? lst.map(fila).join("") + (totalP > lst.length ? `<div style="padding:10px;text-align:center"><button class="cvMas" style="border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:7px 14px;font-weight:700">Ver más (${totalP - lst.length})</button></div>` : "") : '<p style="padding:14px;color:#8b95a3;font-size:13px">' + (soloVid ? "Ningún vídeo tiene partido todavía. Marca clips en la tabla y usa «Asignar a un partido»." : "No hay partidos.") + "</p>"}`;
+    const guardaEq = () => { try { localStorage.setItem("cv_eqs", JSON.stringify([...eqsSel])); } catch (e) { /* nada */ } maxP = 60; pintaPartidos(); };
+    $c("cvEqAdd").onchange = (e) => { const v = e.target.value; if (!v) return; if (v === "__mi") eqsSel.add(OPP.map(p => [p.local, p.visitante]).flat().find(t => calMismo(t, miEq)) || miEq); else eqsSel.add(v); guardaEq(); };
+    $c("cvLsB").querySelectorAll("[data-eqx]").forEach(b => b.onclick = () => { if (b.dataset.eqx === "*") eqsSel.clear(); else eqsSel.delete(b.dataset.eqx); guardaEq(); });
+    const mas = $c("cvLsB").querySelector(".cvMas"); if (mas) mas.onclick = () => { maxP += 60; pintaPartidos(); };
     $c("cvLsB").querySelectorAll("[data-sv]").forEach(b => b.onclick = () => { soloVid = b.dataset.sv === "1"; pintaPartidos(); });
     $c("cvLsB").querySelectorAll(".cvPh [data-p]").forEach(b => b.onclick = () => { F.partido = b.dataset.p; pintaPartidos(); pintaFiltros(); pintaTabla(); });
     $c("cvLsB").querySelectorAll(".cvPt").forEach(r => r.onclick = (e) => { const k = r.dataset.p; if (!cnt[k]) return; F.partido = k; pintaPartidos(); pintaFiltros(); pintaTabla(); if (e.target.closest("[data-pv]")) { const v = vista(); if (v.length) pon(v[0].id); } });
