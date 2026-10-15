@@ -753,7 +753,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
     <div id="ptCarp"></div>
     <div id="ptLista"></div>
     <div class="pt-escena">
-      <h2 id="ptTitulo"></h2>
+      <h2 id="ptTitulo"></h2><div id="ptHoy" style="font-size:13px;opacity:.85;min-height:18px;"></div>
       <div id="ptOpc"></div>
       <div class="pt-zona"><div class="pt-zi" id="ptZi"><div class="pt-caja" id="ptCaja"><div id="ptPista"></div><canvas id="ptDib"></canvas></div></div></div>
       <div id="ptLey"></div>
@@ -762,6 +762,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
         <button id="ptFPrev">◀</button><span class="pt-fase" id="ptFase"></span><button id="ptFNext">▶</button>
         <button id="ptJNext" title="Jugada siguiente">⏭</button>
         <button id="ptPlay" style="min-width:110px;">▶ Animar</button>
+        <span class="sep"></span><button id="ptOk" title="Hemos jugado esta jugada y ha funcionado" style="background:#2b8a3e;">✓ Funcionó</button><button id="ptKo" title="Hemos jugado esta jugada y no ha funcionado" style="background:#c92a2a;">✗ No funcionó</button>
         <button id="ptZoom" title="Agrandir la pista (arrastra para moverte)">🔍 x1</button>
         <span class="sep"></span>
         <button id="ptLapiz">✏️ Dibujar</button>
@@ -2367,7 +2368,7 @@ function iniciarPartido() {
   const abrir = (id) => {
     const x = E.lista.find(y => y.id === id); if (!x) return;
     document.body.classList.remove("pt-lista"); detener(); limpiarDibujo(); E.j = normalizar(clonar(x)); E.i = 0; E.op = 0;
-    $("ptTitulo").textContent = E.j.nombre || "Jugada";
+    $("ptTitulo").textContent = E.j.nombre || "Jugada"; if (E.alAbrir) E.alAbrir();
     const ops = E.j.opciones;
     $("ptOpc").innerHTML = ops && ops.length > 1 ? ops.map((o, k) => `<button data-k="${k}" class="${k === 0 ? "on" : ""}">${esc(o.nombre || "Opción " + (k + 1))}</button>`).join("") : "";
     $("ptOpc").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { detener(); limpiarDibujo(); E.op = Number(b.dataset.k); E.j.pasos = ops[E.op].pasos; E.i = 0; $("ptOpc").querySelectorAll("button").forEach(z => z.classList.toggle("on", z === b)); mostrar(); }));
@@ -2551,7 +2552,8 @@ function iniciarPartido() {
   /* ---- marcador, faltas y cronometro de tiempo muerto ---- */
   (() => {
     const CL = "scoutflow-marcador";
-    const M = Object.assign({ n: ["Nosotros", "Rivales"], p: [0, 0], f: [0, 0], per: 1, fj: {} }, (() => { try { return JSON.parse(localStorage.getItem(CL) || "{}"); } catch (e) { return {}; } })());
+    const M = Object.assign({ n: ["Nosotros", "Rivales"], p: [0, 0], f: [0, 0], per: 1, fj: {}, clk: { dur: 600, rest: 600 }, pista: [], mins: {}, jg: {}, jl: [] }, (() => { try { return JSON.parse(localStorage.getItem(CL) || "{}"); } catch (e) { return {}; } })());
+    M.clk = Object.assign({ dur: 600, rest: 600 }, M.clk || {}); M.clk.run = false; M.pista = M.pista || []; M.mins = M.mins || {}; M.jg = M.jg || {}; M.jl = M.jl || [];
     const guardarM = () => { try { localStorage.setItem(CL, JSON.stringify(M)); } catch (e) { /* nada */ } };
     const st = document.createElement("style"); st.textContent = `
       #ptPill{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9;min-height:42px !important;font-size:20px !important;font-variant-numeric:tabular-nums;background:#e8590c !important;}
@@ -2562,6 +2564,9 @@ function iniciarPartido() {
       #ptPanel .mp-f{margin-top:10px;font-size:14px;opacity:.9;display:flex;gap:8px;align-items:center;justify-content:center;} #ptPanel .mp-f b{font-size:22px;min-width:24px;display:inline-block;}
       #ptPanel .mp-pl{margin-top:12px;background:#223040;border-radius:14px;padding:10px;} #ptPanel .mp-pl h4{margin:0 0 8px;font-size:14px;opacity:.85;display:flex;justify-content:space-between;gap:8px;} #ptPanel .mp-pj{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
       #ptPanel .mp-j{display:flex;align-items:stretch;background:#17202a;border-radius:12px;overflow:hidden;border:2px solid transparent;} #ptPanel .mp-j.f4{border-color:#f08c00;} #ptPanel .mp-j.f5{border-color:#ff4d4d;background:#3a1d1d;} #ptPanel .mp-j .jb{flex:1;min-width:0;background:transparent;border-radius:0;display:flex;align-items:center;gap:8px;padding:0 8px;text-align:left;} #ptPanel .mp-j .jn{font-size:12px;opacity:.7;min-width:20px;font-weight:800;} #ptPanel .mp-j .jt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;} #ptPanel .mp-j .jc{font-size:26px;font-weight:900;min-width:22px;text-align:right;} #ptPanel .mp-j .jm{width:38px;border-radius:0;background:#2c3947;padding:0;font-size:18px;}
+      #ptPanel .mp-ck{margin-top:12px;background:#223040;border-radius:14px;padding:10px;text-align:center;} #ptPanel .mp-ct{font-size:64px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.05;} #ptPanel .mp-ct.run{color:#51cf66;} #ptPanel .mp-ct.cero{color:#ff4d4d;}
+      #ptPanel .mp-pi{margin-top:12px;background:#223040;border-radius:14px;padding:10px;} #ptPanel .mp-pi h4{margin:0 0 8px;font-size:14px;opacity:.85;display:flex;justify-content:space-between;gap:8px;} #ptPanel .mp-pc{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;} #ptPanel .mp-pc button{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:46px;background:#17202a;border:2px solid transparent;border-radius:12px;padding:0 10px;text-align:left;} #ptPanel .mp-pc button.on{border-color:#51cf66;background:#1f3a2a;} #ptPanel .mp-pc small{opacity:.75;font-variant-numeric:tabular-nums;}
+      #ptPanel .mp-jt{width:100%;border-collapse:collapse;font-size:14px;} #ptPanel .mp-jt th{text-align:left;opacity:.7;font-weight:700;padding:4px 6px;} #ptPanel .mp-jt td{padding:6px;border-top:1px solid #ffffff18;} #ptPanel .mp-jt td.n{text-align:center;font-variant-numeric:tabular-nums;}
       #ptPanel .mp-per{display:flex;gap:6px;justify-content:center;margin:12px 0;} #ptPanel .mp-per button.on{background:#e8590c;}
       #ptPanel .mp-t{background:#223040;border-radius:14px;padding:10px;text-align:center;} #ptPanel .mp-r{font-size:72px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;} #ptPanel .mp-r.fin{color:#ff4d4d;animation:parp .5s infinite;} @keyframes parp{50%{opacity:.25}}
       #ptPanel .mp-pie{display:flex;gap:8px;justify-content:space-between;margin-top:12px;}`;
@@ -2570,6 +2575,9 @@ function iniciarPartido() {
     panel.innerHTML = `<div class="mp"><div class="mp-eq">${[0, 1].map(k => `<div class="mp-e"><input data-n="${k}" value="${esc(M.n[k])}"><div class="mp-n" id="mpN${k}">0</div><div class="mp-b"><button data-s="${k}:1">+1</button><button data-s="${k}:2">+2</button><button data-s="${k}:3">+3</button><button data-s="${k}:-1">−1</button></div><div class="mp-f">Faltas <button data-f="${k}:-1">−</button><b id="mpF${k}">0</b><button data-f="${k}:1">＋</button></div></div>`).join("")}</div>
       <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span><button id="mpEd" style="min-height:34px;padding:0 10px;">✏️ Editar</button></h4><div class="mp-pj" id="mpPj"></div></div>
       <div class="mp-per" id="mpPer">${[1, 2, 3, 4, 5].map(n => `<button data-p="${n}">${n === 5 ? "Prórroga" : "Cuarto " + n}</button>`).join("")}</div>
+      <div class="mp-ck"><div style="font-size:13px;opacity:.8;">Reloj del cuarto</div><div class="mp-ct" id="mpCk">10:00</div><div class="mp-b" style="margin-top:6px;"><button id="mpCkGo" style="background:#2b8a3e;">▶ Reloj</button><button data-ck="-1">−1s</button><button data-ck="1">+1s</button><button data-ck="-60">−1 min</button><button data-ck="60">+1 min</button><button id="mpCkRe">↺ Reiniciar cuarto</button><select id="mpCkD" style="min-height:42px;border-radius:10px;background:#17202a;color:#fff;border:0;padding:0 8px;"><option value="600">Cuartos de 10 min</option><option value="480">8 min</option><option value="420">7 min</option><option value="300">5 min</option></select></div></div>
+      <div class="mp-pi"><h4><span>En pista <span style="opacity:.6;">(toca para entrar/salir · minutos en tiempo real)</span></span><span id="mpPiN">0/5</span></h4><div class="mp-pc" id="mpPc"></div></div>
+      <div class="mp-pi"><h4><span>Jugadas del partido <span style="opacity:.6;">(las marcas con ✓ / ✗ en la pizarra)</span></span><button id="mpJgU" style="min-height:34px;padding:0 10px;">↩︎ Deshacer</button></h4><div id="mpJg"></div></div>
       <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpVes" style="background:#2b8a3e;">🚪 Vestuario 15:00</button><button id="mpMan" style="background:#2b8a3e;">⏱ Manual…</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
       <div class="mp-pie"><button id="mpCero">Reiniciar partido</button><button id="mpEs" style="background:#2b8a3e;">📊 Estadísticas</button><button id="mpGu" style="background:#1971c2;">💾 Guardar partido</button><button id="mpX" style="background:#e8590c;">Cerrar</button></div></div>`;
     $("partido").appendChild(panel);
@@ -2590,8 +2598,60 @@ function iniciarPartido() {
     const pintarM = () => {
       [0, 1].forEach(k => { $("mpN" + k).textContent = M.p[k]; $("mpF" + k).textContent = M.f[k]; $("mpF" + k).style.color = M.f[k] >= 5 ? "#ff4d4d" : ""; });
       panel.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", Number(b.dataset.p) === M.per));
-      { const tx = "⏱ " + M.p[0] + "–" + M.p[1] + (M.f[0] || M.f[1] ? " · F " + M.f[0] + "/" + M.f[1] : ""); $("ptMarc").textContent = tx; $("ptMarcF").textContent = "⏱\n" + M.p[0] + "–" + M.p[1]; } if (typeof pintarPl === "function") pintarPl();
+      { const tx = "⏱ " + M.p[0] + "–" + M.p[1] + (M.f[0] || M.f[1] ? " · F " + M.f[0] + "/" + M.f[1] : "") + (M.clk.run || M.clk.rest < M.clk.dur ? " · " + ckFmt(M.clk.rest) : ""); $("ptMarc").textContent = tx; $("ptMarcF").textContent = "⏱\n" + M.p[0] + "–" + M.p[1]; } if (typeof pintarPl === "function") pintarPl();
     };
+    const ckFmt = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+    const minTxt = (s) => { s = Math.floor(s || 0); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+    const CK = { tick: null, t0: 0, g: 0 };
+    const pintarCk = () => {
+      const c = M.clk, el = $("mpCk"); if (!el) return;
+      el.textContent = ckFmt(c.rest); el.classList.toggle("run", !!c.run); el.classList.toggle("cero", c.rest <= 0);
+      $("mpCkGo").textContent = c.run ? "⏸ Parar" : "▶ Reloj"; $("mpCkD").value = String(c.dur);
+      const tx = "⏱ " + M.p[0] + "–" + M.p[1] + (c.run || c.rest < c.dur ? " · " + ckFmt(c.rest) : ""); $("ptMarc").textContent = tx; $("ptMarcF").textContent = "⏱\n" + M.p[0] + "–" + M.p[1] + (c.run ? "\n" + ckFmt(c.rest) : "");
+    };
+    const pintarPista = () => {
+      const box = $("mpPc"); if (!box) return; $("mpPiN").textContent = (M.pista.length) + "/5";
+      $("mpPiN").style.color = M.pista.length > 5 ? "#ff6b6b" : "";
+      box.innerHTML = PLT.length ? PLT.map(j => `<button data-pi="${esc(j.id)}" class="${M.pista.includes(j.id) ? "on" : ""}"><span><b>${j.num !== "" && j.num != null ? esc(String(j.num)) + " " : ""}</b>${esc(j.nombre)}</span><small data-pm="${esc(j.id)}">${minTxt(M.mins[j.id])}</small></button>`).join("") : '<div style="opacity:.65;font-size:14px;grid-column:1/-1;">Aparecerá tu plantilla aquí.</div>';
+      box.querySelectorAll("[data-pi]").forEach(b => b.onclick = () => { const id = b.dataset.pi, i = M.pista.indexOf(id); if (i >= 0) M.pista.splice(i, 1); else M.pista.push(id); guardarM(); pintarPista(); });
+    };
+    const ckParar = () => { if (CK.tick) clearInterval(CK.tick); CK.tick = null; M.clk.run = false; guardarM(); pintarCk(); };
+    const ckBucle = () => {
+      const ahora = performance.now(), dt = Math.min(2, (ahora - CK.t0) / 1000); CK.t0 = ahora;
+      const d = Math.min(dt, M.clk.rest); M.clk.rest = Math.max(0, M.clk.rest - dt);
+      M.pista.forEach(id => { M.mins[id] = (M.mins[id] || 0) + d; });
+      document.querySelectorAll("#mpPc [data-pm]").forEach(e => { e.textContent = minTxt(M.mins[e.dataset.pm]); });
+      if (++CK.g % 20 === 0) guardarM();
+      if (M.clk.rest <= 0) { ckParar(); pita(); aviso("⏱ Fin del cuarto"); }
+      pintarCk();
+    };
+    const ckIr = () => { if (M.clk.run) { ckParar(); return; } if (M.clk.rest <= 0) { aviso("El cuarto ha terminado: pulsa «Reiniciar cuarto» o cambia de cuarto"); return; } M.clk.run = true; CK.t0 = performance.now(); CK.tick = setInterval(ckBucle, 250); pintarCk(); };
+    panel.querySelector("#mpCkGo").onclick = ckIr;
+    panel.querySelectorAll("[data-ck]").forEach(b => b.onclick = () => { M.clk.rest = Math.max(0, Math.min(M.clk.dur * 2, M.clk.rest + Number(b.dataset.ck))); guardarM(); pintarCk(); });
+    panel.querySelector("#mpCkRe").onclick = () => { ckParar(); M.clk.rest = M.clk.dur; guardarM(); pintarCk(); };
+    panel.querySelector("#mpCkD").onchange = (e) => { M.clk.dur = Number(e.target.value); if (!M.clk.run) M.clk.rest = M.clk.dur; guardarM(); pintarCk(); };
+    panel.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", () => { ckParar(); M.clk.rest = M.clk.dur; guardarM(); pintarCk(); }));
+    document.addEventListener("visibilitychange", () => { if (M.clk.run) CK.t0 = performance.now() - 0; });
+    /* ---- jugadas que hemos jugado en el partido y cuántas funcionaron ---- */
+    const pintarHoy = () => {
+      const el = $("ptHoy"); if (!el) return; const j = E.j, g = j && M.jg[j.id];
+      el.textContent = g ? "Hoy: " + g.e + (g.e === 1 ? " vez" : " veces") + " · " + g.ok + " ✓ · " + Math.round(100 * g.ok / g.e) + "%" : "";
+    };
+    const pintarJg = () => {
+      const box = $("mpJg"); if (!box) return; const l = Object.entries(M.jg).sort((a, b) => b[1].e - a[1].e);
+      let e = 0, ok = 0; l.forEach(([, g]) => { e += g.e; ok += g.ok; });
+      box.innerHTML = l.length ? `<table class="mp-jt"><thead><tr><th>Jugada</th><th style="text-align:center">Veces</th><th style="text-align:center">✓</th><th style="text-align:center">%</th></tr></thead><tbody>${l.map(([, g]) => `<tr><td>${esc(g.n)}</td><td class="n">${g.e}</td><td class="n">${g.ok}</td><td class="n">${Math.round(100 * g.ok / g.e)}%</td></tr>`).join("")}<tr><td><b>Total</b></td><td class="n"><b>${e}</b></td><td class="n"><b>${ok}</b></td><td class="n"><b>${Math.round(100 * ok / e)}%</b></td></tr></tbody></table>` : '<div style="opacity:.65;font-size:14px;">Aún no has marcado ninguna jugada. En la pizarra pulsa «✓ Funcionó» o «✗ No funcionó» después de jugarla.</div>';
+    };
+    const anotaJg = (okv) => {
+      const j = E.j; if (!j) { aviso("Abre primero una jugada"); return; }
+      const g = M.jg[j.id] = M.jg[j.id] || { n: j.nombre || "Jugada", e: 0, ok: 0 };
+      g.e++; if (okv) g.ok++; M.jl.push({ id: j.id, ok: okv ? 1 : 0 }); guardarM(); pintarHoy(); pintarJg();
+      try { navigator.vibrate && navigator.vibrate(okv ? 40 : [40, 40, 40]); } catch (e) { /* nada */ }
+      aviso((okv ? "✓ " : "✗ ") + (j.nombre || "Jugada") + " · " + g.e + (g.e === 1 ? " vez" : " veces") + ", " + g.ok + " ✓");
+    };
+    const deshacerJg = () => { const u = M.jl.pop(); if (!u) { aviso("No hay nada que deshacer"); return; } const g = M.jg[u.id]; if (g) { g.e = Math.max(0, g.e - 1); g.ok = Math.max(0, g.ok - u.ok); if (!g.e) delete M.jg[u.id]; } guardarM(); pintarHoy(); pintarJg(); };
+    $("ptOk").onclick = () => anotaJg(true); $("ptKo").onclick = () => anotaJg(false); $("mpJgU").onclick = deshacerJg;
+    E.alAbrir = pintarHoy; pintarJg();
     let PLT = [], RAW = [];
     const LS_ED = "scoutflow-plantilla-edit";
     const leerEd = () => { try { const o = JSON.parse(localStorage.getItem(LS_ED) || "{}"); return { ov: o.ov || {}, extra: o.extra || [] }; } catch (e) { return { ov: {}, extra: [] }; } };
@@ -2599,6 +2659,7 @@ function iniciarPartido() {
     const aplicaEd = (l) => { const ed = leerEd(); return l.filter(j => !(ed.ov[j.id] && ed.ov[j.id].del)).map(j => Object.assign({}, j, ed.ov[j.id] || {})).concat(ed.extra); };
     const setPlt = (l) => { RAW = l || []; PLT = aplicaEd(RAW); pintarPl(); };
     const pintarPl = () => {
+      try { pintarPista(); } catch (e) { /* aún no */ }
       const box = $("mpPj"); if (!box) return;
       if (!PLT.length) { box.innerHTML = '<div style="opacity:.65;font-size:14px;grid-column:1/-1;">Elige «Mi equipo» en la app de estadísticas (o añade tu plantilla en «Quintetos y equipos») y aparecerá aquí.</div>'; return; }
       box.innerHTML = PLT.map(j => { const n = (M.fj || {})[j.id] || 0; return `<div class="mp-j ${n >= 5 ? "f5" : n === 4 ? "f4" : ""}"><button class="jb" data-j="${esc(j.id)}"><span class="jn">${j.num !== "" && j.num != null ? esc(String(j.num)) : ""}</span><span class="jt">${esc(j.nombre)}</span><span class="jc" style="color:${n >= 5 ? "#ff4d4d" : n === 4 ? "#f08c00" : "#fff"}">${n}</span></button><button class="jm" data-jm="${esc(j.id)}" title="Quitar una falta">−</button></div>`; }).join("");
@@ -2787,14 +2848,15 @@ function iniciarPartido() {
     $("mpMan").onclick = () => { const v = prompt("Tiempo en minutos (ej. 10, o 2:30 para 2 min 30 s):", "10"); if (v == null) return; const m = String(v).trim().match(/^(\d+)(?:[:.,](\d{1,2}))?$/); if (!m) { aviso("Tiempo no válido"); return; } const sec = v.includes(":") ? Number(m[1]) * 60 + Number(m[2] || 0) : Number(m[1]) * 60 + (m[2] ? Math.round(Number("0." + m[2]) * 60) : 0); if (sec > 0) iniciarT(sec); };
 
     /* ---- guardar el partido en el libro ---- */
-    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; UND.length = 0; guardarM(); pintarM(); };
+    const reiniciaTodo = () => { ckParar(); M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; M.mins = {}; M.pista = []; M.jg = {}; M.jl = []; M.clk.rest = M.clk.dur; UND.length = 0; guardarM(); pintarM(); pintarCk(); pintarPista(); pintarJg(); pintarHoy(); };
     $("mpGu").onclick = async () => {
       const act = (k) => { const o = M.es[k] || {}, h1 = Object.assign(cero(), o.h1), h2 = Object.assign(cero(), o.h2); return { h1, h2, hay: Object.values(h1).concat(Object.values(h2)).some(x => x > 0) }; };
-      const ids = new Set(PLT.map(j => j.id).concat(Object.keys(M.es).filter(k => k.indexOf("rv") !== 0)).concat(Object.keys(M.fj || {})));
-      const jug = [...ids].map(k => { const j = PLT.find(x => x.id === k), a = act(k), f = (M.fj || {})[k] || 0; return a.hay || f ? { id: k, nombre: j ? j.nombre : k, num: j ? j.num : "", f, h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
+      const ids = new Set(PLT.map(j => j.id).concat(Object.keys(M.es).filter(k => k.indexOf("rv") !== 0)).concat(Object.keys(M.fj || {})).concat(Object.keys(M.mins || {})));
+      const jug = [...ids].map(k => { const j = PLT.find(x => x.id === k), a = act(k), f = (M.fj || {})[k] || 0, mi = Math.round(((M.mins || {})[k] || 0) / 6) / 10; return a.hay || f || mi ? { id: k, nombre: j ? j.nombre : k, num: j ? j.num : "", f, min: mi, h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
       const riv = Object.keys(M.es).filter(k => k.indexOf("rv") === 0).map(k => { const a = act(k); return a.hay ? { k, nombre: k === "rv" ? "Equipo" : "#" + k.slice(2), h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
-      if (!jug.length && !riv.length && !M.p[0] && !M.p[1]) { aviso("No hay nada que guardar todavía"); return; }
-      const rec = { id: "pt" + Date.now().toString(36), fecha: new Date().toISOString(), n: M.n.slice(), p: M.p.slice(), per: M.per, jug, riv };
+      if (!jug.length && !riv.length && !M.p[0] && !M.p[1] && !Object.keys(M.jg).length) { aviso("No hay nada que guardar todavía"); return; }
+      const jgs = Object.entries(M.jg).map(([id, g]) => ({ id, nombre: g.n, veces: g.e, ok: g.ok })).sort((a, b) => b.veces - a.veces);
+      const rec = { id: "pt" + Date.now().toString(36), fecha: new Date().toISOString(), n: M.n.slice(), p: M.p.slice(), per: M.per, jug, riv, jgs };
       let lib = []; try { lib = JSON.parse(localStorage.getItem("scoutflow-libro") || "[]"); } catch (e) { lib = []; }
       lib.unshift(rec); try { localStorage.setItem("scoutflow-libro", JSON.stringify(lib.slice(0, 60))); } catch (e) { /* nada */ }
       let nubeOk = false; if (modoNube) { try { const r = await nube.from("archivos").upsert({ id: rec.id, nombre: JSON.stringify(rec), tipo: "partido", ruta: "partido" }); nubeOk = !r.error; } catch (e) { /* sin red o sin permiso */ } }
@@ -2805,7 +2867,7 @@ function iniciarPartido() {
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
     panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
-    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; guardarM(); pintarM(); };
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; ckParar(); M.mins = {}; M.pista = []; M.jg = {}; M.jl = []; M.clk.rest = M.clk.dur; guardarM(); pintarM(); pintarCk(); pintarPista(); pintarJg(); pintarHoy(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = $("ptMarcF").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; };

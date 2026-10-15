@@ -2125,17 +2125,28 @@ function lbTabla(titulo, filas, v, conFaltas) {
   const tot = LB0(); let fT = 0;
   const f = filas.map(j => { const o = lbSuma(j, v); Object.keys(tot).forEach(k => tot[k] += o[k]); fT += j.f || 0; return { j, o }; });
   const pts = (o) => o.t2m * 2 + o.t3m * 3 + o.tlm, tir = (m, a) => m + "/" + a;
-  const fila = (n, o, fa, cls) => `<tr class="${cls || ""}"><td>${n}</td><td><b>${pts(o)}</b></td><td>${o.reb}</td><td>${o.per}</td><td>${tir(o.t2m, o.t2a)}</td><td>${tir(o.t3m, o.t3a)}</td><td>${tir(o.tlm, o.tla)}</td>${conFaltas ? `<td>${fa}</td>` : ""}</tr>`;
-  return `<table class="pdf-res"><thead><tr><th>${titulo}</th><th>PTS</th><th>REB</th><th>PER</th><th>2P</th><th>3P</th><th>TL</th>${conFaltas ? "<th>F</th>" : ""}</tr></thead><tbody>${f.map(x => fila((x.j.num !== "" && x.j.num != null ? esc(String(x.j.num)) + " " : "") + esc(x.j.nombre), x.o, x.j.f || 0)).join("")}${fila("<b>Total</b>", tot, fT, "tot")}</tbody></table>`;
+  const hayMin = conFaltas && filas.some(j => j.min), mmTxt = (m) => { if (!m) return "–"; const s0 = Math.round(m * 60); return Math.floor(s0 / 60) + ":" + String(s0 % 60).padStart(2, "0"); };
+  const fila = (n, o, fa, cls, mi) => `<tr class="${cls || ""}"><td>${n}</td><td><b>${pts(o)}</b></td><td>${o.reb}</td><td>${o.per}</td><td>${tir(o.t2m, o.t2a)}</td><td>${tir(o.t3m, o.t3a)}</td><td>${tir(o.tlm, o.tla)}</td>${conFaltas ? `<td>${fa}</td>` : ""}${hayMin ? `<td>${cls === "tot" ? "" : mmTxt(mi)}</td>` : ""}</tr>`;
+  return `<table class="pdf-res"><thead><tr><th>${titulo}</th><th>PTS</th><th>REB</th><th>PER</th><th>2P</th><th>3P</th><th>TL</th>${conFaltas ? "<th>F</th>" : ""}${hayMin ? "<th>MIN</th>" : ""}</tr></thead><tbody>${f.map(x => fila((x.j.num !== "" && x.j.num != null ? esc(String(x.j.num)) + " " : "") + esc(x.j.nombre), x.o, x.j.f || 0, "", x.j.min)).join("")}${fila("<b>Total</b>", tot, fT, "tot")}</tbody></table>`;
+}
+function jgTabla(l, titulo) {
+  if (!l || !l.length) return "";
+  let e = 0, ok = 0; l.forEach(g => { e += g.veces; ok += g.ok; });
+  return `<h3 style="margin:14px 0 4px;">${titulo}</h3><table class="pdf-res"><thead><tr><th>Jugada</th><th>Veces</th><th>✓ Efectivas</th><th>% efectividad</th></tr></thead><tbody>${l.map(g => `<tr><td>${esc(g.nombre)}</td><td>${g.veces}</td><td>${g.ok}</td><td><b>${Math.round(100 * g.ok / g.veces)}%</b></td></tr>`).join("")}<tr class="tot"><td><b>Total</b></td><td>${e}</td><td>${ok}</td><td><b>${e ? Math.round(100 * ok / e) : 0}%</b></td></tr></tbody></table>`;
+}
+function jgAcumulado(L) {
+  const m = {}; L.forEach(r => (r.jgs || []).forEach(g => { const o = m[g.id] = m[g.id] || { id: g.id, nombre: g.nombre, veces: 0, ok: 0 }; o.veces += g.veces; o.ok += g.ok; }));
+  return Object.values(m).sort((a, b) => b.veces - a.veces);
 }
 function libroHtml(r) {
   const vs = [["h1", "1ª mitad"], ["h2", "2ª mitad"], ["tot", "Total"]];
-  return vs.map(([v, t]) => `<h3 style="margin:14px 0 4px;">${t}</h3>${lbTabla(esc(r.n[0] || "Nosotros"), r.jug || [], v, v === "tot")}${(r.riv || []).length ? lbTabla(esc(r.n[1] || "Rival"), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), v, false) : ""}`).join("");
+  return jgTabla(r.jgs, "Jugadas del partido") + vs.map(([v, t]) => `<h3 style="margin:14px 0 4px;">${t}</h3>${lbTabla(esc(r.n[0] || "Nosotros"), r.jug || [], v, v === "tot")}${(r.riv || []).length ? lbTabla(esc(r.n[1] || "Rival"), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), v, false) : ""}`).join("");
 }
 function pintarLibro(v) {
   const L = librosPartido();
   v.innerHTML = `<div class="cab"><h2>${SECCIONES.libro}</h2><span class="esp"></span><button class="naranja" id="lbMod">🏀 Modo partido</button></div>
     <p class="peq" style="margin:0 0 12px;">Se llena sola: en el modo partido, abre el marcador y pulsa «💾 Guardar partido».</p>
+    ${jgAcumulado(L).length ? `<div style="margin-bottom:16px;">${jgTabla(jgAcumulado(L), "Jugadas: veces jugadas y efectividad (todos los partidos)")}</div>` : ""}
     ${L.length ? `<div class="tabla">${L.map(r => `<div class="fila" style="grid-template-columns:1fr auto;padding:12px 14px;gap:10px;cursor:default;"><div><b style="font-size:17px;">${esc(r.n[0] || "Nosotros")} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1] || "Rival")}</b><div class="peq">${fechaTxt(r.fecha)}</div></div><div style="display:flex;gap:6px;"><button class="gris" data-ver="${esc(r.id)}">Ver</button><button class="gris" data-pdf="${esc(r.id)}">🖨 PDF</button>${puedeEscribir ? `<button class="gris" data-del="${esc(r.id)}">🗑</button>` : ""}</div></div>`).join("")}</div>` : '<div class="tabla"><div class="vacio">Todavía no hay partidos guardados.</div></div>'}`;
   $("lbMod").onclick = abrirPartido;
   const por = (id) => L.find(r => r.id === id);
