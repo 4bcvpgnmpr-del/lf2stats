@@ -1852,6 +1852,36 @@ function extrasJugadoraHtml(j) {
 
 /* Cada apartado se pinta segun lo que sea: tarjetas, tabla, lista o texto.
    Los informes antiguos no llevan "tipo": se tratan como texto. */
+/* miniaturas: una pizarra oculta dibuja el primer paso de cada jugada */
+const MK_DIAG = {}, MK_SVG = {};
+let marcoMiniJ = null, marcoMiniJListo = false;
+function miniJ(k, data) {
+  const d = data && (data.pasos ? data : data.diagrama);
+  if (d && d.pasos && d.pasos.length) MK_DIAG[k] = d;
+  return `<span class="mini-j" data-mk="${k}" style="flex:none;width:92px;height:64px;border-radius:8px;background:#fff;border:1px solid var(--wood-line);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:20px;">${MK_SVG[k] || "▶️"}</span>`;
+}
+function pintarMinis() {
+  document.querySelectorAll(".mini-j[data-mk]").forEach(el => { const s = MK_SVG[el.dataset.mk]; if (s && !el.querySelector("svg")) { el.innerHTML = s; const v = el.querySelector("svg"); if (v) { v.style.width = "100%"; v.style.height = "100%"; } } });
+}
+function pedirMinisPend() {
+  const falta = Object.keys(MK_DIAG).filter(k => !MK_SVG[k] && !MK_DIAG[k].__pedida);
+  if (!falta.length) { pintarMinis(); return; }
+  falta.forEach(k => { MK_DIAG[k].__pedida = 1; });
+  const enviar = () => { const lista = falta.map(k => { const d = Object.assign({}, MK_DIAG[k]); delete d.__pedida; return { id: k, jugada: d }; }); marcoMiniJ.contentWindow.postMessage({ miniaturas: lista }, "*"); };
+  if (!marcoMiniJ) {
+    marcoMiniJ = document.createElement("iframe"); marcoMiniJ.title = "miniaturas";
+    marcoMiniJ.style.cssText = "position:fixed;left:-9999px;top:0;width:900px;height:700px;border:0;visibility:hidden;";
+    marcoMiniJ.src = "pizarra.html?visor=1&v=" + VERSION; document.body.appendChild(marcoMiniJ);
+    window.addEventListener("message", (ev) => {
+      if (!ev.data) return;
+      if (ev.data.visorListo && marcoMiniJ && ev.source === marcoMiniJ.contentWindow) { marcoMiniJListo = true; (marcoMiniJ.__cola || []).splice(0).forEach(f => f()); }
+      if (ev.data.miniaturasListas) { Object.keys(ev.data.miniaturasListas).forEach(k => { if (ev.data.miniaturasListas[k]) MK_SVG[k] = ev.data.miniaturasListas[k]; }); pintarMinis(); }
+    });
+    marcoMiniJ.__cola = [];
+  }
+  if (marcoMiniJListo) enviar(); else marcoMiniJ.__cola.push(enviar);
+}
+try { let tmr = null; new MutationObserver(() => { clearTimeout(tmr); tmr = setTimeout(pedirMinisPend, 150); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { /* nada */ }
 const PB_REG = [];
 function seccionRivalHtml(sc) {
   if (!sc) return "";
@@ -1962,7 +1992,7 @@ function seccionRivalHtml(sc) {
   if (sc.tipo === "playbook" && (sc.capitulos || []).length) {
     return `<div class="seccion-rival">${tit}${sc.capitulos.map(c => `<div class="sr-tit" style="margin-top:12px;color:var(--ink);">${esc(c.titulo)}</div>
       ${(c.jugadas || []).map(p => { PB_REG.push(p); const n = (p.data && p.data.pasos) ? p.data.pasos.length : 0;
-        return `<button class="fila-pb" data-pb="${PB_REG.length - 1}" style="display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--wood-line);background:var(--white);border-radius:12px;padding:11px 12px;margin-bottom:8px;font:inherit;cursor:pointer;"><span style="font-size:20px;">▶️</span><span style="flex:1;min-width:0;"><b style="display:block;">${esc(p.nombre)}</b><small style="color:var(--ink-soft);">${n} ${n === 1 ? "paso" : "pasos"}</small></span></button>`; }).join("")}`).join("")}</div>`;
+        return `<button class="fila-pb" data-pb="${PB_REG.length - 1}" style="display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--wood-line);background:var(--white);border-radius:12px;padding:11px 12px;margin-bottom:8px;font:inherit;cursor:pointer;">${miniJ("pb" + (PB_REG.length - 1), p.data)}<span style="flex:1;min-width:0;"><b style="display:block;">${esc(p.nombre)}</b><small style="color:var(--ink-soft);">${n} ${n === 1 ? "paso" : "pasos"}</small></span></button>`; }).join("")}`).join("")}</div>`;
   }
 
   if (sc.tipo === "jugadas" && (sc.grupos || []).length) {
@@ -2029,7 +2059,7 @@ async function cargarJugadasEquipo() {
   caja.innerHTML = tipos.map(t => `<div class="bloque"><h3>${esc(t)}</h3>${JUGADAS_EQ.filter(j => (j.tipo || "Otra") === t).map(j => {
     const n = (j.data && j.data.pasos) ? j.data.pasos.length : 0;
     return `<button class="fila-jugada" data-id="${esc(j.id)}" style="display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--wood-line);background:var(--white);border-radius:12px;padding:11px 12px;margin-bottom:8px;font:inherit;cursor:pointer;">
-      <span style="font-size:20px;">▶️</span><span style="flex:1;min-width:0;"><b style="display:block;">${esc(j.nombre)}</b><small style="color:var(--ink-soft);">${n} ${n === 1 ? "paso" : "pasos"}</small></span></button>`;
+      ${miniJ("eq" + j.id, j.data)}<span style="flex:1;min-width:0;"><b style="display:block;">${esc(j.nombre)}</b><small style="color:var(--ink-soft);">${n} ${n === 1 ? "paso" : "pasos"}</small></span></button>`;
   }).join("")}</div>`).join("");
   caja.querySelectorAll(".fila-jugada").forEach(b => b.addEventListener("click", () => abrirJugadaEquipo(b.getAttribute("data-id"))));
 }
