@@ -6364,7 +6364,7 @@ function ivLineas(txt, max) {
   return String(txt || "").split(/\n|•|·|;/).map(s => s.replace(/^[\s\-–*\d.)]+/, "").trim()).filter(Boolean).slice(0, max);
 }
 /* ---- Estilos del informe visual ---- */
-const IV_ESTILOS = [["fut", "Futurista"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"], ["est", "Estadio"], ["rev", "Revista"], ["dos", "Dossier"], ["car", "Carreras"], ["cin", "Cine"]];
+const IV_ESTILOS = [["fut", "Futurista"], ["ful", "Completo"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"], ["est", "Estadio"], ["rev", "Revista"], ["dos", "Dossier"], ["car", "Carreras"], ["cin", "Cine"]];
 const IV_CSS3 = `
 [data-iv]{font-family:Inter,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 [data-iv] *{box-sizing:border-box}
@@ -6734,6 +6734,7 @@ function informeVisualHtml(nombre, estilo) {
       return { nombre: p.jugadora, pos: nt.posicion || "JUGADORA CLAVE", dorsal: p.dorsal || "", foto: p.foto || "", ini: p.jugadora.split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase(), PT: p.PT, RT: p.RT, AS: p.AS, nota: nt.texto ? String(nt.texto).slice(0, 110) : "" }; }),
     claves, resumen,
     mio: miN ? { nombre: miN, escudo: escudoUrlFor(miN), sigla: String(miN).split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase(), rec: parMi.length ? parMi.filter(x => x.gano).length + "-" + parMi.filter(x => !x.gano).length + " en liga" : "" } : null };
+  if (estilo === "ful") return ivCompleto(nombre, dat);
   if (estilo && estilo !== "fut") return ivRender(estilo, dat);
   return `<div class="iv" data-iv><div class="hero"><div class="bar"><span class="live">SCOUTING REPORT</span><span>${prox ? `<b>${escapeHtml(prox.jornada ? "JORNADA " + prox.jornada : "PRÓXIMO PARTIDO")}</b>` : ""}</span></div>
     <div class="ttl"><div class="hex"><i>${escudo ? `<img src="${escapeAttr(escudo)}" alt="" onerror="this.outerHTML='<b>${escapeAttr(sigla)}</b>'">` : `<b>${escapeHtml(sigla)}</b>`}</i></div>
@@ -6749,16 +6750,91 @@ function informeVisualHtml(nombre, estilo) {
     ${claves.length ? `<div class="sec"><h2>Claves del partido <em>// GAME PLAN</em></h2><div class="cl">${claves.map((c, i) => `<div class="c"><div class="n">${i + 1}</div><b>${escapeHtml(c)}</b></div>`).join("")}</div></div>` : ""}
     </div><div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(oficial.toUpperCase())}</span></div></div>`;
 }
+
+const IV_CSS5 = `
+.cin .xr{display:grid;grid-template-columns:150px 1fr 120px;gap:14px;align-items:center;margin-bottom:12px}.cin .xr .n{font:800 12px Inter;letter-spacing:.16em;text-transform:uppercase;color:#cfd6de}
+.cin .xt{position:relative;height:18px;background:#1b2128}.cin .xt i{position:absolute;inset:0 auto 0 0;background:#e0602a}.cin .xt i.up{background:#2bff9a}.cin .xt i.dn{background:#ff4d5e}.cin .xt u{position:absolute;top:-4px;bottom:-4px;width:3px;background:#fff;text-decoration:none}
+.cin .xv{font:900 italic 20px 'Inter Display',Inter;text-align:right}.cin .xv small{display:block;font:700 10px Inter;color:#8b95a3;letter-spacing:.12em;font-style:normal}
+.cin .xl{display:flex;gap:18px;flex-wrap:wrap;color:#8b95a3;font-size:11.5px;margin:2px 0 6px}.cin .xl i{display:inline-block;width:9px;height:9px;margin-right:6px}
+.cin .xa{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.cin .xa div{background:#14181c;border-top:3px solid #27e0ff;padding:10px 18px}.cin .xa b{display:block;font:900 italic 24px 'Inter Display',Inter}.cin .xa span{font-size:10px;letter-spacing:.18em;color:#8b95a3;font-weight:700}
+.cin .rs{display:grid;grid-template-columns:120px 40px 1fr 96px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff1c;font-size:14px}.cin .rs small{font-size:11px;letter-spacing:.12em;color:#8b95a3}.cin .rs b.m{font:900 italic 20px 'Inter Display',Inter;text-align:right}
+.cin .rs i{font-style:normal;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;border-radius:5px;background:#1f9d5c}.cin .rs i.L{background:#d64545}.cin .rs i.N{background:#2a3138;color:#8b95a3}
+.cin .fx{display:grid;grid-template-columns:170px 1fr;gap:4px 20px;background:#14181c;border-bottom:3px solid #e0602a;margin-bottom:16px;position:relative;overflow:hidden;break-inside:avoid}
+.cin .fx .fv{grid-row:1/4;position:relative;min-height:230px;background:linear-gradient(160deg,#2b3036,#14181c);display:flex;align-items:center;justify-content:center;font:900 italic 44px 'Inter Display',Inter;color:#ffffff55}.cin .fx .fv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 8%}.cin .fx .fv:after{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(transparent,#14181c)}
+.cin .fx .nu{position:absolute;right:14px;top:4px;font:900 italic 58px 'Inter Display',Inter;color:#e0602a;opacity:.9;text-shadow:0 2px 8px #000}
+.cin .fx .ft{padding:16px 16px 0 0}.cin .fx small{font-size:10px;letter-spacing:.2em;font-weight:800;color:#e0602a}.cin .fx h4{font:900 italic 21px 'Inter Display',Inter;text-transform:uppercase;margin:3px 0 10px;padding-right:70px}
+.cin .fx .ch{display:flex;gap:6px;flex-wrap:wrap}.cin .fx .ch span{background:#1f262d;padding:6px 10px;font-size:11px;color:#8b95a3;letter-spacing:.06em}.cin .fx .ch b{color:#fff;font-size:14px;margin-left:5px}
+.cin .fx .fn{padding:6px 16px 0 0;font-size:14px;line-height:1.55;color:#cfd6de;white-space:pre-line}.cin .fx .fm{padding:6px 16px 16px 0}.cin .fx .fm img{width:100%;max-width:330px;display:block;border-radius:6px;background:#f3e6d2}.cin .fx .fm span{display:block;margin-top:4px;font-size:11px;color:#8b95a3;letter-spacing:.08em}
+.cin .fx.sinm .fm{display:none}
+.cin .ld{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.cin .ld>div{background:#14181c;padding:12px 14px;border-top:3px solid #e0602a}.cin .ld b.t{display:block;font:800 11px Inter;letter-spacing:.16em;text-transform:uppercase;color:#e0602a;margin-bottom:6px}.cin .ld p{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;margin:0;border-bottom:1px solid #ffffff14}.cin .ld p b{font-weight:800}
+.cin .tbw{overflow-x:auto}.cin table.tb{width:100%;border-collapse:collapse;font-size:12.5px}.cin table.tb thead,.cin table.tb thead tr,.cin table.tb tbody tr{background:none!important}.cin table.tb th,.cin table.tb td{color:#e8edf3!important}.cin table.tb th{color:#8b95a3!important;background:none!important;font:800 10px Inter;letter-spacing:.14em;text-transform:uppercase;color:#8b95a3;text-align:center;padding:8px 6px;border-bottom:2px solid #e0602a}.cin table.tb th:first-child,.cin table.tb td:first-child{text-align:left}.cin table.tb td{padding:8px 6px;text-align:center;border:0!important;border-bottom:1px solid #ffffff14!important}.cin table.tb td:first-child{font-weight:700;white-space:nowrap}
+.cin .nb{background:#14181c;border-left:3px solid #e0602a;padding:14px 18px;margin-bottom:12px;font-size:14.5px;line-height:1.6;color:#dfe5ea;white-space:pre-line}.cin .nb b.t{display:block;font:800 11px Inter;letter-spacing:.18em;text-transform:uppercase;color:#e0602a;margin-bottom:6px}
+.cin .nb .et{display:inline-block;margin:6px 6px 0 0;font:700 10.5px Inter;letter-spacing:.1em;border:1px solid #ffffff33;border-radius:99px;padding:3px 9px;color:#aeb4bb}
+.cin .jg{background:#14181c;padding:14px 18px;margin-bottom:12px;break-inside:avoid}.cin .jg h5{font:900 italic 16px 'Inter Display',Inter;text-transform:uppercase;margin:0 0 4px}.cin .jg .gt{font-size:10px;letter-spacing:.2em;font-weight:800;color:#27e0ff}.cin .jg p{font-size:13.5px;color:#cfd6de;margin:6px 0 0;white-space:pre-line}
+.cin .jg .im{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px}.cin .jg .im img{width:100%;background:#fff;display:block}
+`;
+function ivCompleto(nombre, dat) {
+  const esc = escapeHtml;
+  const f = scoutFicha("equipos", nombre), inf = fichaInforme(nombre), campos = (f.informe && f.informe.campos) || {};
+  const base = ivRender2("cin", Object.assign({}, dat, { jugadoras: [] }));
+  const corte = base.lastIndexOf('</div><div class="ftb">');
+  if (corte < 0) return base;
+  const S = [];
+  // 1. números del equipo frente a la liga
+  const ej = (dat.ejes || []).filter(e => e.v != null);
+  if (ej.length) {
+    const barras = ej.map(e => { const esc2 = Math.max(e.v, e.avg || 0) * 1.15 || 1, w = Math.round(e.v / esc2 * 100), m = e.avg != null ? Math.round(e.avg / esc2 * 100) : null;
+      const cl = e.avg == null ? "" : e.v > e.avg * 1.02 ? "up" : e.v < e.avg * 0.98 ? "dn" : "";
+      return `<div class="xr"><span class="n">${esc(e.t)}</span><div class="xt"><i class="${cl}" style="width:${w}%"></i>${m != null ? `<u style="left:${m}%"></u>` : ""}</div><div class="xv">${d_fmt(e.v)}${esc(e.u || "")}${e.avg != null ? `<small>LIGA ${d_fmt(e.avg)}${esc(e.u || "")}</small>` : ""}</div></div>`; }).join("");
+    let av = "";
+    try { const a = (avanzadasCalculo && avanzadasCalculo.equipos) ? metricasEquipo(avanzadasCalculo.equipos.get(equipoOficial(nombre))) : null;
+      if (a) av = `<div class="xa">${[["ORtg", a.ortg], ["DRtg", a.drtg], ["Ritmo", a.ritmo]].filter(x => x[1] != null).map(x => `<div><b>${fmtNum(x[1])}</b><span>${x[0].toUpperCase()}</span></div>`).join("")}</div>`; } catch (e) { /* sin avanzadas */ }
+    S.push(`<h3>Números del equipo frente a la liga</h3>${barras}<div class="xl"><span><i style="background:#2bff9a"></i>Mejor que la liga</span><span><i style="background:#ff4d5e"></i>Peor que la liga</span><span><i style="background:#fff;width:3px"></i>Media de la liga</span></div>${av}`);
+  }
+  // 2. resultados
+  const pts = partidosDeEquipo(nombre);
+  if (pts.length) S.push(`<h3>Resultados y calendario</h3>${pts.map(p => `<div class="rs"><small>${p.jornada ? "J" + esc(p.jornada) : ""}${p.fecha ? " · " + esc(p.fecha) : ""}</small><i class="${p.jugado && p.gano !== null ? (p.gano ? "" : "L") : "N"}">${p.jugado && p.gano !== null ? (p.gano ? "V" : "D") : "·"}</i><span>${p.esLocal ? "vs" : "en"} <b>${esc(p.rival)}</b></span><b class="m">${p.jugado && p.pf != null ? p.pf + "-" + p.pc : "Próximo"}</b></div>`).join("")}`);
+  // 3. todas las jugadoras
+  const plant = plantillaDe(nombre);
+  if (plant.length) {
+    const fich = plant.map(p => {
+      const nt = notaJugadora(inf, p.jugadora), chips = todasStatsJugadora(p.jugadora, nombre).map(d => `<span title="${escapeAttr(d.titulo || "")}">${esc(d.et)}<b>${esc(d.v)}</b></span>`).join("");
+      const mp = (typeof mapaTiroParaEnvio === "function") ? mapaTiroParaEnvio(p.jugadora, nombre) : null;
+      const ini = p.jugadora.split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase();
+      return `<div class="fx${mp ? "" : " sinm"}"><div class="fv">${esc(ini)}${p.foto ? `<img src="${escapeAttr(p.foto)}" alt="" onerror="this.remove()">` : ""}</div>${p.dorsal ? `<span class="nu">${esc(p.dorsal)}</span>` : ""}
+        <div class="ft"><small>${esc(nt.posicion || "JUGADORA")}${p.partidos ? " · " + esc(p.partidos) + " PARTIDOS" : ""}</small><h4>${esc(p.jugadora)}</h4><div class="ch">${chips}</div></div>
+        ${nt.texto ? `<div class="fn">${esc(nt.texto)}</div>` : "<div></div>"}
+        <div class="fm">${mp ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mp.svg)}" alt=""><span>MAPA DE TIRO · ${mp.tiros} TIROS · ${String(mp.pct).replace(".", ",")} %</span>` : ""}</div></div>`; }).join("");
+    S.push(`<h3>Plantilla completa · ${plant.length} jugadoras</h3>${fich}`);
+    // líderes
+    const lid = STATS_FICHA.map(([, corta, larga]) => { const con = plant.map(p => ({ j: p.jugadora, v: parseSpanishNumber(p[corta]), t: p[corta] })).filter(x => x.v !== null && x.t !== "" && x.t != null).sort((a, b) => b.v - a.v).slice(0, 3);
+      return con.length ? `<div><b class="t">${esc(larga)}</b>${con.map(x => `<p><span>${esc(x.j)}</span><b>${esc(String(x.t))}</b></p>`).join("")}</div>` : ""; }).join("");
+    if (lid) S.push(`<h3>Líderes del equipo</h3><div class="ld">${lid}</div>`);
+    const cols = STATS_FICHA.map(([, corta]) => corta);
+    S.push(`<h3>Tabla de la plantilla</h3><div class="tbw"><table class="tb"><thead><tr><th>Jugadora</th><th>PJ</th>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${plant.map(p => `<tr><td>${p.dorsal ? esc(p.dorsal) + " · " : ""}${esc(p.jugadora)}</td><td>${esc(p.partidos || "")}</td>${cols.map(c => `<td>${p[c] != null && p[c] !== "" ? esc(String(p[c])) : "-"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+  }
+  // 4. notas del entrenador
+  const extra = CAMPOS_ENVIO.filter(c => !["estilo", "fortalezas", "debilidades", "claves"].includes(c.id) && String(campos[c.id] || "").trim());
+  const notas = (f.notas || []).filter(n => String(n.texto || "").trim());
+  if (extra.length || notas.length) S.push(`<h3>Notas del entrenador</h3>${extra.map(c => `<div class="nb"><b class="t">${esc(c.titulo)}</b>${esc(String(campos[c.id]).trim())}</div>`).join("")}${notas.map(n => `<div class="nb">${esc(String(n.texto).trim())}${(n.etiquetas || []).length ? `<div>${n.etiquetas.map(e => `<span class="et">${esc(e)}</span>`).join("")}</div>` : ""}</div>`).join("")}`);
+  // 5. jugadas del rival
+  const jug = (f.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length || j.enlace);
+  if (jug.length) S.push(`<h3>Jugadas del rival · ${jug.length}</h3>${jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < 600000)).slice(0, 4);
+    return `<div class="jg"><span class="gt">${esc((j.tipo || "Otra").toUpperCase())}</span><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${escapeAttr(x)}" alt="" loading="lazy">`).join("")}</div>` : ""}</div>`; }).join("")}`);
+  return base.slice(0, corte) + S.join("") + base.slice(corte);
+}
 function ivEstiloGuardado() { try { return localStorage.getItem("iv_estilo") || "fut"; } catch (e) { return "fut"; } }
 function abrirInformeVisual(nombre) {
   const render = (est) => informeVisualHtml(nombre, est);
   const html = render(ivEstiloGuardado());
   if (!html) { alert("Todavía no hay estadísticas cargadas."); return; }
   ivMostrar(html, nombre, render);
+  // los mapas de tiro llegan despues: si se está viendo el Completo, se repinta al tenerlos
+  try { Promise.resolve(cargarTirosEquipo(nombre)).then(() => { const sc = document.querySelector("#ivCapa .iv-scroll"); if (sc && ivEstiloGuardado() === "ful") { const h = render("ful"); if (h) sc.innerHTML = h; } }).catch(() => {}); } catch (e) { /* sin mapas */ }
 }
 function ivMostrar(html, nombre, render) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
-  if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}${IV_CSS4}</style>`);
+  if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}${IV_CSS4}${IV_CSS5}</style>`);
   const actual = ivEstiloGuardado();
   const chips = render ? `<div class="iv-est">${IV_ESTILOS.map(([k, t]) => `<button data-est="${k}" class="${k === actual ? "on" : ""}">${t}</button>`).join("")}</div>` : "";
   document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPng">Descargar imagen</button><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div>${chips}<div class="iv-scroll">${html}</div></div>`);
