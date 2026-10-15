@@ -2400,6 +2400,112 @@ function listaReproduccion(vs) {
   $c("clX").onclick = cerrar; $c("capaLista").addEventListener("click", (e) => { if (e.target.id === "capaLista") cerrar(); });
   pon(0);
 }
+/* ===== Centro de vídeo (estilo Synergy): reproductor con velocidades, tabla de clips y listas guardadas ===== */
+const FILA_LISTAS = "_meta_listas";
+const leerListas = () => { const r = D.archivos.find(a => a.id === FILA_LISTAS); try { const x = JSON.parse((r && r.nombre) || "[]"); return Array.isArray(x) ? x : []; } catch (e) { return []; } };
+async function guardarListas(L) {
+  const fila = { id: FILA_LISTAS, nombre: JSON.stringify(L), tipo: "ajustes", ruta: "", mime: "", tamano: 0 };
+  if (await guardarFila("archivos", fila)) { const i = D.archivos.findIndex(x => x.id === FILA_LISTAS); if (i >= 0) D.archivos[i] = Object.assign({}, D.archivos[i], fila); else D.archivos.push(fila); return true; }
+  aviso("No se pudo guardar la lista"); return false;
+}
+function centroVideo() {
+  const viejo = document.getElementById("capaCentro"); if (viejo) viejo.remove();
+  const MV = metaVideos(), todos = D.archivos.filter(a => a.tipo === "video").map(a => ({ id: a.id, nombre: a.nombre, url: pubUrl(a), m: MV[a.id] || {}, fecha: a.creada || "", dur: null }));
+  if (!todos.length) { aviso("Aún no hay vídeos"); return; }
+  let listas = leerListas(), listaAct = "", sel = new Set(), actual = "", orden = { k: "fecha", d: -1 };
+  const F = { q: "", equipo: "", jugadora: "", categoria: "" };
+  const mmss = (s) => s == null || !isFinite(s) ? "—" : Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
+  const fch = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }); };
+  const txt = (x) => x.m.nota || x.nombre;
+  const css = `<style>#capaCentro{position:fixed;inset:0;z-index:10040;background:#0b0f14;color:#e6ebf1;display:flex;flex-direction:column;font-family:Inter,system-ui,sans-serif}
+#capaCentro *{box-sizing:border-box}#capaCentro button{font:inherit;cursor:pointer;width:auto;margin:0}#capaCentro input[type=checkbox]{width:16px!important;margin:0!important}
+.cvTop{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#111821;border-bottom:3px solid #e0602a}.cvTop b{font:900 italic 18px Inter;letter-spacing:.02em;text-transform:uppercase;flex:1}
+.cvX{border:0;background:none;color:#fff;font-size:28px;line-height:1}
+.cvMain{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:minmax(0,1.1fr) minmax(0,1fr);gap:0}
+.cvPl{grid-row:1;grid-column:1;padding:10px;background:#000;display:flex;flex-direction:column;min-height:0}.cvPl video{flex:1;min-height:0;width:100%;background:#000}
+.cvTit{font-size:13px;color:#cfd6de;padding:6px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cvCtl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 0 0}.cvCtl span{font-size:11px;color:#8b95a3;text-transform:uppercase;letter-spacing:.08em;margin-left:4px}
+.cvCtl button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:6px 9px;font-size:12.5px;font-weight:700}.cvCtl button.on{background:#e0602a;border-color:#e0602a;color:#fff}
+.cvLs{grid-row:1;grid-column:2;display:flex;flex-direction:column;min-height:0;background:#131b24;border-left:1px solid #222d3a}
+.cvH{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #222d3a;font-weight:800}.cvH .e{flex:1}.cvH button{border:0;border-radius:6px;background:#e0602a;color:#fff;padding:6px 10px;font-weight:800;font-size:12.5px}
+.cvLsB{overflow:auto;flex:1}.cvLsB table,.cvTb table{width:100%;border-collapse:collapse;font-size:13px}
+.cvLsB th,.cvTb th{position:sticky;top:0;background:#18212b;color:#8b95a3;font:800 10.5px Inter;letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:8px 8px;white-space:nowrap}
+.cvLsB td,.cvTb td{padding:8px;border-bottom:1px solid #1e2834;white-space:nowrap}.cvTb td.d{white-space:normal;min-width:180px}
+.cvLsB tr.on td,.cvTb tr.on td{background:#e0602a22}.cvLsB tr.on td:first-child,.cvTb tr.on td:first-child{box-shadow:inset 3px 0 0 #e0602a}
+.cvLsB tbody tr,.cvTb tbody tr{cursor:pointer}.cvLsB tbody tr:hover td,.cvTb tbody tr:hover td{background:#ffffff0a}
+.st{color:#586574;background:none;border:0;font-size:16px}.st.on{color:#ffb020}
+.cvTbW{grid-row:2;grid-column:1/3;display:flex;flex-direction:column;min-height:0;background:#0f151c;border-top:1px solid #222d3a}
+.cvF{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;align-items:center}.cvF select,.cvF input{width:auto!important;margin:0!important;flex:0 1 auto;background:#18212b;color:#e6ebf1;border:1px solid #2c3744;border-radius:6px;padding:6px 8px;font-size:13px;max-width:100%}
+.cvF button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700}.cvF button.p{background:#e0602a;border-color:#e0602a;color:#fff}.cvF .e{flex:1}
+.cvTb{overflow:auto;flex:1}.cvTb th{cursor:pointer}.cvTb input[type=checkbox]{width:16px;height:16px;accent-color:#e0602a}
+.cvPop{position:fixed;z-index:10060;background:#18212b;border:1px solid #2c3744;border-radius:10px;padding:6px;min-width:200px;box-shadow:0 12px 30px #000a}.cvPop button{display:block;width:100%;text-align:left;border:0;background:none;color:#e6ebf1;padding:8px 10px;border-radius:6px;font-size:13px}.cvPop button:hover{background:#e0602a}
+@media(max-width:820px){.cvMain{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,.9fr) minmax(0,.6fr) minmax(0,1fr)}.cvPl{grid-column:1}.cvLs{grid-row:2;grid-column:1;border-left:0;border-top:1px solid #222d3a}.cvTbW{grid-row:3;grid-column:1}}</style>`;
+  document.body.insertAdjacentHTML("beforeend", css + `<div id="capaCentro"><div class="cvTop"><b>🎬 Centro de vídeo</b><span id="cvCnt" style="color:#8b95a3;font-size:13px"></span><button class="cvX" id="cvX" aria-label="Cerrar">×</button></div>
+  <div class="cvMain"><div class="cvPl"><video id="cvV" controls playsinline></video><div class="cvTit" id="cvT">Elige un clip de la tabla</div>
+    <div class="cvCtl"><span>Velocidad</span>${[["0.25", "¼x"], ["0.5", "½x"], ["1", "1x"], ["2", "2x"], ["4", "4x"]].map(([v, t]) => `<button data-sp="${v}" class="${v === "1" ? "on" : ""}">${t}</button>`).join("")}
+    <span>Salto</span>${[-15, -5, -2, 2, 5].map(n => `<button data-j="${n}">${n > 0 ? "+" : ""}${n}s</button>`).join("")}<button id="cvPv">⏮</button><button id="cvNx">⏭</button></div></div>
+  <div class="cvLs"><div class="cvH"><span class="e">Mis listas</span><button id="cvNL">＋ Nueva lista</button></div><div class="cvLsB" id="cvLsB"></div></div>
+  <div class="cvTbW"><div class="cvF"><input type="search" id="cvQ" placeholder="Buscar…">${["equipo", "jugadora", "categoria"].map(k => `<select data-f="${k}"></select>`).join("")}<span class="e"></span><button id="cvAdd" class="p">Guardar selección como lista</button><button id="cvPlay">▶ Reproducir todo</button></div><div class="cvTb" id="cvTb"></div></div></div></div>`);
+  const $c = (id) => document.getElementById(id), V = $c("cvV");
+  const enLista = () => { if (!listaAct) return todos; const l = listas.find(x => x.id === listaAct); return l ? l.items.map(id => todos.find(t => t.id === id)).filter(Boolean) : todos; };
+  const vista = () => {
+    const base = enLista(), q = F.q.toLowerCase();
+    let r = base.filter(x => (!F.equipo || x.m.equipo === F.equipo) && (!F.jugadora || x.m.jugadora === F.jugadora) && (!F.categoria || x.m.categoria === F.categoria) && (!q || (x.nombre + " " + Object.values(x.m).join(" ")).toLowerCase().includes(q)));
+    if (!listaAct || orden.k !== "fecha" || orden.d !== -1) { const g = { fecha: x => x.fecha, categoria: x => x.m.categoria || "", desc: x => txt(x).toLowerCase(), jugadora: x => x.m.jugadora || "", equipo: x => x.m.equipo || "", dur: x => x.dur == null ? 1e9 : x.dur }[orden.k] || (x => x.fecha); if (!(listaAct && orden.k === "fecha")) r = r.slice().sort((a, b) => { const A = g(a), B = g(b); return (A < B ? -1 : A > B ? 1 : 0) * orden.d; }); }
+    return r;
+  };
+  const pintaFiltros = () => { document.querySelectorAll("#capaCentro [data-f]").forEach(s => { const k = s.dataset.f, nom = { equipo: "Equipo", jugadora: "Jugadora", categoria: "Categoría" }[k]; s.innerHTML = `<option value="">${nom}: todas</option>` + [...new Set(enLista().map(x => x.m[k]).filter(Boolean))].sort().map(v => `<option ${F[k] === v ? "selected" : ""}>${esc(v)}</option>`).join(""); }); };
+  const pintaListas = () => {
+    const f = (iso) => iso ? fch(iso) : "";
+    $c("cvLsB").innerHTML = `<table><thead><tr><th></th><th>Título</th><th>Creada</th><th>Actualizada</th><th>Clips</th><th></th></tr></thead><tbody>
+      <tr data-l="" class="${listaAct === "" ? "on" : ""}"><td></td><td><b>Todos los vídeos</b></td><td></td><td></td><td>${todos.length}</td><td></td></tr>
+      ${listas.slice().sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0) || String(b.actualizada).localeCompare(String(a.actualizada))).map(l => `<tr data-l="${esc(l.id)}" class="${listaAct === l.id ? "on" : ""}"><td><button class="st ${l.fav ? "on" : ""}" data-fav="${esc(l.id)}">★</button></td><td>${esc(l.titulo)}</td><td>${f(l.creada)}</td><td>${f(l.actualizada)}</td><td>${l.items.length}</td><td><button class="st" data-lm="${esc(l.id)}" style="color:#9aa4b2">⋯</button></td></tr>`).join("")}</tbody></table>`;
+    $c("cvLsB").querySelectorAll("tr[data-l]").forEach(tr => tr.onclick = () => { listaAct = tr.dataset.l; sel.clear(); pintaListas(); pintaFiltros(); pintaTabla(); });
+    $c("cvLsB").querySelectorAll("[data-fav]").forEach(b => b.onclick = async (e) => { e.stopPropagation(); const l = listas.find(x => x.id === b.dataset.fav); l.fav = !l.fav; await guardarListas(listas); pintaListas(); });
+    $c("cvLsB").querySelectorAll("[data-lm]").forEach(b => b.onclick = (e) => { e.stopPropagation(); const l = listas.find(x => x.id === b.dataset.lm); pop(e, [["✏️ Renombrar", async () => { const n = prompt("Nombre de la lista", l.titulo); if (n && n.trim()) { l.titulo = n.trim(); l.actualizada = new Date().toISOString(); await guardarListas(listas); pintaListas(); } }], ["▶ Reproducir", () => { listaAct = l.id; pintaListas(); pintaTabla(); const v = vista(); if (v.length) pon(v[0].id); }], ["🗑 Borrar lista", async () => { if (!confirm("¿Borrar la lista «" + l.titulo + "»? Los vídeos no se borran.")) return; listas = listas.filter(x => x !== l); if (listaAct === l.id) listaAct = ""; await guardarListas(listas); pintaListas(); pintaFiltros(); pintaTabla(); }]]); });
+  };
+  const pop = (e, ops) => { document.querySelectorAll(".cvPop").forEach(x => x.remove()); const d = document.createElement("div"); d.className = "cvPop"; ops.forEach(([t, f]) => { const b = document.createElement("button"); b.textContent = t; b.onclick = () => { d.remove(); f(); }; d.appendChild(b); }); document.body.appendChild(d); const r = e.currentTarget.getBoundingClientRect(); d.style.left = Math.max(8, Math.min(r.left, innerWidth - d.offsetWidth - 8)) + "px"; d.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - d.offsetHeight - 8)) + "px"; setTimeout(() => document.addEventListener("click", () => d.remove(), { once: true }), 0); };
+  const flecha = (k) => orden.k === k ? (orden.d > 0 ? " ▲" : " ▼") : "";
+  const pintaTabla = () => {
+    const v = vista(); $c("cvCnt").textContent = v.length + " clip(s)" + (listaAct ? " · " + (listas.find(x => x.id === listaAct) || {}).titulo : "");
+    $c("cvTb").innerHTML = `<table><thead><tr><th><input type="checkbox" id="cvAll" ${v.length && v.every(x => sel.has(x.id)) ? "checked" : ""}></th><th>Nº</th><th data-o="categoria">Categoría${flecha("categoria")}</th><th data-o="desc">Descripción${flecha("desc")}</th><th data-o="jugadora">Jugadora${flecha("jugadora")}</th><th data-o="equipo">Equipo${flecha("equipo")}</th><th data-o="dur">Duración${flecha("dur")}</th><th data-o="fecha">Fecha${flecha("fecha")}</th></tr></thead><tbody>${v.map((x, i) => `<tr data-id="${esc(x.id)}" class="${actual === x.id ? "on" : ""}"><td><input type="checkbox" data-s="${esc(x.id)}" ${sel.has(x.id) ? "checked" : ""}></td><td>${i + 1}</td><td>${esc(x.m.categoria || "—")}</td><td class="d">${esc(txt(x))}</td><td>${esc(x.m.jugadora || "—")}</td><td>${esc(x.m.equipo || "—")}</td><td>${mmss(x.dur)}</td><td>${fch(x.fecha)}</td></tr>`).join("")}</tbody></table>`;
+    $c("cvTb").querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = (e) => { if (e.target.matches("input")) return; pon(tr.dataset.id); });
+    $c("cvTb").querySelectorAll("[data-s]").forEach(c => c.onchange = () => { c.checked ? sel.add(c.dataset.s) : sel.delete(c.dataset.s); $c("cvAdd").textContent = sel.size ? "Guardar selección como lista (" + sel.size + ")" : "Guardar selección como lista"; });
+    $c("cvAll").onchange = (e) => { v.forEach(x => e.target.checked ? sel.add(x.id) : sel.delete(x.id)); pintaTabla(); };
+    $c("cvTb").querySelectorAll("th[data-o]").forEach(th => th.onclick = () => { const k = th.dataset.o; orden = { k, d: orden.k === k ? -orden.d : 1 }; pintaTabla(); });
+    $c("cvAdd").textContent = sel.size ? "Guardar selección como lista (" + sel.size + ")" : "Guardar selección como lista";
+    // duraciones, una a una en segundo plano
+    v.filter(x => x.dur == null && !x.cargando).forEach(x => { x.cargando = true; const t = document.createElement("video"); t.preload = "metadata"; t.onloadedmetadata = () => { x.dur = t.duration; const tr = $c("cvTb") && $c("cvTb").querySelector(`tr[data-id="${CSS.escape(x.id)}"]`); if (tr) tr.children[6].textContent = mmss(x.dur); t.removeAttribute("src"); t.load(); }; t.onerror = () => { x.dur = NaN; }; t.src = x.url; });
+  };
+  const pon = (id) => {
+    const x = todos.find(t => t.id === id); if (!x) return; actual = id; const sp = document.querySelector("#capaCentro [data-sp].on");
+    V.src = x.url; V.playbackRate = sp ? Number(sp.dataset.sp) : 1; V.play().catch(() => {});
+    $c("cvT").textContent = [x.m.equipo, x.m.jugadora, x.m.categoria].filter(Boolean).join(" · ") + (x.m.nota ? " — " + x.m.nota : "") || x.nombre;
+    document.querySelectorAll("#cvTb tr[data-id]").forEach(tr => tr.classList.toggle("on", tr.dataset.id === id));
+  };
+  const mover = (d) => { const v = vista(), i = v.findIndex(x => x.id === actual), n = v[(i + d + v.length) % v.length]; if (n) pon(n.id); };
+  V.addEventListener("loadedmetadata", () => { const sp = document.querySelector("#capaCentro [data-sp].on"); if (sp) V.playbackRate = Number(sp.dataset.sp); });
+  V.addEventListener("ended", () => { const v = vista(), i = v.findIndex(x => x.id === actual); if (i >= 0 && i < v.length - 1) pon(v[i + 1].id); });
+  document.querySelectorAll("#capaCentro [data-sp]").forEach(b => b.onclick = () => { document.querySelectorAll("#capaCentro [data-sp]").forEach(x => x.classList.toggle("on", x === b)); V.playbackRate = Number(b.dataset.sp); });
+  document.querySelectorAll("#capaCentro [data-j]").forEach(b => b.onclick = () => { V.currentTime = Math.max(0, Math.min(V.duration || 1e9, V.currentTime + Number(b.dataset.j))); });
+  $c("cvPv").onclick = () => mover(-1); $c("cvNx").onclick = () => mover(1);
+  $c("cvPlay").onclick = () => { const v = vista(); if (v.length) pon(v[0].id); };
+  $c("cvQ").oninput = (e) => { F.q = e.target.value; pintaTabla(); };
+  document.querySelectorAll("#capaCentro [data-f]").forEach(s => s.onchange = () => { F[s.dataset.f] = s.value; pintaTabla(); });
+  $c("cvNL").onclick = () => $c("cvAdd").click();
+  $c("cvAdd").onclick = (e) => {
+    if (!puedeEscribir) { aviso("Solo lectura"); return; }
+    const ids = [...sel]; if (!ids.length) { aviso("Marca antes los clips de la tabla (casillas)"); return; }
+    const ops = [["＋ Nueva lista…", async () => { const n = prompt("Nombre de la lista", ""); if (!n || !n.trim()) return; const ahora = new Date().toISOString(); listas.push({ id: "l" + Date.now().toString(36), titulo: n.trim(), creador: "Entrenador", creada: ahora, actualizada: ahora, fav: false, items: ids }); if (await guardarListas(listas)) { sel.clear(); pintaListas(); pintaTabla(); aviso("Lista creada ✓"); } }]]
+      .concat(listas.map(l => ["Añadir a «" + l.titulo + "»", async () => { l.items = [...l.items, ...ids.filter(i => !l.items.includes(i))]; l.actualizada = new Date().toISOString(); if (await guardarListas(listas)) { sel.clear(); pintaListas(); pintaTabla(); aviso("Añadidos ✓"); } }]));
+    if (listaAct) ops.push(["➖ Quitar de esta lista", async () => { const l = listas.find(x => x.id === listaAct); l.items = l.items.filter(i => !ids.includes(i)); l.actualizada = new Date().toISOString(); if (await guardarListas(listas)) { sel.clear(); pintaListas(); pintaTabla(); } }]);
+    pop(e, ops);
+  };
+  const cerrar = () => { try { V.pause(); } catch (e) {} document.removeEventListener("keydown", tecla); const c = document.getElementById("capaCentro"); if (c) { c.previousElementSibling && c.previousElementSibling.tagName === "STYLE" && c.previousElementSibling.remove(); c.remove(); } document.querySelectorAll(".cvPop").forEach(x => x.remove()); };
+  const tecla = (e) => { if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return; if (e.key === "Escape") cerrar(); else if (e.key === " ") { e.preventDefault(); V.paused ? V.play() : V.pause(); } else if (e.key === "ArrowLeft") V.currentTime = Math.max(0, V.currentTime - 5); else if (e.key === "ArrowRight") V.currentTime += 5; else if (e.key === "ArrowUp") mover(-1); else if (e.key === "ArrowDown") mover(1); };
+  document.addEventListener("keydown", tecla); $c("cvX").onclick = cerrar;
+  pintaListas(); pintaFiltros(); pintaTabla();
+}
 function pintarArchivos(v, tipo) {
   derivarArch();
   const MV = tipo === "video" ? metaVideos() : {}, filtrando = tipo === "video" && (fvid.equipo || fvid.jugadora || fvid.categoria), cumpleFv = (a) => { const m = MV[a.id] || {}; return (!fvid.equipo || m.equipo === fvid.equipo) && (!fvid.jugadora || m.jugadora === fvid.jugadora) && (!fvid.categoria || m.categoria === fvid.categoria); };
@@ -2407,7 +2513,7 @@ function pintarArchivos(v, tipo) {
   const lista = D.archivos.filter(a => a.tipo === tipo && ((q || filtrando) ? ((!q || (a.nombre + " " + Object.values(MV[a.id] || {}).join(" ")).toLowerCase().includes(q)) && cumpleFv(a)) : enCarp.has(a.id)));
   const ruta = carpeta ? `<div class="barra" style="margin-bottom:6px;"><button class="gris" data-ac="raiz">📂 Todo</button>${carpeta.split("/").map((s0, i, arr) => `<button class="gris" data-ac="${esc(arr.slice(0, i + 1).join("/"))}">${esc(s0)}</button>`).join(" › ")}</div>` : "";
   const tarjCarp = cars.map(c => `<div class="tarj" data-fc="${esc(c.ruta)}" style="cursor:pointer;"><div class="vista" style="display:flex;align-items:center;justify-content:center;">${SVG_CARPETA(64)}</div><div class="cu"><b>${esc(c.nombre)}</b><span class="peq">${c.n} archivo(s)</span>${puedeEscribir ? `<div class="acc"><button class="gris" data-fm="${esc(c.ruta)}">⋯ Carpeta</button></div>` : ""}</div></div>`).join("");
-  v.innerHTML = `<div class="cab"><h2>${SECCIONES[tipo]}</h2><span class="esp"></span>${puedeEscribir ? `<button class="gris" id="bCar">📁 Nueva carpeta</button><button class="naranja" id="bSubir">⬆ Subir ${tipo === "audio" ? "audios" : tipo === "video" ? "vídeos" : "imágenes"}</button>` : ""}</div>
+  v.innerHTML = `<div class="cab"><h2>${SECCIONES[tipo]}</h2><span class="esp"></span>${tipo === "video" ? '<button class="gris" id="bCentro">🎬 Centro de vídeo</button>' : ""}${puedeEscribir ? `<button class="gris" id="bCar">📁 Nueva carpeta</button><button class="naranja" id="bSubir">⬆ Subir ${tipo === "audio" ? "audios" : tipo === "video" ? "vídeos" : "imágenes"}</button>` : ""}</div>
     ${puedeEscribir ? `<div id="soltar">Arrastra aquí tus archivos o pulsa «Subir». <span class="peq">(máx. 50 MB por archivo)</span></div><input type="file" id="fArch" accept="${ACEPTA[tipo]}" multiple style="display:none;">` : ""}
     ${ruta}<div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>
     ${tipo === "video" && Object.keys(MV).length ? `<div class="barra" id="fvBar">${[["equipo", "Equipo"], ["jugadora", "Jugadora"], ["categoria", "Categoría"]].map(([k, t]) => `<select data-fv="${k}"><option value="">${t}: todas</option>${[...new Set(Object.values(MV).map(x => x[k]).filter(Boolean))].sort().map(x => `<option ${fvid[k] === x ? "selected" : ""}>${esc(x)}</option>`).join("")}</select>`).join("")}${filtrando ? '<button class="gris" id="fvQ">✕ Quitar filtros</button>' : ""}${lista.length ? `<button id="fvPlay" style="background:var(--naranja,#e0602a);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;">▶ Reproducir ${lista.length} seguidos</button>` : ""}</div>` : ""}
@@ -2436,6 +2542,7 @@ function pintarArchivos(v, tipo) {
     }));
   });
   v.querySelectorAll("[data-fv]").forEach(sel => sel.onchange = () => { fvid[sel.dataset.fv] = sel.value; pintarArchivos(v, tipo); });
+  if ($("bCentro")) $("bCentro").onclick = centroVideo;
   if ($("fvPlay")) $("fvPlay").onclick = () => listaReproduccion(lista.map(a => ({ url: pubUrl(a), nombre: a.nombre, m: MV[a.id] || {} })));
   if ($("fvQ")) $("fvQ").onclick = () => { fvid = { equipo: "", jugadora: "", categoria: "" }; pintarArchivos(v, tipo); };
   v.querySelectorAll("[data-ac]").forEach(b => b.onclick = () => { carpeta = b.dataset.ac === "raiz" ? "" : b.dataset.ac; pintarArchivos(v, tipo); });
