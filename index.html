@@ -1644,7 +1644,9 @@
   .kpi-card.con-av{display:flex;align-items:center;gap:14px;} .kpi-card.con-av .kpi-tx{min-width:0;flex:1;} .kpi-av{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:top center;background:var(--wood-line);flex:none;} .kpi-av.esc{border-radius:12px;object-fit:contain;background:#fff;padding:4px;box-sizing:border-box;} .kpi-av.ini{display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:var(--ink-soft);}
   /* ---- menú lateral profesional (mismo estilo que Entrenador) ---- */
   #barraLateral{font-family:'Inter','Archivo',system-ui,sans-serif;padding:16px 12px;}
-  #barraLateral nav{gap:2px;flex-wrap:nowrap;min-height:0;}
+  #barraLateral{overflow-y:auto;overflow-x:hidden;} #barraLateral nav{gap:2px;flex-wrap:nowrap;min-height:0;flex:none;overflow:visible;} .pie-lateral{margin-top:auto;padding-top:10px;}
+  .tarj-eq b{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;} .tarj-eq small{font-size:11.5px;} .tarj-eq .av{width:38px;height:38px;}
+  #barraLateral .pie-lateral button{padding:7px 12px;font-size:13px;} #barraLateral .pie-lateral .hint{font-size:10.5px;}
   #barraLateral nav h4{margin:14px 12px 6px;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#7e8da3;font-weight:800;}
   #barraLateral nav h4:first-child{margin-top:4px;}
   #barraLateral nav button{display:flex;align-items:center;gap:12px;font-family:'Inter',sans-serif;font-weight:500;font-size:14px;padding:10px 12px;border-radius:10px;}
