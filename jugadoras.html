@@ -462,7 +462,7 @@
     <section id="tab-mensajes" hidden></section>
     <section id="tab-tests" hidden></section>
     <section id="tab-clips" hidden></section>
-    <section id="tab-rival" hidden></section>
+    <section id="tab-rival" hidden><div id="rivalInformes"></div><div id="rivalPlaybooks"></div></section>
     <section id="tab-equipo" hidden></section>
     <section id="tab-despues" hidden></section>
     <section id="tab-jugadas" hidden></section>
@@ -2026,8 +2026,35 @@ async function cargarJugadasEquipo() {
   }).join("")}</div>`).join("");
   caja.querySelectorAll(".fila-jugada").forEach(b => b.addEventListener("click", () => abrirJugadaEquipo(b.getAttribute("data-id"))));
 }
+let JUGADAS_PB = {};
+async function cargarPlaybooksRival() {
+  const caja = $("rivalPlaybooks"); if (!caja) return;
+  const { data, error } = await sb.from("playbooks").select("id,nombre,equipo,temporada,data").eq("compartido", true).order("nombre");
+  if (error || !data || !data.length) { caja.innerHTML = ""; return; }
+  const ids = [];
+  data.forEach(p => ((p.data && p.data.capitulos) || []).forEach(c => (c.items || []).forEach(it => { if (it.t === "j" && ids.indexOf(it.id) < 0) ids.push(it.id); })));
+  JUGADAS_PB = {};
+  if (ids.length) {
+    const r = await sb.from("jugadas").select("id,nombre,tipo,data").in("id", ids);
+    (r.data || []).forEach(j => { JUGADAS_PB[String(j.id)] = j; });
+  }
+  caja.innerHTML = data.map(p => {
+    const caps = ((p.data && p.data.capitulos) || []).map(c => {
+      const filas = (c.items || []).map(it => {
+        if (it.t === "txt") return `<p style="color:var(--ink-soft);margin:6px 2px;">${esc(it.texto || it.id || "")}</p>`;
+        if (it.t !== "j") return "";
+        const j = JUGADAS_PB[String(it.id)]; if (!j) return "";
+        const n = (j.data && j.data.pasos) ? j.data.pasos.length : 0;
+        return `<button class="fila-jugada" data-id="${esc(j.id)}" style="display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--wood-line);background:var(--white);border-radius:12px;padding:11px 12px;margin-bottom:8px;font:inherit;cursor:pointer;"><span style="font-size:20px;">▶️</span><span style="flex:1;min-width:0;"><b style="display:block;">${esc(j.nombre)}</b><small style="color:var(--ink-soft);">${n} ${n === 1 ? "paso" : "pasos"}</small></span></button>`;
+      }).join("");
+      return filas ? `<h4 style="margin:12px 0 6px;">${esc(c.titulo || "")}</h4>${filas}` : "";
+    }).join("");
+    return `<div class="bloque"><h3>📘 Playbook: ${esc(p.nombre || "")}</h3>${p.equipo ? `<small style="color:var(--ink-soft);">${esc(p.equipo)}${p.temporada ? " · " + esc(p.temporada) : ""}</small>` : ""}${caps || `<p class="vacio">Sin jugadas todavia.</p>`}</div>`;
+  }).join("");
+  caja.querySelectorAll(".fila-jugada").forEach(b => b.addEventListener("click", () => abrirJugadaEquipo(b.getAttribute("data-id"))));
+}
 function abrirJugadaEquipo(id) {
-  const j = JUGADAS_EQ.find(x => String(x.id) === String(id)); if (!j) return;
+  const j = JUGADAS_EQ.find(x => String(x.id) === String(id)) || JUGADAS_PB[String(id)]; if (!j) return;
   const marco = $("marcoJugada");
   $("visorJugada").style.display = "block";
   const enviar = () => { try { marco.contentWindow.postMessage({ jugada: Object.assign({}, j.data, { nombre: j.nombre }) }, "*"); } catch (e) { /* nada */ } };
@@ -2040,9 +2067,10 @@ $("cerrarVisorJugada").addEventListener("click", () => { $("visorJugada").style.
 
 async function cargarInformes() {
   cargarJugadasEquipo();
+  cargarPlaybooksRival();
   await leerOrdenApp();
   aplicarOrdenPestanas();
-  const caja = $("tab-rival"), cajaEq = $("tab-equipo");
+  const caja = $("rivalInformes"), cajaEq = $("tab-equipo");
   const { data, error } = await sb.from("informes")
     .select("*").order("fecha", { ascending: false });
   if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }

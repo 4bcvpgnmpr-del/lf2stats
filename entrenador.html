@@ -1533,7 +1533,7 @@ function formPlaybook(p, alGuardar) {
     <div class="dos"><div><label>Equipo</label><input id="pbE" value="${esc(p.equipo || "")}"></div><div><label>Temporada</label><input id="pbT" value="${esc(p.temporada || "")}" placeholder="2026/27"></div></div>
     <label>Notas de introducción</label><textarea id="pbNo" style="min-height:70px;">${esc(p.data.notas || "")}</textarea>
     <label>Escudo de la portada</label><div class="esc-prev"><div class="box" id="pbEBox"></div><div><select id="pbEMod" style="margin-bottom:6px;"><option value="">Mi equipo</option><option value="otro">Otro escudo (rival…)</option><option value="none">Sin escudo</option></select><div id="pbEBt" style="display:none;"><button class="gris" id="pbEEl" type="button">Elegir imagen…</button><input type="file" id="pbEFile" accept="image/*" style="display:none;"></div></div></div>
-    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible para las jugadoras</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible en “El rival” (jugadoras)</label>
     <div class="pie-m"><button class="gris" id="pbX">Cancelar</button><button class="naranja" id="pbG">${nuevo ? "Crear y añadir jugadas" : "Guardar"}</button></div>`);
   $("pbX").onclick = cerrarVentana;
   const pubUrl = (r) => r && nube ? nube.storage.from("entrenador").getPublicUrl(r).data.publicUrl : "";
