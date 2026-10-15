@@ -6349,7 +6349,7 @@ const IV_CSS = `
 .iv .ftr b{color:#fff;font-size:13px;letter-spacing:.12em}.iv .ftr i{color:var(--o);font-style:normal}
 @media print{@page{size:A4;margin:0}body.iv-print>*:not(#ivCapa){display:none!important}body.iv-print{background:#07090c!important}
  #ivCapa{position:static!important;background:none!important;padding:0!important;overflow:visible!important;display:block!important}#ivCapa .iv-barra{display:none!important}
- #ivCapa .iv-scroll{overflow:visible!important}.iv{zoom:.74}}
+ #ivCapa .iv-scroll{overflow:visible!important}[data-iv]{zoom:.74}}
 `;
 const IV_EJES = [
   { k: "PT", n: "PUNTOS", u: "", t: "Puntos" }, { k: "RT", n: "REBOTE", u: "", t: "Rebotes" },
@@ -6363,7 +6363,155 @@ function ivMedias(row, baseType) {
 function ivLineas(txt, max) {
   return String(txt || "").split(/\n|•|·|;/).map(s => s.replace(/^[\s\-–*\d.)]+/, "").trim()).filter(Boolean).slice(0, max);
 }
-function informeVisualHtml(nombre) {
+/* ---- Estilos del informe visual ---- */
+const IV_ESTILOS = [["fut", "Futurista"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"]];
+const IV_CSS3 = `
+[data-iv]{font-family:Inter,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+[data-iv] *{box-sizing:border-box}
+.ivx{width:960px;position:relative;overflow:hidden;--o:#e0602a;--od:#c44f1e;--ot:#fdeee6;--k:#14181c;--k2:#2b3036;--l:#e4e7eb;--m:#6b7280;--g:#1f9d5c;--r:#d64545;color:var(--k)}
+.ivx h2,.ivx h3,.ivx h4,.ivx p{margin:0}
+.ivx .cr{width:96px;height:96px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:900 italic 30px 'Inter Display',Inter;color:var(--k);overflow:hidden;flex:none}
+.ivx .cr img{width:68%;height:68%;object-fit:contain}
+.ivx .av{flex:none;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#f3a37e,var(--o));border:3px solid #fff;display:flex;align-items:center;justify-content:center;font:900 italic 19px 'Inter Display',Inter;color:#fff;overflow:hidden}
+.ivx .av img{width:100%;height:100%;object-fit:cover}
+.ivx .it{display:flex;gap:10px;margin:10px 0;font-size:13.5px;line-height:1.45}.ivx .it b{display:block}
+.ivx .ftb{padding:16px 44px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.14em;font-weight:700}
+.ivx .ftb i{font-style:normal;color:var(--o)}
+/* TV */
+.tv{background:#f5f6f7}.tv .hd{background:var(--k);color:#fff;position:relative;overflow:hidden;padding:26px 44px 0}
+.tv .hd:before{content:"";position:absolute;right:-60px;top:-40px;width:420px;height:330px;background:var(--o);transform:skewX(-18deg)}
+.tv .tp{position:relative;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.2em;font-weight:800}.tv .tp span:first-child{color:var(--o)}
+.tv .mt{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;padding:26px 0 30px}
+.tv .tm{display:flex;align-items:center;gap:18px}.tv .tm.r{flex-direction:row-reverse;text-align:right}
+.tv .cr{border:5px solid #fff;box-shadow:0 6px 20px rgba(0,0,0,.35)}.tv .cr.b{background:var(--k2);color:#fff}
+.tv .tm h2{font:900 italic 30px/1 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.02em}.tv .tm small{display:block;margin-top:6px;font-size:11px;letter-spacing:.14em;font-weight:700;opacity:.85}
+.tv .vs{font:900 italic 34px 'Inter Display',Inter}.tv .rb{background:var(--o);height:8px}
+.tv .wrap{padding:26px 44px 6px}.tv .st{background:#fff;border:1px solid var(--l);border-radius:14px;padding:18px 22px;margin-bottom:16px}
+.tv .st h3,.tv .tt{font:900 italic 17px 'Inter Display',Inter;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.tv .st h3:before,.tv .tt:before{content:"";width:6px;height:20px;background:var(--o);transform:skewX(-14deg)}
+.tv .sc{display:grid;grid-template-columns:repeat(4,1fr)}.tv .sc div{text-align:center;border-right:1px solid var(--l);padding:2px 0}.tv .sc div:last-child{border:0}
+.tv .sc b{display:block;font:900 italic 36px 'Inter Display',Inter;letter-spacing:-.03em}.tv .sc span{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--m)}
+.tv .sc em{display:block;font-style:normal;font-size:11px;font-weight:800;margin-top:2px}.up{color:var(--g)}.dn{color:var(--r)}
+.tv .r5{display:grid;grid-template-columns:60px 1fr 110px 1fr 60px;align-items:center;gap:10px;margin:12px 0;font-size:13px}
+.tv .r5 b{font:900 italic 19px 'Inter Display',Inter}.tv .r5 b:first-child{text-align:right}.tv .r5 span{text-align:center;font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--m);text-transform:uppercase}
+.tv .bar{height:12px;background:#f1f3f5;border-radius:6px;position:relative;overflow:hidden}.tv .bar i{position:absolute;top:0;bottom:0;border-radius:6px}
+.tv .bl i{right:0;background:var(--k)}.tv .br i{left:0;background:var(--o)}
+.tv .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.tv .g2 .st{margin:0}
+.tv .it s{flex:none;width:22px;height:22px;border-radius:6px;color:#fff;text-decoration:none;font-weight:900;display:flex;align-items:center;justify-content:center}
+.tv .f s{background:var(--g)}.tv .d s{background:var(--r)}
+.tv .pl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}.tv .pc{background:#fff;border:1px solid var(--l);border-radius:14px;overflow:hidden}
+.tv .pc .t{background:var(--k);color:#fff;padding:14px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden}
+.tv .pc .t:after{content:"";position:absolute;right:0;top:0;bottom:0;width:60px;background:var(--o);transform:skewX(-18deg) translateX(24px)}
+.tv .pc h4{font:900 italic 15px/1.1 'Inter Display',Inter;text-transform:uppercase}.tv .pc small{font-size:10px;letter-spacing:.12em;opacity:.7;font-weight:700}
+.tv .nm{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:900 italic 32px 'Inter Display',Inter;z-index:1}
+.tv .pc .b{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:14px 6px 6px}.tv .pc .b b{display:block;font:900 italic 24px 'Inter Display',Inter}.tv .pc .b span{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--m)}
+.tv .pc p{padding:6px 14px 14px;font-size:12px;color:var(--m);text-align:center}
+.tv .c{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--l);border-radius:14px;padding:12px 18px;margin-bottom:10px}
+.tv .c .n{flex:none;width:42px;height:42px;background:var(--o);color:#fff;font:900 italic 24px 'Inter Display',Inter;display:flex;align-items:center;justify-content:center;transform:skewX(-10deg);border-radius:6px}
+.tv .c b{font-size:15px}.tv .ftb{background:var(--k);color:#aeb4bb;margin-top:22px}.tv .ftb b{color:#fff}
+/* LIMPIO */
+.lim{background:#fff}.lim .hd{padding:34px 48px 22px;display:flex;align-items:center;gap:24px;border-bottom:4px solid var(--o)}
+.lim .cr{border:2px solid var(--l);width:92px;height:92px}.lim .hd small{font-size:11px;letter-spacing:.2em;font-weight:800;color:var(--o)}
+.lim h1{font:900 46px/1 'Inter Display',Inter;letter-spacing:-.03em;margin:6px 0 4px;text-transform:uppercase}.lim .sb{font-size:13px;color:var(--m)}
+.lim .wrap{padding:6px 48px}.lim h3{font:800 12px Inter;letter-spacing:.2em;text-transform:uppercase;color:var(--o);margin:26px 0 12px;display:flex;gap:10px;align-items:center}
+.lim h3:after{content:"";flex:1;height:1px;background:var(--l)}
+.lim .k4{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--l);border-radius:12px}.lim .k4 div{padding:16px;text-align:center;border-right:1px solid var(--l)}.lim .k4 div:last-child{border:0}
+.lim .k4 b{display:block;font:900 34px 'Inter Display',Inter;letter-spacing:-.03em}.lim .k4 span{font-size:10.5px;letter-spacing:.12em;font-weight:700;color:var(--m)}.lim .k4 em{display:block;font-style:normal;font-size:11.5px;font-weight:800;margin-top:2px}
+.lim .res{font-size:14.5px;line-height:1.65;white-space:pre-line}
+.lim .g2{display:grid;grid-template-columns:1fr 1fr;gap:28px}.lim .g2 h3{margin-top:26px}
+.lim .it s{flex:none;width:8px;border-radius:4px;background:var(--g)}.lim .d .it s{background:var(--r)}
+.lim .jr{display:grid;grid-template-columns:56px 1.4fr repeat(3,70px) 1.6fr;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--l);font-size:13px}
+.lim .jr .av{width:48px;height:48px;border-width:2px}.lim .jr b.v{font:900 20px 'Inter Display',Inter;display:block;text-align:center}.lim .jr span.e{font-size:9.5px;letter-spacing:.1em;color:var(--m);font-weight:700;display:block;text-align:center}
+.lim .cl{display:flex;gap:16px;align-items:baseline;margin:12px 0;font-size:15px}.lim .cl i{font:900 italic 28px 'Inter Display',Inter;color:var(--o);font-style:italic;width:28px}
+.lim .ftb{margin-top:30px;border-top:1px solid var(--l);color:var(--m)}
+/* POSTER */
+.pos{background:#fff}.pos .hd{background:var(--o);color:#fff;padding:30px 48px 40px;position:relative;overflow:hidden}
+.pos .hd .wm{position:absolute;right:-30px;top:-20px;width:380px;height:380px;opacity:.16;object-fit:contain;filter:grayscale(1) brightness(3)}
+.pos .hd small{position:relative;font-size:12px;letter-spacing:.3em;font-weight:800;color:#14181c}
+.pos h1{position:relative;font:900 italic 104px/.88 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.05em;margin-top:14px;color:#fff;text-shadow:5px 5px 0 #14181c}
+.pos .rec{position:relative;margin-top:22px;display:flex;gap:10px;align-items:center}.pos .rec span{background:#14181c;color:#fff;font:900 italic 20px 'Inter Display',Inter;padding:8px 18px;transform:skewX(-10deg)}
+.pos .fm i{font-style:normal;background:#fff;color:#14181c;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;transform:skewX(-10deg);margin-left:5px}.pos .fm i.L{background:#14181c;color:#fff}
+.pos .band{background:var(--k);color:#fff;display:grid;grid-template-columns:repeat(4,1fr)}.pos .band div{padding:18px 20px;border-right:1px solid #ffffff22}
+.pos .band b{display:block;font:900 italic 52px/1 'Inter Display',Inter;letter-spacing:-.04em;color:#fff}.pos .band span{font-size:10.5px;letter-spacing:.16em;color:#aeb4bb;font-weight:700}.pos .band em{font-style:normal;font-size:12px;font-weight:800}
+.pos .wrap{padding:8px 48px}.pos h3{font:900 italic 34px 'Inter Display',Inter;text-transform:uppercase;margin:30px 0 14px;letter-spacing:-.02em}.pos h3 u{text-decoration:none;color:var(--o)}
+.pos .res{font-size:17px;line-height:1.55;font-weight:600;white-space:pre-line}
+.pos .g2{display:grid;grid-template-columns:1fr 1fr;gap:20px}.pos .bx{padding:20px;border-radius:6px;background:#f5f6f7;border-left:8px solid var(--g)}.pos .bx.d{border-color:var(--r)}.pos .bx h4{font:900 italic 20px 'Inter Display',Inter;text-transform:uppercase}
+.pos .it b{font-size:15px}.pos .it s{display:none}
+.pos .pl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.pos .pc{background:var(--k);color:#fff;padding:20px 16px;text-align:center;position:relative;overflow:hidden;clip-path:polygon(0 0,100% 0,100% 92%,88% 100%,0 100%)}
+.pos .pc .nu{position:absolute;right:8px;top:-12px;font:900 italic 90px 'Inter Display',Inter;color:var(--o);opacity:.5}
+.pos .pc .av{width:84px;height:84px;margin:0 auto 10px;font-size:28px;border-color:var(--o);position:relative}.pos .pc h4{font:900 italic 18px 'Inter Display',Inter;text-transform:uppercase}.pos .pc small{font-size:10px;letter-spacing:.18em;color:var(--o);font-weight:800}
+.pos .pc .b{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px}.pos .pc .b b{display:block;font:900 italic 28px 'Inter Display',Inter}.pos .pc .b span{font-size:9.5px;letter-spacing:.14em;color:#aeb4bb;font-weight:700}
+.pos .cl{display:flex;gap:18px;align-items:center;margin-bottom:12px}.pos .cl i{font:900 italic 64px/1 'Inter Display',Inter;color:var(--o);width:56px}.pos .cl b{font-size:19px;line-height:1.25}
+.pos .ftb{background:var(--k);color:#aeb4bb;margin-top:26px}
+/* PIZARRA */
+.piz{background:#20252b;color:#eef1f4;background-image:radial-gradient(circle at 50% -10%,#ffffff0d,transparent 55%),linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:auto,32px 32px,32px 32px}
+.piz .hd{padding:30px 48px 20px;display:flex;gap:22px;align-items:center;border-bottom:3px dashed #ffffff33}
+.piz .cr{width:88px;height:88px;border:3px solid var(--o)}.piz .hd small{font-size:11px;letter-spacing:.3em;font-weight:800;color:var(--o)}
+.piz h1{font:900 italic 52px/1 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.03em;margin-top:6px}
+.piz .wrap{padding:6px 48px}.piz h3{font:800 13px Inter;letter-spacing:.28em;text-transform:uppercase;color:var(--o);margin:28px 0 14px}
+.piz h3:before{content:"✕ ";color:#fff}
+.piz .k4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.piz .k4 div{border:2px solid #ffffff44;border-radius:10px;padding:14px;text-align:center}
+.piz .k4 b{display:block;font:900 italic 40px 'Inter Display',Inter}.piz .k4 span{font-size:10px;letter-spacing:.16em;color:#aeb4bb;font-weight:700}.piz .k4 em{display:block;font-style:normal;font-size:11.5px;font-weight:800}
+.piz .up{color:#4dffa8}.piz .dn{color:#ff7a85}
+.piz .res{font-size:15px;line-height:1.65;color:#d4dae1;white-space:pre-line}
+.piz .g2{display:grid;grid-template-columns:1fr 1fr;gap:20px}.piz .bx{border:2px dashed #ffffff44;border-radius:12px;padding:6px 18px 12px}.piz .bx h4{font:800 12px Inter;letter-spacing:.2em;margin-top:14px}.piz .f h4{color:#4dffa8}.piz .d h4{color:#ff7a85}
+.piz .it s{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid #fff;text-decoration:none;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:900}
+.piz .pl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.piz .pc{border:2px solid #ffffff44;border-radius:14px;padding:16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center}
+.piz .pc .av{width:62px;height:62px;border-color:var(--o)}.piz .pc small{font-size:10px;letter-spacing:.18em;color:var(--o);font-weight:800}.piz .pc h4{font:900 italic 17px/1.1 'Inter Display',Inter;text-transform:uppercase}
+.piz .pc .b{grid-column:1/3;display:grid;grid-template-columns:repeat(3,1fr);text-align:center;border-top:1px dashed #ffffff44;padding-top:10px}.piz .pc .b b{display:block;font:900 italic 24px 'Inter Display',Inter}.piz .pc .b span{font-size:9.5px;letter-spacing:.14em;color:#aeb4bb;font-weight:700}
+.piz .cl{display:flex;gap:16px;align-items:center;border:2px solid #ffffff44;border-radius:12px;padding:12px 18px;margin-bottom:10px}.piz .cl i{flex:none;background:var(--o);color:#fff;font:900 12px Inter;letter-spacing:.14em;font-style:normal;padding:6px 10px;border-radius:6px}.piz .cl b{font-size:15.5px}
+.piz .ftb{border-top:3px dashed #ffffff33;color:#aeb4bb;margin-top:30px}.piz .ftb b{color:#fff}
+`;
+function ivEscudoHtml(d, clase) { return `<div class="cr ${clase || ""}">${d.escudo ? `<img src="${escapeAttr(d.escudo)}" alt="" onerror="this.outerHTML='${escapeAttr(d.sigla)}'">` : escapeHtml(d.sigla)}</div>`; }
+function ivMiEscudoHtml(d, clase) { const m = d.mio; return `<div class="cr ${clase || ""}">${m && m.escudo ? `<img src="${escapeAttr(m.escudo)}" alt="" onerror="this.outerHTML='${escapeAttr(m.sigla)}'">` : escapeHtml(m ? m.sigla : "")}</div>`; }
+function ivAv(p) { return `<div class="av">${p.foto ? `<img src="${escapeAttr(p.foto)}" alt="" onerror="this.remove()">` : escapeHtml(p.ini)}</div>`; }
+function ivItems(arr, s) { return arr.length ? arr.map(x => `<div class="it"><s>${s}</s><div><b>${escapeHtml(x.t)}</b>${escapeHtml(x.d)}</div></div>`).join("") : `<div class="it"><div>Sin datos suficientes.</div></div>`; }
+function ivDeltaHtml(k) { if (k.v == null) return ""; const dl = k.v - k.avg, up = dl >= 0; return `<em class="${up ? "up" : "dn"}">${up ? "▲ +" : "▼ "}${d_fmt(dl)} vs liga</em>`; }
+function d_fmt(x) { return fmtNum(Math.round(x * 10) / 10); }
+function ivStats3(p) { return [["PT", "PTS"], ["RT", "REB"], ["AS", "AST"]].map(([k, l]) => `<div><b>${escapeHtml(String(p[k] == null ? "—" : p[k]))}</b><span>${l}</span></div>`).join(""); }
+function ivRender(est, d) {
+  const pie = (cl) => `<div class="ftb"><b>Scout<i>Flow</i></b><span>${escapeHtml(d.oficial.toUpperCase())}</span></div>`;
+  const kpi = (k) => `<div><b>${k.v == null ? "—" : d_fmt(k.v)}</b><span>${k.t}</span>${ivDeltaHtml(k)}</div>`;
+  const ju = d.jugadoras, cl = d.claves;
+  if (est === "tv") {
+    const h2h = d.mio && d.ejes.some(e => e.mio != null);
+    const filas = d.ejes.filter(e => e.v != null).map(e => { const o = h2h ? e.mio : e.avg; if (o == null) return ""; const mx = Math.max(e.v, o, 0.001); return `<div class="r5"><b>${d_fmt(o)}${e.u}</b><div class="bar bl"><i style="width:${o / mx * 92}%"></i></div><span>${e.t.replace("% de ", "% ")}</span><div class="bar br"><i style="width:${e.v / mx * 92}%"></i></div><b>${d_fmt(e.v)}${e.u}</b></div>`; }).join("");
+    return `<div class="ivx tv" data-iv><div class="hd"><div class="tp"><span>SCOUTING REPORT</span><span>${escapeHtml(d.jornada)}</span></div>
+      <div class="mt"><div class="tm">${d.mio ? ivMiEscudoHtml(d) + `<div><h2>${escapeHtml(d.mio.nombre)}</h2><small>${d.mio.rec ? d.mio.rec : ""}</small></div>` : ""}</div><div class="vs">${d.mio ? "VS" : ""}</div>
+      <div class="tm r">${ivEscudoHtml(d, "b")}<div><h2>${escapeHtml(d.oficial)}</h2><small>${d.rec ? d.rec : ""}</small></div></div></div></div><div class="rb"></div>
+      <div class="wrap"><div class="st"><h3>Marcador del rival</h3><div class="sc">${d.kpis.map(kpi).join("")}</div></div>
+      ${filas ? `<div class="st"><h3>${h2h ? "Cara a cara" : "Rival contra la media de la liga"}</h3><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.1em;margin-bottom:6px"><span>${h2h ? escapeHtml(d.mio.nombre.toUpperCase()) : "MEDIA LIGA"}</span><span style="color:var(--o)">${escapeHtml(d.oficial.toUpperCase())}</span></div>${filas}</div>` : ""}
+      ${d.resumen ? `<div class="st"><h3>Resumen</h3><p style="font-size:14.5px;line-height:1.6;white-space:pre-line">${escapeHtml(d.resumen)}</p></div>` : ""}
+      <div class="g2"><div class="st f" style="border-top:5px solid var(--g)"><h3>Puntos fuertes</h3>${ivItems(d.fuertes, "+")}</div><div class="st d" style="border-top:5px solid var(--r)"><h3>Puntos débiles</h3>${ivItems(d.debiles, "−")}</div></div>
+      ${ju.length ? `<div class="tt">Jugadoras a vigilar</div><div class="pl">${ju.map(p => `<div class="pc"><div class="t">${ivAv(p)}<div><small>${escapeHtml(p.pos)}</small><h4>${escapeHtml(p.nombre)}</h4></div>${p.dorsal ? `<span class="nm">${escapeHtml(p.dorsal)}</span>` : ""}</div><div class="b">${ivStats3(p)}</div>${p.nota ? `<p>${escapeHtml(p.nota)}</p>` : ""}</div>`).join("")}</div>` : ""}
+      ${cl.length ? `<div class="tt">Claves del partido</div>${cl.map((c, i) => `<div class="c"><div class="n">${i + 1}</div><b>${escapeHtml(c)}</b></div>`).join("")}` : ""}</div>${pie()}</div>`;
+  }
+  if (est === "lim") {
+    return `<div class="ivx lim" data-iv><div class="hd">${ivEscudoHtml(d)}<div><small>SCOUTING · ${escapeHtml(d.jornada || "INFORME PREVIO")}</small><h1>${escapeHtml(d.oficial)}</h1><div class="sb">${d.rec ? escapeHtml(d.rec) + " · " : ""}Informe previo al partido</div></div></div>
+      <div class="wrap"><h3>Números clave</h3><div class="k4">${d.kpis.map(kpi).join("")}</div>
+      ${d.resumen ? `<h3>Resumen</h3><div class="res">${escapeHtml(d.resumen)}</div>` : ""}
+      <div class="g2"><div class="f"><h3>Puntos fuertes</h3>${ivItems(d.fuertes, "")}</div><div class="d"><h3>Puntos débiles</h3>${ivItems(d.debiles, "")}</div></div>
+      ${ju.length ? `<h3>Jugadoras a vigilar</h3>${ju.map(p => `<div class="jr">${ivAv(p)}<div><b>${escapeHtml(p.nombre)}</b><br><span style="color:var(--m);font-size:11.5px">${escapeHtml(p.pos)}${p.dorsal ? " · #" + escapeHtml(p.dorsal) : ""}</span></div>${[["PT", "PTS"], ["RT", "REB"], ["AS", "AST"]].map(([k, l]) => `<div><b class="v">${escapeHtml(String(p[k] == null ? "—" : p[k]))}</b><span class="e">${l}</span></div>`).join("")}<div style="color:var(--m);font-size:12px">${escapeHtml(p.nota || "")}</div></div>`).join("")}` : ""}
+      ${cl.length ? `<h3>Claves del partido</h3>${cl.map((c, i) => `<div class="cl"><i>${i + 1}</i><b>${escapeHtml(c)}</b></div>`).join("")}` : ""}</div>${pie()}</div>`;
+  }
+  if (est === "pos") {
+    return `<div class="ivx pos" data-iv><div class="hd">${d.escudo ? `<img class="wm" src="${escapeAttr(d.escudo)}" alt="">` : ""}<small>SCOUTING REPORT · ${escapeHtml(d.jornada || "INFORME PREVIO")}</small><h1>${escapeHtml(d.oficial)}</h1>
+      <div class="rec">${d.record ? `<span>${d.record.v} – ${d.record.d}</span>` : ""}${d.forma.length ? `<div class="fm">${d.forma.map(g => `<i class="${g ? "" : "L"}">${g ? "V" : "D"}</i>`).join("")}</div>` : ""}</div></div>
+      <div class="band">${d.kpis.map(k => `<div><span>${k.t}</span><b>${k.v == null ? "—" : d_fmt(k.v)}</b>${k.v == null ? "" : `<em class="${k.v >= k.avg ? "up" : "dn"}" style="color:${k.v >= k.avg ? "#4dffa8" : "#ff7a85"}">${k.v >= k.avg ? "▲ +" : "▼ "}${d_fmt(k.v - k.avg)}</em>`}</div>`).join("")}</div>
+      <div class="wrap">${d.resumen ? `<h3>Cómo <u>juegan</u></h3><div class="res">${escapeHtml(d.resumen)}</div>` : ""}
+      <div class="g2" style="margin-top:26px"><div class="bx"><h4>Puntos fuertes</h4>${ivItems(d.fuertes, "")}</div><div class="bx d"><h4>Puntos débiles</h4>${ivItems(d.debiles, "")}</div></div>
+      ${ju.length ? `<h3>Jugadoras a <u>vigilar</u></h3><div class="pl">${ju.map(p => `<div class="pc">${p.dorsal ? `<span class="nu">${escapeHtml(p.dorsal)}</span>` : ""}${ivAv(p)}<small>${escapeHtml(p.pos)}</small><h4>${escapeHtml(p.nombre)}</h4><div class="b">${ivStats3(p)}</div></div>`).join("")}</div>` : ""}
+      ${cl.length ? `<h3>Claves del <u>partido</u></h3>${cl.map((c, i) => `<div class="cl"><i>${i + 1}</i><b>${escapeHtml(c)}</b></div>`).join("")}` : ""}</div>${pie()}</div>`;
+  }
+  // pizarra
+  return `<div class="ivx piz" data-iv><div class="hd">${ivEscudoHtml(d)}<div><small>SCOUTING · ${escapeHtml(d.jornada || "INFORME PREVIO")}</small><h1>${escapeHtml(d.oficial)}</h1></div></div>
+    <div class="wrap"><h3>Números clave</h3><div class="k4">${d.kpis.map(kpi).join("")}</div>
+    ${d.resumen ? `<h3>Cómo juegan</h3><div class="res">${escapeHtml(d.resumen)}</div>` : ""}
+    <div class="g2" style="margin-top:6px"><div class="bx f"><h4>PUNTOS FUERTES</h4>${ivItems(d.fuertes, "+")}</div><div class="bx d"><h4>PUNTOS DÉBILES</h4>${ivItems(d.debiles, "−")}</div></div>
+    ${ju.length ? `<h3>Jugadoras a vigilar</h3><div class="pl">${ju.map(p => `<div class="pc">${ivAv(p)}<div><small>${escapeHtml(p.pos)}${p.dorsal ? " · #" + escapeHtml(p.dorsal) : ""}</small><h4>${escapeHtml(p.nombre)}</h4></div><div class="b">${ivStats3(p)}</div></div>`).join("")}</div>` : ""}
+    ${cl.length ? `<h3>Plan de partido</h3>${cl.map((c, i) => `<div class="cl"><i>JUGADA ${i + 1}</i><b>${escapeHtml(c)}</b></div>`).join("")}` : ""}</div>${pie()}</div>`;
+}
+function informeVisualHtml(nombre, estilo) {
   const oficial = equipoOficial(nombre), fuente = datosLiga ? datosLiga.equipos : equipos;
   if (!fuente) return null;
   const { baseType } = groupTotalMediaCols(equipoStatCols());
@@ -6436,7 +6584,22 @@ function informeVisualHtml(nombre) {
   const escudo = escudoUrlFor(nombre);
   const sigla = String(oficial).split(/\s+/).map(s => s[0]).slice(0, 2).join("").toUpperCase();
   const prox = partidosDeEquipo(nombre).find(x => !x.jugado);
-  return `<div class="iv"><div class="hero"><div class="bar"><span class="live">SCOUTING REPORT</span><span>${prox ? `<b>${escapeHtml(prox.jornada ? "JORNADA " + prox.jornada : "PRÓXIMO PARTIDO")}</b>` : ""}</span></div>
+  const miN = (typeof miEquipo !== "undefined" && miEquipo && normalizarEquipo(equipoOficial(miEquipo)) !== objetivo) ? miEquipo : "";
+  const miFila = miN ? fuente.rows.find(r => normalizarEquipo(cellText(r, "Equipo")) === normalizarEquipo(equipoOficial(miN))) : null;
+  const mm = miFila ? ivMedias(miFila, baseType) : null;
+  const parMi = miN ? partidosDeEquipo(miN).filter(x => x.jugado && x.gano !== null) : [];
+  const dat = { oficial, escudo, sigla, jornada: prox ? (prox.jornada ? "JORNADA " + prox.jornada : "PRÓXIMO PARTIDO") : "",
+    rec: par.length ? v + "-" + d + " en liga" : "", record: par.length ? { v, d } : null, forma: ultimos.map(x => x.gano),
+    kpis: [["PT", "PUNTOS"], ["RT", "REBOTES"], ["AS", "ASISTENCIAS"], ["T3", "% TRIPLES"]].map(([k, t]) => ({ k, t, v: est[k] ? est[k].v : null, avg: est[k] ? est[k].avg : null })),
+    ejes: IV_EJES.map(e => ({ t: e.t, u: e.u, v: est[e.k] ? est[e.k].v : null, avg: est[e.k] ? est[e.k].avg : null, mio: mm ? mm[e.k] : null })),
+    fuertes: lf.length ? lf.map(t => ({ t, d: "" })) : difs.filter(x => x.dif > 0).sort((a, b) => b.dif - a.dif).slice(0, 3).map(x => ({ t: x.e.t, d: fmt(est[x.e.k].v) + x.e.u + " de media (liga: " + fmt(est[x.e.k].avg) + x.e.u + ")." })),
+    debiles: ld.length ? ld.map(t => ({ t, d: "" })) : difs.filter(x => x.dif < 0).sort((a, b) => a.dif - b.dif).slice(0, 3).map(x => ({ t: x.e.t, d: fmt(est[x.e.k].v) + x.e.u + " de media (liga: " + fmt(est[x.e.k].avg) + x.e.u + ")." })),
+    jugadoras: plant.map(p => { const nt = (typeof notaJugadora === "function" && inf.jugadoras) ? notaJugadora(inf, p.jugadora) : { texto: "", posicion: "" };
+      return { nombre: p.jugadora, pos: nt.posicion || "JUGADORA CLAVE", dorsal: p.dorsal || "", foto: p.foto || "", ini: p.jugadora.split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase(), PT: p.PT, RT: p.RT, AS: p.AS, nota: nt.texto ? String(nt.texto).slice(0, 110) : "" }; }),
+    claves, resumen,
+    mio: miN ? { nombre: miN, escudo: escudoUrlFor(miN), sigla: String(miN).split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase(), rec: parMi.length ? parMi.filter(x => x.gano).length + "-" + parMi.filter(x => !x.gano).length + " en liga" : "" } : null };
+  if (estilo && estilo !== "fut") return ivRender(estilo, dat);
+  return `<div class="iv" data-iv><div class="hero"><div class="bar"><span class="live">SCOUTING REPORT</span><span>${prox ? `<b>${escapeHtml(prox.jornada ? "JORNADA " + prox.jornada : "PRÓXIMO PARTIDO")}</b>` : ""}</span></div>
     <div class="ttl"><div class="hex"><i>${escudo ? `<img src="${escapeAttr(escudo)}" alt="" onerror="this.outerHTML='<b>${escapeAttr(sigla)}</b>'">` : `<b>${escapeHtml(sigla)}</b>`}</i></div>
       <div><h1>${escapeHtml(oficial)}</h1><div class="sub">INFORME PREVIO AL PARTIDO</div></div></div>
     <div class="rec">${par.length ? `<div class="pill"><small>RÉCORD</small><b>${v} – ${d}</b></div><div class="pill"><small>PTS A FAVOR</small><b>${fmt(pf)}</b></div><div class="pill"><small>PTS CONTRA</small><b>${fmt(pc)}</b></div>` : ""}
@@ -6450,15 +6613,26 @@ function informeVisualHtml(nombre) {
     ${claves.length ? `<div class="sec"><h2>Claves del partido <em>// GAME PLAN</em></h2><div class="cl">${claves.map((c, i) => `<div class="c"><div class="n">${i + 1}</div><b>${escapeHtml(c)}</b></div>`).join("")}</div></div>` : ""}
     </div><div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(oficial.toUpperCase())}</span></div></div>`;
 }
+function ivEstiloGuardado() { try { return localStorage.getItem("iv_estilo") || "fut"; } catch (e) { return "fut"; } }
 function abrirInformeVisual(nombre) {
-  const html = informeVisualHtml(nombre);
+  const render = (est) => informeVisualHtml(nombre, est);
+  const html = render(ivEstiloGuardado());
   if (!html) { alert("Todavía no hay estadísticas cargadas."); return; }
-  ivMostrar(html, nombre);
+  ivMostrar(html, nombre, render);
 }
-function ivMostrar(html, nombre) {
+function ivMostrar(html, nombre, render) {
   const viejo = document.getElementById("ivCapa"); if (viejo) viejo.remove();
-  if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}</style>`);
-  document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPng">Descargar imagen</button><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div><div class="iv-scroll">${html}</div></div>`);
+  if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}</style>`);
+  const actual = ivEstiloGuardado();
+  const chips = render ? `<div class="iv-est">${IV_ESTILOS.map(([k, t]) => `<button data-est="${k}" class="${k === actual ? "on" : ""}">${t}</button>`).join("")}</div>` : "";
+  document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPng">Descargar imagen</button><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div>${chips}<div class="iv-scroll">${html}</div></div>`);
+  if (!document.getElementById("ivEstilo2")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo2">#ivCapa .iv-est{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}#ivCapa .iv-est button{border:1px solid #ffffff33;background:transparent;color:#fff;border-radius:99px;padding:7px 14px;font:700 12.5px Inter,sans-serif;cursor:pointer}#ivCapa .iv-est button.on{background:#fff;color:#14181c}</style>`);
+  document.querySelectorAll("#ivCapa .iv-est button").forEach(b => b.addEventListener("click", () => {
+    const est = b.getAttribute("data-est"); try { localStorage.setItem("iv_estilo", est); } catch (e) { /* nada */ }
+    const h = render(est); if (!h) return;
+    document.querySelector("#ivCapa .iv-scroll").innerHTML = h;
+    document.querySelectorAll("#ivCapa .iv-est button").forEach(x => x.classList.toggle("on", x === b));
+  }));
   const cerrar = () => { document.body.classList.remove("iv-print"); const c = document.getElementById("ivCapa"); if (c) c.remove(); };
   document.getElementById("ivCerrar").onclick = cerrar;
   document.getElementById("ivPdf").onclick = () => { document.body.classList.add("iv-print"); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("iv-print"), 500); }, 100); };
@@ -6466,14 +6640,15 @@ function ivMostrar(html, nombre) {
     const b = ev.currentTarget; b.disabled = true; b.textContent = "Creando imagen...";
     try {
       if (!window.html2canvas) await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
-      const raiz = document.querySelector("#ivCapa .iv"), malas = [];
+      const raiz = document.querySelector("#ivCapa [data-iv]"), malas = [];
       // las imagenes de la FEB solo se pueden meter en la imagen si el servidor lo permite
       await Promise.all([...raiz.querySelectorAll("img")].map(async (im, i) => {
         try { const r = await fetch(im.src, { mode: "cors" }); const bl = await r.blob(); im.src = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }); }
         catch (e) { im.setAttribute("data-mala", "1"); malas.push(i); }
       }));
       await Promise.all([...raiz.querySelectorAll("img")].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; })));
-      const lienzo = await window.html2canvas(raiz, { scale: 2, useCORS: true, backgroundColor: "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" });
+      const fondo = getComputedStyle(raiz).backgroundColor;
+      const lienzo = await window.html2canvas(raiz, { scale: 2, useCORS: true, backgroundColor: fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" });
       if (malas.length) setTimeout(() => alert("Algunas fotos o escudos no se pudieron incluir en la imagen (la web de origen no lo permite). En «Imprimir / PDF» sí salen."), 300);
       lienzo.toBlob((bl) => { const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
     } catch (e) { alert("No se pudo crear la imagen. Usa «Imprimir / PDF» o haz una captura de pantalla."); }
@@ -6497,7 +6672,7 @@ function informeVisualVistaHtml(id) {
   const eq = (typeof miEquipo !== "undefined" && miEquipo) ? miEquipo : "";
   const esc = eq ? escudoUrlFor(eq) : "";
   const temp = (document.getElementById("selTemporada") || {}).value || "";
-  return `<div class="iv"><style>${IV_CSS2}</style><div class="hero h2"><div class="bar"><span class="live">SCOUTFLOW · ESTADÍSTICAS</span><span><b>${escapeHtml(temp)}</b></span></div>
+  return `<div class="iv" data-iv><style>${IV_CSS2}</style><div class="hero h2"><div class="bar"><span class="live">SCOUTFLOW · ESTADÍSTICAS</span><span><b>${escapeHtml(temp)}</b></span></div>
     <div class="ttl" style="margin-top:22px;gap:20px">${esc ? `<div class="hex" style="width:84px;height:95px"><i style="width:75px;height:85px"><img src="${escapeAttr(esc)}" alt="" style="width:46px;height:46px"></i></div>` : ""}<div><div class="gt" style="margin-top:0">${escapeHtml(titulo)}</div><div class="sub">${escapeHtml(String(eq).toUpperCase())}</div></div></div></div>
     <div class="gb">${clon.outerHTML}</div><div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(titulo.toUpperCase())}</span></div></div>`;
 }
