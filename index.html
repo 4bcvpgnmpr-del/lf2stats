@@ -1631,6 +1631,11 @@
   .kpi-card.con-av{text-align:left;}
   .panel{border:1px solid var(--wood-line) !important;border-radius:18px !important;box-shadow:0 1px 2px rgba(20,30,40,.05) !important;}
   .section-title{font-family:'Inter',sans-serif !important;font-weight:700;letter-spacing:-.4px;}
+  /* tarjetas centradas */
+  .kpi-card,.kpi-card.con-av{display:flex !important;flex-direction:column;align-items:center;justify-content:center;text-align:center !important;gap:8px;min-height:150px;overflow:hidden;}
+  .kpi-card .kpi-label{text-align:center !important;} .kpi-card .kpi-tx{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%;flex:none !important;}
+  .kpi-card .kpi-value{margin:2px 0;} .kpi-card .kpi-value.is-name{font-size:15px;line-height:1.25;overflow-wrap:anywhere;max-width:100%;letter-spacing:-.3px;} .kpi-card .kpi-sub{overflow-wrap:anywhere;}
+  .kpi-card .kpi-av{width:64px;height:64px;}
   /* ---- inicio: tarjeta de tu equipo y líderes con foto ---- */
   .hero-g{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:18px;}
   .hero-next{background:linear-gradient(135deg,#2f7f6c,#3f9c86);color:#fff;border-radius:18px;padding:22px 24px;position:relative;overflow:hidden;} .hero-next:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.09);}
