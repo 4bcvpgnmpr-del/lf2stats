@@ -3576,7 +3576,7 @@ function showEquipoDetail(teamName) {
   const { baseType } = groupTotalMediaCols(equipoStatCols());
 
   const ataque = ["PT", "T2", "T3", "TC", "TL", "AS"];
-  const defensa = ["Rebotes_RD", "Rebotes_RT", "BR", "Tapones_TF", "Faltas_FC"];
+  const defensa = ["Rebotes_RO", "Rebotes_RD", "Rebotes_RT", "BR", "Tapones_TF", "Faltas_FC"];
 
   // Puesto del equipo en cada estadistica (en su grupo y en toda la liga)
   const cachePuestosPerfil = {};
@@ -3667,6 +3667,7 @@ function showEquipoDetail(teamName) {
     <div class="stat-big-grid">
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "PT", baseType))}</div><div class="l">PPG</div>${puestoDe("PT")}</div>
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "Rebotes_RT", baseType))}</div><div class="l">RPG</div>${puestoDe("Rebotes_RT")}</div>
+      <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "Rebotes_RO", baseType))}</div><div class="l">Reb. ofensivos</div>${puestoDe("Rebotes_RO")}</div>
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "AS", baseType))}</div><div class="l">APG</div>${puestoDe("AS")}</div>
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "BR", baseType))}</div><div class="l">SPG</div>${puestoDe("BR")}</div>
       <div class="stat-big"><div class="v">${fmtNum(mediaPorPartido(row, "Tapones_TF", baseType))}</div><div class="l">BPG</div>${puestoDe("Tapones_TF")}</div>
@@ -3829,7 +3830,10 @@ function showJugadoraDetail(playerName) {
         const mm = metricasJugadora(row);
         const caja = (v, etiqueta, suf) => (v === null || v === undefined) ? "" :
           `<div class="stat-big"><div class="v">${fmtNum(v)}${suf || ""}</div><div class="l">${escapeHtml(etiqueta)}</div></div>`;
-        return caja(mm.PER, "Perdidas por partido") + caja(mm["AST/TO"], "Asistencias por perdida") +
+        const tjR = tirosDeJugadora(playerName, row["Equipo"] ? row["Equipo"].display : ""), pjR = tjR ? (tjR.partidos || 0) : 0;
+        const roP = (tjR && pjR && tjR.rebOf !== undefined) ? Math.round(tjR.rebOf / pjR * 10) / 10 : null;
+        const rdP = (tjR && pjR && tjR.rebDef !== undefined) ? Math.round(tjR.rebDef / pjR * 10) / 10 : null;
+        return caja(roP, "Reb. ofensivos por partido") + caja(rdP, "Reb. defensivos por partido") + caja(mm.PER, "Perdidas por partido") + caja(mm["AST/TO"], "Asistencias por perdida") +
                caja(mm.eFG, "eFG") + caja(mm["eFG%"], "eFG %", "%");
       })()}
     </div>
@@ -3851,6 +3855,7 @@ function showJugadoraDetail(playerName) {
         <div class="rank-row"><div class="rank-name">Partidos jugados</div><div class="rank-value">${row["PJ"] ? row["PJ"].display : (row["Part"] ? row["Part"].display : "N/D")}</div></div>
         ${lineaTotalMedia("Puntos", row["Tot"] ? row["Tot"].display : "", mediaOf(row) ? mediaOf(row).display : "")}
         ${totLine(reb, "Rebotes")}
+        ${(() => { const tjR = tirosDeJugadora(playerName, row["Equipo"] ? row["Equipo"].display : ""), pjR = tjR ? (tjR.partidos || 0) : 0; if (!tjR || tjR.rebOf === undefined) return ""; const med = (v) => pjR ? (Math.round(v / pjR * 10) / 10).toString().replace(".", ",") : ""; return lineaTotalMedia("Rebotes ofensivos", tjR.rebOf, med(tjR.rebOf)) + lineaTotalMedia("Rebotes defensivos", tjR.rebDef, med(tjR.rebDef)); })()}
         ${totLine(ast, "Asistencias")}
         ${totLine(rob, "Robos")}
         ${totLine(tap, "Tapones a favor")}
@@ -6050,8 +6055,8 @@ function calcularTirosDeLosPartidos() {
     const claves = clavesNombre(j, cellText(r, "Equipo"));
     if (!claves.length) return;
     let d = mapa.get(claves[0]);
-    if (!d) { d = { t2a: 0, t2i: 0, t3a: 0, t3i: 0, tla: 0, tli: 0, partidos: 0, dorsales: {} }; }
-    d.partidos++;
+    if (!d) { d = { t2a: 0, t2i: 0, t3a: 0, t3i: 0, tla: 0, tli: 0, partidos: 0, rebOf: 0, rebDef: 0, dorsales: {} }; }
+    d.partidos++; d.rebOf += numDe(r, "REB_O"); d.rebDef += numDe(r, "REB_D");
     const dorsal = cellText(r, "Dorsal").trim();
     if (dorsal) d.dorsales[dorsal] = (d.dorsales[dorsal] || 0) + 1;
     [["T2", "t2"], ["T3", "t3"], ["TL", "tl"]].forEach(([col, pref]) => {
