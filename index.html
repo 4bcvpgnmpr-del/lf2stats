@@ -6420,7 +6420,7 @@ function informeVisualHtml(nombre) {
     const ini = p.jugadora.split(/\s+/).map(s => s[0]).slice(0, 2).join("").toUpperCase();
     const st = (k, l) => `<div class="st">${l}<i><u style="width:${Math.max(6, num(p[k]) / mx[k] * 100)}%"></u></i><b>${escapeHtml(String(p[k] == null ? "—" : p[k]))}</b></div>`;
     return `<div class="pc">${p.dorsal ? `<span class="big">${escapeHtml(p.dorsal)}</span>` : ""}
-      <div class="ph"><div class="ft2">${p.foto ? `<img src="${escapeAttr(p.foto)}" crossorigin="anonymous" alt="" onerror="this.remove()">` : escapeHtml(ini)}</div>
+      <div class="ph"><div class="ft2">${p.foto ? `<img src="${escapeAttr(p.foto)}" alt="" onerror="this.remove()">` : escapeHtml(ini)}</div>
       <div><small>${escapeHtml(nt.posicion || "JUGADORA CLAVE")}${p.dorsal ? " · #" + escapeHtml(p.dorsal) : ""}</small><h4>${escapeHtml(p.jugadora)}</h4></div></div>
       ${st("PT", "PTS")}${st("RT", "REB")}${st("AS", "AST")}
       ${nt.texto ? `<div class="nt">${escapeHtml(String(nt.texto).slice(0, 110))}</div>` : ""}</div>`;
@@ -6437,7 +6437,7 @@ function informeVisualHtml(nombre) {
   const sigla = String(oficial).split(/\s+/).map(s => s[0]).slice(0, 2).join("").toUpperCase();
   const prox = partidosDeEquipo(nombre).find(x => !x.jugado);
   return `<div class="iv"><div class="hero"><div class="bar"><span class="live">SCOUTING REPORT</span><span>${prox ? `<b>${escapeHtml(prox.jornada ? "JORNADA " + prox.jornada : "PRÓXIMO PARTIDO")}</b>` : ""}</span></div>
-    <div class="ttl"><div class="hex"><i>${escudo ? `<img src="${escapeAttr(escudo)}" crossorigin="anonymous" alt="" onerror="this.outerHTML='<b>${escapeAttr(sigla)}</b>'">` : `<b>${escapeHtml(sigla)}</b>`}</i></div>
+    <div class="ttl"><div class="hex"><i>${escudo ? `<img src="${escapeAttr(escudo)}" alt="" onerror="this.outerHTML='<b>${escapeAttr(sigla)}</b>'">` : `<b>${escapeHtml(sigla)}</b>`}</i></div>
       <div><h1>${escapeHtml(oficial)}</h1><div class="sub">INFORME PREVIO AL PARTIDO</div></div></div>
     <div class="rec">${par.length ? `<div class="pill"><small>RÉCORD</small><b>${v} – ${d}</b></div><div class="pill"><small>PTS A FAVOR</small><b>${fmt(pf)}</b></div><div class="pill"><small>PTS CONTRA</small><b>${fmt(pc)}</b></div>` : ""}
       ${ultimos.length ? `<div class="fm"><span>FORMA</span>${ultimos.map(x => `<i class="${x.gano ? "W" : "L"}">${x.gano ? "V" : "D"}</i>`).join("")}</div>` : ""}</div></div>
@@ -6463,7 +6463,15 @@ function abrirInformeVisual(nombre) {
     const b = ev.currentTarget; b.disabled = true; b.textContent = "Creando imagen...";
     try {
       if (!window.html2canvas) await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
-      const lienzo = await window.html2canvas(document.querySelector("#ivCapa .iv"), { scale: 2, useCORS: true, backgroundColor: "#07090c" });
+      const raiz = document.querySelector("#ivCapa .iv"), malas = [];
+      // las imagenes de la FEB solo se pueden meter en la imagen si el servidor lo permite
+      await Promise.all([...raiz.querySelectorAll("img")].map(async (im, i) => {
+        try { const r = await fetch(im.src, { mode: "cors" }); const bl = await r.blob(); im.src = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }); }
+        catch (e) { im.setAttribute("data-mala", "1"); malas.push(i); }
+      }));
+      await Promise.all([...raiz.querySelectorAll("img")].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; })));
+      const lienzo = await window.html2canvas(raiz, { scale: 2, useCORS: true, backgroundColor: "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" });
+      if (malas.length) setTimeout(() => alert("Algunas fotos o escudos no se pudieron incluir en la imagen (la web de origen no lo permite). En «Imprimir / PDF» sí salen."), 300);
       lienzo.toBlob((bl) => { const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
     } catch (e) { alert("No se pudo crear la imagen. Usa «Imprimir / PDF» o haz una captura de pantalla."); }
     b.disabled = false; b.textContent = "Descargar imagen";
