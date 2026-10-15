@@ -6956,7 +6956,11 @@ function ivMostrar(html, nombre, render, conCompleto) {
   document.getElementById("ivPng").onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true; b.textContent = "Creando imagen...";
     try {
-      if (!window.html2canvas) await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+      if (!window.html2canvas) {
+        const fuentes = ["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js", "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js", "https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"];
+        for (const u of fuentes) { try { await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = u; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); if (window.html2canvas) break; } catch (e) { /* siguiente */ } }
+        if (!window.html2canvas) throw new Error("No se pudo cargar el creador de imágenes (revisa la conexión).");
+      }
       const raiz = document.querySelector("#ivCapa [data-iv]"), malas = [];
       // las imagenes de la FEB solo se pueden meter en la imagen si el servidor lo permite
       await Promise.all([...raiz.querySelectorAll("img")].map(async (im, i) => {
@@ -6965,10 +6969,12 @@ function ivMostrar(html, nombre, render, conCompleto) {
       }));
       await Promise.all([...raiz.querySelectorAll("img")].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; })));
       const fondo = getComputedStyle(raiz).backgroundColor;
-      const lienzo = await window.html2canvas(raiz, { scale: 2, useCORS: true, backgroundColor: fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" });
+      const rw = raiz.scrollWidth || raiz.offsetWidth || 1, rh = raiz.scrollHeight || raiz.offsetHeight || 1;
+      const esc2 = Math.max(0.5, Math.min(2, 15000 / rh, Math.sqrt(100e6 / (rw * rh))));
+      const lienzo = await window.html2canvas(raiz, { scale: esc2, width: rw, height: rh, windowWidth: Math.max(rw, document.documentElement.clientWidth), logging: false, useCORS: true, backgroundColor: fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" });
       if (malas.length) setTimeout(() => alert("Algunas fotos o escudos no se pudieron incluir en la imagen (la web de origen no lo permite). En «Imprimir / PDF» sí salen."), 300);
-      lienzo.toBlob((bl) => { const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
-    } catch (e) { alert("No se pudo crear la imagen. Usa «Imprimir / PDF» o haz una captura de pantalla."); }
+      lienzo.toBlob((bl) => { if (!bl) { alert("La imagen es demasiado grande para este navegador. Usa «Imprimir / PDF»."); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
+    } catch (e) { alert("No se pudo crear la imagen" + (e && e.message ? " (" + e.message + ")" : "") + ". Usa «Imprimir / PDF» o haz una captura de pantalla."); }
     b.disabled = false; b.textContent = "Descargar imagen";
   };
 }
