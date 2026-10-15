@@ -8030,6 +8030,11 @@ async function abrirEnvioJugadoras(nombre, modo) {
       <select id="envPb" style="width:100%;padding:10px;border:1.5px solid var(--wood-line);border-radius:8px;font-family:inherit;font-size:14.5px;background:var(--suave);color:var(--ink);"><option value="">Cargando tus playbooks...</option></select>
     </div>`;
 
+  const vidBloque = esEquipo ? "" : `<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--wood-line);border-radius:10px;">
+      <b style="font-size:14.5px;">Vídeos del rival (de Entrenador)</b>
+      <div id="envVids"><p class="hint" style="margin:3px 0 0;">Cargando tus vídeos...</p></div>
+    </div>`;
+
   document.body.insertAdjacentHTML("beforeend", `
     <div id="capaEnvio" style="position:fixed;inset:0;z-index:10000;background:rgba(27,36,50,.55);
          display:flex;align-items:center;justify-content:center;padding:16px;">
@@ -8046,6 +8051,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
         ${cuerpo}
         ${pdfBloque}
         ${pbBloque}
+        ${vidBloque}
         <div id="envAviso"></div>
         <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;">
           <button class="btn-partido" id="envMandar">Mandar a todas</button>
@@ -8074,6 +8080,18 @@ async function abrirEnvioJugadoras(nombre, modo) {
     } catch (e) { sel.innerHTML = '<option value="">(no se pudieron cargar)</option>'; }
   })();
 
+  let VIDS_ENV = [];
+  (async () => {
+    const box = document.getElementById("envVids"); if (!box) return;
+    const R = await leerVideosEntrenador().catch(() => null);
+    if (!R || R.sinSesion) { box.innerHTML = '<p class="hint" style="margin:3px 0 0;">(entra en Panel para ver tus vídeos)</p>'; return; }
+    const ne = normNombre(oficial);
+    const mios = R.vids.filter(v => v.m.equipo && (normNombre(v.m.equipo) === ne || normNombre(v.m.equipo).includes(ne) || ne.includes(normNombre(v.m.equipo))));
+    VIDS_ENV = mios;
+    box.innerHTML = mios.length ? '<p class="hint" style="margin:3px 0 8px;">Marca los que quieres que vean junto al scouting.</p>' + mios.map((v, i) => `<label style="display:flex;gap:8px;align-items:center;margin:5px 0;font-size:14px;"><input type="checkbox" data-envvid="${i}" checked> ${escapeHtml([v.m.jugadora, v.m.categoria].filter(Boolean).join(" · ") || v.nombre)}</label>`).join("")
+      : '<p class="hint" style="margin:3px 0 0;">No tienes vídeos guardados con el equipo "' + escapeHtml(oficial) + '". Guárdalos desde el editor con ese equipo.</p>';
+  })();
+
   const mandar = document.getElementById("envMandar");
   if (!mandar) return;
 
@@ -8093,7 +8111,9 @@ async function abrirEnvioJugadoras(nombre, modo) {
     const enlacePdf = document.getElementById("envPdfUrl").value.trim();
     const selPb = document.getElementById("envPb");
     const pbElegido = (selPb && selPb.value !== "") ? PBS[Number(selPb.value)] : null;
-    if (!elegidos.length && !archivoPdf && !enlacePdf && !pbElegido) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
+    const vidsEl = [...document.querySelectorAll("[data-envvid]:checked")].map(i => VIDS_ENV[Number(i.getAttribute("data-envvid"))]).filter(Boolean);
+    const seccionVid = vidsEl.length ? { tipo: "videos", titulo: "Vídeos del rival", videos: vidsEl.map(v => ({ titulo: [v.m.jugadora, v.m.categoria].filter(Boolean).join(" · ") || v.nombre, url: v.url, nota: v.m.nota || "", etiquetas: v.m.categoria ? [v.m.categoria] : [] })) } : null;
+    if (!elegidos.length && !archivoPdf && !enlacePdf && !pbElegido && !seccionVid) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
     if (archivoPdf && archivoPdf.size > 45 * 1024 * 1024) { avisoEnvio("El PDF pesa mas de 45 MB. Comprimelo o pega un enlace.", "error"); return; }
 
     mandar.disabled = true; mandar.textContent = archivoPdf ? "Subiendo el PDF..." : "Mandando...";
@@ -8130,7 +8150,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
       titulo: esEquipo ? "Mi equipo: " + oficial : "Scouting: " + oficial,
       rival: esEquipo ? "__MI_EQUIPO__" : oficial,
       partido: partido || null,
-      secciones: (seccionPb ? [seccionPb] : []).concat(seccionesPdf.length ? [{ tipo: "pdf", titulo: esEquipo ? "Playbook en PDF" : "Playbook del rival (PDF)", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
+      secciones: (seccionVid ? [seccionVid] : []).concat(seccionPb ? [seccionPb] : []).concat(seccionesPdf.length ? [{ tipo: "pdf", titulo: esEquipo ? "Playbook en PDF" : "Playbook del rival (PDF)", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
         ? t.carga
         : { tipo: "texto", titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto })),
     });
