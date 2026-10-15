@@ -2476,7 +2476,7 @@ function centroVideo() {
 .cvHl{overflow:auto;padding:6px 14px 20px}.cvHg{display:grid;grid-template-columns:92px minmax(220px,1.3fr) minmax(0,1fr) minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 8px;border-bottom:1px solid #1e2834}.cvHg:hover{background:#ffffff08}.cvHg .cvPe{min-width:0}.cvHs{font-size:12.5px;color:#cfd6de;line-height:1.55;min-width:0}.cvHs small{display:block;color:#586574;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:800}.cvHs b{color:#8fb4ff}
 .cvHg .ac{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.cvHg .ac button{border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:7px 10px;font-weight:800;font-size:12.5px}.cvHg .ac button.p{background:#e0602a;border-color:#e0602a;color:#fff}.cvHg .ac .no{font-size:11.5px;color:#586574}
 .cvHj{align-content:start;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:14px;overflow:auto;flex:1}.cvHj button{text-align:left;border:1px solid #2c3744;background:#131b24;color:#e6ebf1;border-radius:10px;padding:12px}.cvHj button:hover{border-color:#e0602a}.cvHj b{display:block;font-size:14px}.cvHj span{font-size:12px;color:#8b95a3}
-@media(max-width:820px){.cvHb{grid-template-columns:minmax(0,1fr);overflow:auto}.cvHf{border-right:0;border-bottom:1px solid #222d3a}.cvHg{grid-template-columns:minmax(0,1fr)}.cvHg .ac{justify-content:flex-start}.cvHs{display:none}}
+@media(max-width:820px){.cvFg{grid-template-columns:minmax(0,1fr)!important}.cvHb{grid-template-columns:minmax(0,1fr);overflow:auto}.cvHf{border-right:0;border-bottom:1px solid #222d3a}.cvHg{grid-template-columns:minmax(0,1fr)}.cvHg .ac{justify-content:flex-start}.cvHs{display:none}}
 .cvPt{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #1e2834;cursor:pointer}.cvPt:hover{background:#ffffff0a}.cvPt.on{background:#e0602a22;box-shadow:inset 3px 0 0 #e0602a}
 .cvPf{font-size:12px;color:#8b95a3;line-height:1.5}.cvPf b{display:block;color:#cfd6de}
 .cvPe>div{display:flex;align-items:center;gap:8px;padding:2px 0;font-size:13.5px;color:#9aa4b2}.cvPe>div.w{color:#fff;font-weight:800}.cvPe>div span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cvPe em{font-style:normal;font:800 15px Inter;min-width:28px;text-align:right}
@@ -2617,15 +2617,34 @@ function centroVideo() {
     b.disabled = false; b.textContent = t0;
   };
   /* ===== Inicio estilo Synergy: partidos / jugadoras ===== */
-  let homeTab = "partidos", homeQ = "", homeVid = true, homeMax = 40;
+  let homeTab = "partidos", homeQ = "", homeVid = true, homeMax = 40, fichaJ = "";
   const cierraHome = () => { const h = $c("cvHome"); if (h) h.remove(); };
   const abreVista = (fx, reproducir) => { Object.assign(F, { equipo: "", jugadora: "", categoria: "", resultado: "", partido: "" }, fx); listaAct = ""; sel.clear(); cierraHome(); panel = "resumen"; pintaPanel(); pintaFiltros(); pintaTabla(); if (reproducir) { const v = vista(); if (v.length) pon(v[0].id); } };
   const pintaHome = async () => {
     let h = $c("cvHome"); if (!h) { h = document.createElement("div"); h.id = "cvHome"; h.className = "cvHome"; $c("capaCentro").appendChild(h); }
     if (!OPP) { h.innerHTML = '<p style="padding:20px;color:#8b95a3">Cargando partidos…</p>'; OPP = await partidosOpciones(); }
     if (!CAL.escudos) await cargarEscudos();
-    const nav = `<div class="cvHn"><button data-ht="partidos" class="${homeTab === "partidos" ? "on" : ""}">Partidos</button><button data-ht="jugadoras" class="${homeTab === "jugadoras" ? "on" : ""}">Jugadoras</button><button data-ht="listas">Mis listas</button><button data-ht="todo">Todos los clips (${todos.length})</button></div>`;
-    if (homeTab === "jugadoras") {
+    const nav = `<div class="cvHn"><button data-ht="partidos" class="${homeTab === "partidos" ? "on" : ""}">Partidos</button><button data-ht="jugadoras" class="${homeTab === "jugadoras" || homeTab === "ficha" ? "on" : ""}">Jugadoras</button><button data-ht="listas">Mis listas</button><button data-ht="todo">Todos los clips (${todos.length})</button></div>`;
+    if (homeTab === "ficha") {
+      const cl = todos.filter(x => nn(x.m.jugadora || "") === nn(fichaJ)), nom = (cl[0] && cl[0].m.jugadora) || fichaJ;
+      const eqs = {}; cl.forEach(x => { const e = (x.m.equipo || "").trim(); if (e) eqs[e] = (eqs[e] || 0) + 1; });
+      const eq = Object.keys(eqs).sort((a, b) => eqs[b] - eqs[a])[0] || "";
+      const cats = {}, pts = {}; let ca = 0, fa = 0;
+      cl.forEach(x => { const c = x.m.categoria || "Sin categoría", r = x.m.resultado; const o = cats[c] = cats[c] || { t: 0, a: 0, f: 0 }; o.t++; if (r === "Canasta") { o.a++; ca++; } if (r === "Fallo") { o.f++; fa++; } if (x.m.partido) { pts[x.m.partido] = pts[x.m.partido] || { txt: x.m.partidoTxt || x.m.partido, n: 0 }; pts[x.m.partido].n++; } });
+      const pc = (a, f) => a + f ? Math.round(a / (a + f) * 100) + "%" : "—", maxC = Math.max(1, ...Object.values(cats).map(o => o.t));
+      const tile = (n, t) => `<div style="background:#131b24;border:1px solid #2c3744;border-radius:10px;padding:12px 16px;min-width:110px"><div style="font:800 24px Inter">${n}</div><div style="font-size:11px;color:#8b95a3;letter-spacing:.08em;text-transform:uppercase">${t}</div></div>`;
+      h.innerHTML = nav + `<div style="overflow:auto;padding:16px 20px;flex:1"><button class="cvFb" data-ht="jugadoras" style="border:0;background:none;color:#8b95a3;font-weight:700;margin-bottom:8px">← Jugadoras</button>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px"><div style="flex:1;min-width:200px"><div style="font:900 24px Inter">${esc(nom)}</div><div style="color:#8b95a3">${esc(eq || "Sin equipo")}</div></div>${tile(cl.length, "clips")}${tile(Object.keys(pts).length, "partidos")}${tile(ca + "/" + fa, "canastas/fallos")}${tile(pc(ca, fa), "% acierto")}
+        <button class="p" data-fa="all" style="border:0;background:#e0602a;color:#fff;border-radius:8px;padding:11px 16px;font-weight:800">▶ Ver todos sus clips</button></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px" class="cvFg"><div><div class="cvHs"><small>Qué hace (tipo de jugada)</small></div>
+          ${Object.entries(cats).sort((a, b) => b[1].t - a[1].t).map(([c, o]) => `<div data-fc="${esc(c)}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #1e2834"><div style="display:flex;justify-content:space-between;font-size:13.5px"><b>${esc(c)}</b><span style="color:#8b95a3">${o.t} clip${o.t > 1 ? "s" : ""} · ${pc(o.a, o.f)}</span></div><div style="height:6px;background:#1e2834;border-radius:9px;margin-top:5px"><div style="height:100%;width:${Math.round(o.t / maxC * 100)}%;background:#e0602a;border-radius:9px"></div></div></div>`).join("")}
+          <div class="cvHs" style="margin-top:16px"><small>Partidos</small></div>${Object.entries(pts).map(([k, o]) => `<div data-fp="${esc(k)}" style="cursor:pointer;padding:7px 0;border-bottom:1px solid #1e2834;font-size:13.5px">${esc(String(o.txt).replace(/^J\d+ · /, ""))} <span style="color:#8b95a3">· ${o.n} clip${o.n > 1 ? "s" : ""}</span></div>`).join("") || '<p style="color:#586574;font-size:12.5px">Sus clips aún no tienen partido asignado.</p>'}</div>
+          <div><div class="cvHs"><small>Clips</small></div>${cl.map(x => `<div data-fv="${esc(x.id)}" style="cursor:pointer;padding:8px 10px;border:1px solid #2c3744;background:#131b24;border-radius:8px;margin:6px 0;font-size:13px"><b>▶ ${esc(x.m.categoria || "Clip")}</b> ${x.m.resultado ? `<span style="color:${x.m.resultado === "Canasta" ? "#4ade80" : x.m.resultado === "Fallo" ? "#ff7a85" : "#8b95a3"}">· ${esc(x.m.resultado)}</span>` : ""}${x.m.nota ? `<div style="color:#8b95a3;margin-top:2px">${esc(x.m.nota)}</div>` : ""}${x.m.origen ? `<div style="color:#586574;font-size:11.5px">${esc(x.m.origen)}${x.m.min ? " · min " + esc(x.m.min) : ""}</div>` : ""}</div>`).join("")}</div></div></div>`;
+      h.querySelectorAll("[data-fa]").forEach(b => b.onclick = () => abreVista({ jugadora: nom }, true));
+      h.querySelectorAll("[data-fc]").forEach(b => b.onclick = () => abreVista({ jugadora: nom, categoria: b.dataset.fc === "Sin categoría" ? "" : b.dataset.fc }, true));
+      h.querySelectorAll("[data-fp]").forEach(b => b.onclick = () => abreVista({ jugadora: nom, partido: b.dataset.fp }, true));
+      h.querySelectorAll("[data-fv]").forEach(b => b.onclick = () => { abreVista({ jugadora: nom }, false); pon(b.dataset.fv); });
+    } else if (homeTab === "jugadoras") {
       const mp = {}; todos.forEach(x => { const j = (x.m.jugadora || "").trim(); if (!j) return; const k = nn(j), o = mp[k] = mp[k] || { n: j, c: 0, eq: {} }; o.c++; const e = (x.m.equipo || "").trim(); if (e) o.eq[e] = (o.eq[e] || 0) + 1; });
       const q = homeQ.toLowerCase(), arr = Object.values(mp).filter(o => !q || nn(o.n).includes(nn(q)) || Object.keys(o.eq).some(e => nn(e).includes(nn(q)))).sort((a, b) => b.c - a.c);
       h.innerHTML = nav + `<div class="cvHf" style="flex-direction:row;border-right:0;border-bottom:1px solid #222d3a"><input id="cvHq" type="search" placeholder="Buscar jugadora o equipo…" value="${esc(homeQ)}" style="max-width:360px"></div><div class="cvHj">${arr.map(o => `<button data-hj="${esc(o.n)}"><b>${esc(o.n)}</b><span>${esc(Object.keys(o.eq).sort((a, b) => o.eq[b] - o.eq[a])[0] || "Sin equipo")} · ${o.c} clip${o.c > 1 ? "s" : ""}</span></button>`).join("") || '<p style="color:#8b95a3">Aún no hay clips con jugadora asignada.</p>'}</div>`;
@@ -2652,7 +2671,7 @@ function centroVideo() {
     }
     h.querySelectorAll("[data-ht]").forEach(b => b.onclick = () => { const t = b.dataset.ht; if (t === "partidos" || t === "jugadoras") { homeTab = t; homeQ = ""; pintaHome(); } else if (t === "listas") { Object.assign(F, { equipo: "", jugadora: "", categoria: "", resultado: "", partido: "" }); cierraHome(); panel = "listas"; pintaPanel(); pintaFiltros(); pintaTabla(); } else abreVista({}, false); });
     const q = h.querySelector("#cvHq"); if (q) q.oninput = (e) => { homeQ = e.target.value; const pos = e.target.selectionStart; pintaHome().then(() => { const n = $c("cvHome").querySelector("#cvHq"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} } }); };
-    h.querySelectorAll("[data-hj]").forEach(b => b.onclick = () => abreVista({ jugadora: b.dataset.hj }, false));
+    h.querySelectorAll("[data-hj]").forEach(b => b.onclick = () => { fichaJ = b.dataset.hj; homeTab = "ficha"; pintaHome(); });
     h.querySelectorAll("[data-hp]").forEach(b => b.onclick = () => abreVista({ partido: b.dataset.hp }, !!b.dataset.rep));
     h.querySelectorAll("[data-hv]").forEach(b => b.onclick = () => { homeVid = b.dataset.hv === "1"; homeMax = 40; pintaHome(); });
     h.querySelectorAll("[data-hsin]").forEach(b => b.onclick = () => abreVista({ partido: "-" }, false));
