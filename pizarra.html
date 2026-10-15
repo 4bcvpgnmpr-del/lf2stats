@@ -2728,14 +2728,18 @@ function iniciarPartido() {
       #ptEst .es{background:#17202a;border-radius:18px;padding:14px;width:min(980px,100%);max-height:100%;overflow:auto;box-shadow:0 12px 40px #000c;color:#fff;}
       #ptEst .es-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;} #ptEst button{min-height:42px;} #ptEst .on{background:#e8590c;}
       #ptEst .es-res{display:flex;gap:14px;flex-wrap:wrap;background:#223040;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:15px;} #ptEst .es-res b{font-size:20px;}
+      #ptEst .cmp{width:100%;border-collapse:collapse;background:#223040;border-radius:12px;overflow:hidden;font-size:16px;font-variant-numeric:tabular-nums;margin-bottom:10px;} #ptEst .cmp th{padding:8px;font-size:14px;background:#1b2836;} #ptEst .cmp td{padding:7px 10px;text-align:center;border-top:1px solid #2d3d4e;width:36%;} #ptEst .cmp td.l{width:28%;opacity:.7;font-size:13px;} #ptEst .cmp td.hi{color:#8ce99a;font-weight:800;} #ptEst .cmp small{opacity:.7;font-size:12px;}
+      #ptEst .tops{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:14px;} #ptEst .tops>div{background:#223040;border-radius:12px;padding:8px 10px;} #ptEst .tops span{opacity:.65;margin-right:4px;} @media (max-width:760px){#ptEst .tops{grid-template-columns:1fr;}}
+      #ptEst .sum{display:grid;grid-template-columns:1fr 1fr;gap:12px;} @media (max-width:760px){#ptEst .sum{grid-template-columns:1fr;}}
+      #ptEst .sum h5{margin:0 0 6px;font-size:16px;display:flex;justify-content:space-between;} #ptEst .sum table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;background:#223040;border-radius:12px;overflow:hidden;} #ptEst .sum th{font-size:12px;opacity:.65;font-weight:700;padding:6px 4px;text-align:center;} #ptEst .sum td{padding:7px 4px;text-align:center;border-top:1px solid #2d3d4e;} #ptEst .sum th:first-child,#ptEst .sum td:first-child{text-align:left;padding-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;} #ptEst .sum td.p{font-weight:800;font-size:17px;} #ptEst .sum tr.t td{font-weight:800;background:#1b2836;} #ptEst .sum td.lo{color:#ff8787;} #ptEst .sum td.hi{color:#8ce99a;}
       #ptEst .es-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#223040;border-radius:12px;padding:6px 8px;margin-bottom:6px;} #ptEst .es-f .nm{width:130px;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       #ptEst .g{display:flex;gap:3px;align-items:center;background:#17202a;border-radius:10px;padding:3px;} #ptEst .g button{min-width:46px;padding:0 8px;font-size:15px;} #ptEst .g span{font-size:13px;min-width:46px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;} #ptEst .ok{background:#2b8a3e;} #ptEst .ko{background:#a61e1e;}
       #ptEst .es-tot{background:#2c3947;} #ptEst .corr .g button::before{content:'−';font-weight:900;margin-right:2px;} #ptEst .corr .g button{outline:2px solid #ff6b6b;}`;
     document.head.appendChild(est);
     const EP = document.createElement("div"); EP.id = "ptEst"; $("partido").appendChild(EP);
-    const ESV = { eq: 0, v: "auto", corr: false }, UND = [];
+    const ESV = { eq: 0, v: "auto", corr: false, res: false }, UND = [];
     const mitad = () => (M.per <= 2 ? "h1" : "h2");
-    const cero = () => ({ reb: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
+    const cero = () => ({ reb: 0, ro: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
     const vista = () => (ESV.v === "auto" ? mitad() : ESV.v);
     const suma = (k, v) => { const o = cero(); ((M.es[k] || {}));  ["h1", "h2"].forEach(h => { if (v !== "tot" && v !== h) return; const d = (M.es[k] || {})[h]; if (d) Object.keys(o).forEach(f => o[f] += d[f] || 0); }); return o; };
     const clavesEq = () => Object.keys(M.es).filter(k => (ESV.eq === 1) === (k.indexOf("rv") === 0));
@@ -2743,7 +2747,7 @@ function iniciarPartido() {
     const pct = (m, a) => a ? Math.round(100 * m / a) + "%" : "–";
     /* ---- datos de la FEB (función feb-directo en Supabase) ---- */
     const FEB = { auto: false, t: null, msg: "" };
-    const nzero = () => ({ reb: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
+    const nzero = () => ({ reb: 0, ro: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
     const febAplicar = (d) => {
       const eqs = d.equipos || []; if (eqs.length < 2) throw new Error("La FEB aún no da datos de jugadoras");
       let mi = -1; try { const g = localStorage.getItem("scoutflow-feb-mi-" + d.id); mi = g === "0" ? 0 : g === "1" ? 1 : -1; } catch (e) { mi = -1; }
@@ -2756,7 +2760,7 @@ function iniciarPartido() {
       }
       M.febH1 = M.febH1 || {}; const h1c = M.per <= 2; let sin = 0, n = 0;
       const poner = (k, p) => {
-        const tot = { reb: p.reb, per: p.per, t2m: p.t2m, t2a: p.t2a, t3m: p.t3m, t3a: p.t3a, tlm: p.tlm, tla: p.tla };
+        if (p.ro !== undefined) M.hayRo = true; const tot = { reb: p.reb, ro: p.ro || 0, per: p.per, t2m: p.t2m, t2a: p.t2a, t3m: p.t3m, t3a: p.t3a, tlm: p.tlm, tla: p.tla };
         let h1 = tot, h2 = nzero();
         if (h1c) M.febH1[k] = tot;
         else if (M.febH1[k]) { h1 = M.febH1[k]; Object.keys(h2).forEach(f => h2[f] = Math.max(0, tot[f] - (h1[f] || 0))); }
@@ -2766,7 +2770,7 @@ function iniciarPartido() {
         const nm = normEq(bonito(p.nombre)), j = PLT.find(x => (p.no !== "" && String(x.num) === String(p.no)) || (nm && normEq(x.nombre) === nm));
         if (!j) { sin++; return; } poner(j.id, p); if (p.f) (M.fj = M.fj || {})[j.id] = p.f;
       });
-      eqs[1 - mi].jug.forEach(p => { if (p.no === "") return; const k = "rv" + p.no; poner(k, p); if (!M.rvn.includes(p.no)) M.rvn.push(p.no); });
+      eqs[1 - mi].jug.forEach(p => { if (p.no === "") return; const k = "rv" + p.no; poner(k, p); if (p.f) (M.fr = M.fr || {})[k] = p.f; if (!M.rvn.includes(p.no)) M.rvn.push(p.no); });
       guardarM();
       const q = d.cuartos && d.cuartos.length ? " · cuarto " + d.cuartos[d.cuartos.length - 1].n : "";
       FEB.msg = "📡 FEB actualizada " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "");
@@ -2782,11 +2786,44 @@ function iniciarPartido() {
       if (!nube) { aviso("Hace falta conexión con la nube para traer datos de la FEB"); return; }
       FEB.msg = "📡 Pidiendo datos a la FEB…"; if (EP.classList.contains("ver")) pintarEs();
       try {
-        const r = await nube.functions.invoke("clever-endpoint", { body: { id } });
+        let r = null;
+        for (const fn of ["super-action", "clever-endpoint"]) { r = await nube.functions.invoke(fn, { body: { id } }); const st = r.error && r.error.context && r.error.context.status; if (!r.error || (st !== 404 && !/not found/i.test(String(r.error.message || "")))) break; }
         if (r.error) throw new Error(r.error.message || "sin respuesta"); if (r.data && r.data.error) throw new Error(r.data.error);
         febAplicar(r.data);
       } catch (e) { FEB.msg = "⚠️ No se pudo traer de la FEB (" + (e.message || e) + "). Sigue con el panel manual."; if (!callado) aviso("FEB no disponible: usa el panel manual"); }
       if (EP.classList.contains("ver")) pintarEs();
+    };
+    const resumenHtml = (v) => {
+      const mios = PLT.map(j => ({ k: j.id, t: (j.num !== "" && j.num != null ? j.num + " " : "") + j.nombre }));
+      const riv = [{ k: "rv", t: "Rival (equipo)" }].concat(M.rvn.map(n => ({ k: "rv" + n, t: "#" + n })));
+      const hRo = !!M.hayRo, fc = (m, a) => m + "/" + a;
+      const calc = (filasT, fmap) => {
+        const T = { pts: 0, reb: 0, ro: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, f: 0 };
+        const rows = filasT.map(r => { const o = suma(r.k, v), pts = o.t2m * 2 + o.t3m * 3 + o.tlm, f = (fmap || {})[r.k] || 0; ["reb", "ro", "per", "t2m", "t2a", "t3m", "t3a", "tlm", "tla"].forEach(c => T[c] += o[c]); T.pts += pts; T.f += f; return { t: r.t, o, pts, f }; });
+        T.tcm = T.t2m + T.t3m; T.tca = T.t2a + T.t3a;
+        return { T, rows: rows.filter(r => r.pts || r.o.reb || r.o.per || r.o.t2a || r.o.t3a || r.o.tla || r.f).sort((a, b) => b.pts - a.pts) };
+      };
+      const A = calc(mios, M.fj), R = calc(riv, M.fr);
+      /* comparativa */
+      const fila = (lab, va, vb, txtA, txtB, menosMejor) => { const mejorA = menosMejor ? va < vb : va > vb, mejorB = menosMejor ? vb < va : vb > va; return `<tr><td class="${mejorA ? "hi" : ""}">${txtA}</td><td class="l">${lab}</td><td class="${mejorB ? "hi" : ""}">${txtB}</td></tr>`; };
+      const pc = (m, a) => (a ? " <small>" + Math.round(100 * m / a) + "%</small>" : "");
+      const cmp = `<table class="cmp"><tr><th>${esc(M.n[0])}</th><th></th><th>${esc(M.n[1])}</th></tr>
+        ${fila("Puntos", A.T.pts, R.T.pts, A.T.pts, R.T.pts)}
+        ${fila("Tiros de campo", A.T.tcm, R.T.tcm, fc(A.T.tcm, A.T.tca) + pc(A.T.tcm, A.T.tca), fc(R.T.tcm, R.T.tca) + pc(R.T.tcm, R.T.tca))}
+        ${fila("Triples", A.T.t3m, R.T.t3m, fc(A.T.t3m, A.T.t3a) + pc(A.T.t3m, A.T.t3a), fc(R.T.t3m, R.T.t3a) + pc(R.T.t3m, R.T.t3a))}
+        ${fila("Tiros libres", A.T.tlm, R.T.tlm, fc(A.T.tlm, A.T.tla) + pc(A.T.tlm, A.T.tla), fc(R.T.tlm, R.T.tla) + pc(R.T.tlm, R.T.tla))}
+        ${fila("Rebotes", A.T.reb, R.T.reb, A.T.reb, R.T.reb)}
+        ${hRo ? fila("Reb. ofensivos", A.T.ro, R.T.ro, A.T.ro, R.T.ro) + fila("Reb. defensivos", A.T.reb - A.T.ro, R.T.reb - R.T.ro, A.T.reb - A.T.ro, R.T.reb - R.T.ro) : '<tr><td>–</td><td class="l">Reb. ofensivos</td><td>–</td></tr>'}
+        ${fila("Pérdidas", A.T.per, R.T.per, A.T.per, R.T.per, true)}
+        ${fila("Faltas", A.T.f, R.T.f, A.T.f, R.T.f, true)}</table>`;
+      /* máximas anotadoras */
+      const top = (X) => X.rows.filter(r => r.pts > 0 && r.t !== "Rival (equipo)").slice(0, 3).map(r => `<b>${esc(r.t)}</b> ${r.pts}`).join(" · ") || "–";
+      const tops = `<div class="tops"><div>🔥 <span>${esc(M.n[0])}</span> ${top(A)}</div><div>🔥 <span>${esc(M.n[1])}</span> ${top(R)}</div></div>`;
+      /* tablas por jugadora */
+      const tabla = (nom, X) => `<div><h5><span>${esc(nom)}</span><span style="opacity:.8;">${X.T.pts} pts</span></h5><table><tr><th>Jug.</th><th>PTS</th><th>REB</th>${hRo ? "<th>RO</th>" : ""}<th>PER</th><th>2P</th><th>3P</th><th>TL</th><th>F</th></tr>
+          ${X.rows.map(r => `<tr><td>${esc(r.t)}</td><td class="p">${r.pts}</td><td>${r.o.reb}</td>${hRo ? `<td>${r.o.ro}</td>` : ""}<td class="${r.o.per >= 3 ? "lo" : ""}">${r.o.per}</td><td>${fc(r.o.t2m, r.o.t2a)}</td><td>${fc(r.o.t3m, r.o.t3a)}</td><td>${fc(r.o.tlm, r.o.tla)}</td><td class="${r.f >= 3 ? "lo" : ""}">${r.f || 0}</td></tr>`).join("") || `<tr><td colspan="9" style="opacity:.6;">Sin datos todavía</td></tr>`}
+          <tr class="t"><td>Equipo</td><td>${X.T.pts}</td><td>${X.T.reb}</td>${hRo ? `<td>${X.T.ro}</td>` : ""}<td>${X.T.per}</td><td>${fc(X.T.t2m, X.T.t2a)} <small>${pct(X.T.t2m, X.T.t2a)}</small></td><td>${fc(X.T.t3m, X.T.t3a)} <small>${pct(X.T.t3m, X.T.t3a)}</small></td><td>${fc(X.T.tlm, X.T.tla)}</td><td>${X.T.f}</td></tr></table></div>`;
+      return `${cmp}${tops}<div class="sum">${tabla(M.n[0], A)}${tabla(M.n[1], R)}</div>`;
     };
     const pintarEs = () => {
       const v = vista(), fl = filas(), tot = cero();
@@ -2794,16 +2831,17 @@ function iniciarPartido() {
       const tcm = tot.t2m + tot.t3m, tca = tot.t2a + tot.t3a, pts = tot.t2m * 2 + tot.t3m * 3 + tot.tlm;
       const nomV = { h1: "1ª mitad", h2: "2ª mitad", tot: "Total" };
       const g = (k, f, lab, ok) => `<button class="${ok || ""}" data-k="${k}" data-f="${f}">${lab}</button>`;
-      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta de la mitad que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span><button id="esFeb" title="Trae rebotes, pérdidas y tiros de los dos equipos desde la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar solo cada 30 s">${FEB.auto ? "⏱ Auto" : "⏱"}</button>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
+      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta de la mitad que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span><button id="esFeb" title="Trae rebotes, pérdidas y tiros de los dos equipos desde la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar solo cada 30 s">${FEB.auto ? "⏱ Auto" : "⏱"}</button>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esRes" class="${ESV.res ? "on" : ""}" title="Vista compacta para el descanso: los dos equipos, solo lectura">📋 Resumen</button><button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
         ${FEB.msg ? `<div style="background:#223040;border-radius:10px;padding:6px 10px;margin-bottom:8px;font-size:13px;">${FEB.msg}</div>` : ""}<div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
         <div class="es-res"><span>${nomV[v]} · Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> (${pct(tcm, tca)})</span><span>2P <b>${tot.t2m}/${tot.t2a}</b></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Rebotes <b>${tot.reb}</b></span><span>Pérdidas <b>${tot.per}</b></span></div>
-        ${fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
+        ${ESV.res ? resumenHtml(v) : fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
           <div class="g">${g(kk, "reb", "REB")}<span>${o.reb}</span></div><div class="g">${g(kk, "per", "PER")}<span>${o.per}</span></div>
           <div class="g">${g(kk, "t2m", "2✓", "ok")}${g(kk, "t2x", "2✗", "ko")}<span>2P ${o.t2m}/${o.t2a}</span></div>
           <div class="g">${g(kk, "t3m", "3✓", "ok")}${g(kk, "t3x", "3✗", "ko")}<span>3P ${o.t3m}/${o.t3a}</span></div>
           <div class="g">${g(kk, "tlm", "TL✓", "ok")}${g(kk, "tlx", "TL✗", "ko")}<span>TL ${o.tlm}/${o.tla}</span></div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadoras: elige «Mi equipo» en la app de estadísticas.</div>'}
-        ${ESV.eq === 1 ? '<button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
+        ${ESV.eq === 1 && !ESV.res ? '<button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
         <div style="opacity:.6;font-size:12px;margin-top:8px;">Se anota en el cuarto actual: cuartos 1-2 = 1ª mitad. Cambia el cuarto en el marcador.</div></div>`;
+      if ($("esRes")) $("esRes").onclick = () => { ESV.res = !ESV.res; ESV.corr = false; pintarEs(); };
       EP.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => { ESV.eq = Number(b.dataset.eq); pintarEs(); });
       EP.querySelectorAll("[data-pp]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.pp); M.f = [0, 0]; guardarM(); pintarM(); pintarEs(); });
       EP.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { ESV.v = b.dataset.v; pintarEs(); });
