@@ -6611,6 +6611,42 @@ function ivRender(est, d) {
     ${ju.length ? `<h3>Jugadoras a vigilar</h3><div class="pl">${ju.map(p => `<div class="pc">${ivAv(p)}<div><small>${escapeHtml(p.pos)}${p.dorsal ? " · #" + escapeHtml(p.dorsal) : ""}</small><h4>${escapeHtml(p.nombre)}</h4></div><div class="b">${ivStats3(p)}</div></div>`).join("")}</div>` : ""}
     ${cl.length ? `<h3>Plan de partido</h3>${cl.map((c, i) => `<div class="cl"><i>JUGADA ${i + 1}</i><b>${escapeHtml(c)}</b></div>`).join("")}` : ""}</div>${pie()}</div>`;
 }
+/* Resumen en texto del rival, para pegarlo en un chat con Claude y pedirle un informe */
+function resumenParaIA(nombre) {
+  const oficial = equipoOficial(nombre), fuente = datosLiga ? datosLiga.equipos : equipos;
+  const L = ["Eres analista de baloncesto. Con estos datos de scouting de un rival, redacta un informe para mi equipo: cómo juega, sus puntos fuertes y débiles, a quién defender y qué plan proponer.", "", "RIVAL: " + oficial + (miEquipo ? " (mi equipo: " + miEquipo + ")" : "")];
+  const fmt = (x) => fmtNum(Math.round(x * 10) / 10);
+  if (fuente) {
+    const { baseType } = groupTotalMediaCols(equipoStatCols());
+    const todas = fuente.rows.map(r => ivMedias(r, baseType));
+    const objetivo = normalizarEquipo(oficial);
+    const fila = fuente.rows.find(r => normalizarEquipo(cellText(r, "Equipo")) === objetivo);
+    const m = fila ? ivMedias(fila, baseType) : null;
+    if (m) {
+      L.push("", "ESTADÍSTICAS DEL EQUIPO (media por partido; entre paréntesis la media de la liga):");
+      IV_EJES.forEach(e => {
+        const vs = todas.map(x => x[e.k]).filter(v => v !== null && v !== undefined && !isNaN(v));
+        if (m[e.k] == null || !vs.length) return;
+        L.push("- " + e.t + ": " + fmt(m[e.k]) + e.u + " (liga " + fmt(vs.reduce((a, b) => a + b, 0) / vs.length) + e.u + ")");
+      });
+    }
+  }
+  const par = partidosDeEquipo(nombre).filter(x => x.jugado && x.gano !== null);
+  if (par.length) {
+    const v = par.filter(x => x.gano).length;
+    L.push("", "RESULTADOS: " + v + " victorias y " + (par.length - v) + " derrotas. Últimos: " + par.slice(-5).map(x => (x.gano ? "G " : "P ") + (x.pf != null ? x.pf + "-" + x.pc : "")).join(", "));
+  }
+  const plant = plantillaDe(nombre).slice(0, 8);
+  if (plant.length) {
+    L.push("", "JUGADORAS PRINCIPALES:");
+    plant.forEach(p => L.push("- " + p.jugadora + (p.dorsal ? " (#" + p.dorsal + ")" : "") + ": " + [["PT", "pts"], ["RT", "reb"], ["AS", "ast"]].filter(k => p[k[0]] != null).map(k => p[k[0]] + " " + k[1]).join(", ")));
+  }
+  const f = scoutFicha("equipos", nombre), campos = (f.informe && f.informe.campos) || {};
+  const nombresCampo = { fortalezas: "Fortalezas (mis notas)", debilidades: "Debilidades (mis notas)" };
+  Object.keys(campos).forEach(k => { const t = String(campos[k] || "").trim(); if (t) L.push("", (nombresCampo[k] || k).toUpperCase() + ":", t); });
+  return L.join("\n");
+}
+
 function informeVisualHtml(nombre, estilo) {
   const oficial = equipoOficial(nombre), fuente = datosLiga ? datosLiga.equipos : equipos;
   if (!fuente) return null;
@@ -7118,6 +7154,7 @@ function informeHtml(nombre) {
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-partido" id="btnMandarJugadoras" style="background:var(--verde,#1f7a5a);">Enviar a mis jugadoras</button>
         <button class="btn-partido" id="btnInformeVisual" style="background:#14181c;">Informe visual</button>
+        <button class="btn-partido" id="btnResumenIA" style="background:#5b3fd1;">Copiar resumen para IA</button>
         <button class="btn-partido" id="btnImprimirInforme">Imprimir o guardar en PDF</button>
       </div>
     </div>
@@ -7477,6 +7514,14 @@ function wireInforme(contenedor) {
 
   const btn = panel.querySelector("#btnImprimirInforme");
   if (btn) btn.addEventListener("click", () => imprimirInforme(nombre));
+
+  const btnIA = panel.querySelector("#btnResumenIA");
+  if (btnIA) btnIA.addEventListener("click", async () => {
+    const t = resumenParaIA(nombre);
+    try { await navigator.clipboard.writeText(t); btnIA.textContent = "Copiado. Pégalo en un chat con Claude"; }
+    catch (e) { window.prompt("Copia este texto (Ctrl/Cmd+C) y pégalo en un chat con Claude:", t); }
+    setTimeout(() => { btnIA.textContent = "Copiar resumen para IA"; }, 3500);
+  });
 
   const btnIV = panel.querySelector("#btnInformeVisual");
   if (btnIV) btnIV.addEventListener("click", () => abrirInformeVisual(nombre));
