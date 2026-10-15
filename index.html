@@ -6966,14 +6966,31 @@ function ivMostrar(html, nombre, render, conCompleto) {
       const raiz = document.querySelector("#ivCapa [data-iv]"), malas = [];
       // las imagenes de la FEB solo se pueden meter en la imagen si el servidor lo permite
       await Promise.all([...raiz.querySelectorAll("img")].map(async (im, i) => {
-        try { const r = await fetch(im.src, { mode: "cors" }); const bl = await r.blob(); im.src = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }); }
-        catch (e) { im.setAttribute("data-mala", "1"); malas.push(i); }
+        if (/^data:/.test(im.src)) return;
+        const aData = async (u) => { const r = await fetch(u, { mode: "cors" }); if (!r.ok) throw new Error("x"); const bl = await r.blob(); return await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }); };
+        try { im.src = await aData(im.src); }
+        catch (e) {
+          // la web de origen no deja copiar la foto: se pide por un servicio de imagenes que si lo permite (y de paso mas nitida)
+          try { const o = im.src.replace(/^https?:\/\//, ""); im.src = await aData("https://images.weserv.nl/?url=" + encodeURIComponent(o) + "&w=900&output=jpg&q=92"); }
+          catch (e2) { im.setAttribute("data-mala", "1"); malas.push(i); }
+        }
       }));
       await Promise.all([...raiz.querySelectorAll("img")].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; })));
       const fondo = getComputedStyle(raiz).backgroundColor;
+      // los dibujos SVG (mapas de tiro) se pasan a imagen con su tamano exacto para que salgan igual que en pantalla
+      const cambios = [];
+      raiz.querySelectorAll("svg").forEach(sv => { try {
+        const r = sv.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+        const c = sv.cloneNode(true); c.setAttribute("width", r.width); c.setAttribute("height", r.height); if (!c.getAttribute("xmlns")) c.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const im2 = new Image(); im2.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(c));
+        im2.style.cssText = "display:block;width:" + r.width + "px;height:" + r.height + "px;" + (getComputedStyle(sv).margin ? "margin:" + getComputedStyle(sv).margin + ";" : "");
+        sv.parentNode.insertBefore(im2, sv); sv.style.display = "none"; cambios.push([sv, im2]);
+      } catch (e) { /* nada */ } });
+      await Promise.all(cambios.map(([, im2]) => im2.complete ? 0 : new Promise(ok => { im2.onload = im2.onerror = ok; })));
+      const restaurar = () => cambios.forEach(([sv, im2]) => { im2.remove(); sv.style.display = ""; });
       const rw = raiz.scrollWidth || raiz.offsetWidth || 1, rh = raiz.scrollHeight || raiz.offsetHeight || 1;
       const esc2 = Math.max(0.5, Math.min(2, 15000 / rh, Math.sqrt(100e6 / (rw * rh))));
-      const lienzo = await window.html2canvas(raiz, { scale: esc2, width: rw, height: rh, windowWidth: Math.max(rw, document.documentElement.clientWidth), logging: false, useCORS: true, backgroundColor: fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" });
+      let lienzo; try { lienzo = await window.html2canvas(raiz, { scale: esc2, width: rw, height: rh, windowWidth: Math.max(rw, document.documentElement.clientWidth), logging: false, useCORS: true, backgroundColor: fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#07090c", ignoreElements: (el) => el.tagName === "IMG" && el.getAttribute("data-mala") === "1" }); } finally { restaurar(); }
       if (malas.length) setTimeout(() => alert("Algunas fotos o escudos no se pudieron incluir en la imagen (la web de origen no lo permite). En «Imprimir / PDF» sí salen."), 300);
       lienzo.toBlob((bl) => { if (!bl) { alert("La imagen es demasiado grande para este navegador. Usa «Imprimir / PDF»."); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "informe-" + String(nombre).replace(/[^A-Za-z0-9]+/g, "_") + ".png"; a.click(); }, "image/png");
     } catch (e) { alert("No se pudo crear la imagen" + (e && e.message ? " (" + e.message + ")" : "") + ". Usa «Imprimir / PDF» o haz una captura de pantalla."); }
