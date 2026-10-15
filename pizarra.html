@@ -201,8 +201,9 @@
   #partido #ptBuscar{flex:1;min-width:140px;max-width:340px;min-height:46px;border-radius:12px;border:0;padding:0 14px;font-size:16px;background:#2c3947;color:#fff;}
   #partido #ptBuscar::placeholder{color:#9fb0c0;}
   #partido .pt-chips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;} #partido .pt-chips button{flex:none;min-height:40px;font-size:14px;}
+  #partido #ptVolver{display:none;background:#e8590c;} body.pt-grande.pt-lista #partido #ptVolver{display:block;} #partido #ptCarpB{white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis;flex:none;} #partido #ptCarpB.on{background:var(--teal);} #partido .pt-chips button.cfg{background:#1f2a36;opacity:.85;min-width:40px;padding:0 10px;} #ptMen .cr .row{display:flex;gap:6px;align-items:center;padding:8px 10px;border-radius:10px;background:#223040;margin-bottom:5px;font-size:15px;} #ptMen .cr .row button{min-height:36px;padding:0 10px;}
   #partido #ptCarp{display:none;} #partido #ptCarp:empty{display:none !important;} #partido #ptCarp button{flex:none;min-height:40px;font-size:14px;background:#a83f15;} #partido #ptCarp button.on{background:var(--teal);} #partido #ptCarp button.sub{background:#2c4a43;} #partido #ptCarp button.mv{background:#e8590c;} #partido #ptCarp small{opacity:.7;}
-  body.pt-grande.pt-lista #partido #ptCarp{display:flex;flex-wrap:wrap;gap:6px;position:fixed;left:0;top:62px;width:min(330px,82vw);box-sizing:border-box;max-height:34vh;overflow-y:auto;z-index:8;background:#17202a;padding:8px;box-shadow:6px 0 24px #000a;}
+  body.pt-grande.pt-lista #partido #ptCarp{display:flex;flex-wrap:nowrap;gap:6px;position:fixed;left:0;top:62px;width:min(330px,82vw);box-sizing:border-box;overflow-x:auto;z-index:8;background:#17202a;padding:8px;box-shadow:6px 0 24px #000a;}
   body.pt-grande.pt-lista #partido #ptLista{top:calc(62px + var(--carp-h,0px)) !important;}
   #ptCar,#ptMen{display:none;position:fixed;inset:0;z-index:34;background:#000c;align-items:center;justify-content:center;padding:10px;} #ptCar.ver,#ptMen.ver{display:flex;} #ptMen .cr{background:#17202a;border-radius:18px;padding:14px;width:min(460px,100%);max-height:100%;overflow:auto;color:#fff;} #ptMen h4{margin:0 0 8px;font-size:16px;} #ptMen label.it{display:flex;gap:8px;align-items:center;padding:10px;border-radius:10px;background:#223040;margin-bottom:5px;font-size:15px;} #ptMen input[type=text]{width:100%;box-sizing:border-box;background:#223040;border:1px solid #3a4b5e;color:#fff;border-radius:10px;padding:0 10px;min-height:44px;font-size:16px;margin-top:6px;} #ptMen input[type=checkbox]{width:22px;height:22px;flex:none;} #ptCar .cr{background:#17202a;border-radius:18px;padding:14px;width:min(460px,100%);max-height:100%;overflow:auto;color:#fff;} #ptCar h4{margin:0 0 8px;font-size:16px;} #ptCar label.it{display:flex;gap:8px;align-items:center;padding:10px;border-radius:10px;background:#223040;margin-bottom:5px;font-size:15px;} #ptCar input[type=text]{width:100%;box-sizing:border-box;background:#223040;border:1px solid #3a4b5e;color:#fff;border-radius:10px;padding:0 10px;min-height:44px;font-size:16px;margin-top:6px;}
   #partido .pt-main{display:flex;flex:1;min-height:0;}
@@ -741,9 +742,10 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
 <!-- Modo partido: pizarra en vivo -->
 <div id="partido">
   <div class="pt-top">
-    <button id="ptSalir">✕ Salir</button>
-    <input id="ptBuscar" type="search" placeholder="Buscar jugada…" autocomplete="off">
+    <button id="ptSalir">✕ Salir</button><button id="ptVolver" title="Cerrar la lista y volver a la jugada">← Volver</button>
+    <input id="ptBuscar" type="search" placeholder="Buscar jugada o carpeta…" autocomplete="off">
     <button id="ptMarc" title="Marcador, faltas, estadísticas y tiempo muerto">⏱ 0–0</button>
+    <button id="ptCarpB" title="Buscar por carpetas">📁 Carpetas</button>
     <div class="pt-chips" id="ptChips"></div>
     <button id="ptFs" title="Pantalla grande">⛶</button>
   </div>
@@ -2403,24 +2405,35 @@ function iniciarPartido() {
   const NOM_TIPO = { "Saque de fondo": "Saque de fondo (BLOB)", "Saque de banda": "Saque de banda (SLOB)" };
   E.carp = E.carp || ""; E.carpTabla = E.carpTabla || [];
   const todasCarp = () => { const set = new Set(); E.carpTabla.concat(E.lista.map(x => x.carpeta || "")).forEach(p => { if (!p) return; const pt = p.split("/"); for (let i = 1; i <= pt.length; i++) set.add(pt.slice(0, i).join("/")); }); return [...set].sort((a, b) => a.localeCompare(b, "es")); };
-  const pintarChips = () => {
+  /* barra superior: solo lo que el entrenador elige (⚙) */
+  const CLAVE_BAR = "scoutflow-barra-partido";
+  try { const b = JSON.parse(localStorage.getItem(CLAVE_BAR) || "null"); E.barra = Array.isArray(b) ? b : null; } catch (e) { E.barra = null; }
+  const guardarBarra = async () => {
+    try { localStorage.setItem(CLAVE_BAR, JSON.stringify(E.barra)); } catch (e) { /* nada */ }
+    if (modoNube) { try { await nube.from("archivos").upsert({ id: "_barra_partido", nombre: JSON.stringify(E.barra), tipo: "ajustes", ruta: "", mime: "", tamano: 0 }); } catch (e) { /* queda en este aparato */ } }
+  };
+  E.guardarBarra = guardarBarra;
+  const opcionesBarra = () => {
     const tipos = [...new Set(E.lista.map(x => x.tipo).filter(Boolean))].sort(), tags = [...new Set(E.lista.flatMap(x => x.tags || []))].sort();
-    const ch = [["todas", "Todas"], ["pin", "★ Mi libro" + (E.pin.size ? " (" + E.pin.size + ")" : "")], ["fav", "⭐ Favoritas"]].concat(E.menus.map(m => ["m:" + m.id, "🏷 " + m.nombre + " (" + m.ids.filter(i => E.lista.some(x => x.id === i)).length + ")"])).concat([["__menus", "＋ Menús"]]).concat(tipos.map(t => ["k:" + t, NOM_TIPO[t] || t])).concat(tags.map(t => ["t:" + t, "#" + t]));
-    $("ptChips").innerHTML = ch.map(([k, n]) => `<button data-f="${esc(k)}" class="${E.filtro === k && !(k === "todas" && E.carp) ? "on" : ""}">${esc(n)}</button>`).join("");
-    $("ptChips").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { if (b.dataset.f === "__menus") { gestorMenus(); return; } E.filtro = b.dataset.f; if (E.filtro === "todas") E.carp = ""; pintarChips(); pintarLista(); }));
-    /* fila de carpetas: las de arriba, y al elegir una salen sus subcarpetas */
-    const cs = todasCarp(), cuenta = (r) => E.lista.filter(x => x.carpeta === r || String(x.carpeta || "").startsWith(r + "/")).length;
-    const hijas = (pad) => cs.filter(r => (r.includes("/") ? r.slice(0, r.lastIndexOf("/")) : "") === pad);
-    let h = "";
-    if (cs.length) {
-      h += `<button data-c="" class="${E.carp ? "" : "on"}">📁 Todas</button>`;
-      const niveles = [""]; E.carp.split("/").filter(Boolean).forEach((_, i, arr) => niveles.push(arr.slice(0, i + 1).join("/")));
-      niveles.forEach((pad, nv) => { hijas(pad).forEach(r => { h += `<button data-c="${esc(r)}" class="${nv ? "sub " : ""}${E.carp === r || E.carp.startsWith(r + "/") ? "on" : ""}">${nv ? "↳ " : "📁 "}${esc(r.split("/").pop())} <small>${cuenta(r)}</small></button>`; }); });
-    }
-    h += `<button class="mv" id="ptMenJ" title="Poner la jugada abierta en uno o varios menús (BLOB, SLOB, acciones rápidas…)">🏷 ${E.j ? "Menús de esta jugada" : "Menús"}</button>`;
-    h += `<button class="mv" id="ptCarMv" title="Guardar la jugada que tienes abierta en una carpeta (o crear una nueva)">📁 ${E.j ? "Mover esta jugada" : "＋ Carpeta"}</button>`;
+    const o = [["todas", "Todas"], ["pin", "★ Mi libro" + (E.pin.size ? " (" + E.pin.size + ")" : "")], ["fav", "⭐ Favoritas"]];
+    E.menus.forEach(m => o.push(["m:" + m.id, "🏷 " + m.nombre + " (" + m.ids.filter(i => E.lista.some(x => x.id === i)).length + ")"]));
+    tipos.forEach(t => o.push(["k:" + t, NOM_TIPO[t] || t])); tags.forEach(t => o.push(["t:" + t, "#" + t]));
+    return o;
+  };
+  const claveBarra = () => (E.barra || ["todas", "pin", "fav"].concat(E.menus.map(m => "m:" + m.id)));
+  const pintarChips = () => {
+    const op = opcionesBarra(), mapa = new Map(op), claves = claveBarra().filter(k => mapa.has(k));
+    $("ptChips").innerHTML = `<button class="cfg" id="ptCfgB" title="Elegir qué botones salen en esta barra">⚙</button>` + claves.map(k => `<button data-f="${esc(k)}" class="${E.filtro === k && !(k === "todas" && E.carp) ? "on" : ""}">${esc(mapa.get(k))}</button>`).join("");
+    $("ptChips").querySelectorAll("button[data-f]").forEach(b => b.addEventListener("click", () => { E.filtro = b.dataset.f; if (E.filtro === "todas") E.carp = ""; pintarChips(); pintarLista(); }));
+    $("ptCfgB").onclick = () => cfgBarra();
+    /* carpetas: un solo botón que abre el buscador de carpetas */
+    const cb = $("ptCarpB"); cb.textContent = E.carp ? "📁 " + E.carp.split("/").join(" › ") : "📁 Carpetas"; cb.classList.toggle("on", !!E.carp); cb.onclick = () => selCarpeta();
+    let h = `<button data-c="x" class="${E.carp ? "on" : ""}" style="background:${E.carp ? "" : "#a83f15"};">📁 ${E.carp ? esc(E.carp.split("/").pop()) : "Carpetas"}</button>`;
+    if (E.carp) h += `<button data-c="" title="Quitar carpeta">✕</button>`;
+    h += `<button class="mv" id="ptMenJ" title="Poner la jugada abierta en uno o varios menús (BLOB, SLOB, acciones rápidas…)">🏷 ${E.j ? "Menús" : "Menús"}</button>`;
+    h += `<button class="mv" id="ptCarMv" title="Guardar la jugada que tienes abierta en una carpeta (o crear una nueva)">📁 ${E.j ? "Mover" : "＋ Carpeta"}</button>`;
     $("ptCarp").innerHTML = h;
-    $("ptCarp").querySelectorAll("button[data-c]").forEach(b => b.addEventListener("click", () => { E.carp = b.dataset.c; if (!E.carp) E.filtro = "todas"; pintarChips(); pintarLista(); }));
+    $("ptCarp").querySelectorAll("button[data-c]").forEach(b => b.addEventListener("click", () => { if (b.dataset.c === "x") { selCarpeta(); return; } E.carp = ""; if (E.filtro === "todas") E.filtro = "todas"; pintarChips(); pintarLista(); }));
     $("ptCarMv").onclick = () => abrirCarp();
     $("ptMenJ").onclick = () => (E.j ? menusDeJugada() : gestorMenus());
     requestAnimationFrame(() => { try { document.documentElement.style.setProperty("--carp-h", $("ptCarp").offsetHeight + "px"); } catch (e) { /* nada */ } });
@@ -2435,7 +2448,7 @@ function iniciarPartido() {
   E.guardarMenus = guardarMenus;
   const idMenu = () => "m" + Date.now().toString(36) + Math.floor(Math.random() * 99);
   const repintaMenus = () => { if (E.filtro.startsWith("m:") && !E.menus.some(m => "m:" + m.id === E.filtro)) E.filtro = "todas"; pintarChips(); pintarLista(); };
-  const nuevoMenu = (despues) => { const n = (prompt("Nombre del menú (ej. BLOB, SLOB, Acciones rápidas):") || "").trim(); if (!n) return null; const m = { id: idMenu(), nombre: n.slice(0, 24), ids: [] }; E.menus.push(m); guardarMenus(); return m; };
+  const nuevoMenu = (despues) => { const n = (prompt("Nombre del menú (ej. BLOB, SLOB, Acciones rápidas):") || "").trim(); if (!n) return null; const m = { id: idMenu(), nombre: n.slice(0, 24), ids: [] }; E.menus.push(m); if (E.barra) { E.barra = E.barra.concat(["m:" + m.id]); guardarBarra(); } guardarMenus(); return m; };
   /* jugada abierta -> en qué menús está */
   const menusDeJugada = () => {
     if (!E.j) return; const id = E.j.id;
@@ -2471,6 +2484,40 @@ function iniciarPartido() {
       $("gmN").onchange = () => { m.nombre = $("gmN").value.trim().slice(0, 24) || m.nombre; };
       $("gmDel").onclick = () => { if (!confirm("¿Borrar el menú «" + m.nombre + "»? Las jugadas no se borran.")) return; E.menus = E.menus.filter(z => z !== m); guardarMenus(); MN.classList.remove("ver"); repintaMenus(); };
       $("gmOk").onclick = () => { m.nombre = $("gmN").value.trim().slice(0, 24) || m.nombre; guardarMenus(); MN.classList.remove("ver"); E.filtro = "m:" + m.id; pintarChips(); pintarLista(); };
+    };
+    pinta(); MN.classList.add("ver");
+  };
+  /* buscador de carpetas */
+  const selCarpeta = () => {
+    let q = "";
+    const cuenta = (r) => E.lista.filter(x => x.carpeta === r || String(x.carpeta || "").startsWith(r + "/")).length;
+    const pinta = () => {
+      const cs = todasCarp().filter(r => !q || r.toLowerCase().includes(q));
+      MN.innerHTML = `<div class="cr"><h4>📁 Carpetas</h4><input type="text" id="scQ" placeholder="Buscar carpeta…" value="${esc(q)}">
+        <div style="max-height:56vh;overflow:auto;margin-top:8px;"><div class="row" data-c="" style="cursor:pointer;${E.carp ? "" : "outline:2px solid #0b8f86;"}"><b style="flex:1;">Todas las jugadas</b><small style="opacity:.7;">${E.lista.length}</small></div>
+        ${cs.map(r => `<div class="row" data-c="${esc(r)}" style="cursor:pointer;padding-left:${10 + 16 * (r.split("/").length - 1)}px;${E.carp === r ? "outline:2px solid #0b8f86;" : ""}"><span style="flex:1;">${r.includes("/") ? "↳ " : "📁 "}${esc(r.split("/").pop())}</span><small style="opacity:.7;">${cuenta(r)}</small></div>`).join("") || '<p style="opacity:.7;">Ninguna carpeta coincide.</p>'}</div>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;"><button id="scX" style="background:#2c3947;">Cerrar</button></div></div>`;
+      MN.querySelectorAll("[data-c]").forEach(d => d.onclick = () => { E.carp = d.dataset.c; if (!E.carp && E.filtro !== "todas") E.filtro = "todas"; MN.classList.remove("ver"); pintarChips(); pintarLista(); });
+      $("scX").onclick = () => MN.classList.remove("ver");
+      $("scQ").oninput = (e) => { q = e.target.value.trim().toLowerCase(); const p = e.target.selectionStart; pinta(); const z = $("scQ"); z.focus(); z.setSelectionRange(p, p); };
+    };
+    pinta(); MN.classList.add("ver");
+  };
+  /* armar la barra de arriba a tu gusto */
+  const cfgBarra = () => {
+    const pinta = () => {
+      const op = opcionesBarra(), mapa = new Map(op), act = claveBarra().filter(k => mapa.has(k)), resto = op.filter(([k]) => !act.includes(k));
+      MN.innerHTML = `<div class="cr"><h4>⚙ Mi barra de jugadas</h4><p style="opacity:.7;margin:0 0 8px;font-size:13.5px;">Marca lo que quieres ver arriba y ordénalo con las flechas.</p>
+        ${act.map((k, i) => `<div class="row"><input type="checkbox" checked data-k="${esc(k)}"><span style="flex:1;">${esc(mapa.get(k))}</span><button data-u="${i}" ${i ? "" : "disabled"}>▲</button><button data-d="${i}" ${i < act.length - 1 ? "" : "disabled"}>▼</button></div>`).join("")}
+        ${resto.length ? '<p style="opacity:.6;margin:10px 0 6px;font-size:13px;">No se muestran</p>' : ""}
+        ${resto.map(([k, n]) => `<div class="row" style="opacity:.8;"><input type="checkbox" data-k="${esc(k)}"><span style="flex:1;">${esc(n)}</span></div>`).join("")}
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:10px;flex-wrap:wrap;"><button id="cbMen" style="background:#2c3947;">🏷 Mis menús…</button><button id="cbOk" style="background:#e8590c;">Listo</button></div></div>`;
+      const set = (arr) => { E.barra = arr; guardarBarra(); pintarChips(); pinta(); };
+      MN.querySelectorAll("input[data-k]").forEach(c => c.onchange = () => { const k = c.dataset.k; set(c.checked ? act.concat([k]) : act.filter(z => z !== k)); });
+      MN.querySelectorAll("[data-u]").forEach(b => b.onclick = () => { const i = +b.dataset.u, a = act.slice(); [a[i - 1], a[i]] = [a[i], a[i - 1]]; set(a); });
+      MN.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { const i = +b.dataset.d, a = act.slice(); [a[i + 1], a[i]] = [a[i], a[i + 1]]; set(a); });
+      $("cbMen").onclick = () => gestorMenus();
+      $("cbOk").onclick = () => MN.classList.remove("ver");
     };
     pinta(); MN.classList.add("ver");
   };
@@ -2856,6 +2903,7 @@ function iniciarPartido() {
   $("ptFs").addEventListener("click", pantallaCompleta);
   $("ptGrandeX").addEventListener("click", pantallaCompleta);
   $("ptJug").addEventListener("click", () => document.body.classList.toggle("pt-lista"));
+  $("ptVolver").addEventListener("click", () => document.body.classList.remove("pt-lista"));
   $("ptCaja").addEventListener("pointerdown", () => document.body.classList.remove("pt-lista"));
   document.addEventListener("keydown", (e) => { if (e.target.tagName === "INPUT") return; if (e.key === "ArrowRight") irFase(1); if (e.key === "ArrowLeft") irFase(-1); if (e.key === "ArrowDown") saltarJugada(1); if (e.key === "ArrowUp") saltarJugada(-1); if (e.key === " ") { e.preventDefault(); $("ptPlay").click(); } });
   /* datos */
@@ -2864,6 +2912,7 @@ function iniciarPartido() {
     let filas = null;
     if (modoNube) { const { data, error } = await nube.from("jugadas").select("*").order("actualizada", { ascending: false }); if (!error) { filas = data || []; kv.put("partido_jugadas", filas); } else modoNube = false; }
     if (modoNube) { try { const { data } = await nube.from("archivos").select("*").eq("id", "_menus_partido"); const r = data && data[0]; if (r) { const m = JSON.parse(r.nombre || "[]"); if (Array.isArray(m)) { E.menus = m; try { localStorage.setItem(CLAVE_MEN, JSON.stringify(m)); } catch (e2) { /* nada */ } } } } catch (e) { /* nada */ } }
+    if (modoNube) { try { const { data } = await nube.from("archivos").select("*").eq("id", "_barra_partido"); const r = data && data[0]; if (r) { const m = JSON.parse(r.nombre || "null"); if (Array.isArray(m)) { E.barra = m; try { localStorage.setItem(CLAVE_BAR, JSON.stringify(m)); } catch (e2) { /* nada */ } } } } catch (e) { /* nada */ } }
     if (modoNube) { try { const { data } = await nube.from("carpetas").select("*"); E.carpTabla = (data || []).filter(c => c.tipo === "jugadas").map(c => c.nombre); } catch (e) { /* nada */ } }
     const conCar = (r) => Object.assign(deFila(r), { carpeta: r.carpeta || (r.data && r.data.carpeta) || "" }); E.filas = filas || null;
     if (filas) E.lista = filas.map(conCar);
