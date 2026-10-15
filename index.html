@@ -7483,6 +7483,12 @@ async function abrirEnvioJugadoras(nombre, modo) {
              style="width:100%;padding:10px;border:1.5px solid var(--wood-line);border-radius:8px;font-family:inherit;font-size:14.5px;background:var(--suave);color:var(--ink);">
     </div>`;
 
+  const pbBloque = esEquipo ? "" : `<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--wood-line);border-radius:10px;">
+      <b style="font-size:14.5px;">Playbook del rival (de Entrenador)</b>
+      <p class="hint" style="margin:3px 0 8px;">Elige un playbook que hayas hecho en la app del Entrenador: lo veran con sus jugadas animadas.</p>
+      <select id="envPb" style="width:100%;padding:10px;border:1.5px solid var(--wood-line);border-radius:8px;font-family:inherit;font-size:14.5px;background:var(--suave);color:var(--ink);"><option value="">Cargando tus playbooks...</option></select>
+    </div>`;
+
   document.body.insertAdjacentHTML("beforeend", `
     <div id="capaEnvio" style="position:fixed;inset:0;z-index:10000;background:rgba(27,36,50,.55);
          display:flex;align-items:center;justify-content:center;padding:16px;">
@@ -7498,6 +7504,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
         </div>
         ${cuerpo}
         ${pdfBloque}
+        ${pbBloque}
         <div id="envAviso"></div>
         <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;">
           <button class="btn-partido" id="envMandar">Mandar a todas</button>
@@ -7511,6 +7518,20 @@ async function abrirEnvioJugadoras(nombre, modo) {
   document.getElementById("capaEnvio").addEventListener("click", (e) => {
     if (e.target.id === "capaEnvio") cerrarEnvio();
   });
+
+  let PBS = [];
+  (async () => {
+    const sel = document.getElementById("envPb"); if (!sel) return;
+    try {
+      const c = clienteJugadoras();
+      const { data: ses } = c ? await c.auth.getSession() : { data: null };
+      if (!c || !ses || !ses.session) { sel.innerHTML = '<option value="">(entra en Panel para ver tus playbooks)</option>'; return; }
+      const { data } = await c.from("playbooks").select("id,nombre,equipo,data").order("nombre");
+      PBS = data || [];
+      const norm = (x) => String(x || "").toLowerCase();
+      sel.innerHTML = '<option value="">Ninguno</option>' + PBS.map((p, i) => `<option value="${i}" ${norm(p.equipo) && (norm(oficial).includes(norm(p.equipo)) || norm(p.equipo).includes(norm(oficial))) ? "selected" : ""}>${escapeHtml(p.nombre || "(sin nombre)")}${p.equipo ? " · " + escapeHtml(p.equipo) : ""}</option>`).join("");
+    } catch (e) { sel.innerHTML = '<option value="">(no se pudieron cargar)</option>'; }
+  })();
 
   const mandar = document.getElementById("envMandar");
   if (!mandar) return;
@@ -7529,7 +7550,9 @@ async function abrirEnvioJugadoras(nombre, modo) {
       .map(i => trozos[Number(i.getAttribute("data-envio"))]);
     const archivoPdf = (document.getElementById("envPdf").files || [])[0] || null;
     const enlacePdf = document.getElementById("envPdfUrl").value.trim();
-    if (!elegidos.length && !archivoPdf && !enlacePdf) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
+    const selPb = document.getElementById("envPb");
+    const pbElegido = (selPb && selPb.value !== "") ? PBS[Number(selPb.value)] : null;
+    if (!elegidos.length && !archivoPdf && !enlacePdf && !pbElegido) { avisoEnvio("Marca al menos un apartado.", "error"); return; }
     if (archivoPdf && archivoPdf.size > 45 * 1024 * 1024) { avisoEnvio("El PDF pesa mas de 45 MB. Comprimelo o pega un enlace.", "error"); return; }
 
     mandar.disabled = true; mandar.textContent = archivoPdf ? "Subiendo el PDF..." : "Mandando...";
@@ -7549,12 +7572,24 @@ async function abrirEnvioJugadoras(nombre, modo) {
     }
     if (enlacePdf) seccionesPdf.push({ nombre: esEquipo ? "Playbook del equipo (PDF)" : "Playbook del rival (PDF)", url: enlacePdf });
     mandar.textContent = "Mandando...";
-    const partido = (document.getElementById("envPartido").value || "").trim();
+    let seccionPb = null;
+    if (pbElegido) {
+      const caps = (pbElegido.data && pbElegido.data.capitulos) || [];
+      const ids = [];
+      caps.forEach(c => (c.items || []).forEach(it => { if (it.t === "j" && ids.indexOf(it.id) < 0) ids.push(it.id); }));
+      const mapa = {};
+      if (ids.length) { const r = await sb.from("jugadas").select("id,nombre,data").in("id", ids); (r.data || []).forEach(j => { mapa[j.id] = j; }); }
+      seccionPb = { tipo: "playbook", titulo: "Playbook: " + (pbElegido.nombre || ""), capitulos: caps.map(c => ({
+        titulo: c.titulo || "",
+        jugadas: (c.items || []).filter(it => it.t === "j" && mapa[it.id]).map(it => ({ nombre: mapa[it.id].nombre || "Jugada", data: mapa[it.id].data })),
+      })).filter(c => c.jugadas.length) };
+    }
+    const partido = ((document.getElementById("envPartido") || {}).value || "").trim();
     const { error } = await sb.from("informes").insert({
       titulo: esEquipo ? "Mi equipo: " + oficial : "Scouting: " + oficial,
       rival: esEquipo ? "__MI_EQUIPO__" : oficial,
       partido: partido || null,
-      secciones: (seccionesPdf.length ? [{ tipo: "pdf", titulo: esEquipo ? "Playbook en PDF" : "Playbook del rival (PDF)", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
+      secciones: (seccionPb ? [seccionPb] : []).concat(seccionesPdf.length ? [{ tipo: "pdf", titulo: esEquipo ? "Playbook en PDF" : "Playbook del rival (PDF)", archivos: seccionesPdf }] : []).concat(elegidos.map(t => t.carga
         ? t.carga
         : { tipo: "texto", titulo: t.titulo.replace(/\s*\(\d+\)$/, ""), texto: t.texto })),
     });
