@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ScoutFlow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <style>
@@ -1611,7 +1611,7 @@
     background:var(--white);border-right:1.5px solid var(--wood-line);
     display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh;
   }
-  .tarj-eq{display:flex;align-items:center;gap:12px;background:var(--suave,#f3f4f6);border-radius:14px;padding:10px 12px;margin:0 0 14px;cursor:pointer;} .tarj-eq:hover{filter:brightness(.97);} .tarj-eq .av{width:42px;height:42px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;font-size:22px;} .tarj-eq .av img{width:100%;height:100%;object-fit:contain;} .tarj-eq b{display:block;font-size:15px;line-height:1.2;} .tarj-eq small{display:block;color:var(--ink-soft);font-size:12px;margin-top:2px;}
+  .tarj-eq{display:flex;align-items:center;gap:12px;background:#f1f3f5;border-radius:14px;padding:10px 12px;margin:0 0 14px;cursor:pointer;} .tarj-eq:hover{filter:brightness(.97);} .tarj-eq .av{width:42px;height:42px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;font-size:22px;} .tarj-eq .av img{width:100%;height:100%;object-fit:contain;} .tarj-eq b{display:block;font-size:15px;line-height:1.2;} .tarj-eq small{display:block;color:var(--ink-soft);font-size:12px;margin-top:2px;}
   .marca-app{display:flex;gap:10px;align-items:center;margin-bottom:18px;padding:0 6px;}
   .marca-app .logo-bola{color:var(--orange);font-size:26px;line-height:1;}
   .marca-app b{font-family:'Archivo Black',sans-serif;font-size:17px;display:block;}
@@ -1624,6 +1624,17 @@
   }
   #barraLateral nav button:hover{background:var(--suave);color:var(--ink);}
   #barraLateral nav button.active{background:var(--orange);color:#fff;}
+  /* ---- menú lateral profesional (mismo estilo que Entrenador) ---- */
+  #barraLateral{font-family:'Inter','Archivo',system-ui,sans-serif;padding:16px 12px;}
+  #barraLateral nav{gap:2px;}
+  #barraLateral nav h4{margin:14px 12px 6px;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#7e8da3;font-weight:800;}
+  #barraLateral nav h4:first-child{margin-top:4px;}
+  #barraLateral nav button{display:flex;align-items:center;gap:12px;font-family:'Inter',sans-serif;font-weight:500;font-size:14px;padding:10px 12px;border-radius:10px;}
+  #barraLateral nav button .i{width:22px;display:flex;justify-content:center;flex:none;opacity:.85;}
+  #barraLateral nav button.active{background:#e8f3f0;color:#2f7f6c;font-weight:600;box-shadow:inset 3px 0 0 #3f9c86;} #barraLateral nav button.active .i{opacity:1;}
+  [data-tema="oscuro"] #barraLateral nav button.active{background:rgba(63,156,134,.2);color:#7fd1bd;}
+  .marca-app b{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.4px;}
+  .pie-lateral button{font-family:'Inter',sans-serif;font-weight:500;font-size:13px;}
   .pie-lateral{border-top:1.5px solid var(--wood-line);padding-top:12px;margin-top:10px;display:flex;flex-direction:column;gap:8px;}
   .pie-lateral .hint{font-size:10.5px;line-height:1.3;}
   .contenido{min-width:0;max-width:100%;overflow-x:hidden;}
@@ -1678,6 +1689,7 @@
   }
   .pie-lateral button:hover{border-color:var(--orange);}
   .pie-lateral button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+  #barraLateral .pie-lateral button{border:0;background:transparent;text-align:left;border-radius:10px;padding:9px 12px;font-family:'Inter',sans-serif;font-weight:500;color:var(--ink-soft);} #barraLateral .pie-lateral button:hover{background:var(--suave);color:var(--ink);} #barraLateral .pie-lateral button.active{background:#e8f3f0;color:#2f7f6c;}
   #grupoBar{max-width:1400px;margin:14px auto 0;padding:0 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   #grupoBar .lbl{font-weight:700;font-size:13.5px;color:var(--ink-soft);}
   #grupoBar button{
@@ -1808,19 +1820,22 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
     <select id="selTemporada"></select>
   </div>
   <nav id="mainNav">
-  <button data-view="inicio" class="active">Inicio</button>
-  <button data-view="mi-equipo">Mi equipo</button>
-  <button data-view="clasificacion">Clasificacion</button>
-  <button data-view="equipos">Equipos</button>
-  <button data-view="jugadoras">Jugadoras</button>
-  <button data-view="rankings">Rankings</button>
-  <button data-view="estadisticas">Estadisticas</button>
-  <button data-view="quintetos">Quintetos</button>
-  <button data-view="fichajes">Fichajes</button>
-  <button data-view="comparador">Comparador</button>
-  <button data-view="resultados">Resultados</button>
-  <button data-view="records">Records</button>
-  <button data-view="informes">Informes</button>
+  <h4>Análisis</h4>
+  <button data-view="inicio" class="active"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span class="tx">Inicio</span></button>
+  <button data-view="mi-equipo"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg></span><span class="tx">Mi equipo</span></button>
+  <button data-view="clasificacion"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg></span><span class="tx">Clasificación</span></button>
+  <button data-view="equipos"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 20a6 6 0 0 0-3-5"/></svg></span><span class="tx">Equipos</span></button>
+  <button data-view="jugadoras"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="tx">Jugadoras</span></button>
+  <h4>Datos</h4>
+  <button data-view="rankings"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10M12 21V4M19 21v-7"/></svg></span><span class="tx">Rankings</span></button>
+  <button data-view="estadisticas"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16M8 16l4-5 3 3 5-7"/></svg></span><span class="tx">Estadísticas</span></button>
+  <button data-view="quintetos"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="10" r="2"/><circle cx="19" cy="10" r="2"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg></span><span class="tx">Quintetos</span></button>
+  <button data-view="comparador"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></span><span class="tx">Comparador</span></button>
+  <button data-view="resultados"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span class="tx">Resultados</span></button>
+  <button data-view="records"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span><span class="tx">Récords</span></button>
+  <h4>Scouting</h4>
+  <button data-view="fichajes"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21a8 8 0 0 1 16 0M19 3v6M16 6h6"/></svg></span><span class="tx">Fichajes</span></button>
+  <button data-view="informes"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg></span><span class="tx">Informes</span></button>
   <button data-view="pizarra" style="display:none">🏀 Entrenador</button>
   </nav>
   <div class="pie-lateral">
