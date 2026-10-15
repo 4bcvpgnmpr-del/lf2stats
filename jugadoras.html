@@ -2131,8 +2131,12 @@ async function cargarClips() {
     caja.innerHTML = `<div class="vacio">Todavia no tienes videos.</div>`;
     return;
   }
+  const kv = "sf_clips_vistos_" + jugadora.id; let vistos = null;
+  try { vistos = JSON.parse(localStorage.getItem(kv) || "null"); } catch (_) {}
+  const nuevo = (c) => Array.isArray(vistos) && !vistos.includes(c.id);
+  try { localStorage.setItem(kv, JSON.stringify(lista.map(c => c.id))); } catch (_) {}
   caja.innerHTML = lista.map(c => `<div class="clip">${marcoVideo(c.url, c.segundos)}
-    <div class="texto"><b>${esc(c.titulo || "Video")}</b>
+    <div class="texto"><b>${esc(c.titulo || "Video")}</b>${nuevo(c) ? ' <span style="background:#f26a21;color:#fff;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:6px">NUEVO</span>' : ""}
     ${c.nota ? `<p>${esc(c.nota)}</p>` : ""}</div></div>`).join("");
 }
 
