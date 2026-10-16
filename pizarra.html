@@ -2693,10 +2693,39 @@ function iniciarPartido() {
       const box = $("mpJg"); if (!box) return; const ids = jgIds().sort((a, b) => ((M.jg[b] || {}).e || 0) - ((M.jg[a] || {}).e || 0) || jgNombre(a).localeCompare(jgNombre(b), "es"));
       let e = 0, ok = 0; ids.forEach(id => { const g = M.jg[id]; if (g) { e += g.e; ok += g.ok; } });
       const libres = (E.lista || []).filter(y => !ids.includes(y.id)).sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
-      box.innerHTML = `<table class="mp-jt"><thead><tr><th>Jugada</th><th style="text-align:center">Veces</th><th style="text-align:center">✓</th><th style="text-align:center">%</th><th></th></tr></thead><tbody>${ids.map(id => { const g = M.jg[id] || { e: 0, ok: 0 }; return `<tr><td>${esc(jgNombre(id))}</td><td class="n">${g.e}</td><td class="n">${g.ok}</td><td class="n">${g.e ? Math.round(100 * g.ok / g.e) + "%" : "–"}</td><td style="white-space:nowrap;text-align:right;"><button data-jok="${esc(id)}" style="background:#2b8a3e;min-width:54px;min-height:42px;">✓</button> <button data-jko="${esc(id)}" style="background:#c92a2a;min-width:54px;min-height:42px;">✗</button></td></tr>`; }).join("") || '<tr><td colspan="5" style="opacity:.65;">Fija jugadas en el modo partido o añádelas abajo.</td></tr>'}${e ? `<tr><td><b>Total</b></td><td class="n"><b>${e}</b></td><td class="n"><b>${ok}</b></td><td class="n"><b>${Math.round(100 * ok / e)}%</b></td><td></td></tr>` : ""}</tbody></table>${libres.length ? `<select id="mpJgAdd" style="margin-top:8px;min-height:42px;border-radius:10px;background:#17202a;color:#fff;border:0;padding:0 10px;width:100%;"><option value="">＋ Añadir otra jugada a esta lista…</option>${libres.map(y => `<option value="${esc(y.id)}">${esc(y.nombre || "Jugada")}</option>`).join("")}</select>` : ""}`;
+      box.innerHTML = `<table class="mp-jt"><thead><tr><th>Jugada</th><th style="text-align:center">Veces</th><th style="text-align:center">✓</th><th style="text-align:center">%</th><th></th></tr></thead><tbody>${ids.map(id => { const g = M.jg[id] || { e: 0, ok: 0 }; return `<tr><td>${esc(jgNombre(id))}</td><td class="n">${g.e}</td><td class="n">${g.ok}</td><td class="n">${g.e ? Math.round(100 * g.ok / g.e) + "%" : "–"}</td><td style="white-space:nowrap;text-align:right;"><button data-jok="${esc(id)}" style="background:#2b8a3e;min-width:54px;min-height:42px;">✓</button> <button data-jko="${esc(id)}" style="background:#c92a2a;min-width:54px;min-height:42px;">✗</button></td></tr>`; }).join("") || '<tr><td colspan="5" style="opacity:.65;">Fija jugadas en el modo partido o añádelas abajo.</td></tr>'}${e ? `<tr><td><b>Total</b></td><td class="n"><b>${e}</b></td><td class="n"><b>${ok}</b></td><td class="n"><b>${Math.round(100 * ok / e)}%</b></td><td></td></tr>` : ""}</tbody></table>${libres.length ? `<button id="mpJgAdd" style="margin-top:8px;min-height:46px;border-radius:10px;background:#17202a;color:#fff;border:1px solid #3b4a5c;padding:0 12px;width:100%;font-size:16px;text-align:left;">＋ Añadir otra jugada a esta lista…</button>` : ""}`;
       box.querySelectorAll("[data-jok]").forEach(b => b.onclick = () => anotaJg(true, b.dataset.jok));
       box.querySelectorAll("[data-jko]").forEach(b => b.onclick = () => anotaJg(false, b.dataset.jko));
-      const ad = box.querySelector("#mpJgAdd"); if (ad) ad.onchange = () => { if (ad.value) { M.jv = M.jv || []; if (!M.jv.includes(ad.value)) M.jv.push(ad.value); guardarM(); pintarJg(); } };
+      const ad = box.querySelector("#mpJgAdd"); if (ad) ad.onclick = () => elegirJgAdd();
+    };
+    /* añadir jugadas a la lista del partido: buscador + carpetas, tocas y se añade */
+    const elegirJgAdd = () => {
+      let cur = "", q = "";
+      const mini = (x) => { try { return svgPaso(normalizar(clonar(x)), 0, { mini: true }); } catch (e) { return ""; } };
+      const hijas = (r) => todasCarp().filter(c => (c.includes("/") ? c.slice(0, c.lastIndexOf("/")) : "") === r);
+      const pinta = () => {
+        const ya = new Set(jgIds());
+        const m = q ? E.lista.filter(x => ((x.nombre || "") + " " + (x.carpeta || "") + " " + (x.tipo || "") + " " + (x.tags || []).join(" ")).toLowerCase().includes(q)) : E.lista.filter(x => (x.carpeta || "") === cur);
+        const subs = q ? [] : hijas(cur), ruta = cur ? cur.split("/") : [];
+        const mig = `<button data-g="" class="mig">Todas</button>` + ruta.map((t, k) => `<span style="opacity:.5;">›</span><button data-g="${esc(ruta.slice(0, k + 1).join("/"))}" class="mig">${esc(t)}</button>`).join("");
+        MN.innerHTML = `<div class="cr"><h4>＋ Añadir jugada a la lista</h4><input type="text" id="jaQ" placeholder="Buscar jugada…" value="${esc(q)}" autofocus>
+          ${q ? "" : `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;">${mig}</div>`}
+          <div style="max-height:50vh;overflow:auto;margin-top:8px;">
+          ${subs.map(c => `<div class="row" data-c="${esc(c)}" style="cursor:pointer;"><span style="flex:1;">📁 ${esc(c.split("/").pop())}</span><span style="opacity:.6;">›</span></div>`).join("")}
+          ${m.map(x => `<div class="row" data-j="${esc(x.id)}" style="cursor:pointer;gap:10px;${ya.has(x.id) ? "opacity:.55;" : ""}"><span style="width:46px;height:46px;flex:none;display:block;overflow:hidden;border-radius:6px;background:#1a2430;">${mini(x)}</span><span style="flex:1;">${esc(x.nombre || "(sin nombre)")}<small style="display:block;opacity:.65;">${esc(q && x.carpeta ? x.carpeta.split("/").join(" › ") + " · " : "")}${esc(x.tipo || "")}</small></span><b style="min-width:70px;text-align:right;">${ya.has(x.id) ? "✓ añadida" : "＋"}</b></div>`).join("")}
+          ${subs.length || m.length ? "" : '<p style="opacity:.6;">No hay nada aquí.</p>'}</div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;"><button id="jaOk" style="background:#e8590c;">Listo</button></div></div>`;
+        MN.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { cur = b.dataset.g; pinta(); });
+        MN.querySelectorAll(".row[data-c]").forEach(d => d.onclick = () => { cur = d.dataset.c; pinta(); });
+        MN.querySelectorAll(".row[data-j]").forEach(d => d.onclick = () => {
+          const id = d.dataset.j, bx = MN.querySelector("div[style*='max-height']"), st = bx ? bx.scrollTop : 0;
+          M.jv = M.jv || []; if (!ya.has(id)) { M.jv.push(id); guardarM(); }
+          pinta(); const b2 = MN.querySelector("div[style*='max-height']"); if (b2) b2.scrollTop = st;
+        });
+        $("jaQ").oninput = (e) => { q = e.target.value.trim().toLowerCase(); const pos = e.target.selectionStart; pinta(); const z = $("jaQ"); z.focus(); z.setSelectionRange(pos, pos); };
+        $("jaOk").onclick = () => { MN.classList.remove("ver"); pintarJg(); };
+      };
+      pinta(); MN.classList.add("ver"); setTimeout(() => { try { $("jaQ").focus(); } catch (e) { /* nada */ } }, 50);
     };
     const anotaJg = (okv, id) => {
       id = id || (E.j && E.j.id); if (!id) { aviso("Abre primero una jugada"); return; }
