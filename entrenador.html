@@ -151,7 +151,7 @@
 
 
   /* carpetas verdes, etiquetas, filtros */
-  .c-jug{grid-template-columns:26px minmax(0,2fr) minmax(0,1.2fr) 90px minmax(0,1fr) 90px 56px 130px 36px !important;}
+  .c-jug{grid-template-columns:26px minmax(0,2fr) minmax(0,1.2fr) 90px minmax(0,1fr) 90px 56px 70px 130px 36px !important;}
   .c-eje{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 130px 80px 150px 36px !important;}
   .c-pla{grid-template-columns:26px minmax(0,2fr) minmax(0,1.4fr) 100px 80px 80px 150px 36px !important;}
   .ck{display:flex;align-items:center;} .ck input{width:auto;margin:0;opacity:0;cursor:pointer;} .fila:hover .ck input,.fila.sel .ck input,.tj:hover .ck input,.tj.sel .ck input{opacity:1;}
@@ -460,6 +460,8 @@
     .dj-cuerpo .pista{border-radius:4px;}
     .dj-ov button{font-size:22px;}
   }
+  .dj-vt{margin:8px 0 10px;font-size:15px;} .dj-vids{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:30px;} .dj-v b{display:block;margin-bottom:6px;} .marco-vid{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;} .marco-vid iframe,.marco-vid video{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  @media (min-width:701px){ .dj-vids{grid-template-columns:1fr 1fr;} }
   .dj-fases{display:grid;grid-template-columns:1fr;gap:0 24px;}
   @media (min-width:701px){ .dj-fases{grid-template-columns:1fr 1fr;} .dj-top{padding:10px 24px;} .dj-top b{text-align:left;font-size:19px;} }
 
@@ -536,7 +538,7 @@
   @media (min-width:701px) and (max-width:1500px){ .mini-l{width:92px;height:84px;padding:2px;} .fila .nom{min-width:0;} .fila .nom .tc{min-width:0;} .fila .nom span.t{white-space:normal;overflow:hidden;overflow-wrap:anywhere;} }
   @media (min-width:701px){
     .tabla{container-type:inline-size;}
-    .tabla .fila.c-jug{grid-template-columns:26px minmax(190px,2.6fr) minmax(70px,1fr) 90px minmax(70px,1fr) 98px 54px 134px 36px !important;column-gap:10px;} .tabla .fila.c-jug .peq{font-size:12.5px;}
+    .tabla .fila.c-jug{grid-template-columns:26px minmax(190px,2.6fr) minmax(70px,1fr) 90px minmax(70px,1fr) 98px 54px 76px 134px 36px !important;column-gap:10px;} .tabla .fila.c-jug .peq{font-size:12.5px;}
     .tabla .fila.c-jug>*{min-width:0;} .tabla .fila.c-jug>div:not(.nom):not(.tags){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     @container (max-width:900px){
       .tabla .fila.c-jug{grid-template-columns:26px minmax(160px,1.8fr) minmax(60px,.8fr) 84px minmax(60px,.9fr) 98px 36px !important;}
@@ -872,10 +874,10 @@ function pintarCarpetas(v, tipo) {
   const plano = hayFiltro();
   const items = ordenarLista(filtrar(tipo, plano), "actualizada", "nombre");
   const cars = plano ? [] : ordenarLista(carpetasDe(tipo), "ult", "nombre");
-  const extra = { jugadas: ["Categoría", "Equipo", "Temporada", "Fases"], ejercicios: ["Categoría", "Duración"], planes: ["Fecha", "Duración", "Ejercicios"] }[tipo];
+  const extra = { jugadas: ["Categoría", "Equipo", "Temporada", "Fases", "Vídeo"], ejercicios: ["Categoría", "Duración"], planes: ["Fecha", "Duración", "Ejercicios"] }[tipo];
   const clase = { jugadas: "c-jug", ejercicios: "c-eje", planes: "c-pla" }[tipo];
   const celdas = (x) => {
-    if (tipo === "jugadas") return [x.tipo || "—", (x.data && x.data.equipo) || "—", (x.data && x.data.temporada) || "—", ((x.data && x.data.pasos) || []).length];
+    if (tipo === "jugadas") return [x.tipo || "—", (x.data && x.data.equipo) || "—", (x.data && x.data.temporada) || "—", ((x.data && x.data.pasos) || []).length, ((x.data && x.data.videos) || []).filter(v => v && v.url).length ? "🎬 Sí" : "—"];
     if (tipo === "ejercicios") return [(x.data && x.data.categoria) || "—", ((x.data && x.data.minutos) || 0) ? x.data.minutos + " min" : "—"];
     const ej = ((x.data && x.data.ejercicios) || []).filter(e => !e.sec), min = ej.reduce((a, e) => a + (Number(e.min) || 0), 0);
     return [solofecha(x.fecha), min + " min", ej.length];
@@ -3251,6 +3253,14 @@ function pedirFases(x, tipo, id, cb) {
   }
   if (marcoFasesListo) enviar(); else colaFases.push(enviar);
 }
+function videoEmbed(u) {
+  u = String(u || ""); let m = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/.exec(u);
+  if (m) return `<div class="marco-vid"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen loading="lazy" allow="accelerometer; encrypted-media; picture-in-picture"></iframe></div>`;
+  m = /vimeo\.com\/(?:video\/)?(\d+)/.exec(u);
+  if (m) return `<div class="marco-vid"><iframe src="https://player.vimeo.com/video/${m[1]}" allowfullscreen loading="lazy"></iframe></div>`;
+  if (/\.(mp4|webm|mov)(\?|$)/i.test(u) || /^(blob|data):/.test(u) || /supabase\.co\/storage/.test(u)) return `<div class="marco-vid"><video controls playsinline preload="metadata" src="${esc(u)}"></video></div>`;
+  return `<a href="${esc(u)}" target="_blank" rel="noopener" style="font-weight:800;">🔗 Abrir el enlace</a>`;
+}
 function abrirDetalle(tipo, x) {
   const d = diagDe(x) || { pasos: [] }, esJ = tipo === "jugadas", notas = esJ ? (d.notas || (x.data && x.data.notas) || "") : ((x.data && x.data.descripcion) || "");
   detalleActual = { id: x.id + "|" + Date.now(), x, tipo };
@@ -3266,6 +3276,8 @@ function abrirDetalle(tipo, x) {
     h += '<div class="dj-fases">';
     d.pasos.forEach((q, i) => { const ls = lineas(q.texto); h += `<div class="dj-fase"><h4>${esc(q.titulo || (d.pasos.length > 1 ? "Fase " + (i + 1) : ""))}</h4><div class="pista-w"><div class="pista" data-f="${i}"></div><div class="dj-ov"><button type="button" data-play="${i}" aria-label="Ver esta fase en movimiento">▶</button><span class="ovbar"></span><button type="button" data-fs="1" aria-label="Pantalla completa">⛶</button></div></div>${ls.length ? `<ul>${ls.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}</div>`; });
     h += "</div>";
+    const vds = (d.videos || []).filter(v => v && v.url);
+    if (vds.length) h += `<h3 class="dj-vt">🎬 Vídeo${vds.length > 1 ? "s" : ""}</h3><div class="dj-vids">${vds.map(v => `<div class="dj-v">${v.titulo ? `<b>${esc(v.titulo)}</b>` : ""}${videoEmbed(v.url)}</div>`).join("")}</div>`;
   } else h += '<p class="peq">Todavía no tiene dibujo. Pulsa «Editar» para dibujarla.</p>';
   $("djCuerpo").innerHTML = h; $("djCuerpo").scrollTop = 0; $("detalleJ").classList.add("ver");
   $("djEd").innerHTML = esJ ? "<svg class='ico' viewBox='0 0 24 24' style='vertical-align:-3px;margin-right:6px'><path d='M12 20h9'/><path d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'/></svg>Editar jugada" : "<svg class='ico' viewBox='0 0 24 24' style='vertical-align:-3px;margin-right:6px'><path d='M12 20h9'/><path d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'/></svg>Editar ejercicio";
