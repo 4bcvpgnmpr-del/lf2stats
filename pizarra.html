@@ -2809,7 +2809,7 @@ function iniciarPartido() {
 
     /* ---- estadísticas a mano: rebotes, pérdidas y tiros (nosotros y rival) ---- */
     M.es = M.es || {}; M.rvn = M.rvn || []; M.rvNom = M.rvNom || {};
-    const rvT = (n) => "#" + n + (M.rvNom[n] ? " " + M.rvNom[n] : "");
+    const rvT = (n) => /^x/.test(n) ? (M.rvNom[n] || "Rival") : "#" + n + (M.rvNom[n] ? " " + M.rvNom[n] : "");
     const est = document.createElement("style"); est.textContent = `
       #ptEst{display:none;position:fixed;inset:0;z-index:31;background:#000b;align-items:center;justify-content:center;padding:10px;} #ptEst.ver{display:flex;}
       #ptEst .es{background:#17202a;border-radius:18px;padding:14px;width:min(980px,100%);max-height:100%;overflow:auto;box-shadow:0 12px 40px #000c;color:#fff;}
@@ -2886,7 +2886,8 @@ function iniciarPartido() {
       let te = "2026"; try { te = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
       let filas = []; aviso("Buscando equipos…");
       try { filas = await sheetTab("Plantillas", TEMPS[te] != null ? TEMPS[te] : "_2026"); } catch (e) { aviso("No se pudo leer la plantilla (¿sin conexión?)"); return; }
-      const eqs = {}; filas.forEach(f => { const e = String(f.Equipo || "").trim(); if (e) (eqs[e] = eqs[e] || []).push(f); });
+      const col = (f, re) => { const k = Object.keys(f).find(x => re.test(String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim())); return k ? f[k] : ""; };
+      const eqs = {}; filas.forEach(f => { const e = String(col(f, /^equipo/) || "").trim(); if (e) (eqs[e] = eqs[e] || []).push(f); });
       const nombres = Object.keys(eqs).sort((a, b) => a.localeCompare(b, "es"));
       const ov = document.createElement("div"); ov.style.cssText = "position:fixed;inset:0;z-index:60;background:#000c;display:flex;align-items:center;justify-content:center;padding:12px;";
       ov.innerHTML = '<div style="background:#17202a;color:#fff;border-radius:16px;padding:14px;width:min(520px,100%);max-height:90%;display:flex;flex-direction:column;gap:8px;"><b style="font-size:17px;">👥 Equipo rival</b><input id="rvQ" type="search" placeholder="Buscar equipo…" style="min-height:44px;font-size:16px;border-radius:10px;border:0;padding:0 12px;"><div id="rvL" style="overflow:auto;flex:1;"></div><button id="rvX" style="min-height:42px;">Cancelar</button></div>';
@@ -2894,9 +2895,10 @@ function iniciarPartido() {
       const pintar = () => { const q = normEq($("rvQ").value); $("rvL").innerHTML = nombres.filter(n => !q || normEq(n).includes(q)).slice(0, 80).map(n => '<button data-e="' + esc(n) + '" style="display:block;width:100%;text-align:left;min-height:44px;margin-bottom:4px;">' + esc(n) + ' <small style="opacity:.6">· ' + eqs[n].length + ' jug.</small></button>').join("") || '<div style="opacity:.6;padding:8px;">Ningún equipo coincide.</div>';
         $("rvL").querySelectorAll("[data-e]").forEach(b => b.onclick = () => {
           const n = b.dataset.e, vistos = new Set(); M.rvn = []; M.rvNom = {};
-          eqs[n].forEach(f => { const d = String(f.Dorsal != null ? f.Dorsal : "").replace(/\D/g, ""), nom = bonito(f.Jugadora || f.Jugador); if (!d || vistos.has(d)) return; vistos.add(d); M.rvn.push(d); M.rvNom[d] = nom; });
-          M.rvn.sort((a, b) => a - b); M.n[1] = n; const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = n;
-          guardarM(); ov.remove(); aviso("👥 " + n + ": " + M.rvn.length + " jugadoras con dorsal"); pintarEs();
+          let sd = 0;
+          eqs[n].forEach(f => { const nom = bonito(col(f, /^(jugadora|jugador|nombre)/)); if (!nom) return; let d = String(col(f, /^(dorsal|no|n\u00ba|num|#)/) || "").replace(/\D/g, ""); if (!d) d = "x" + (++sd); if (vistos.has(d)) return; vistos.add(d); M.rvn.push(d); M.rvNom[d] = nom; });
+          M.rvn.sort((a, b) => (parseInt(a) || 999) - (parseInt(b) || 999)); M.n[1] = n; const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = n;
+          guardarM(); ov.remove(); aviso("👥 " + n + ": " + M.rvn.length + " jugadoras"); pintarEs();
         }); };
       $("rvQ").oninput = pintar; $("rvX").onclick = () => ov.remove(); pintar();
     };
