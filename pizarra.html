@@ -2808,7 +2808,8 @@ function iniciarPartido() {
     };
 
     /* ---- estadísticas a mano: rebotes, pérdidas y tiros (nosotros y rival) ---- */
-    M.es = M.es || {}; M.rvn = M.rvn || [];
+    M.es = M.es || {}; M.rvn = M.rvn || []; M.rvNom = M.rvNom || {};
+    const rvT = (n) => "#" + n + (M.rvNom[n] ? " " + M.rvNom[n] : "");
     const est = document.createElement("style"); est.textContent = `
       #ptEst{display:none;position:fixed;inset:0;z-index:31;background:#000b;align-items:center;justify-content:center;padding:10px;} #ptEst.ver{display:flex;}
       #ptEst .es{background:#17202a;border-radius:18px;padding:14px;width:min(980px,100%);max-height:100%;overflow:auto;box-shadow:0 12px 40px #000c;color:#fff;}
@@ -2829,7 +2830,7 @@ function iniciarPartido() {
     const vista = () => (ESV.v === "auto" ? mitad() : ESV.v);
     const suma = (k, v) => { const o = cero(); ((M.es[k] || {}));  ["h1", "h2"].forEach(h => { if (v !== "tot" && v !== h) return; const d = (M.es[k] || {})[h]; if (d) Object.keys(o).forEach(f => o[f] += d[f] || 0); }); return o; };
     const clavesEq = () => Object.keys(M.es).filter(k => (ESV.eq === 1) === (k.indexOf("rv") === 0));
-    const filas = () => ESV.eq === 0 ? PLT.map(j => ({ k: j.id, t: (j.num !== "" && j.num != null ? j.num + " " : "") + j.nombre })) : [{ k: "rv", t: "Rival (equipo)" }].concat(M.rvn.map(n => ({ k: "rv" + n, t: "Rival #" + n })));
+    const filas = () => ESV.eq === 0 ? PLT.map(j => ({ k: j.id, t: (j.num !== "" && j.num != null ? j.num + " " : "") + j.nombre })) : [{ k: "rv", t: "Rival (equipo)" }].concat(M.rvn.map(n => ({ k: "rv" + n, t: "Rival " + rvT(n) })));
     const pct = (m, a) => a ? Math.round(100 * m / a) + "%" : "–";
     /* ---- datos de la FEB (función feb-directo en Supabase) ---- */
     const FEB = { auto: false, t: null, msg: "" };
@@ -2856,7 +2857,8 @@ function iniciarPartido() {
         const nm = normEq(bonito(p.nombre)), j = PLT.find(x => (p.no !== "" && String(x.num) === String(p.no)) || (nm && normEq(x.nombre) === nm));
         if (!j) { sin++; return; } poner(j.id, p); if (p.f) (M.fj = M.fj || {})[j.id] = p.f;
       });
-      eqs[1 - mi].jug.forEach(p => { if (p.no === "") return; const k = "rv" + p.no; poner(k, p); if (p.f) (M.fr = M.fr || {})[k] = p.f; if (!M.rvn.includes(p.no)) M.rvn.push(p.no); });
+      eqs[1 - mi].jug.forEach(p => { if (p.no === "") return; const k = "rv" + p.no; poner(k, p); if (p.nombre) M.rvNom[p.no] = bonito(p.nombre); if (p.f) (M.fr = M.fr || {})[k] = p.f; if (!M.rvn.includes(p.no)) M.rvn.push(p.no); });
+      if (eqs[1 - mi].nombre && (!M.n[1] || /^rivales?$/i.test(M.n[1]))) { M.n[1] = eqs[1 - mi].nombre; const ii = panel.querySelector("[data-n=\"1\"]"); if (ii) ii.value = M.n[1]; }
       guardarM();
       const q = d.cuartos && d.cuartos.length ? " · cuarto " + d.cuartos[d.cuartos.length - 1].n : "";
       FEB.msg = "📡 FEB actualizada " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "");
@@ -2879,9 +2881,28 @@ function iniciarPartido() {
       } catch (e) { FEB.msg = "⚠️ No se pudo traer de la FEB (" + (e.message || e) + "). Sigue con el panel manual."; if (!callado) aviso("FEB no disponible: usa el panel manual"); }
       if (EP.classList.contains("ver")) pintarEs();
     };
+    /* ---- traer el equipo rival (plantilla de la hoja de la FEB): salen dorsal y nombre ---- */
+    const traerRival = async () => {
+      let te = "2026"; try { te = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
+      let filas = []; aviso("Buscando equipos…");
+      try { filas = await sheetTab("Plantillas", TEMPS[te] != null ? TEMPS[te] : "_2026"); } catch (e) { aviso("No se pudo leer la plantilla (¿sin conexión?)"); return; }
+      const eqs = {}; filas.forEach(f => { const e = String(f.Equipo || "").trim(); if (e) (eqs[e] = eqs[e] || []).push(f); });
+      const nombres = Object.keys(eqs).sort((a, b) => a.localeCompare(b, "es"));
+      const ov = document.createElement("div"); ov.style.cssText = "position:fixed;inset:0;z-index:60;background:#000c;display:flex;align-items:center;justify-content:center;padding:12px;";
+      ov.innerHTML = '<div style="background:#17202a;color:#fff;border-radius:16px;padding:14px;width:min(520px,100%);max-height:90%;display:flex;flex-direction:column;gap:8px;"><b style="font-size:17px;">👥 Equipo rival</b><input id="rvQ" type="search" placeholder="Buscar equipo…" style="min-height:44px;font-size:16px;border-radius:10px;border:0;padding:0 12px;"><div id="rvL" style="overflow:auto;flex:1;"></div><button id="rvX" style="min-height:42px;">Cancelar</button></div>';
+      document.body.appendChild(ov);
+      const pintar = () => { const q = normEq($("rvQ").value); $("rvL").innerHTML = nombres.filter(n => !q || normEq(n).includes(q)).slice(0, 80).map(n => '<button data-e="' + esc(n) + '" style="display:block;width:100%;text-align:left;min-height:44px;margin-bottom:4px;">' + esc(n) + ' <small style="opacity:.6">· ' + eqs[n].length + ' jug.</small></button>').join("") || '<div style="opacity:.6;padding:8px;">Ningún equipo coincide.</div>';
+        $("rvL").querySelectorAll("[data-e]").forEach(b => b.onclick = () => {
+          const n = b.dataset.e, vistos = new Set(); M.rvn = []; M.rvNom = {};
+          eqs[n].forEach(f => { const d = String(f.Dorsal != null ? f.Dorsal : "").replace(/\D/g, ""), nom = bonito(f.Jugadora || f.Jugador); if (!d || vistos.has(d)) return; vistos.add(d); M.rvn.push(d); M.rvNom[d] = nom; });
+          M.rvn.sort((a, b) => a - b); M.n[1] = n; const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = n;
+          guardarM(); ov.remove(); aviso("👥 " + n + ": " + M.rvn.length + " jugadoras con dorsal"); pintarEs();
+        }); };
+      $("rvQ").oninput = pintar; $("rvX").onclick = () => ov.remove(); pintar();
+    };
     const resumenHtml = (v) => {
       const mios = PLT.map(j => ({ k: j.id, t: (j.num !== "" && j.num != null ? j.num + " " : "") + j.nombre }));
-      const riv = [{ k: "rv", t: "Rival (equipo)" }].concat(M.rvn.map(n => ({ k: "rv" + n, t: "#" + n })));
+      const riv = [{ k: "rv", t: "Rival (equipo)" }].concat(M.rvn.map(n => ({ k: "rv" + n, t: rvT(n) })));
       const hRo = !!M.hayRo, fc = (m, a) => m + "/" + a;
       const calc = (filasT, fmap) => {
         const T = { pts: 0, reb: 0, ro: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, f: 0 };
@@ -2925,7 +2946,7 @@ function iniciarPartido() {
           <div class="g">${g(kk, "t2m", "2✓", "ok")}${g(kk, "t2x", "2✗", "ko")}<span>2P ${o.t2m}/${o.t2a}</span></div>
           <div class="g">${g(kk, "t3m", "3✓", "ok")}${g(kk, "t3x", "3✗", "ko")}<span>3P ${o.t3m}/${o.t3a}</span></div>
           <div class="g">${g(kk, "tlm", "TL✓", "ok")}${g(kk, "tlx", "TL✗", "ko")}<span>TL ${o.tlm}/${o.tla}</span></div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadoras: elige «Mi equipo» en la app de estadísticas.</div>'}
-        ${ESV.eq === 1 && !ESV.res ? '<button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
+        ${ESV.eq === 1 && !ESV.res ? '<button id="esRvEq" style="margin-top:6px;background:#2b8a3e;">👥 Traer equipo rival</button> <button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
         <div style="opacity:.6;font-size:12px;margin-top:8px;">Se anota en el cuarto actual: cuartos 1-2 = 1ª mitad. Cambia el cuarto en el marcador.</div></div>`;
       if ($("esRes")) $("esRes").onclick = () => { ESV.res = !ESV.res; ESV.corr = false; pintarEs(); };
       EP.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => { ESV.eq = Number(b.dataset.eq); pintarEs(); });
@@ -2951,6 +2972,7 @@ function iniciarPartido() {
       $("esUn").onclick = () => { const u = UND.pop(); if (!u) return; const o = (M.es[u[0]] || {})[u[1]]; if (!o) return; const f = u[2]; if (f === "reb" || f === "per") o[f] = Math.max(0, o[f] - 1); else { const tp = f.slice(0, -1); o[tp + "a"] = Math.max(0, o[tp + "a"] - 1); if (f.slice(-1) === "m") o[tp + "m"] = Math.max(0, o[tp + "m"] - 1); } guardarM(); pintarEs(); };
       $("esEd").onclick = () => abrirEd();
       $("esX").onclick = () => EP.classList.remove("ver");
+      if ($("esRvEq")) $("esRvEq").onclick = () => traerRival();
       if ($("esRv")) $("esRv").onclick = () => { const n = (prompt("Dorsal de la rival:") || "").replace(/\D/g, ""); if (n && !M.rvn.includes(n)) { M.rvn.push(n); guardarM(); pintarEs(); } };
     };
     $("mpEs").onclick = () => { EP.classList.add("ver"); pintarEs(); };
@@ -2990,12 +3012,12 @@ function iniciarPartido() {
     $("mpMan").onclick = () => { const v = prompt("Tiempo en minutos (ej. 10, o 2:30 para 2 min 30 s):", "10"); if (v == null) return; const m = String(v).trim().match(/^(\d+)(?:[:.,](\d{1,2}))?$/); if (!m) { aviso("Tiempo no válido"); return; } const sec = v.includes(":") ? Number(m[1]) * 60 + Number(m[2] || 0) : Number(m[1]) * 60 + (m[2] ? Math.round(Number("0." + m[2]) * 60) : 0); if (sec > 0) iniciarT(sec); };
 
     /* ---- guardar el partido en el libro ---- */
-    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; M.jg = {}; M.jl = []; UND.length = 0; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
+    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.jg = {}; M.jl = []; UND.length = 0; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
     $("mpGu").onclick = async () => {
       const act = (k) => { const o = M.es[k] || {}, h1 = Object.assign(cero(), o.h1), h2 = Object.assign(cero(), o.h2); return { h1, h2, hay: Object.values(h1).concat(Object.values(h2)).some(x => x > 0) }; };
       const ids = new Set(PLT.map(j => j.id).concat(Object.keys(M.es).filter(k => k.indexOf("rv") !== 0)).concat(Object.keys(M.fj || {})));
       const jug = [...ids].map(k => { const j = PLT.find(x => x.id === k), a = act(k), f = (M.fj || {})[k] || 0; return a.hay || f ? { id: k, nombre: j ? j.nombre : k, num: j ? j.num : "", f, h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
-      const riv = Object.keys(M.es).filter(k => k.indexOf("rv") === 0).map(k => { const a = act(k); return a.hay ? { k, nombre: k === "rv" ? "Equipo" : "#" + k.slice(2), h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
+      const riv = Object.keys(M.es).filter(k => k.indexOf("rv") === 0).map(k => { const a = act(k); return a.hay ? { k, nombre: k === "rv" ? "Equipo" : rvT(k.slice(2)), h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
       if (!jug.length && !riv.length && !M.p[0] && !M.p[1] && !Object.keys(M.jg).length) { aviso("No hay nada que guardar todavía"); return; }
       const jgs = Object.entries(M.jg).map(([id, g]) => ({ id, nombre: g.n, veces: g.e, ok: g.ok })).sort((a, b) => b.veces - a.veces);
       const rec = { id: "pt" + Date.now().toString(36), fecha: new Date().toISOString(), n: M.n.slice(), p: M.p.slice(), per: M.per, jug, riv, jgs };
@@ -3009,7 +3031,7 @@ function iniciarPartido() {
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
     panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
-    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.febH1 = {}; M.jg = {}; M.jl = []; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.jg = {}; M.jl = []; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = $("ptMarcF").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; pintarJg(); };
