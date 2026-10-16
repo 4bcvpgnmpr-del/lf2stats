@@ -709,7 +709,11 @@ async function confirmar(msg, si) { const peligro = /borrar|eliminar|quitar|deja
 function aviso(t) { const a = $("aviso"); a.textContent = t; a.classList.add("ver"); clearTimeout(temporal); temporal = setTimeout(() => a.classList.remove("ver"), 2600); }
 
 const nube = window.supabase ? window.supabase.createClient(SB.url, SB.anon) : null;
-const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [] };
+const D = { jugadas: [], playbooks: [], ejercicios: [], planes: [], archivos: [], carpetas: [], comparte: [] };
+/* cuentas de ayudante: cada ayudante guarda lo suyo; de lo del propietario solo ve lo que se le comparte */
+let SOY_AYU = false, MI_EMAIL = "";
+const ajena = (x) => !!(SOY_AYU && x && String(x.propietario || "") !== MI_EMAIL);
+const carpetaAjena = (tipo, ruta) => SOY_AYU && !(D.carpetas || []).some(c => c.tipo === tipo && c.propietario === MI_EMAIL && enRama(c.nombre, ruta)) && !(D[tipo] || []).some(x => !ajena(x) && x.carpeta && enRama(x.carpeta, ruta));
 let puedeEscribir = true, faltaSql = "", seccion = "inicio", carpeta = "", busqueda = "", vistaDetalle = null;
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
 const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
@@ -733,6 +737,7 @@ async function cargarTodo() {
   faltaSql = ""; OFFLINE = !navigator.onLine;
   const [j, pb, ej, pl, ar, ca] = await Promise.all([leer("jugadas"), leer("playbooks"), leer("ejercicios"), leer("planes"), leer("archivos", "creada"), leer("carpetas", "creada")]);
   D.jugadas = j; D.playbooks = pb; D.ejercicios = ej; D.planes = pl; D.archivos = ar; D.carpetas = ca;
+  D.comparte = []; if (!SOY_AYU && !OFFLINE) { try { const rc = await nube.from("ayudante_comparte").select("*"); if (!rc.error) D.comparte = rc.data || []; } catch (e) { /* sin la tabla: nada compartido */ } }
   if (OFFLINE) { const snap = await kv.get("entrenador"); if (snap) { Object.keys(D).forEach(k => { D[k] = snap[k] || []; }); puedeEscribir = false; } }
   else if (!faltaSql) kv.put("entrenador", { jugadas: j, playbooks: pb, ejercicios: ej, planes: pl, archivos: ar, carpetas: ca, t: Date.now() });
   contadores();
@@ -799,6 +804,7 @@ function estiloTag(t) { let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt
 const chipsTags = (x) => tagsDe(x).map(t => `<span class="tag" style="${estiloTag(t)}">${esc(t)}</span>`).join("");
 async function fijarTags(tipo, x, tags) { const d = clonar(x.data || {}); d.tags = tags; const { error } = await nube.from(TABLA_DE[tipo]).update({ data: d }).eq("id", x.id); if (error) aviso("No se pudo guardar: " + error.message); }
 function editarTags(tipo, lista) {
+  lista = lista.filter(x => !ajena(x)); if (!lista.length) { aviso("Esas jugadas son del entrenador: cópialas a las tuyas para cambiarlas."); return; }
   let comunes = lista.length === 1 ? tagsDe(lista[0]).slice() : [];
   const sug = todasTags(tipo);
   const m = ventana(`<h3>🏷 Etiquetas${lista.length > 1 ? " (" + lista.length + " elementos)" : ""}</h3>${lista.length > 1 ? '<p class="peq" style="margin:4px 0 0;">Las etiquetas que añadas se suman a las que ya tienen.</p>' : ""}<label>Escribe y pulsa Intro</label><div id="tgBox" class="tgbox"></div><input id="tgIn" placeholder="Ej: zona, transición, 4 out" list="tgDl"><datalist id="tgDl">${sug.map(t => `<option value="${esc(t)}">`).join("")}</datalist>${sug.length ? `<div class="peq" style="margin-top:8px;">Usadas: ${sug.map(t => `<a class="tag sug" data-t="${esc(t)}" style="${estiloTag(t)}">${esc(t)}</a>`).join("")}</div>` : ""}<div class="pie-m"><button class="gris" id="tgX">Cancelar</button><button class="naranja" id="tgG">Guardar</button></div>`);
@@ -901,13 +907,13 @@ function pintarCarpetas(v, tipo) {
     const fila = (cols, extraC) => `<div class="fila ${clase}${extraC || ""}">${cols.join("")}</div>`;
     let filas = fila(["<div></div>", "<div>Título</div>", "<div>Etiquetas</div>"].concat(extra.map(t => `<div>${t}</div>`), ["<div>Última edición</div>", "<div></div>"]), " cabt");
     cars.forEach(c => { filas += `<div class="fila ${clase}" data-car="${esc(c.ruta)}" ${puedeEscribir ? 'draggable="true"' : ""}><div></div><div class="nom">${SVG_CARPETA(30)}<span class="tc"><span class="t">${esc(c.nombre)}</span><small class="ed">Editado ${fechaTxt(c.ult)}</small></span></div><div></div>${extra.map((_, i) => `<div class="peq"></div>`).join("")}<div class="peq">${fechaTxt(c.ult)}</div><div>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div></div>`; });
-    items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="nom">${(tipo === "jugadas" || tipo === "ejercicios") ? `<span class="mini-l" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO[tipo]}</span>` : `<span class="ico">${ICONO[tipo]}</span>`}<span class="tc"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}${(tipo === "jugadas" && x.compartida) ? ' <span class="comp" title="Visible para las jugadoras">📤</span>' : ""}</span><small class="ed">Editado ${fechaTxt(x.actualizada)}</small></span></div><div class="tags">${chipsTags(x)}</div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
+    items.forEach(x => { const c = celdas(x); filas += `<div class="fila ${clase}${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir && !ajena(x) ? 'draggable="true"' : ""}>${chk(x.id)}<div class="nom">${(tipo === "jugadas" || tipo === "ejercicios") ? `<span class="mini-l" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO[tipo]}</span>` : `<span class="ico">${ICONO[tipo]}</span>`}<span class="tc"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}${(tipo === "jugadas" && x.compartida) ? ' <span class="comp" title="Visible para las jugadoras">📤</span>' : ""}${(tipo === "jugadas" && ajena(x)) ? ' <span class="comp" title="Compartida por el entrenador (solo lectura)">👥</span>' : ""}${(tipo === "jugadas" && esCompAyu(x)) ? ' <span class="comp" title="Compartida con ayudantes">👥</span>' : ""}</span><small class="ed">Editado ${fechaTxt(x.actualizada)}</small></span></div><div class="tags">${chipsTags(x)}</div>${c.map(t => `<div class="peq">${esc(t)}</div>`).join("")}<div class="peq">${fechaTxt(x.actualizada)}</div><div>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div></div>`; });
     if (!cars.length && !items.length) filas += `<div class="vacio"><div class="vic"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></div>${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + ". Empieza con «＋ " + nuevoTxt + "»."}</div>`;
     cuerpo = `<div class="tabla">${filas}</div>`;
   } else {
     let t = "";
     cars.forEach(c => { t += `<div class="tj tcar" data-car="${esc(c.ruta)}" ${puedeEscribir ? 'draggable="true"' : ""}><div class="vista">${SVG_CARPETA(64)}</div><div class="cu"><div class="nom"><span class="t">${esc(c.nombre)}</span>${puedeEscribir ? '<button class="mas" data-mc="1">⋮</button>' : ""}</div><span class="peq">${c.n} elemento${c.n === 1 ? "" : "s"}</span></div></div>`; });
-    items.forEach(x => { const c = celdas(x); t += `<div class="tj${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${chk(x.id)}<div class="vista${tipo !== "planes" ? " mini" : ""}" data-mini="${tipo !== "planes" ? esc(x.id) : ""}">${tipo !== "planes" && MINIS[x.id + "|" + x.actualizada] ? MINIS[x.id + "|" + x.actualizada] : ICONO[tipo]}</div><div class="cu"><div class="nom"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}${(tipo === "jugadas" && x.compartida) ? ' <span class="comp" title="Visible para las jugadoras">📤</span>' : ""}</span>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div><span class="peq">${esc(c.slice(0, 2).join(" · "))}</span><div class="tags">${chipsTags(x)}</div></div></div>`; });
+    items.forEach(x => { const c = celdas(x); t += `<div class="tj${seleccion.has(x.id) ? " sel" : ""}" data-id="${esc(x.id)}" ${puedeEscribir && !ajena(x) ? 'draggable="true"' : ""}>${chk(x.id)}<div class="vista${tipo !== "planes" ? " mini" : ""}" data-mini="${tipo !== "planes" ? esc(x.id) : ""}">${tipo !== "planes" && MINIS[x.id + "|" + x.actualizada] ? MINIS[x.id + "|" + x.actualizada] : ICONO[tipo]}</div><div class="cu"><div class="nom"><span class="t">${x.favorita ? "⭐ " : ""}${esc(x.nombre || "(sin nombre)")}${(tipo === "jugadas" && x.compartida) ? ' <span class="comp" title="Visible para las jugadoras">📤</span>' : ""}${(tipo === "jugadas" && ajena(x)) ? ' <span class="comp" title="Compartida por el entrenador (solo lectura)">👥</span>' : ""}${(tipo === "jugadas" && esCompAyu(x)) ? ' <span class="comp" title="Compartida con ayudantes">👥</span>' : ""}</span>${puedeEscribir ? '<button class="mas" data-mi="1">⋮</button>' : ""}</div><span class="peq">${esc(c.slice(0, 2).join(" · "))}</span><div class="tags">${chipsTags(x)}</div></div></div>`; });
     cuerpo = t ? `<div class="rejilla">${t}</div>` : `<div class="tabla"><div class="vacio"><div class="vic"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></div>${hayFiltro() ? "Nada coincide con los filtros." : carpeta ? "Esta carpeta está vacía." : "Todavía no hay " + SECCIONES[tipo].toLowerCase() + "."}</div></div>`;
   }
   v.innerHTML = h + cuerpo;
@@ -930,7 +936,7 @@ function pintarCarpetas(v, tipo) {
   if ($("bPartido")) $("bPartido").onclick = abrirPartido;
   if ($("bMas")) $("bMas").onclick = (e) => abrirMenu(e, [...(HG_ACTIVO && (tipo === "jugadas" || tipo === "ejercicios") ? [["⤓ Importar de Hoops Geek", () => dialogoHG(tipo)]] : []), ["📁 Nueva carpeta", () => preguntar(carpeta ? "Nueva subcarpeta en «" + ultimo(carpeta) + "»" : "Nueva carpeta", "Nombre", "", async (n) => { n = limpiaNombre(n); if (!n || !await guardarFila("carpetas", { tipo, nombre: (carpeta ? carpeta + "/" : "") + n })) return; await cargarTodo(); pintar(); })]]);
   if ($("sNo")) $("sNo").onclick = () => { seleccion.clear(); redib(); };
-  const selItems = () => D[tipo].filter(x => seleccion.has(x.id));
+  const selItems = () => D[tipo].filter(x => seleccion.has(x.id) && !ajena(x));
   if ($("sTag")) $("sTag").onclick = () => editarTags(tipo, selItems());
   if ($("sMov")) $("sMov").onclick = () => moverACarpeta(tipo, selItems());
   if ($("sDel")) $("sDel").onclick = async () => { const l = selItems(); if (!await confirmar("¿Borrar " + l.length + " elemento" + (l.length > 1 ? "s" : "") + "? No se puede deshacer.")) return; for (const x of l) await borrarFila(TABLA_DE[tipo], x.id); seleccion.clear(); await cargarTodo(); pintar(); };
@@ -942,7 +948,7 @@ function pintarCarpetas(v, tipo) {
     soltarEn(el, tipo, nombre);
     el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ car: nombre })); e.dataTransfer.effectAllowed = "move"; el.classList.add("arrastrando"); });
     el.addEventListener("dragend", () => el.classList.remove("arrastrando"));
-    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["📁 Mover…", () => elegirDestinoCarpeta(tipo, nombre)], ["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]]); });
+    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, carpetaAjena(tipo, nombre) ? [["📂 Abrir", () => { carpeta = nombre; pintar(); }]] : [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["📁 Mover…", () => elegirDestinoCarpeta(tipo, nombre)]].concat(tipo === "jugadas" && !SOY_AYU && puedeEscribir ? [["👥 Compartir carpeta con ayudantes…", () => compartirAyudantes("carpeta", nombre, nombre)]] : [], [["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]])); });
   });
   v.querySelectorAll("[data-id]").forEach(el => {
     const x = D[tipo].find(y => y.id === el.dataset.id);
@@ -1113,6 +1119,7 @@ async function dejarDeCompartir(tipo, x) {
   aviso("Dejaste de compartirlo");
 }
 function opcionesElemento(tipo, x) {
+  if (ajena(x)) return [["▶ Ver animada", () => verJugada(x)], ["⬇ Descargar PDF", () => pdfElemento(tipo, x)], ["-"], ["⎘ Copiar a mis jugadas", async () => { const c = await duplicar(tipo, x); if (c) aviso("Copiada a tus jugadas ✓"); }]];
   const dib = tipo === "jugadas" || tipo === "ejercicios", o = [];
   o.push(["✏️ " + (dib ? (tipo === "jugadas" ? "Editar jugada" : "Editar ejercicio") : "Abrir"), () => editarElemento(tipo, x)]);
   if (tipo === "ejercicios") o.push(["📝 Editar datos (material, vídeo…)", () => formEjercicio(x)]);
@@ -1121,6 +1128,7 @@ function opcionesElemento(tipo, x) {
   o.push(["-"]);
   if (tipo === "jugadas") o.push(["▶ Ver animada", () => verJugada(x)], [x.compartida ? "🙈 Ocultar a las jugadoras" : "📤 Mostrar a las jugadoras", () => alternarComp(x)]);
   if (puedeEscribir && (dib || tipo === "planes")) o.push(["🔗 Compartir…", () => compartirEnlace(tipo, x)]);
+  if (tipo === "jugadas" && !SOY_AYU && D.comparte && puedeEscribir) o.push(["👥 Compartir con ayudantes…", () => compartirAyudantes("jugada", x.id, x.nombre)]);
   if (dib) o.push(["⬇ Descargar PDF", () => pdfElemento(tipo, x)]);
   o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["-"], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Copiar", () => duplicar(tipo, x)], ["-"], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
   return o;
@@ -1164,7 +1172,7 @@ async function renombrarCarpeta(tipo, ruta) {
   });
 }
 async function borrarCarpeta(tipo, ruta) {
-  const dentro = D[tipo].filter(y => y.carpeta && enRama(y.carpeta, ruta));
+  const dentro = D[tipo].filter(y => y.carpeta && enRama(y.carpeta, ruta) && !ajena(y));
   const sub = rutasCarpetas(tipo).filter(c => c.nombre !== ruta && enRama(c.nombre, ruta)).length;
   if (!await confirmar("¿Eliminar la carpeta «" + ultimo(ruta) + "»?" + (sub ? " También sus " + sub + " subcarpetas." : "") + (dentro.length ? " Los " + dentro.length + " elementos que contiene NO se borran: pasan a " + (padreDe(ruta) ? "«" + padreDe(ruta) + "»" : "la raíz") + "." : ""))) return;
   for (const c of D.carpetas.filter(c => c.tipo === tipo && enRama(c.nombre, ruta))) await nube.from("carpetas").delete().eq("tipo", tipo).eq("nombre", c.nombre);
@@ -1173,6 +1181,7 @@ async function borrarCarpeta(tipo, ruta) {
   await cargarTodo(); pintar();
 }
 async function ponerCarpeta(tipo, x, n) {
+  if (ajena(x)) return;
   if (ACARP.includes(tipo)) { await setCarpArch([x.id], n); if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) { await guardarFila("carpetas", { tipo, nombre: n }); D.carpetas.push({ tipo, nombre: n }); } return; }
   if (tipo === "jugadas") { const d = clonar(x.data || {}); d.carpeta = n; await nube.from("jugadas").update({ carpeta: n, data: d }).eq("id", x.id); } else await nube.from(TABLA_DE[tipo]).update({ carpeta: n }).eq("id", x.id);
   if (n && !D.carpetas.some(c => c.tipo === tipo && c.nombre === n)) { await guardarFila("carpetas", { tipo, nombre: n }); D.carpetas.push({ tipo, nombre: n }); }
@@ -1189,13 +1198,39 @@ function moverACarpeta(tipo, lista) {
     seleccion.clear(); await cargarTodo(); pintar();
   };
 }
+const esCompAyu = (x) => !SOY_AYU && (D.comparte || []).some(c => (c.kind === "jugada" && c.ref === x.id) || (c.kind === "carpeta" && x.carpeta && (x.carpeta === c.ref || String(x.carpeta).startsWith(c.ref + "/"))));
+async function compartirAyudantes(kind, ref, nombre) {
+  let filas = [], err = "";
+  try { const r = await nube.from("entrenadores").select("*"); if (r.error) err = r.error.message; else filas = r.data || []; } catch (e) { err = String(e && e.message || e); }
+  const col = filas[0] ? (("email" in filas[0]) ? "email" : (Object.keys(filas[0]).find(k => /mail|correo/i.test(k)) || "email")) : "email";
+  let yo = ""; try { yo = String((await nube.auth.getSession()).data.session.user.email || "").toLowerCase(); } catch (e) { /* nada */ }
+  const ayu = filas.map(f => String(f[col] || "").toLowerCase()).filter(c => c && c !== yo);
+  if (!ayu.length) { aviso(err ? "No se pudo leer la lista de ayudantes: " + err : "Aún no tienes ayudantes. Añádelos en el Panel."); return; }
+  const hay = (a, k, r) => (D.comparte || []).some(c => c.ayudante === a && c.kind === k && c.ref === r);
+  const et = kind === "carpeta" ? "esta carpeta" : "esta jugada";
+  ventana(`<h3>👥 Compartir con ayudantes</h3><p class="peq" style="margin:0 0 8px;">«${esc(nombre || "")}»: marca quién puede verla. Solo la ven: si quiere cambiarla, la copia a sus jugadas.</p>
+    <div class="lista-sel">${ayu.map((a, i) => `<div style="padding:8px 4px;border-bottom:1px solid var(--line,#e4e8ee);"><b style="font-size:13.5px;">${esc(a)}</b>
+      <label class="it"><input type="checkbox" data-a="${i}" data-k="${kind}" ${hay(a, kind, ref) ? "checked" : ""}><span>Puede ver ${et}</span></label>
+      <label class="it"><input type="checkbox" data-a="${i}" data-k="todo" ${hay(a, "todo", "") ? "checked" : ""}><span>Puede ver todas mis jugadas</span></label></div>`).join("")}</div>
+    <div class="pie-m"><button class="gris" id="shX">Cancelar</button><button class="naranja" id="shG">Guardar</button></div>`);
+  $("shX").onclick = cerrarVentana;
+  $("shG").onclick = async () => {
+    let fallo = "";
+    for (const cb of document.querySelectorAll("[data-a][data-k]")) {
+      const a = ayu[Number(cb.dataset.a)], k = cb.dataset.k, r = k === "todo" ? "" : ref, ya = hay(a, k, r);
+      if (cb.checked && !ya) { const { error } = await nube.from("ayudante_comparte").insert({ ayudante: a, kind: k, ref: r }); if (error) fallo = error.message; }
+      else if (!cb.checked && ya) { const { error } = await nube.from("ayudante_comparte").delete().eq("ayudante", a).eq("kind", k).eq("ref", r); if (error) fallo = error.message; }
+    }
+    cerrarVentana(); aviso(fallo ? "No se pudo guardar: " + fallo + " (¿ejecutaste ayudantes_cuentas.sql?)" : "Listo ✓"); await cargarTodo(); pintar();
+  };
+}
 async function duplicar(tipo, x) {
   if (!puedeCrear(tipo)) return;
   const c = clonar(x); c.id = idNuevo(tipo[0]); c.nombre = (c.nombre || "") + " (copia)"; if (tipo === "jugadas") { c.compartida = false; c.data.id = c.id; c.data.nombre = c.nombre; c.data.compartida = false; }
   if (await guardarFila(TABLA_DE[tipo], c)) { aviso("Duplicado"); await cargarTodo(); pintar(); return c; }
   return null;
 }
-async function borrarElemento(tipo, x) { if (!await confirmar("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
+async function borrarElemento(tipo, x) { if (ajena(x)) { aviso("Es una jugada del entrenador: no se puede borrar."); return; } if (!await confirmar("¿Borrar «" + x.nombre + "»? No se puede deshacer.")) return; if (await borrarFila(TABLA_DE[tipo], x.id)) { await cargarTodo(); pintar(); } }
 function alternarComp(x) {
   if (x.compartida) return alternarComp2(x);
   const tipos = TIPOS_JUG.includes(x.tipo) || !x.tipo ? TIPOS_JUG : TIPOS_JUG.concat([x.tipo]);
@@ -1218,6 +1253,10 @@ function abrirElemento(tipo, x) {
   return editarElemento(tipo, x);
 }
 function editarElemento(tipo, x) {
+  if (tipo === "jugadas" && ajena(x)) {
+    confirmar("Esta jugada es del entrenador y solo puedes verla. ¿Copiarla a tus jugadas para editarla?").then(async (ok) => { if (!ok) return; const c = await duplicar(tipo, x); const n = c && D[tipo].find(y => y.id === c.id); if (n) editarElemento(tipo, n); });
+    return;
+  }
   if (tipo === "jugadas") return abrirEditor(x.id);
   if (tipo === "ejercicios") return abrirEditor(x.id, "ejercicios");
   abrirPlan(x);
@@ -3399,6 +3438,7 @@ async function iniciar() {
     seccion = E.find(x => x !== "partido") || "jugadas";
   } else { try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ } }
   try { const r = await nube.rpc("puede_escribir"); if (r && !r.error && r.data === false) puedeEscribir = false; } catch (e) { /* sin roles: se puede escribir */ }
+  try { const ra = await nube.rpc("soy_ayudante"); if (ra && !ra.error && ra.data === true) { SOY_AYU = true; puedeEscribir = true; MI_EMAIL = String(data.session.user.email || "").toLowerCase(); } } catch (e) { /* sin cuentas de ayudante: como antes */ }
   window.addEventListener("online", () => { if (OFFLINE) location.reload(); });
   await cargarTodo();
   const h = (location.hash || "").replace("#", ""); if (SECCIONES[h]) seccion = h;

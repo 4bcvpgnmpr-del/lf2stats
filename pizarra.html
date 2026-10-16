@@ -2007,11 +2007,12 @@ const kv = {
   async get(k) { try { const db = await this._db(); return await new Promise((ok, no) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); } catch (e) { return undefined; } }
 };
 let BIB = [], nube = null, modoNube = false, motivoLocal = "", visorGrande = null, soloFav = false;
+let SOY_AYU = false, ME_EMAIL = ""; const PROP = {};
 const leerLocal = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || "[]").map(normalizar); } catch (e) { return []; } };
 const escribirLocal = (l) => { try { localStorage.setItem(CLAVE, JSON.stringify(l)); } catch (e) { aviso("No se pudo guardar: el navegador no deja escribir."); } };
 const filaNube = (j) => ({ id: j.id, nombre: j.nombre || "", tipo: j.tipo || "", carpeta: j.carpeta || "", favorita: !!j.favorita, compartida: !!j.compartida, data: j, actualizada: new Date().toISOString() });
 const deFilaEj = (r) => { const d = r.data || {}; ORIG[r.id] = d; return normalizar(Object.assign(jugadaNueva("cinco"), clonar(d.diagrama || {}), { id: r.id, nombre: r.nombre || "", carpeta: r.carpeta || "", tags: d.tags || [], notas: d.descripcion || "", tipo: d.categoria || "Otro", minutos: d.minutos || 0, actualizada: r.actualizada })); };
-const deFila = (r) => normalizar(Object.assign({}, r.data, { id: r.id, favorita: !!r.favorita, compartida: !!r.compartida, actualizada: r.actualizada }));
+const deFila = (r) => (PROP[r.id] = r.propietario || "", normalizar(Object.assign({}, r.data, { id: r.id, favorita: !!r.favorita, compartida: !!r.compartida, actualizada: r.actualizada })));
 
 async function iniciarNube() {
   motivoLocal = "";
@@ -2023,6 +2024,7 @@ async function iniciarNube() {
     const { error } = await nube.from(TABLA).select("id").limit(1);
     if (error) { motivoLocal = "falta ejecutar jugadas.sql en Supabase (" + error.message + ")"; return; }
     modoNube = true;
+    try { const ra = await nube.rpc("soy_ayudante"); SOY_AYU = !!(ra && !ra.error && ra.data === true); ME_EMAIL = String(data.session.user.email || "").toLowerCase(); } catch (e) { /* sin cuentas de ayudante */ }
   } catch (e) { motivoLocal = "error al conectar"; }
 }
 async function recargarBib() {
@@ -2049,7 +2051,7 @@ function pintarEstado() {
 }
 async function guardarJugada(j) {
   sincOp(j); const sv = clonar(j); delete sv.opAct; if (sv.opciones) sv.pasos = sv.opciones[0].pasos;
-  const ok = await guardarJugada0(sv); if (ok) j.actualizada = sv.actualizada; return ok;
+  const ok = await guardarJugada0(sv); if (ok) { j.actualizada = sv.actualizada; if (sv.id !== j.id) j.id = sv.id; } return ok;
 }
 async function guardarJugada0(j) {
   j.actualizada = new Date().toISOString();
@@ -2060,6 +2062,7 @@ async function guardarJugada0(j) {
     const { error } = await nube.from("ejercicios").upsert({ id: j.id, nombre: j.nombre || "", carpeta: j.carpeta || "", data, actualizada: j.actualizada });
     if (error) { aviso("No se pudo guardar: " + error.message); return false; } ORIG[j.id] = data; return true;
   }
+  if (modoNube && SOY_AYU && PROP[j.id] !== undefined && PROP[j.id] !== ME_EMAIL) { j.id = "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); j.compartida = false; PROP[j.id] = ME_EMAIL; aviso("Era una jugada del entrenador: se guardó como copia tuya."); }
   if (modoNube) { const { error } = await nube.from("jugadas").upsert(filaNube(j)); if (error) { aviso("No se pudo guardar: " + error.message); return false; } }
   else { const l = leerLocal(), i = l.findIndex(x => x.id === j.id); if (i >= 0) l[i] = clonar(j); else l.unshift(clonar(j)); escribirLocal(l); }
   return true;
