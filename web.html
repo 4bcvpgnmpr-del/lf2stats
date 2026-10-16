@@ -51,10 +51,14 @@ section.s.alt{background:var(--alt)}
 .app{display:block;text-decoration:none;background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:20px;transition:.15s}
 .app:hover{border-color:var(--ac);transform:translateY(-2px)}
 .app b{display:block;font-size:18px;margin:4px 0}.app span{color:var(--mut);font-size:15px}
-.pl{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;max-width:900px;margin:0 auto}
+.tres{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.ap{background:var(--card);border:1px solid var(--ln);border-radius:18px;padding:26px;display:flex;flex-direction:column}
+.ap .ic{font-size:30px;background:var(--ac2);width:56px;height:56px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px}
+.ap h3{margin:0;font-size:22px}.ap .d{color:var(--mut);margin:4px 0 10px}
+.ap ul{padding:0;list-style:none;margin:0 0 16px;flex:1}.ap li{padding:4px 0 4px 26px;position:relative;font-size:15.5px}.ap li:before{content:"✓";position:absolute;left:0;color:var(--ac);font-weight:800}
+.ap .nt{background:var(--ac2);border-radius:10px;padding:10px 12px;font-size:14px;margin:0 0 14px}
+.pl{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;max-width:960px;margin:0 auto}
 .plan{background:var(--card);border:1.5px solid var(--ln);border-radius:18px;padding:26px;display:flex;flex-direction:column}
-.plan.top{border-color:var(--ac);position:relative}
-.plan.top:before{content:"Más elegido";position:absolute;top:-12px;left:22px;background:var(--ac);color:#fff;font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px}
 .plan h3{margin:0 0 4px;font-size:21px}.plan .pr{font-size:30px;font-weight:800;margin:10px 0}.plan .pr small{font-size:14px;font-weight:500;color:var(--mut)}
 .plan ul{padding:0;list-style:none;margin:6px 0 20px;flex:1}.plan li{padding:4px 0 4px 26px;position:relative;font-size:15.5px}
 .plan li:before{content:"✓";position:absolute;left:0;color:var(--ac);font-weight:800}
@@ -72,7 +76,7 @@ footer{padding:26px 0;text-align:center;color:var(--mut);font-size:14px;border-t
 <header><div class="w">
   <a class="logo" href="#">Scout<span>Flow</span></a>
   <nav>
-    <a href="#funciones">Funciones</a><a href="#apps">Las apps</a><a href="#precios">Precios</a><a href="#faq">Preguntas</a>
+    <a href="#funciones">Funciones</a><a href="#apps">Las 3 apps</a><a href="#precios">Precios</a><a href="#faq">Preguntas</a>
     <a class="btn" href="#contacto">Probar</a>
   </nav>
 </div></header>
@@ -120,35 +124,44 @@ footer{padding:26px 0;text-align:center;color:var(--mut);font-size:14px;border-t
 </div></section>
 
 <section class="s alt" id="apps"><div class="w">
-  <h2>Un ecosistema, varias apps</h2>
-  <p class="lead">Cada persona del club entra en lo suyo.</p>
-  <div class="apps">
-    <a class="app" href="entrenador.html"><span>🧑‍🏫</span><b>Entrenador</b><span>Jugadas, planes, calendario y Modo partido.</span></a>
-    <a class="app" href="index.html"><span>📊</span><b>Estadísticas</b><span>Datos FEB, rivales e informes.</span></a>
-    <a class="app" href="panel.html"><span>🛠️</span><b>Panel</b><span>Plantilla, ayudantes, tests y accesos.</span></a>
-    <a class="app" href="jugadoras.html"><span>🏃‍♀️</span><b>Jugadoras</b><span>Sus números, jugadas, vídeos y mensajes.</span></a>
+  <h2>Tres apps. Elige las que necesitas.</h2>
+  <p class="lead">Cada una funciona por separado, y juntas se complementan.</p>
+  <div class="tres">
+    <div class="ap"><span class="ic">🧑‍🏫</span><h3>Entrenador</h3><p class="d">La app del banquillo y del día a día.</p>
+      <ul><li>Editor de jugadas y playbooks</li><li>Modo partido y libro de partidos</li><li>Calendario, ejercicios y planes</li><li>Equipos y mini basket</li><li>Ayudantes con su propia cuenta</li><li>Panel y app para tus jugadoras</li></ul>
+      <a class="btn" href="#contacto">Quiero Entrenador</a></div>
+    <div class="ap"><span class="ic">📊</span><h3>Estadísticas</h3><p class="d">Datos, rivales e informes de tu liga.</p>
+      <ul><li>Estadísticas de tu equipo y de los rivales</li><li>Plantillas, líderes y mapas de tiro</li><li>Informe visual del rival en PDF</li><li>Estadísticas en vivo en el Modo partido</li></ul>
+      <div class="nt">⚠️ Solo disponible si los datos de tu liga se pueden automatizar. Dime cuál es tu liga y lo compruebo.</div>
+      <a class="btn" href="#contacto">Consultar mi liga</a></div>
+    <div class="ap"><span class="ic">🎬</span><h3>Editor de vídeo</h3><p class="d">Monta los vídeos de tus partidos y jugadas.</p>
+      <ul><li>Corta los clips que te interesan</li><li>Mezcla clips de distintos vídeos</li><li>Exportación rápida a MP4</li><li>Listo para enviar a tus jugadoras</li></ul>
+      <a class="btn" href="#contacto">Quiero el Editor</a></div>
   </div>
+  <p class="nota">¿Tu liga no se puede automatizar? Entrenador y Editor de vídeo funcionan igual, con las estadísticas anotadas a mano.</p>
 </div></section>
 
 <section class="s" id="precios"><div class="w">
   <h2>Precios</h2>
-  <p class="lead">Planes de ejemplo: ajusta nombres, precios y lo que incluye cada uno antes de publicar.</p>
+  <p class="lead">Cada app se contrata por separado. Valores de ejemplo: pon aquí los tuyos antes de publicar.</p>
   <div class="pl">
-    <div class="plan"><h3>Entrenador</h3><div class="pr">XX €<small> /mes</small></div>
-      <ul><li>Jugadas y playbooks</li><li>Modo partido y libro</li><li>Calendario y planes</li></ul>
-      <a class="btn o" href="#contacto">Empezar</a></div>
-    <div class="plan top"><h3>Equipo</h3><div class="pr">XX €<small> /mes</small></div>
-      <ul><li>Todo lo anterior</li><li>Ayudantes con su cuenta</li><li>App de jugadoras</li><li>Estadísticas FEB</li></ul>
+    <div class="plan"><h3>🧑‍🏫 Entrenador</h3><div class="pr">XX €<small> /mes</small></div>
+      <ul><li>Todo el apartado de entrenador</li><li>Ayudantes con su cuenta</li><li>App de jugadoras</li></ul>
       <a class="btn" href="#contacto">Empezar</a></div>
-    <div class="plan"><h3>Club</h3><div class="pr">A medida</div>
-      <ul><li>Varios equipos y categorías</li><li>Panel de coordinación</li><li>Soporte directo</li></ul>
-      <a class="btn o" href="#contacto">Hablemos</a></div>
+    <div class="plan"><h3>📊 Estadísticas</h3><div class="pr">XX €<small> /mes</small></div>
+      <ul><li>Datos de tu liga automatizados</li><li>Fichas e informes de rivales</li><li>Se conecta con el Modo partido</li></ul>
+      <a class="btn o" href="#contacto">Consultar mi liga</a></div>
+    <div class="plan"><h3>🎬 Editor de vídeo</h3><div class="pr">XX €<small> /mes</small></div>
+      <ul><li>Montaje con clips</li><li>Exportación rápida</li><li>Listo para enviar a tus jugadoras</li></ul>
+      <a class="btn" href="#contacto">Empezar</a></div>
   </div>
-  <p class="nota">Los precios «XX» son un marcador: pon aquí los tuyos.</p>
+  <p class="nota">¿Más de un equipo o un club entero? Escríbeme y lo hablamos.</p>
 </div></section>
 
 <section class="s alt" id="faq"><div class="w">
   <h2>Preguntas frecuentes</h2><p class="lead"></p>
+  <details><summary>¿Por qué Estadísticas no está disponible en todas las ligas?</summary><p>Porque depende de que los datos de la liga se puedan traer automáticamente. Si tu liga lo permite, activamos la app; si no, usas Entrenador con estadísticas a mano.</p></details>
+  <details><summary>¿Puedo contratar solo una app?</summary><p>Sí. Entrenador, Estadísticas y Editor de vídeo se contratan por separado.</p></details>
   <details><summary>¿Necesito instalar algo?</summary><p>No. Funciona desde el navegador del móvil, la tablet o el ordenador.</p></details>
   <details><summary>¿Funciona sin conexión en el pabellón?</summary><p>El Modo partido usa las jugadas guardadas en el aparato y sube los datos cuando vuelve la red.</p></details>
   <details><summary>¿Mi ayudante ve mis jugadas?</summary><p>Cada ayudante tiene su cuenta y su espacio. Tú decides qué jugadas y carpetas compartes con él.</p></details>
