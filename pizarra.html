@@ -488,6 +488,19 @@ html.oscuro img,html.oscuro video,html.oscuro canvas,html.oscuro iframe,html.osc
 @media print{html.oscuro,html.oscuro img,html.oscuro video,html.oscuro canvas,html.oscuro iframe,html.oscuro #capaCentro{filter:none}.sf-tema{display:none}}
 </style>
 <script>
+/* Modo partido por usuario: lo guardado en este aparato (libro, menús, barra, marcador…) es de quien ha entrado */
+(function () {
+  var em = "";
+  try { for (var i = 0; i < localStorage.length && !em; i++) { var k = localStorage.key(i); if (/^sb-.*-auth-token$/.test(k)) { var o = JSON.parse(Storage.prototype.getItem.call(localStorage, k) || "null"); var e = o && ((o.user && o.user.email) || (o.currentSession && o.currentSession.user && o.currentSession.user.email)); if (e) em = String(e).toLowerCase(); } } } catch (x) { /* sin sesión */ }
+  window.__UK = em; if (!em) return;
+  var P = Storage.prototype, g = P.getItem, s = P.setItem, r = P.removeItem, RX = /^scoutflow-(libro|menus|barra|marcador|partido|feb|plantilla)/;
+  var m = function (t, k) { return (t === localStorage && typeof k === "string" && RX.test(k)) ? k + "@" + em : k; };
+  P.getItem = function (k) { var kk = m(this, k), v = g.call(this, kk); if (v === null && kk !== k) { var o = g.call(this, k); if (o !== null) { try { s.call(this, kk, o); } catch (x) { /* nada */ } return o; } } return v; };
+  P.setItem = function (k, v) { return s.call(this, m(this, k), v); };
+  P.removeItem = function (k) { return r.call(this, m(this, k)); };
+})();
+</script>
+<script>
 (function(){var K="sf_tema",d=document.documentElement;function g(){try{return localStorage.getItem(K)}catch(e){return null}}
 function ap(o){d.classList.toggle("oscuro",o);var b=document.getElementById("sfTemaB");if(b){b.textContent=o?"☀️":"🌙";b.title=o?"Cambiar a modo claro":"Cambiar a modo oscuro"}}
 ap(g()==="oscuro");
@@ -2003,8 +2016,9 @@ function crearVisor(ids, dur) {
 /* copia local (IndexedDB) para abrir sin internet */
 const kv = {
   _db() { return this._p || (this._p = new Promise((ok, no) => { try { const r = indexedDB.open("scoutflow-offline", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } })); },
-  async put(k, v) { try { const db = await this._db(); await new Promise((ok, no) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = ok; t.onerror = () => no(t.error); }); } catch (e) { /* sin copia local */ } },
-  async get(k) { try { const db = await this._db(); return await new Promise((ok, no) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); } catch (e) { return undefined; } }
+  _k(k) { return (window.__UK && /^partido_/.test(k)) ? k + "@" + window.__UK : k; },
+  async put(k, v) { k = this._k(k); try { const db = await this._db(); await new Promise((ok, no) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = ok; t.onerror = () => no(t.error); }); } catch (e) { /* sin copia local */ } },
+  async get(k) { const k0 = k; k = this._k(k); try { const db = await this._db(); const leer = (kk) => new Promise((ok, no) => { const q = db.transaction("kv").objectStore("kv").get(kk); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); let v = await leer(k); if (v === undefined && k !== k0) { v = await leer(k0); if (v !== undefined) this.put(k0, v); } return v; } catch (e) { return undefined; } }
 };
 let BIB = [], nube = null, modoNube = false, motivoLocal = "", visorGrande = null, soloFav = false;
 let SOY_AYU = false, ME_EMAIL = ""; const PROP = {};
