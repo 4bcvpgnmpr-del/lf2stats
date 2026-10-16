@@ -2676,7 +2676,7 @@ function iniciarPartido() {
   (() => {
     const CL = "scoutflow-marcador";
     const M = Object.assign({ n: ["Nosotros", "Rivales"], p: [0, 0], f: [0, 0], per: 1, fj: {}, jg: {}, jl: [], jv: [] }, (() => { try { return JSON.parse(localStorage.getItem(CL) || "{}"); } catch (e) { return {}; } })());
-    M.jg = M.jg || {}; M.jl = M.jl || []; M.jv = M.jv || [];
+    M.jg = M.jg || {}; M.jl = M.jl || []; M.jv = M.jv || []; M.jx = M.jx || [];
     const guardarM = () => { try { localStorage.setItem(CL, JSON.stringify(M)); } catch (e) { /* nada */ } };
     const st = document.createElement("style"); st.textContent = `
       #ptPill{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9;min-height:42px !important;font-size:20px !important;font-variant-numeric:tabular-nums;background:#e8590c !important;}
@@ -2733,14 +2733,15 @@ function iniciarPartido() {
       el.textContent = g ? "Hoy: " + g.e + (g.e === 1 ? " vez" : " veces") + " · " + g.ok + " ✓ · " + Math.round(100 * g.ok / g.e) + "%" : "";
     };
     const jgNombre = (id) => { const x = (E.lista || []).find(y => y.id === id); return (x && x.nombre) || (M.jg[id] && M.jg[id].n) || "Jugada"; };
-    const jgIds = () => { const st = new Set(); (M.jv || []).forEach(i => st.add(i)); Object.keys(M.jg).forEach(i => st.add(i)); if (E.pin) E.pin.forEach(i => { if ((E.lista || []).some(y => y.id === i)) st.add(i); }); if (E.j) st.add(E.j.id); return [...st]; };
+    const jgIds = () => { const st = new Set(); (M.jv || []).forEach(i => st.add(i)); Object.keys(M.jg).forEach(i => st.add(i)); if (E.pin) E.pin.forEach(i => { if ((E.lista || []).some(y => y.id === i)) st.add(i); }); if (E.j) st.add(E.j.id); (M.jx || []).forEach(i => st.delete(i)); return [...st]; };
     const pintarJg = () => {
       const box = $("mpJg"); if (!box) return; const ids = jgIds().sort((a, b) => ((M.jg[b] || {}).e || 0) - ((M.jg[a] || {}).e || 0) || jgNombre(a).localeCompare(jgNombre(b), "es"));
       let e = 0, ok = 0; ids.forEach(id => { const g = M.jg[id]; if (g) { e += g.e; ok += g.ok; } });
       const libres = (E.lista || []).filter(y => !ids.includes(y.id)).sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
-      box.innerHTML = `<table class="mp-jt"><thead><tr><th>Jugada</th><th style="text-align:center">Veces</th><th style="text-align:center">✓</th><th style="text-align:center">%</th><th></th></tr></thead><tbody>${ids.map(id => { const g = M.jg[id] || { e: 0, ok: 0 }; return `<tr><td>${esc(jgNombre(id))}</td><td class="n">${g.e}</td><td class="n">${g.ok}</td><td class="n">${g.e ? Math.round(100 * g.ok / g.e) + "%" : "–"}</td><td style="white-space:nowrap;text-align:right;"><button data-jok="${esc(id)}" style="background:#2b8a3e;min-width:54px;min-height:42px;">✓</button> <button data-jko="${esc(id)}" style="background:#c92a2a;min-width:54px;min-height:42px;">✗</button></td></tr>`; }).join("") || '<tr><td colspan="5" style="opacity:.65;">Fija jugadas en el modo partido o añádelas abajo.</td></tr>'}${e ? `<tr><td><b>Total</b></td><td class="n"><b>${e}</b></td><td class="n"><b>${ok}</b></td><td class="n"><b>${Math.round(100 * ok / e)}%</b></td><td></td></tr>` : ""}</tbody></table>${libres.length ? `<button id="mpJgAdd" style="margin-top:8px;min-height:46px;border-radius:10px;background:#17202a;color:#fff;border:1px solid #3b4a5c;padding:0 12px;width:100%;font-size:16px;text-align:left;">＋ Añadir otra jugada a esta lista…</button>` : ""}`;
+      box.innerHTML = `<table class="mp-jt"><thead><tr><th>Jugada</th><th style="text-align:center">Veces</th><th style="text-align:center">✓</th><th style="text-align:center">%</th><th></th></tr></thead><tbody>${ids.map(id => { const g = M.jg[id] || { e: 0, ok: 0 }; return `<tr><td>${esc(jgNombre(id))}</td><td class="n">${g.e}</td><td class="n">${g.ok}</td><td class="n">${g.e ? Math.round(100 * g.ok / g.e) + "%" : "–"}</td><td style="white-space:nowrap;text-align:right;"><button data-jok="${esc(id)}" style="background:#2b8a3e;min-width:54px;min-height:42px;">✓</button> <button data-jko="${esc(id)}" style="background:#c92a2a;min-width:54px;min-height:42px;">✗</button> <button data-jdel="${esc(id)}" title="Quitar de la lista" style="background:#3b4a5c;min-width:44px;min-height:42px;">🗑</button></td></tr>`; }).join("") || '<tr><td colspan="5" style="opacity:.65;">Fija jugadas en el modo partido o añádelas abajo.</td></tr>'}${e ? `<tr><td><b>Total</b></td><td class="n"><b>${e}</b></td><td class="n"><b>${ok}</b></td><td class="n"><b>${Math.round(100 * ok / e)}%</b></td><td></td></tr>` : ""}</tbody></table>${libres.length ? `<button id="mpJgAdd" style="margin-top:8px;min-height:46px;border-radius:10px;background:#17202a;color:#fff;border:1px solid #3b4a5c;padding:0 12px;width:100%;font-size:16px;text-align:left;">＋ Añadir otra jugada a esta lista…</button>` : ""}`;
       box.querySelectorAll("[data-jok]").forEach(b => b.onclick = () => anotaJg(true, b.dataset.jok));
       box.querySelectorAll("[data-jko]").forEach(b => b.onclick = () => anotaJg(false, b.dataset.jko));
+      box.querySelectorAll("[data-jdel]").forEach(b => b.onclick = () => quitaJg(b.dataset.jdel));
       const ad = box.querySelector("#mpJgAdd"); if (ad) ad.onclick = () => elegirJgAdd();
     };
     /* añadir jugadas a la lista del partido: buscador + carpetas, tocas y se añade */
@@ -2764,7 +2765,7 @@ function iniciarPartido() {
         MN.querySelectorAll(".row[data-c]").forEach(d => d.onclick = () => { cur = d.dataset.c; pinta(); });
         MN.querySelectorAll(".row[data-j]").forEach(d => d.onclick = () => {
           const id = d.dataset.j, bx = MN.querySelector("div[style*='max-height']"), st = bx ? bx.scrollTop : 0;
-          M.jv = M.jv || []; if (!ya.has(id)) { M.jv.push(id); guardarM(); }
+          M.jv = M.jv || []; M.jx = (M.jx || []).filter(i => i !== id); if (!ya.has(id)) { M.jv.push(id); } guardarM();
           pinta(); const b2 = MN.querySelector("div[style*='max-height']"); if (b2) b2.scrollTop = st;
         });
         $("jaQ").oninput = (e) => { q = e.target.value.trim().toLowerCase(); const pos = e.target.selectionStart; pinta(); const z = $("jaQ"); z.focus(); z.setSelectionRange(pos, pos); };
@@ -2772,8 +2773,14 @@ function iniciarPartido() {
       };
       pinta(); MN.classList.add("ver"); setTimeout(() => { try { $("jaQ").focus(); } catch (e) { /* nada */ } }, 50);
     };
+    const quitaJg = (id) => {
+      const g = M.jg[id]; if (g && g.e && !confirm("¿Quitar «" + jgNombre(id) + "» de la lista? Se borran sus " + g.e + " intentos de este partido.")) return;
+      delete M.jg[id]; M.jl = (M.jl || []).filter(u => u.id !== id); M.jv = (M.jv || []).filter(i => i !== id);
+      if (!M.jx.includes(id)) M.jx.push(id);
+      guardarM(); pintarHoy(); pintarJg(); aviso("Jugada quitada de la lista");
+    };
     const anotaJg = (okv, id) => {
-      id = id || (E.j && E.j.id); if (!id) { aviso("Abre primero una jugada"); return; }
+      id = id || (E.j && E.j.id); if (!id) { aviso("Abre primero una jugada"); return; } M.jx = (M.jx || []).filter(i => i !== id);
       const nom = jgNombre(id), g = M.jg[id] = M.jg[id] || { n: nom, e: 0, ok: 0 };
       g.n = nom; g.e++; if (okv) g.ok++; M.jl.push({ id, ok: okv ? 1 : 0 }); guardarM(); pintarHoy(); pintarJg();
       try { navigator.vibrate && navigator.vibrate(okv ? 40 : [40, 40, 40]); } catch (e) { /* nada */ }
@@ -3085,7 +3092,7 @@ function iniciarPartido() {
     $("mpMan").onclick = () => { const v = prompt("Tiempo en minutos (ej. 10, o 2:30 para 2 min 30 s):", "10"); if (v == null) return; const m = String(v).trim().match(/^(\d+)(?:[:.,](\d{1,2}))?$/); if (!m) { aviso("Tiempo no válido"); return; } const sec = v.includes(":") ? Number(m[1]) * 60 + Number(m[2] || 0) : Number(m[1]) * 60 + (m[2] ? Math.round(Number("0." + m[2]) * 60) : 0); if (sec > 0) iniciarT(sec); };
 
     /* ---- guardar el partido en el libro ---- */
-    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.jg = {}; M.jl = []; UND.length = 0; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
+    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; UND.length = 0; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
     $("mpGu").onclick = async () => {
       const act = (k) => { const o = M.es[k] || {}, h1 = Object.assign(cero(), o.h1), h2 = Object.assign(cero(), o.h2); return { h1, h2, hay: Object.values(h1).concat(Object.values(h2)).some(x => x > 0) }; };
       const ids = new Set(PLT.map(j => j.id).concat(Object.keys(M.es).filter(k => k.indexOf("rv") !== 0)).concat(Object.keys(M.fj || {})));
@@ -3104,7 +3111,7 @@ function iniciarPartido() {
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
     panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
-    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.jg = {}; M.jl = []; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = $("ptMarcF").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; pintarJg(); };
