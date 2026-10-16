@@ -2271,8 +2271,26 @@ function jgTabla(l, titulo) {
   return `<h3 style="margin:14px 0 4px;">${titulo}</h3><table class="pdf-res"><thead><tr><th>Jugada</th><th>Veces</th><th>✓ Efectivas</th><th>% efectividad</th></tr></thead><tbody>${l.map(g => `<tr><td>${esc(g.nombre)}</td><td>${g.veces}</td><td>${g.ok}</td><td><b>${Math.round(100 * g.ok / g.veces)}%</b></td></tr>`).join("")}<tr class="tot"><td><b>Total</b></td><td>${e}</td><td>${ok}</td><td><b>${e ? Math.round(100 * ok / e) : 0}%</b></td></tr></tbody></table>`;
 }
 function jgAcumulado(L) {
-  const m = {}; L.forEach(r => (r.jgs || []).forEach(g => { const o = m[g.id] = m[g.id] || { id: g.id, nombre: g.nombre, veces: 0, ok: 0 }; o.veces += g.veces; o.ok += g.ok; }));
+  const m = {}; L.forEach(r => (r.jgs || []).forEach(g => { const o = m[g.id] = m[g.id] || { id: g.id, nombre: g.nombre, veces: 0, ok: 0, partidos: 0 }; o.veces += g.veces; o.ok += g.ok; o.partidos++; }));
   return Object.values(m).sort((a, b) => b.veces - a.veces);
+}
+let LB_ORD = "mas", LB_MIN = 3;
+function sistemasHtml(L) {
+  const T = jgAcumulado(L); if (!T.length) return "";
+  const pc = (g) => g.veces ? g.ok / g.veces : 0, nP = L.filter(r => (r.jgs || []).length).length;
+  const fiables = T.filter(g => g.veces >= LB_MIN);
+  const mejor = fiables.slice().sort((a, b) => pc(b) - pc(a) || b.veces - a.veces)[0], peor = fiables.slice().sort((a, b) => pc(a) - pc(b) || b.veces - a.veces)[0];
+  const masJ = T[0], menosJ = T.slice().sort((a, b) => a.veces - b.veces || pc(a) - pc(b))[0];
+  const ords = { mas: ["🔥 Más jugadas", (a, b) => b.veces - a.veces || pc(b) - pc(a)], menos: ["🧊 Menos jugadas", (a, b) => a.veces - b.veces || pc(a) - pc(b)], efec: ["✅ Más efectivas", (a, b) => pc(b) - pc(a) || b.veces - a.veces], inef: ["⚠️ Menos efectivas", (a, b) => pc(a) - pc(b) || b.veces - a.veces] };
+  const lista = (ords[LB_ORD] ? T.slice() : T.slice()).filter(g => (LB_ORD === "efec" || LB_ORD === "inef") ? g.veces >= LB_MIN : true).sort(ords[LB_ORD][1]);
+  const tarj = (ico, tit, g, det, col) => g ? `<div style="flex:1;min-width:150px;background:#fff;border:1px solid #dee2e6;border-left:4px solid ${col};border-radius:10px;padding:10px 12px;"><div class="peq">${ico} ${tit}</div><div style="font-weight:700;font-size:15px;margin:2px 0;">${esc(g.nombre)}</div><div class="peq">${det}</div></div>` : "";
+  let e = 0, ok = 0; T.forEach(g => { e += g.veces; ok += g.ok; });
+  const col = (q) => q >= 0.6 ? "#51cf66" : q >= 0.4 ? "#fcc419" : "#ff6b6b";
+  return `<div style="margin-bottom:18px;"><h3 style="margin:0 0 4px;">Sistemas en todos los partidos</h3><div class="peq" style="margin-bottom:8px;">${nP} partido${nP === 1 ? "" : "s"} con jugadas anotadas · ${e} jugadas ejecutadas · efectividad global ${e ? Math.round(100 * ok / e) : 0}%</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">${tarj("🔥", "La que más jugamos", masJ, masJ ? masJ.veces + " veces · " + Math.round(100 * pc(masJ)) + "% efectiva" : "", "#e8590c")}${tarj("✅", "La más efectiva (mín. " + LB_MIN + " veces)", mejor, mejor ? Math.round(100 * pc(mejor)) + "% · " + mejor.ok + "/" + mejor.veces : "", "#2b8a3e")}${tarj("⚠️", "La menos efectiva (mín. " + LB_MIN + ")", peor, peor ? Math.round(100 * pc(peor)) + "% · " + peor.ok + "/" + peor.veces : "", "#c92a2a")}${tarj("🧊", "La que menos jugamos", menosJ, menosJ ? menosJ.veces + (menosJ.veces === 1 ? " vez" : " veces") : "", "#1971c2")}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">${Object.entries(ords).map(([k, v]) => `<button class="gris${LB_ORD === k ? " on" : ""}" data-lbo="${k}" style="${LB_ORD === k ? "background:#e8590c;color:#fff;" : ""}">${v[0]}</button>`).join("")}<span class="peq" style="margin-left:6px;">Mínimo para efectividad:</span><select id="lbMin" style="min-height:34px;">${[1, 2, 3, 5, 8].map(n => `<option value="${n}" ${n === LB_MIN ? "selected" : ""}>${n} veces</option>`).join("")}</select></div>
+    <div class="tabla"><div class="fila" style="grid-template-columns:30px 1fr 70px 70px 80px 1.2fr;font-weight:700;cursor:default;"><div>#</div><div>Sistema / jugada</div><div class="peq">Partidos</div><div class="peq">Veces</div><div class="peq">Efectivas</div><div class="peq">Efectividad</div></div>
+    ${lista.map((g, i) => { const q = pc(g); return `<div class="fila" style="grid-template-columns:30px 1fr 70px 70px 80px 1.2fr;cursor:default;"><div class="peq">${i + 1}</div><div><b>${esc(g.nombre)}</b></div><div class="peq">${g.partidos}</div><div class="peq"><b>${g.veces}</b></div><div class="peq">${g.ok}</div><div><div style="position:relative;height:18px;background:#0003;border-radius:9px;overflow:hidden;"><div style="width:${Math.round(100 * q)}%;height:100%;background:${col(q)};opacity:${g.veces >= LB_MIN ? 1 : .45};"></div><span style="position:absolute;inset:0;text-align:center;font-size:12px;font-weight:800;line-height:18px;color:#fff;text-shadow:0 1px 2px #000a;">${Math.round(100 * q)}%${g.veces < LB_MIN ? " · pocas veces" : ""}</span></div></div></div>`; }).join("") || '<div class="vacio">Ninguna jugada llega al mínimo de veces.</div>'}</div></div>`;
 }
 function libroHtml(r, imp) {
   const nom = [r.n[0] || "Nosotros", r.n[1] || "Rival"], pc = (m, a) => a ? Math.round(100 * m / a) + "%" : "–";
@@ -2322,9 +2340,11 @@ function pintarLibro(v) {
   const L = librosPartido();
   v.innerHTML = `<div class="cab"><h2>${SECCIONES.libro}</h2><span class="esp"></span><button class="naranja" id="lbMod">🏀 Modo partido</button></div>
     <p class="peq" style="margin:0 0 12px;">Se llena sola: en el modo partido, abre el marcador y pulsa «💾 Guardar partido».</p>
-    ${jgAcumulado(L).length ? `<div style="margin-bottom:16px;">${jgTabla(jgAcumulado(L), "Jugadas: veces jugadas y efectividad (todos los partidos)")}</div>` : ""}
+    ${sistemasHtml(L)}
     ${L.length ? `<div class="tabla">${L.map(r => `<div class="fila" style="grid-template-columns:1fr auto;padding:12px 14px;gap:10px;cursor:default;"><div><b style="font-size:17px;">${esc(r.n[0] || "Nosotros")} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1] || "Rival")}</b><div class="peq">${fechaTxt(r.fecha)}</div></div><div style="display:flex;gap:6px;"><button class="gris" data-ver="${esc(r.id)}">Ver</button><button class="gris" data-pdf="${esc(r.id)}">🖨 PDF</button>${puedeEscribir ? `<button class="gris" data-del="${esc(r.id)}">🗑</button>` : ""}</div></div>`).join("")}</div>` : '<div class="tabla"><div class="vacio">Todavía no hay partidos guardados.</div></div>'}`;
   $("lbMod").onclick = abrirPartido;
+  v.querySelectorAll("[data-lbo]").forEach(b => b.onclick = () => { LB_ORD = b.dataset.lbo; pintarLibro(v); });
+  if ($("lbMin")) $("lbMin").onchange = (e) => { LB_MIN = Number(e.target.value) || 3; pintarLibro(v); };
   const por = (id) => L.find(r => r.id === id);
   v.querySelectorAll("[data-ver]").forEach(b => b.onclick = () => { const r = por(b.dataset.ver); const m = ventana(`<h3>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h3><div class="peq">${fechaTxt(r.fecha)}</div><div style="max-height:70vh;overflow:auto;">${libroHtml(r)}</div><div class="pie-m"><button class="gris" id="lbC">Cerrar</button><button class="naranja" id="lbP">🖨 PDF</button></div>`, true); $("lbC").onclick = cerrarVentana; $("lbP").onclick = () => { cerrarVentana(); imprimirLibro(r); }; });
   v.querySelectorAll("[data-pdf]").forEach(b => b.onclick = () => imprimirLibro(por(b.dataset.pdf)));
