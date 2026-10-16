@@ -2681,16 +2681,22 @@ function iniciarPartido() {
     const T = { dur: 60, rest: 60, run: false, fin: 0, tick: null };
     const fmt = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
     const pita = () => { try { const AC = window.AudioContext || window.webkitAudioContext, c = new AC(); [0, 0.35, 0.7].forEach(t => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 880; o.connect(g); g.connect(c.destination); g.gain.setValueAtTime(0.4, c.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + 0.28); o.start(c.currentTime + t); o.stop(c.currentTime + t + 0.3); }); } catch (e) { /* sin audio */ } try { navigator.vibrate && navigator.vibrate([300, 100, 300, 100, 300]); } catch (e) { /* nada */ } };
+    const CK_CR = "scoutflow-partido-crono";
+    const guardaT = () => { try { localStorage.setItem(CK_CR, JSON.stringify({ end: Date.now() + T.rest * 1000, dur: T.dur, run: T.run, rest: T.rest, fired: !!T.fired })); } catch (e) { /* nada */ } };
+    const avisaPadre = () => { try { if (window.parent !== window) parent.postMessage({ partidoCrono: { rest: T.rest, dur: T.dur, run: T.run, fired: !!T.fired && !T.vista } }, "*"); } catch (e) { /* nada */ } };
+    window.addEventListener("message", (ev) => { if (ev.data && ev.data.cronoVisto) { T.vista = true; avisaPadre(); } });
     const pintarT = () => {
+      avisaPadre();
       $("mpR").textContent = fmt(T.rest); pill.textContent = "⏱ " + fmt(T.rest); $("mpR").classList.toggle("fin", T.rest <= 0 && T.dur > 0 && !T.run && T.fired);
       pill.style.display = (T.run || T.fired || T.rest < T.dur) && !panel.classList.contains("ver") ? "block" : "none"; $("mpPa").textContent = T.run ? "⏸ Pausa" : "▶ Seguir";
     };
-    const bucle = () => { T.rest = Math.max(0, (T.fin - performance.now()) / 1000); if (T.rest <= 0) { T.run = false; clearInterval(T.tick); T.fired = true; pita(); } pintarT(); };
-    const iniciarT = (s) => { clearInterval(T.tick); T.dur = s; T.rest = s; T.fired = false; T.run = true; T.fin = performance.now() + s * 1000; T.tick = setInterval(bucle, 200); pintarT(); };
+    const bucle = () => { T.rest = Math.max(0, (T.fin - performance.now()) / 1000); if (T.rest <= 0) { T.run = false; clearInterval(T.tick); T.fired = true; pita(); guardaT(); } pintarT(); };
+    const iniciarT = (s) => { clearInterval(T.tick); T.dur = s; T.rest = s; T.fired = false; T.vista = false; T.run = true; T.fin = performance.now() + s * 1000; T.tick = setInterval(bucle, 200); guardaT(); pintarT(); };
     panel.querySelectorAll("[data-t]").forEach(b => b.onclick = () => iniciarT(Number(b.dataset.t)));
-    $("mpPa").onclick = () => { if (T.run) { T.run = false; clearInterval(T.tick); T.rest = Math.max(0, (T.fin - performance.now()) / 1000); } else if (T.rest > 0) { T.run = true; T.fin = performance.now() + T.rest * 1000; T.tick = setInterval(bucle, 200); } pintarT(); };
-    $("mpRe").onclick = () => { clearInterval(T.tick); T.run = false; T.fired = false; T.rest = T.dur; pintarT(); };
+    $("mpPa").onclick = () => { if (T.run) { T.run = false; clearInterval(T.tick); T.rest = Math.max(0, (T.fin - performance.now()) / 1000); } else if (T.rest > 0) { T.run = true; T.fin = performance.now() + T.rest * 1000; T.tick = setInterval(bucle, 200); } guardaT(); pintarT(); };
+    $("mpRe").onclick = () => { clearInterval(T.tick); T.run = false; T.fired = false; T.rest = T.dur; guardaT(); pintarT(); };
     pill.onclick = () => { panel.classList.add("ver"); pintarT(); };
+    try { const g = JSON.parse(localStorage.getItem(CK_CR) || "null"); if (g && g.dur) { T.dur = g.dur; if (g.run) { const r = (g.end - Date.now()) / 1000; if (r > 0) { T.rest = r; T.run = true; T.fin = performance.now() + r * 1000; T.tick = setInterval(bucle, 200); } else { T.rest = 0; T.fired = true; } } else { T.rest = g.rest; T.fired = !!g.fired; } } } catch (e) { /* nada */ }
     const pintarM = () => {
       [0, 1].forEach(k => { $("mpN" + k).textContent = M.p[k]; $("mpF" + k).textContent = M.f[k]; $("mpF" + k).style.color = M.f[k] >= 5 ? "#ff4d4d" : ""; });
       panel.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", Number(b.dataset.p) === M.per));

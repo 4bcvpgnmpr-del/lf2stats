@@ -634,6 +634,27 @@ document.addEventListener("DOMContentLoaded",function(){var b=document.createEle
 b.onclick=function(){var o=!d.classList.contains("oscuro");try{localStorage.setItem(K,o?"oscuro":"claro")}catch(e){}ap(o)};document.body.appendChild(b);ap(d.classList.contains("oscuro"))});
 window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscuro")});})();
 </script>
+<style id="lbCss">
+.lb{background:#fff;color:#1d2630;border-radius:12px;overflow:hidden;font-family:system-ui,sans-serif;margin-top:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.lb-cab{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;background:linear-gradient(135deg,#1d2630,#2b3a4a);color:#fff;padding:18px 20px;}
+.lb-eq small{display:block;font-size:10px;letter-spacing:2px;opacity:.6;} .lb-eq b{font-size:20px;line-height:1.15;} .lb-eq.d{text-align:right;}
+.lb-sc{display:flex;align-items:center;gap:10px;font-weight:800;font-size:44px;line-height:1;} .lb-sc i{font-style:normal;opacity:.5;font-size:30px;}
+.lb-sub{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 20px;background:#f1f3f5;font-size:13px;color:#495057;border-bottom:1px solid #dee2e6;}
+.lb-res{color:#fff;font-weight:700;border-radius:999px;padding:3px 12px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;}
+.lb-sec{margin:18px 20px 6px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#e8590c;border-bottom:2px solid #e8590c;padding-bottom:3px;}
+.lb-dest{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px 20px 0;}
+.lb-dest div{background:#fff4e6;border-left:4px solid #e8590c;border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;} .lb-dest small{font-size:11px;color:#868e96;} .lb-dest b{font-size:14px;} .lb-dest span{font-size:13px;color:#e8590c;font-weight:700;}
+.lb-cmpH{display:flex;justify-content:space-between;margin:0 20px 2px;font-weight:700;font-size:13px;}
+.lb-cmp{display:grid;grid-template-columns:62px 1fr 62px;gap:8px;align-items:center;margin:5px 20px;font-size:13px;} .lb-cmp>b:last-child{text-align:left;} .lb-cmp>b:first-child{text-align:right;} .lb-cmp b.g{color:#2b8a3e;} .lb-cmp small{font-weight:400;color:#868e96;font-size:10px;}
+.lb-bs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;} .lb-bs span{font-size:11px;color:#495057;min-width:86px;text-align:center;text-transform:uppercase;letter-spacing:.5px;}
+.lb-b{height:9px;background:#e9ecef;border-radius:5px;overflow:hidden;display:flex;} .lb-b i{display:block;height:100%;background:#adb5bd;} .lb-b.i{justify-content:flex-end;} .lb-b.i i{background:#1d2630;}
+.lb-t{width:calc(100% - 40px);margin:0 20px;border-collapse:collapse;font-size:13px;} .lb-t th{background:#1d2630;color:#fff;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;padding:6px 8px;text-align:center;} .lb-t td{padding:6px 8px;text-align:center;border-bottom:1px solid #e9ecef;} .lb-t .l{text-align:left;} .lb-t tr:nth-child(even) td{background:#f8f9fa;} .lb-t .tot td{background:#e9ecef !important;font-weight:800;border-top:2px solid #1d2630;} .lb-t small{color:#868e96;font-weight:400;}
+.lb-t td.pt{position:relative;} .lb-pb{position:absolute;left:0;top:18%;height:64%;background:#ffd8a8;opacity:.8;border-radius:0 4px 4px 0;z-index:0;} .lb-t td.pt b{position:relative;z-index:1;}
+.lb-ef{position:relative;height:16px;background:#e9ecef;border-radius:8px;overflow:hidden;} .lb-ef i{display:block;height:100%;} .lb-ef i.ok{background:#51cf66;} .lb-ef i.md{background:#fcc419;} .lb-ef i.mal{background:#ff6b6b;} .lb-ef span{position:absolute;inset:0;text-align:center;font-size:11px;font-weight:800;line-height:16px;}
+.lb-det{margin:18px 0 14px;} .lb-det summary{cursor:pointer;margin:0 20px;font-size:12px;font-weight:700;color:#495057;} .lb table.pdf-res{width:calc(100% - 40px);margin:6px 20px 8px;font-size:13px;border-collapse:collapse;} .lb table.pdf-res th{background:#1d2630 !important;color:#fff;padding:6px 8px;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;text-align:center;} .lb table.pdf-res td{padding:6px 8px;text-align:center;border-bottom:1px solid #e9ecef;color:#1d2630;} .lb table.pdf-res th:first-child,.lb table.pdf-res td:first-child{text-align:left;} .lb table.pdf-res tr.tot td{background:#e9ecef;font-weight:800;border-top:2px solid #1d2630;}
+@media print{.lb{border-radius:0;margin:0;} .lb-cab{padding:12px 14px;} .lb-sc{font-size:34px;} .lb-sec,.lb-t,.lb-cmp{break-inside:avoid;} .lb-det summary{display:none;}}
+@media(max-width:640px){.lb-cab{grid-template-columns:1fr;text-align:center;} .lb-eq.d{text-align:center;} .lb-sc{justify-content:center;} .lb-cmp{grid-template-columns:48px 1fr 48px;} .lb-t{font-size:11px;} .lb-t th,.lb-t td{padding:5px 3px;}}
+</style>
 </head>
 <body>
 <div id="app">
@@ -1513,12 +1534,27 @@ function dialogoHG(tipo) {
 }
 
 /* ------------ modo partido: pizarra en vivo a pantalla completa ------------ */
+let CRONO_P = null;
+function pintarCronoP() {
+  let pl = $("partidoCronoPill"); const m = $("partidoMarco"), visible = m && m.style.display === "block";
+  if (!CRONO_P || visible || !(CRONO_P.run || CRONO_P.fired)) { if (pl) pl.style.display = "none"; return; }
+  if (!pl) { pl = document.createElement("button"); pl.id = "partidoCronoPill"; pl.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:390;background:#2b8a3e;color:#fff;border:0;border-radius:999px;padding:12px 18px;font:700 16px system-ui;box-shadow:0 4px 14px #0006;cursor:pointer;"; pl.onclick = abrirPartido; document.body.appendChild(pl); }
+  const s = Math.max(0, Math.ceil(CRONO_P.rest)); pl.textContent = CRONO_P.fired && s <= 0 ? "⏱ ¡Tiempo! · volver al partido" : "⏱ " + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") + " · volver al partido";
+  pl.style.background = CRONO_P.fired ? "#c92a2a" : "#2b8a3e"; pl.style.display = "block";
+}
 function abrirPartido() {
   let m = $("partidoMarco");
-  if (!m) { m = document.createElement("div"); m.id = "partidoMarco"; m.style.cssText = "position:fixed;inset:0;z-index:400;background:#10171f;"; m.innerHTML = '<iframe id="partidoIf" title="Modo partido" allowfullscreen allow="fullscreen" style="border:0;width:100%;height:100%;"></iframe>'; document.body.appendChild(m); window.addEventListener("message", (ev) => { if (ev.data && ev.data.partidoCerrar) cerrarPartido(); }); }
-  m.style.display = "block"; $("partidoIf").src = "pizarra.html?partido=1&v=" + VERSION;
+  if (!m) { m = document.createElement("div"); m.id = "partidoMarco"; m.style.cssText = "position:fixed;inset:0;z-index:400;background:#10171f;"; m.innerHTML = '<iframe id="partidoIf" title="Modo partido" allowfullscreen allow="fullscreen" style="border:0;width:100%;height:100%;"></iframe>'; document.body.appendChild(m); window.addEventListener("message", (ev) => { if (ev.data && ev.data.partidoCerrar) cerrarPartido(); if (ev.data && ev.data.partidoCrono) { CRONO_P = ev.data.partidoCrono; pintarCronoP(); } }); }
+  const ifr = $("partidoIf"), vivo = ifr.src && ifr.src.indexOf("pizarra.html") >= 0 && CRONO_P && (CRONO_P.run || CRONO_P.fired);
+  m.style.display = "block"; if (!vivo) ifr.src = "pizarra.html?partido=1&v=" + VERSION;
+  else if (CRONO_P && CRONO_P.fired && !CRONO_P.run) { CRONO_P = Object.assign({}, CRONO_P, { fired: false }); try { ifr.contentWindow.postMessage({ cronoVisto: true }, "*"); } catch (e) { /* nada */ } }
+  pintarCronoP();
 }
-function cerrarPartido() { const m = $("partidoMarco"); if (m) { m.style.display = "none"; $("partidoIf").src = "about:blank"; } }
+function cerrarPartido() {
+  const m = $("partidoMarco"); if (!m) return; m.style.display = "none";
+  if (CRONO_P && (CRONO_P.run || CRONO_P.fired)) { pintarCronoP(); return; }   /* el cronómetro sigue vivo: no se descarga el modo partido */
+  $("partidoIf").src = "about:blank";
+}
 
 /* ------------ playbooks (capítulos con jugadas, como The Hoops Geek) ------------ */
 const pbCaps = (p) => { p.data = p.data || {}; if (!Array.isArray(p.data.capitulos) || !p.data.capitulos.length) p.data.capitulos = [{ id: idNuevo("c"), titulo: (p.data.jugadas || []).length ? "Jugadas" : "", items: (p.data.jugadas || []).map(id => ({ t: "j", id })) }]; return p.data.capitulos; };
@@ -2238,9 +2274,49 @@ function jgAcumulado(L) {
   const m = {}; L.forEach(r => (r.jgs || []).forEach(g => { const o = m[g.id] = m[g.id] || { id: g.id, nombre: g.nombre, veces: 0, ok: 0 }; o.veces += g.veces; o.ok += g.ok; }));
   return Object.values(m).sort((a, b) => b.veces - a.veces);
 }
-function libroHtml(r) {
-  const vs = [["h1", "1ª mitad"], ["h2", "2ª mitad"], ["tot", "Total"]];
-  return jgTabla(r.jgs, "Jugadas del partido") + vs.map(([v, t]) => `<h3 style="margin:14px 0 4px;">${t}</h3>${lbTabla(esc(r.n[0] || "Nosotros"), r.jug || [], v, v === "tot")}${(r.riv || []).length ? lbTabla(esc(r.n[1] || "Rival"), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), v, false) : ""}`).join("");
+function libroHtml(r, imp) {
+  const nom = [r.n[0] || "Nosotros", r.n[1] || "Rival"], pc = (m, a) => a ? Math.round(100 * m / a) + "%" : "–";
+  const pts = (o) => o.t2m * 2 + o.t3m * 3 + o.tlm;
+  const sumaEq = (L, v) => { const t = LB0(); let f = 0; (L || []).forEach(j => { const o = lbSuma(j, v); Object.keys(t).forEach(k => t[k] += o[k]); f += j.f || 0; }); t.f = f; return t; };
+  const A = sumaEq(r.jug, "tot"), B = sumaEq(r.riv, "tot"), hayRiv = (r.riv || []).length > 0;
+  const A1 = sumaEq(r.jug, "h1"), A2 = sumaEq(r.jug, "h2"), B1 = sumaEq(r.riv, "h1"), B2 = sumaEq(r.riv, "h2");
+  const efg = (o) => (o.t2a + o.t3a) ? Math.round(100 * (o.t2m + 1.5 * o.t3m) / (o.t2a + o.t3a)) + "%" : "–";
+  const res = r.p[0] > r.p[1] ? ["Victoria", "#2b8a3e"] : r.p[0] < r.p[1] ? ["Derrota", "#c92a2a"] : ["Empate", "#868e96"];
+  /* barras comparativas nosotros / rival */
+  const barra = (t, a, b, txtA, txtB, inv) => { const mx = Math.max(a, b, 1), wa = Math.round(100 * a / mx), wb = Math.round(100 * b / mx), mejorA = inv ? a < b : a > b, mejorB = inv ? b < a : b > a;
+    return `<div class="lb-cmp"><b class="${mejorA ? "g" : ""}">${txtA}</b><div class="lb-bs"><div class="lb-b i"><i style="width:${wa}%"></i></div><span>${t}</span><div class="lb-b"><i style="width:${wb}%"></i></div></div><b class="${mejorB ? "g" : ""}">${txtB}</b></div>`; };
+  const pct = (m, a) => a ? 100 * m / a : 0;
+  const comp = hayRiv ? `<div class="lb-sec">Comparativa</div><div class="lb-cmpH"><span>${esc(nom[0])}</span><span>${esc(nom[1])}</span></div>` +
+    barra("Puntos (tiros)", pts(A), pts(B), pts(A), pts(B)) + barra("Rebotes", A.reb, B.reb, A.reb, B.reb) + barra("Pérdidas", A.per, B.per, A.per, B.per, true) +
+    barra("Tiros de 2", pct(A.t2m, A.t2a), pct(B.t2m, B.t2a), pc(A.t2m, A.t2a) + " <small>" + A.t2m + "/" + A.t2a + "</small>", pc(B.t2m, B.t2a) + " <small>" + B.t2m + "/" + B.t2a + "</small>") +
+    barra("Triples", pct(A.t3m, A.t3a), pct(B.t3m, B.t3a), pc(A.t3m, A.t3a) + " <small>" + A.t3m + "/" + A.t3a + "</small>", pc(B.t3m, B.t3a) + " <small>" + B.t3m + "/" + B.t3a + "</small>") +
+    barra("Tiros libres", pct(A.tlm, A.tla), pct(B.tlm, B.tla), pc(A.tlm, A.tla) + " <small>" + A.tlm + "/" + A.tla + "</small>", pc(B.tlm, B.tla) + " <small>" + B.tlm + "/" + B.tla + "</small>") +
+    barra("eFG%", parseInt(efg(A)) || 0, parseInt(efg(B)) || 0, efg(A), efg(B)) : "";
+  /* parciales por mitad */
+  const par = (r.jug || []).length || hayRiv ? `<div class="lb-sec">Parciales (según las estadísticas anotadas)</div><table class="lb-t"><thead><tr><th></th><th>1ª mitad</th><th>2ª mitad</th><th>Total</th></tr></thead><tbody><tr><td><b>${esc(nom[0])}</b></td><td>${pts(A1)}</td><td>${pts(A2)}</td><td><b>${pts(A)}</b></td></tr>${hayRiv ? `<tr><td><b>${esc(nom[1])}</b></td><td>${pts(B1)}</td><td>${pts(B2)}</td><td><b>${pts(B)}</b></td></tr>` : ""}</tbody></table>` : "";
+  /* destacadas */
+  const jl = (r.jug || []).map(j => { const o = lbSuma(j, "tot"); return { j, o, p: pts(o) }; });
+  const top = (k, fn) => { const b = jl.slice().sort((x, y) => fn(y) - fn(x))[0]; return b && fn(b) > 0 ? b : null; };
+  const nj = (b) => (b.j.num !== "" && b.j.num != null ? "#" + esc(String(b.j.num)) + " " : "") + esc(b.j.nombre);
+  const dest = [["🏀 Máx. anotadora", top("p", x => x.p), (b) => b.p + " pts"], ["🧱 Más rebotes", top("r", x => x.o.reb), (b) => b.o.reb + " reb"], ["🎯 Mejor en triples", top("t", x => x.o.t3m), (b) => b.o.t3m + "/" + b.o.t3a + " T3"]].filter(x => x[1]);
+  const destH = dest.length ? `<div class="lb-dest">${dest.map(([t, b, f]) => `<div><small>${t}</small><b>${nj(b)}</b><span>${f(b)}</span></div>`).join("")}</div>` : "";
+  /* jugadoras */
+  const hayMin = (r.jug || []).some(j => j.min), mmTxt = (m) => { if (!m) return "–"; const s0 = Math.round(m * 60); return Math.floor(s0 / 60) + ":" + String(s0 % 60).padStart(2, "0"); };
+  const ord = jl.slice().sort((x, y) => y.p - x.p || y.o.reb - x.o.reb);
+  const maxP = Math.max(...ord.map(x => x.p), 1);
+  const tj = ord.length ? `<div class="lb-sec">${esc(nom[0])} · estadística individual</div><table class="lb-t"><thead><tr><th class="l">Jugadora</th>${hayMin ? "<th>MIN</th>" : ""}<th>PTS</th><th>REB</th><th>PER</th><th>2P</th><th>3P</th><th>TL</th><th>F</th></tr></thead><tbody>${ord.map(x => `<tr><td class="l">${esc(x.j.num !== "" && x.j.num != null ? String(x.j.num) : "")}${x.j.num !== "" && x.j.num != null ? "&nbsp;&nbsp;" : ""}<b>${esc(x.j.nombre)}</b></td>${hayMin ? `<td>${mmTxt(x.j.min)}</td>` : ""}<td class="pt"><span class="lb-pb" style="width:${Math.round(100 * x.p / maxP)}%"></span><b>${x.p}</b></td><td>${x.o.reb}</td><td>${x.o.per}</td><td>${x.o.t2m}/${x.o.t2a}</td><td>${x.o.t3m}/${x.o.t3a}</td><td>${x.o.tlm}/${x.o.tla}</td><td>${x.j.f || 0}</td></tr>`).join("")}<tr class="tot"><td class="l">Total</td>${hayMin ? "<td></td>" : ""}<td>${pts(A)}</td><td>${A.reb}</td><td>${A.per}</td><td>${A.t2m}/${A.t2a} <small>${pc(A.t2m, A.t2a)}</small></td><td>${A.t3m}/${A.t3a} <small>${pc(A.t3m, A.t3a)}</small></td><td>${A.tlm}/${A.tla} <small>${pc(A.tlm, A.tla)}</small></td><td>${A.f}</td></tr></tbody></table>` : "";
+  /* jugadas */
+  const jg = r.jgs && r.jgs.length ? (() => { let e = 0, ok = 0; r.jgs.forEach(g => { e += g.veces; ok += g.ok; });
+    return `<div class="lb-sec">Jugadas ejecutadas · efectividad global ${e ? Math.round(100 * ok / e) : 0}% (${ok}/${e})</div><table class="lb-t"><thead><tr><th class="l">Jugada</th><th>Veces</th><th>Efectivas</th><th class="l" style="width:34%">Efectividad</th></tr></thead><tbody>${r.jgs.map(g => { const q = g.veces ? Math.round(100 * g.ok / g.veces) : 0; return `<tr><td class="l"><b>${esc(g.nombre)}</b></td><td>${g.veces}</td><td>${g.ok}</td><td class="l"><div class="lb-ef"><i class="${q >= 60 ? "ok" : q >= 40 ? "md" : "mal"}" style="width:${q}%"></i><span>${q}%</span></div></td></tr>`; }).join("")}</tbody></table>`; })() : "";
+  /* detalle por mitad (plegable en pantalla, abierto en el PDF) */
+  const vs = [["h1", "1ª mitad"], ["h2", "2ª mitad"]];
+  const det = vs.map(([v, t]) => `<div class="lb-sec">${t}</div>${lbTabla(esc(nom[0]), r.jug || [], v, false)}${hayRiv ? lbTabla(esc(nom[1]), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), v, false) : ""}`).join("");
+  const rivT = hayRiv ? `<div class="lb-sec">${esc(nom[1])} · total</div>${lbTabla(esc(nom[1]), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), "tot", false)}` : "";
+  return `<div class="lb">
+    <div class="lb-cab"><div class="lb-eq"><small>LOCAL</small><b>${esc(nom[0])}</b></div><div class="lb-sc"><span>${r.p[0]}</span><i>–</i><span>${r.p[1]}</span></div><div class="lb-eq d"><small>RIVAL</small><b>${esc(nom[1])}</b></div></div>
+    <div class="lb-sub"><span class="lb-res" style="background:${res[1]}">${res[0]}${r.p[0] !== r.p[1] ? " por " + Math.abs(r.p[0] - r.p[1]) : ""}</span><span>${fechaTxt(r.fecha)}</span></div>
+    ${destH}${comp}${par}${tj}${rivT}${jg}
+    <details class="lb-det" ${imp ? "open" : ""}><summary>Detalle por mitades</summary>${det}</details></div>`;
 }
 function pintarLibro(v) {
   const L = librosPartido();
@@ -2250,7 +2326,7 @@ function pintarLibro(v) {
     ${L.length ? `<div class="tabla">${L.map(r => `<div class="fila" style="grid-template-columns:1fr auto;padding:12px 14px;gap:10px;cursor:default;"><div><b style="font-size:17px;">${esc(r.n[0] || "Nosotros")} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1] || "Rival")}</b><div class="peq">${fechaTxt(r.fecha)}</div></div><div style="display:flex;gap:6px;"><button class="gris" data-ver="${esc(r.id)}">Ver</button><button class="gris" data-pdf="${esc(r.id)}">🖨 PDF</button>${puedeEscribir ? `<button class="gris" data-del="${esc(r.id)}">🗑</button>` : ""}</div></div>`).join("")}</div>` : '<div class="tabla"><div class="vacio">Todavía no hay partidos guardados.</div></div>'}`;
   $("lbMod").onclick = abrirPartido;
   const por = (id) => L.find(r => r.id === id);
-  v.querySelectorAll("[data-ver]").forEach(b => b.onclick = () => { const r = por(b.dataset.ver); const m = ventana(`<h3>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h3><div class="peq">${fechaTxt(r.fecha)}</div><div style="max-height:62vh;overflow:auto;">${libroHtml(r)}</div><div class="pie-m"><button class="gris" id="lbC">Cerrar</button><button class="naranja" id="lbP">🖨 PDF</button></div>`, true); $("lbC").onclick = cerrarVentana; $("lbP").onclick = () => { cerrarVentana(); imprimirLibro(r); }; });
+  v.querySelectorAll("[data-ver]").forEach(b => b.onclick = () => { const r = por(b.dataset.ver); const m = ventana(`<h3>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h3><div class="peq">${fechaTxt(r.fecha)}</div><div style="max-height:70vh;overflow:auto;">${libroHtml(r)}</div><div class="pie-m"><button class="gris" id="lbC">Cerrar</button><button class="naranja" id="lbP">🖨 PDF</button></div>`, true); $("lbC").onclick = cerrarVentana; $("lbP").onclick = () => { cerrarVentana(); imprimirLibro(r); }; });
   v.querySelectorAll("[data-pdf]").forEach(b => b.onclick = () => imprimirLibro(por(b.dataset.pdf)));
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
     if (!await confirmar("¿Borrar este partido del libro?")) return; const id = b.dataset.del;
@@ -2261,7 +2337,7 @@ function pintarLibro(v) {
 function imprimirLibro(r) {
   if (!r) return; const q = equipoDe();
   $("hojaImp").className = "pdf-plan";
-  $("hojaImp").innerHTML = `<div class="pdf-cab"><div><small>PARTIDO</small><h1>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h1><div class="pdf-meta">${fechaTxt(r.fecha)}${q.equipo ? " · " + esc(q.equipo) : ""}</div></div></div>${libroHtml(r)}`;
+  $("hojaImp").innerHTML = `<div class="pdf-cab"><div><small>INFORME DE PARTIDO</small><h1>${esc(r.n[0])} ${r.p[0]} – ${r.p[1]} ${esc(r.n[1])}</h1><div class="pdf-meta">${fechaTxt(r.fecha)}${q.equipo ? " · " + esc(q.equipo) : ""}</div></div></div>${libroHtml(r, true)}`;
   window.print();
 }
 /* ------------ mini basket: quién juega cada cuarto ------------ */
