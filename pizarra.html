@@ -2681,7 +2681,7 @@ function iniciarPartido() {
     document.head.appendChild(st);
     const panel = document.createElement("div"); panel.id = "ptPanel";
     panel.innerHTML = `<div class="mp"><div class="mp-eq">${[0, 1].map(k => `<div class="mp-e"><input data-n="${k}" value="${esc(M.n[k])}"><div class="mp-n" id="mpN${k}">0</div><div class="mp-b"><button data-s="${k}:1">+1</button><button data-s="${k}:2">+2</button><button data-s="${k}:3">+3</button><button data-s="${k}:-1">−1</button></div><div class="mp-f">Faltas <button data-f="${k}:-1">−</button><b id="mpF${k}">0</b><button data-f="${k}:1">＋</button></div></div>`).join("")}</div>
-      <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span><button id="mpEd" style="min-height:34px;padding:0 10px;">✏️ Editar</button></h4><div class="mp-pj" id="mpPj"></div></div>
+      <div class="mp-pl"><h4><span>Faltas de cada jugadora <span style="opacity:.6;">(toca para sumar)</span></span><span style="display:flex;gap:6px;"><button id="mpFlN" class="on" style="min-height:34px;padding:0 10px;">Nosotros</button><button id="mpFlR" style="min-height:34px;padding:0 10px;">🛡 Rival</button><button id="mpEd" style="min-height:34px;padding:0 10px;">✏️ Editar</button></span></h4><div class="mp-pj" id="mpPj"></div></div>
       <div class="mp-per" id="mpPer">${[1, 2, 3, 4, 5].map(n => `<button data-p="${n}">${n === 5 ? "Prórroga" : "Cuarto " + n}</button>`).join("")}</div>
       <div class="mp-pi"><h4><span>Jugadas del partido <span style="opacity:.6;">(✓ si funcionó · ✗ si no)</span></span><button id="mpJgU" style="min-height:34px;padding:0 10px;">↩︎ Deshacer</button></h4><div id="mpJg"></div></div>
       <div class="mp-t"><div class="mp-r" id="mpR">1:00</div><div class="mp-b" style="margin-top:6px;"><button data-t="60">⏱ Tiempo muerto 60s</button><button data-t="30">⏱ 30s</button><button data-t="24">⏱ 24s</button><button data-t="20">20s</button><button id="mpVes" style="background:#2b8a3e;">🚪 Vestuario 15:00</button><button id="mpMan" style="background:#2b8a3e;">⏱ Manual…</button><button id="mpPa">⏸ Pausa</button><button id="mpRe">↺</button></div></div>
@@ -2772,9 +2772,51 @@ function iniciarPartido() {
     const leerEd = () => { try { const o = JSON.parse(localStorage.getItem(LS_ED) || "{}"); return { ov: o.ov || {}, extra: o.extra || [] }; } catch (e) { return { ov: {}, extra: [] }; } };
     const guardarEd = (o) => { try { localStorage.setItem(LS_ED, JSON.stringify(o)); } catch (e) { /* nada */ } };
     const aplicaEd = (l) => { const ed = leerEd(); return l.filter(j => !(ed.ov[j.id] && ed.ov[j.id].del)).map(j => Object.assign({}, j, ed.ov[j.id] || {})).concat(ed.extra); };
+    /* ---- editar jugadoras rivales (dorsal y nombre) ---- */
+    const editarRival = () => {
+      M.fr = M.fr || {}; M.febH1 = M.febH1 || {};
+      const ov = document.createElement("div"); ov.style.cssText = "position:fixed;inset:0;z-index:70;background:#000c;display:flex;align-items:center;justify-content:center;padding:10px;";
+      const filas = M.rvn.map(n => ({ n, d: /^x/.test(n) ? "" : n, nom: M.rvNom[n] || "", del: false }));
+      const pintar = () => {
+        ov.innerHTML = '<div style="background:#17202a;color:#fff;border-radius:16px;padding:14px;width:min(560px,100%);max-height:94%;display:flex;flex-direction:column;gap:8px;"><b style="font-size:17px;">✏️ Jugadoras de ' + esc(M.n[1]) + '</b><div style="opacity:.7;font-size:13px;">Pon el dorsal y corrige el nombre. Las estadísticas ya anotadas se mantienen.</div><div style="overflow:auto;flex:1;">' +
+          filas.map((f, i) => '<div style="display:flex;gap:6px;margin-bottom:5px;opacity:' + (f.del ? .35 : 1) + '"><input data-d="' + i + '" value="' + esc(f.d) + '" inputmode="numeric" placeholder="Nº" style="width:64px;min-height:42px;font-size:17px;border-radius:8px;border:0;padding:0 8px;text-align:center;"><input data-nm="' + i + '" value="' + esc(f.nom) + '" placeholder="Nombre" style="flex:1;min-height:42px;font-size:16px;border-radius:8px;border:0;padding:0 10px;"><button data-x="' + i + '" style="min-height:42px;">' + (f.del ? "↩︎" : "🗑") + '</button></div>').join("") +
+          '</div><div style="display:flex;gap:8px;"><button id="rdAd" style="min-height:44px;">＋ Añadir jugadora</button><span style="flex:1"></span><button id="rdX" style="min-height:44px;">Cancelar</button><button id="rdOk" style="min-height:44px;background:#2b8a3e;">Guardar</button></div></div>';
+        ov.querySelectorAll("[data-d]").forEach(i => i.oninput = () => { filas[i.dataset.d].d = i.value.replace(/\D/g, ""); });
+        ov.querySelectorAll("[data-nm]").forEach(i => i.oninput = () => { filas[i.dataset.nm].nom = i.value; });
+        ov.querySelectorAll("[data-x]").forEach(b => b.onclick = () => { const f = filas[b.dataset.x]; if (f.n === null) filas.splice(b.dataset.x, 1); else f.del = !f.del; pintar(); });
+        $("rdAd") && ($("rdAd").onclick = () => { filas.push({ n: null, d: "", nom: "", del: false }); pintar(); });
+        $("rdX") && ($("rdX").onclick = () => ov.remove());
+        $("rdOk") && ($("rdOk").onclick = guarda);
+      };
+      const guarda = () => {
+        const usados = new Set(), nuevos = [];
+        for (const f of filas) { if (f.del) continue; if (f.d) { if (usados.has(f.d)) { aviso("El dorsal " + f.d + " está repetido"); return; } usados.add(f.d); } }
+        let sd = 0; const mover = (o, a, b) => { if (o && o["rv" + a] !== undefined && a !== b) { o["rv" + b] = o["rv" + a]; delete o["rv" + a]; } };
+        const nomNuevo = {};
+        filas.forEach(f => {
+          if (f.n !== null && f.del) { delete M.es["rv" + f.n]; delete M.fr["rv" + f.n]; delete M.febH1["rv" + f.n]; return; }
+          if (f.del || (f.n === null && !f.d && !f.nom.trim())) return;
+          let d = f.d; if (!d) { if (f.n !== null && /^x/.test(f.n)) d = f.n; else { do { d = "x" + (++sd); } while (usados.has(d) || M.rvn.includes(d)); } }
+          if (f.n !== null && f.n !== d) { [M.es, M.fr, M.febH1].forEach(o => mover(o, f.n, d)); }
+          nuevos.push(d); nomNuevo[d] = f.nom.trim();
+        });
+        M.rvn = nuevos.sort((a, b) => (parseInt(a) || 999) - (parseInt(b) || 999)); M.rvNom = nomNuevo;
+        guardarM(); ov.remove(); pintarPl(); if (EP.classList.contains("ver")) pintarEs();
+      };
+      document.body.appendChild(ov); pintar();
+    };
     const setPlt = (l) => { RAW = l || []; PLT = aplicaEd(RAW); pintarPl(); };
+    const FL = { r: false };
     const pintarPl = () => {
       const box = $("mpPj"); if (!box) return;
+      if ($("mpFlN")) { $("mpFlN").style.background = FL.r ? "" : "#e8590c"; $("mpFlR").style.background = FL.r ? "#e8590c" : ""; }
+      if (FL.r) {
+        M.fr = M.fr || {};
+        if (!M.rvn.length) { box.innerHTML = '<div style="opacity:.8;font-size:14px;grid-column:1/-1;">Aún no hay jugadoras rivales. <button id="mpRvTr" style="min-height:36px;background:#2b8a3e;">👥 Traer equipo rival</button> <button id="mpRvAd" style="min-height:36px;">＋ Añadir dorsal</button></div>'; $("mpRvTr").onclick = () => traerRival(); $("mpRvAd").onclick = () => editarRival(); return; }
+        box.innerHTML = M.rvn.map(n => { const k = "rv" + n, c = M.fr[k] || 0, nom = M.rvNom[n] || ""; return `<div class="mp-j ${c >= 5 ? "f5" : c === 4 ? "f4" : ""}"><button class="jb" data-r="${esc(n)}"><span class="jn">${/^x/.test(n) ? "" : esc(n)}</span><span class="jt">${esc(nom || "Rival")}</span><span class="jc" style="color:${c >= 5 ? "#ff4d4d" : c === 4 ? "#f08c00" : "#fff"}">${c}</span></button><button class="jm" data-rm="${esc(n)}" title="Quitar una falta">−</button></div>`; }).join("");
+        box.querySelectorAll("[data-r],[data-rm]").forEach(b => b.onclick = () => { const n = b.dataset.r || b.dataset.rm, d = b.dataset.r ? 1 : -1, k = "rv" + n, c = M.fr[k] || 0, nn = Math.max(0, c + d); if (nn === c) return; M.fr[k] = nn; M.f[1] = Math.max(0, M.f[1] + d); guardarM(); pintarM(); });
+        return;
+      }
       if (!PLT.length) { box.innerHTML = '<div style="opacity:.65;font-size:14px;grid-column:1/-1;">Elige «Mi equipo» en la app de estadísticas (o añade tu plantilla en «Quintetos y equipos») y aparecerá aquí.</div>'; return; }
       box.innerHTML = PLT.map(j => { const n = (M.fj || {})[j.id] || 0; return `<div class="mp-j ${n >= 5 ? "f5" : n === 4 ? "f4" : ""}"><button class="jb" data-j="${esc(j.id)}"><span class="jn">${j.num !== "" && j.num != null ? esc(String(j.num)) : ""}</span><span class="jt">${esc(j.nombre)}</span><span class="jc" style="color:${n >= 5 ? "#ff4d4d" : n === 4 ? "#f08c00" : "#fff"}">${n}</span></button><button class="jm" data-jm="${esc(j.id)}" title="Quitar una falta">−</button></div>`; }).join("");
       box.querySelectorAll("[data-j],[data-jm]").forEach(b => b.onclick = () => {
@@ -2834,7 +2876,7 @@ function iniciarPartido() {
       #ptEst .es-tot{background:#2c3947;} #ptEst .corr .g button::before{content:'−';font-weight:900;margin-right:2px;} #ptEst .corr .g button{outline:2px solid #ff6b6b;}`;
     document.head.appendChild(est);
     const EP = document.createElement("div"); EP.id = "ptEst"; $("partido").appendChild(EP);
-    const ESV = { eq: 0, v: "auto", corr: false, res: false }, UND = [];
+    const ESV = { eq: 0, v: "auto", corr: false, res: false, man: (() => { try { return localStorage.getItem("scoutflow-partido-manual") !== "0"; } catch (e) { return true; } })() }, UND = [];
     const mitad = () => (M.per <= 2 ? "h1" : "h2");
     const cero = () => ({ reb: 0, ro: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
     const vista = () => (ESV.v === "auto" ? mitad() : ESV.v);
@@ -2869,7 +2911,7 @@ function iniciarPartido() {
       });
       eqs[1 - mi].jug.forEach(p => { if (p.no === "") return; const k = "rv" + p.no; poner(k, p); if (p.nombre) M.rvNom[p.no] = bonito(p.nombre); if (p.f) (M.fr = M.fr || {})[k] = p.f; if (!M.rvn.includes(p.no)) M.rvn.push(p.no); });
       if (eqs[1 - mi].nombre && (!M.n[1] || /^rivales?$/i.test(M.n[1]))) { M.n[1] = eqs[1 - mi].nombre; const ii = panel.querySelector("[data-n=\"1\"]"); if (ii) ii.value = M.n[1]; }
-      guardarM();
+      guardarM(); pintarPl(); pintarM();
       const q = d.cuartos && d.cuartos.length ? " · cuarto " + d.cuartos[d.cuartos.length - 1].n : "";
       FEB.msg = "📡 FEB actualizada " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "");
     };
@@ -2908,7 +2950,7 @@ function iniciarPartido() {
           let sd = 0;
           eqs[n].forEach(f => { const nom = bonito(col(f, /^(jugadora|jugador|nombre)/)); if (!nom) return; let d = String(col(f, /^(dorsal|no|n\u00ba|num|#)/) || "").replace(/\D/g, ""); if (!d) d = "x" + (++sd); if (vistos.has(d)) return; vistos.add(d); M.rvn.push(d); M.rvNom[d] = nom; });
           M.rvn.sort((a, b) => (parseInt(a) || 999) - (parseInt(b) || 999)); M.n[1] = n; const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = n;
-          guardarM(); ov.remove(); aviso("👥 " + n + ": " + M.rvn.length + " jugadoras"); pintarEs();
+          guardarM(); ov.remove(); pintarPl(); aviso("👥 " + n + ": " + M.rvn.length + " jugadoras"); pintarEs();
         }); };
       $("rvQ").oninput = pintar; $("rvX").onclick = () => ov.remove(); pintar();
     };
@@ -2950,16 +2992,19 @@ function iniciarPartido() {
       const tcm = tot.t2m + tot.t3m, tca = tot.t2a + tot.t3a, pts = tot.t2m * 2 + tot.t3m * 3 + tot.tlm;
       const nomV = { h1: "1ª mitad", h2: "2ª mitad", tot: "Total" };
       const g = (k, f, lab, ok) => `<button class="${ok || ""}" data-k="${k}" data-f="${f}">${lab}</button>`;
-      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta de la mitad que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span><button id="esFeb" title="Trae rebotes, pérdidas y tiros de los dos equipos desde la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar solo cada 30 s">${FEB.auto ? "⏱ Auto" : "⏱"}</button>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esRes" class="${ESV.res ? "on" : ""}" title="Vista compacta para el descanso: los dos equipos, solo lectura">📋 Resumen</button><button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
+      const verRes = ESV.res || !ESV.man;
+      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta de la mitad que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span><button id="esFeb" title="Trae rebotes, pérdidas y tiros de los dos equipos desde la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar solo cada 30 s">${FEB.auto ? "⏱ Auto" : "⏱"}</button>${["auto", "h1", "h2", "tot"].map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + (mitad() === "h1" ? "1ª" : "2ª") + ")" : nomV[x]}</button>`).join("")}<button id="esMan" class="${ESV.man ? "on" : ""}" title="Mostrar u ocultar los botones para anotar a mano (si usas la FEB, escóndelos)">✍️ Manual ${ESV.man ? "✓" : "✗"}</button><button id="esRes" class="${ESV.res ? "on" : ""}" title="Vista compacta para el descanso: los dos equipos, solo lectura">📋 Resumen</button><button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
         ${FEB.msg ? `<div style="background:#223040;border-radius:10px;padding:6px 10px;margin-bottom:8px;font-size:13px;">${FEB.msg}</div>` : ""}<div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
         <div class="es-res"><span>${nomV[v]} · Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> (${pct(tcm, tca)})</span><span>2P <b>${tot.t2m}/${tot.t2a}</b></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Rebotes <b>${tot.reb}</b></span><span>Pérdidas <b>${tot.per}</b></span></div>
-        ${ESV.res ? resumenHtml(v) : fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
+        ${verRes ? resumenHtml(v) : fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
           <div class="g">${g(kk, "reb", "REB")}<span>${o.reb}</span></div><div class="g">${g(kk, "per", "PER")}<span>${o.per}</span></div>
           <div class="g">${g(kk, "t2m", "2✓", "ok")}${g(kk, "t2x", "2✗", "ko")}<span>2P ${o.t2m}/${o.t2a}</span></div>
           <div class="g">${g(kk, "t3m", "3✓", "ok")}${g(kk, "t3x", "3✗", "ko")}<span>3P ${o.t3m}/${o.t3a}</span></div>
           <div class="g">${g(kk, "tlm", "TL✓", "ok")}${g(kk, "tlx", "TL✗", "ko")}<span>TL ${o.tlm}/${o.tla}</span></div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadoras: elige «Mi equipo» en la app de estadísticas.</div>'}
-        ${ESV.eq === 1 && !ESV.res ? '<button id="esRvEq" style="margin-top:6px;background:#2b8a3e;">👥 Traer equipo rival</button> <button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
+        ${ESV.eq === 1 && !verRes ? '<button id="esRvEd" style="margin-top:6px;">✏️ Editar jugadoras rival</button> <button id="esRvEq" style="margin-top:6px;background:#2b8a3e;">👥 Traer equipo rival</button> <button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
         <div style="opacity:.6;font-size:12px;margin-top:8px;">Se anota en el cuarto actual: cuartos 1-2 = 1ª mitad. Cambia el cuarto en el marcador.</div></div>`;
+      if ($("esMan")) $("esMan").onclick = () => { ESV.man = !ESV.man; try { localStorage.setItem("scoutflow-partido-manual", ESV.man ? "1" : "0"); } catch (e) { /* nada */ } pintarEs(); };
+      if ($("esRvEd")) $("esRvEd").onclick = () => editarRival();
       if ($("esRes")) $("esRes").onclick = () => { ESV.res = !ESV.res; ESV.corr = false; pintarEs(); };
       EP.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => { ESV.eq = Number(b.dataset.eq); pintarEs(); });
       EP.querySelectorAll("[data-pp]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.pp); M.f = [0, 0]; guardarM(); pintarM(); pintarEs(); });
@@ -3017,7 +3062,8 @@ function iniciarPartido() {
         guardarEd(o); setPlt(RAW); ED.classList.remove("ver"); if (EP.classList.contains("ver")) pintarEs();
       };
     };
-    $("mpEd").onclick = abrirEd;
+    $("mpEd").onclick = () => (FL.r ? editarRival() : abrirEd());
+    $("mpFlN").onclick = () => { FL.r = false; pintarPl(); }; $("mpFlR").onclick = () => { FL.r = true; pintarPl(); };
     ED.addEventListener("pointerdown", (e) => { if (e.target === ED) ED.classList.remove("ver"); });
     /* ---- cronómetro manual (vestuario) ---- */
     $("mpVes").onclick = () => iniciarT(15 * 60);
