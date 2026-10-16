@@ -3,7 +3,7 @@
    pero SIN guardar nunca datos viejos de Google Sheets ni de la FEB.
    Estrategia: red primero, y si no hay internet, lo guardado. */
 
-const CACHE = "scoutflow-2026-10-12t";
+const CACHE = "scoutflow-2026-10-16a";
 
 const BASICOS = [
   "./",
@@ -58,6 +58,7 @@ self.addEventListener("fetch", (evento) => {
   if (peticion.method !== "GET") return;
   if (esDatosEnVivo(peticion.url)) return;          // va directo a la red
   if (!peticion.url.startsWith("http")) return;
+  if (peticion.headers.has("range") || /\.(mp4|webm|mov|m4v|mp3|m4a|wav)(\?|$)/i.test(peticion.url)) return;   // vídeo/audio: directo a la red (necesitan rangos)
 
   // Red primero, pero con limite de tiempo: si el wifi del pabellon va lento, se usa lo guardado
   const guardada = () => caches.match(peticion).then((g) => g || caches.match(peticion, { ignoreSearch: true }));
