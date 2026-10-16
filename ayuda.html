@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ayuda · ScoutFlow</title>
+<link rel="icon" href="iconos/favicon-32.png">
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1d2630;--mut:#6b7684;--ln:#e3e7ec;--ac:#e8590c;--ac2:#fff4e6;--ok:#2b8a3e;--side:#1d2630;--sideink:#dfe5ec;}
+@media(prefers-color-scheme:dark){:root{--bg:#10171f;--card:#17202a;--ink:#e8edf3;--mut:#93a0ae;--ln:#2a3846;--ac2:#2c2118;--side:#0b1117;}}
+*{box-sizing:border-box} html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+.app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+nav{background:var(--side);color:var(--sideink);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .marca{font-weight:800;font-size:20px;margin:0 6px 4px} nav .marca span{color:var(--ac)} nav small{display:block;opacity:.6;margin:0 6px 12px}
+nav input{width:100%;min-height:40px;border-radius:10px;border:0;padding:0 12px;margin-bottom:10px;font-size:15px}
+nav a{display:block;color:inherit;text-decoration:none;padding:8px 10px;border-radius:8px;font-size:15px} nav a:hover,nav a.on{background:#ffffff1a}
+nav h5{margin:14px 10px 4px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:.5}
+nav .volver{margin-top:14px;background:var(--ac);color:#fff;text-align:center;font-weight:700}
+main{padding:28px clamp(16px,4vw,48px) 80px;max-width:980px}
+h1{margin:0 0 4px;font-size:30px} .sub{color:var(--mut);margin:0 0 22px}
+section{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:20px 22px;margin:0 0 18px}
+section h2{margin:0 0 4px;font-size:22px;display:flex;gap:10px;align-items:center} section h2 i{font-style:normal;background:var(--ac2);border-radius:10px;padding:2px 9px}
+section .que{color:var(--mut);margin:0 0 12px}
+h3{margin:18px 0 6px;font-size:16px;color:var(--ac);text-transform:uppercase;letter-spacing:.8px}
+ol,ul{margin:6px 0 10px;padding-left:22px} li{margin:5px 0}
+.tip,.aviso{border-radius:10px;padding:10px 14px;margin:12px 0;font-size:15px}
+.tip{background:var(--ac2);border-left:4px solid var(--ac)} .aviso{background:#e7f5ff;border-left:4px solid #1971c2;color:#0b3a60} @media(prefers-color-scheme:dark){.aviso{background:#10263a;color:#cfe6fa}}
+kbd,.b{background:var(--ac2);border:1px solid var(--ln);border-radius:6px;padding:1px 7px;font:600 14px system-ui;white-space:nowrap}
+.vid{margin:12px 0 4px;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--ln)} .vid video{width:100%;display:block;max-height:460px}
+.vid div{background:var(--card);padding:6px 12px;font-size:13px;color:var(--mut)}
+.nov{display:none;text-align:center;color:var(--mut);padding:30px}
+@media(max-width:820px){.app{grid-template-columns:1fr} nav{position:relative;height:auto;max-height:46vh}}
+@media print{nav{display:none}.app{display:block}section{break-inside:avoid;border:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<nav>
+  <div class="marca">Scout<span>Flow</span></div><small>Guía de uso</small>
+  <input id="q" type="search" placeholder="Buscar en la ayuda…">
+  <div id="toc"></div>
+  <a class="volver" href="entrenador.html">← Volver a la app</a>
+</nav>
+<main>
+  <h1>Cómo usar ScoutFlow</h1>
+  <p class="sub">Una guía corta por cada apartado, con vídeos de ejemplo. Usa el buscador de la izquierda para ir directo a lo que necesitas.</p>
+  <div class="nov" id="nov">No hay nada con esa búsqueda.</div>
+
+  <section id="empezar" data-t="Primeros pasos">
+    <h2><i>🚀</i> Primeros pasos</h2><p class="que">Qué hay en la app y por dónde empezar.</p>
+    <ul>
+      <li><b>Zona Entrenador</b> (esta app): jugadas, playbooks, calendario, ejercicios, planes, equipos, Modo partido y libro de partidos.</li>
+      <li><b>Zona Estadísticas</b>: datos de la FEB, fichas de rivales, informes. Cambias de zona tocando el logo arriba a la izquierda.</li>
+      <li><b>Editor de vídeo</b>: aparte, para montar clips de jugadas o partidos.</li>
+    </ul>
+    <h3>Para empezar bien</h3>
+    <ol>
+      <li>Entra con tu correo y contraseña.</li>
+      <li>Crea tu plantilla en <span class="b">Quintetos y equipos</span> (o elige «Mi equipo» en Estadísticas).</li>
+      <li>Dibuja tus primeras jugadas en <span class="b">Jugadas</span>.</li>
+      <li>Antes del partido, prepara el Modo partido (elige jugadas y menús).</li>
+    </ol>
+    <div class="tip">En el móvil tienes la barra inferior con buscador, filtro y orden. En el ordenador, el menú está a la izquierda.</div>
+  </section>
+
+  <section id="inicio" data-t="Inicio">
+    <h2><i>🏠</i> Inicio</h2><p class="que">Tu pantalla de entrada con accesos rápidos.</p>
+    <ul><li>Desde aquí abres el <b>Modo partido</b>, el calendario y lo último que has editado.</li><li>Los números te dicen cuántas jugadas, ejercicios y planes tienes.</li></ul>
+  </section>
+
+  <section id="partido" data-t="Modo partido marcador faltas cronómetro vestuario">
+    <h2><i>🏀</i> Modo partido</h2><p class="que">Tu banquillo digital: jugadas, marcador, faltas, tiempos muertos y estadísticas.</p>
+    <div class="vid"><video controls preload="metadata" src="tutoriales/1-modo-partido.mp4"></video><div>Vídeo 1 · Marcador, faltas, tiempos muertos y vestuario</div></div>
+    <h3>Pantalla principal</h3>
+    <ul>
+      <li>A la izquierda, la <b>lista de jugadas</b>. Toca una para verla en la pizarra y pulsa <span class="b">▶ Animar</span> para ver cómo se mueve.</li>
+      <li>Con las flechas <kbd>←</kbd> <kbd>→</kbd> cambias de fase y con <kbd>↑</kbd> <kbd>↓</kbd> de jugada.</li>
+      <li>El botón <span class="b">⏱</span> abre el marcador. <span class="b">⛶</span> pone pantalla completa.</li>
+    </ul>
+    <h3>Marcador, faltas y cuartos</h3>
+    <ol>
+      <li>Abre el marcador con <span class="b">⏱</span> y suma <span class="b">+1</span> <span class="b">+2</span> <span class="b">+3</span> a cada equipo.</li>
+      <li>En <b>Faltas de cada jugadora</b> toca el nombre para sumar y <span class="b">−</span> para quitar. A 4 y 5 faltas se marca en naranja y rojo.</li>
+      <li>Pestaña <span class="b">🛡 Rival</span>: lo mismo para las rivales. Con <span class="b">✏️ Editar</span> cambias dorsales y nombres.</li>
+      <li>Cambia de <b>Cuarto</b> con los botones. Al cambiar, se ponen a cero las faltas del cuarto.</li>
+    </ol>
+    <h3>Tiempos muertos y vestuario</h3>
+    <ul>
+      <li><span class="b">⏱ Tiempo muerto 60 s</span>, 30 s, 24 s y 20 s con un toque. Suena y vibra al terminar.</li>
+      <li><span class="b">🚪 Vestuario 15:00</span> o <span class="b">⏱ Manual…</span> para otro tiempo (por ejemplo 10 o 2:30).</li>
+      <li><b>El cronómetro sigue aunque salgas del Modo partido.</b> Verás un botón verde abajo a la derecha que te devuelve al partido.</li>
+    </ul>
+    <h3>Elegir las jugadas del partido</h3>
+    <div class="vid"><video controls preload="metadata" src="tutoriales/2-jugadas-partido.mp4"></video><div>Vídeo 2 · Barra de jugadas, carpetas, Rival y ✓/✗</div></div>
+    <ul>
+      <li>La barra superior tiene <span class="b">Todas</span>, <span class="b">★ Mi libro</span>, <span class="b">⭐ Favoritas</span>, <span class="b">🛡 Rival</span> y tus menús (BLOB, SLOB…). Con <span class="b">⚙</span> eliges cuáles se ven.</li>
+      <li><span class="b">📁 Carpetas</span>: busca por carpeta.</li>
+      <li><span class="b">★ Elegir jugadas</span>: entra en cada carpeta y marca una a una las que vas a usar este partido. Aparecen en <b>Mi libro</b>.</li>
+      <li><b>Jugadas del rival, lo más fácil:</b> en la lista, toca el <span class="b">🛡</span> de cualquier jugada para marcarla como del rival (se pone dorada). Luego las ves todas en el botón <span class="b">🛡 Rival</span>. Para quitarla, toca la <span class="b">✕</span> de esa jugada dentro de Rival. También vale <span class="b">＋ Añadir jugadas</span> para marcar varias de golpe.</li>
+      <li><b>Tus propios menús</b> (BLOB, SLOB…): <span class="b">🏷 Menús</span> → <span class="b">＋ Menú nuevo</span>. Al abrir un menú aparece arriba su barra: <span class="b">＋ Añadir jugadas</span>, <span class="b">✏️</span> cambiar el nombre y <span class="b">🗑</span> eliminar el menú (las jugadas no se borran). Para sacar una jugada del menú, toca su <span class="b">✕</span>.</li>
+      <li>En el marcador, <b>Jugadas del partido</b>: pulsa <span class="b">✓</span> si funcionó y <span class="b">✗</span> si no. <span class="b">＋ Añadir otra jugada</span> abre un buscador por carpetas.</li>
+    </ul>
+    <h3>Estadísticas durante el partido</h3>
+    <div class="vid"><video controls preload="metadata" src="tutoriales/3-estadisticas-rival.mp4"></video><div>Vídeo 3 · Estadísticas, equipo rival y FEB</div></div>
+    <ol>
+      <li>En el marcador pulsa <span class="b">📊 Estadísticas</span>.</li>
+      <li>Anota a mano: <span class="b">2✓ 2✗ 3✓ 3✗ TL✓ TL✗ REB PER</span> en cada jugadora. Se cuenta en el cuarto actual: cuartos 1-2 = 1ª mitad.</li>
+      <li><span class="b">➖ Corregir</span> para quitar y <span class="b">↶ Deshacer</span> para el último toque.</li>
+      <li>Pestaña del rival: <span class="b">👥 Traer equipo rival</span>, busca el equipo y salen sus jugadoras con nombre. Con <span class="b">✏️ Editar jugadoras rival</span> les pones dorsal.</li>
+      <li><span class="b">📡 FEB</span>: pega el enlace del partido de baloncestoenvivo.feb.es y se traen las estadísticas de los dos equipos, con nombres. <span class="b">⏱ Auto</span> las actualiza cada 30 s.</li>
+      <li><span class="b">📋 Resumen</span>: vista compacta para el descanso. <span class="b">✍️ Manual</span>: esconde los botones de anotar si no los usas.</li>
+    </ol>
+    <h3>Guardar el partido</h3>
+    <ol><li>Abre el marcador y pulsa <span class="b">💾 Guardar partido</span>.</li><li>Te pregunta si quieres poner todo a cero para el siguiente.</li></ol>
+    <div class="aviso">Cada usuario tiene su propio Modo partido: marcador, libro de jugadas, menús y partidos guardados no se mezclan con los de tu ayudante.</div>
+  </section>
+
+  <section id="jugadas" data-t="Jugadas pizarra editor carpetas favoritas etiquetas">
+    <h2><i>📋</i> Jugadas</h2><p class="que">Tu biblioteca de jugadas dibujadas, con fases, animación y vídeos.</p>
+    <h3>Crear una jugada</h3>
+    <ol>
+      <li>Pulsa <span class="b">＋ Nueva jugada</span> (en el móvil, <span class="b">＋</span> arriba).</li>
+      <li>En la pizarra coloca jugadoras y trazos: pase, bote, corte y bloqueo. Cada <b>fase</b> es un momento de la jugada.</li>
+      <li>Añade fases con <span class="b">＋</span>, clónalas con <span class="b">⧉</span> o importa una fase de otra jugada.</li>
+      <li>Escribe el nombre y las notas y pulsa <span class="b">💾 Guardar y salir</span>.</li>
+    </ol>
+    <h3>Ordenar y buscar</h3>
+    <ul>
+      <li><b>Carpetas</b> (con subcarpetas): <span class="b">📁 Nueva carpeta</span> y <span class="b">📁 Mover a carpeta…</span> en el menú ⋮ de cada jugada.</li>
+      <li><b>Etiquetas</b> y <b>favoritas</b> para encontrarlas rápido. Vista de lista o de mosaico.</li>
+      <li>La lista tiene una columna <b>Vídeo</b> que te dice si la jugada lleva vídeo.</li>
+    </ul>
+    <h3>Ficha de la jugada</h3>
+    <ul>
+      <li>Abre una jugada para ver sus fases con el texto y, debajo, sus <b>vídeos</b>.</li>
+      <li><span class="b">▶ Ver animada</span> reproduce la jugada.</li>
+      <li><span class="b">🖨️ Imprimir / PDF</span> y <span class="b">📤 Enviar a las jugadoras</span> desde el menú ⋮.</li>
+    </ul>
+    <div class="tip">Duplica una jugada con <b>⧉ Duplicar</b> antes de cambiarla si quieres conservar la original.</div>
+  </section>
+
+  <section id="playbooks" data-t="Playbooks capítulos">
+    <h2><i>📘</i> Playbooks</h2><p class="que">Documentos con capítulos y jugadas, por ejemplo «Sistemas de ataque».</p>
+    <ol>
+      <li><span class="b">＋ Nuevo playbook</span> y ponle nombre, equipo y temporada.</li>
+      <li>Ábrelo y pulsa <span class="b">✏️ Editar playbook</span>.</li>
+      <li>Crea capítulos y añade <span class="b">🏀 Jugada de la biblioteca…</span>, un <span class="b">¶ Párrafo de texto</span> o un <span class="b">▬ encabezado</span>.</li>
+      <li>Sube o baja capítulos y jugadas, o ponles un <span class="b">⤓ Salto de página</span>.</li>
+      <li><span class="b">⬇ Descargar PDF</span> o <span class="b">📤 Enviar a todo el equipo</span>.</li>
+    </ol>
+  </section>
+
+  <section id="calendario" data-t="Calendario eventos entrenos partidos">
+    <h2><i>📅</i> Calendario</h2><p class="que">Entrenos, partidos y otros eventos.</p>
+    <ol>
+      <li>Toca un día o pulsa <b>＋</b> para crear un evento.</li>
+      <li>Elige el tipo: <b>entreno</b>, <b>partido</b> u <b>otro</b>. En partido sale el campo <b>Rival</b> y el título se pone solo («Partido vs…»).</li>
+      <li>Pon fecha, hora de inicio y fin, lugar y notas.</li>
+    </ol>
+  </section>
+
+  <section id="ejercicios" data-t="Ejercicios biblioteca">
+    <h2><i>🧩</i> Ejercicios</h2><p class="que">Tu biblioteca de ejercicios de entrenamiento, dibujados como las jugadas.</p>
+    <ul>
+      <li>Se crean y organizan igual que las jugadas: carpetas, etiquetas y fases.</li>
+      <li><span class="b">📝 Editar datos (material, vídeo…)</span> para añadir material y vídeos.</li>
+      <li>Puedes vincularles un reparto de equipos de <b>Quintetos y equipos</b>; saldrá en el PDF.</li>
+    </ul>
+  </section>
+
+  <section id="planes" data-t="Planes de entrenamiento sesiones horario">
+    <h2><i>🗓️</i> Planes de entrenamiento</h2><p class="que">La sesión completa: horario, ejercicios y duración.</p>
+    <ol>
+      <li>Crea un plan nuevo y ponle fecha y nombre.</li>
+      <li>Añade segmentos con horario, ejercicio y duración.</li>
+      <li>Con <span class="b">🕘 Reutilizar segmentos anteriores</span> copias partes de otras sesiones.</li>
+      <li><span class="b">🖨️ Imprimir / PDF</span> para llevarlo a la pista.</li>
+    </ol>
+  </section>
+
+  <section id="equipos" data-t="Quintetos y equipos plantilla repartos">
+    <h2><i>👥</i> Quintetos y equipos</h2><p class="que">Tu plantilla y los repartos de equipos para entrenar.</p>
+    <ul>
+      <li>Aquí está tu <b>plantilla</b> (nombre y dorsal). La usa el Modo partido para las faltas y las estadísticas.</li>
+      <li>Crea <b>repartos</b> (por ejemplo «Equipo A / Equipo B») y vincúlalos a un ejercicio.</li>
+    </ul>
+    <div class="tip">Si en Estadísticas has elegido «Mi equipo», el Modo partido usa esa plantilla de la FEB.</div>
+  </section>
+
+  <section id="mini" data-t="Mini basket cuartos minutos">
+    <h2><i>🏀</i> Mini basket</h2><p class="que">Reparte quién juega cada cuarto y cuida los minutos de cada niña o niño.</p>
+    <ol>
+      <li>Elige un preajuste (por ejemplo 6 cuartos de 8′ o 4 de 10′) o personaliza cuartos, minutos y mínimo de cuartos por jugadora.</li>
+      <li>Pulsa el reparto automático y retoca a mano lo que quieras.</li>
+      <li>Imprime o guarda el resumen para la mesa.</li>
+    </ol>
+  </section>
+
+  <section id="libro" data-t="Libro de partidos informe pdf sistemas efectividad">
+    <h2><i>📖</i> Libro de partidos</h2><p class="que">Todos los partidos que guardas y qué te funciona.</p>
+    <div class="vid"><video controls preload="metadata" src="tutoriales/4-libro-partidos.mp4"></video><div>Vídeo 4 · Libro de partidos e informe</div></div>
+    <ul>
+      <li>Se llena solo: en el Modo partido, <span class="b">💾 Guardar partido</span>.</li>
+      <li>Arriba tienes la tabla de <b>sistemas en todos los partidos</b>: la jugada que más jugamos, la más y la menos efectiva y la que menos jugamos. Ordena con <span class="b">🔥</span> <span class="b">🧊</span> <span class="b">✅</span> <span class="b">⚠️</span>.</li>
+      <li>El <b>mínimo de veces</b> evita que una jugada con 1 de 1 parezca la mejor.</li>
+      <li><span class="b">Ver</span> abre el informe: marcador, comparativa con el rival, parciales, tabla individual y jugadas. <span class="b">🖨 PDF</span> lo imprime.</li>
+    </ul>
+  </section>
+
+  <section id="archivos" data-t="Vídeos imágenes audio archivos">
+    <h2><i>🎞️</i> Vídeos, imágenes y audio</h2><p class="que">Tus archivos, ordenados en un mismo sitio.</p>
+    <ul>
+      <li>Sube los archivos desde cada apartado y ponles carpeta y nombre.</li>
+      <li>Un vídeo puede enlazarse a una jugada; así se ve en su ficha y en la columna Vídeo.</li>
+      <li>Para montar clips de varias jugadas usa el <b>Editor de vídeo</b>.</li>
+    </ul>
+  </section>
+
+  <section id="ayudantes" data-t="Ayudantes compartir cuentas permisos">
+    <h2><i>🤝</i> Ayudantes</h2><p class="que">Cada ayudante entra con su cuenta y tiene su propio espacio.</p>
+    <ol>
+      <li>Añade a tu ayudante en el <b>Panel</b> y dile que entre con su correo.</li>
+      <li>Él guarda sus jugadas, ejercicios y planes, separados de los tuyos. También pone su nombre, logo y equipo.</li>
+      <li>Para que vea las tuyas: menú ⋮ de una jugada → <span class="b">👥 Compartir con ayudantes…</span>, o lo mismo en una carpeta.</li>
+      <li>Para quitarle el acceso, desmarca esa jugada o carpeta en el mismo menú, o retíralo del Panel si cambia de club.</li>
+    </ol>
+    <div class="aviso">Tu ayudante tiene su propio Modo partido y libro de partidos, para su equipo (por ejemplo, cadete).</div>
+  </section>
+
+  <section id="estadisticas" data-t="Estadísticas FEB rival informe">
+    <h2><i>📊</i> Estadísticas (FEB)</h2><p class="que">Datos de la liga, fichas de rivales e informes.</p>
+    <ul>
+      <li>Elige <b>Mi equipo</b> y la temporada la primera vez.</li>
+      <li>Busca un rival para ver su plantilla, líderes, últimos partidos y mapa de tiro.</li>
+      <li>Exporta el <b>informe visual</b> del rival en PDF para la charla previa.</li>
+      <li>El Modo partido usa estos datos para traer el equipo rival con nombres.</li>
+    </ul>
+  </section>
+
+  <section id="problemas" data-t="Problemas frecuentes ayuda no carga actualizar">
+    <h2><i>🛠️</i> Problemas frecuentes</h2><p class="que">Soluciones rápidas.</p>
+    <ul>
+      <li><b>No veo los cambios nuevos:</b> recarga a fondo con <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> (Windows: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).</li>
+      <li><b>No salen las jugadoras en faltas:</b> crea tu plantilla en Quintetos y equipos o elige «Mi equipo» en Estadísticas.</li>
+      <li><b>La FEB no responde:</b> prueba más tarde y sigue con el panel manual; no pierdes nada.</li>
+      <li><b>Sin conexión en el pabellón:</b> el Modo partido usa las jugadas guardadas en el aparato; guarda el partido y se sube cuando haya red.</li>
+    </ul>
+  </section>
+</main>
+</div>
+<script>
+const secs=[...document.querySelectorAll('section')],toc=document.getElementById('toc');
+const grupos=[["Empezar",["empezar","inicio"]],["Partido",["partido","libro"]],["Biblioteca",["jugadas","playbooks","ejercicios","archivos"]],["Planificación",["calendario","planes","equipos","mini"]],["Más",["ayudantes","estadisticas","problemas"]]];
+toc.innerHTML=grupos.map(([g,ids])=>'<h5>'+g+'</h5>'+ids.map(id=>{const s=document.getElementById(id);return '<a href="#'+id+'" data-id="'+id+'">'+s.querySelector('h2').textContent.trim()+'</a>'}).join('')).join('');
+const q=document.getElementById('q');
+q.addEventListener('input',()=>{const t=q.value.toLowerCase().trim();let n=0;secs.forEach(s=>{const ok=!t||(s.textContent+' '+(s.dataset.t||'')).toLowerCase().includes(t);s.style.display=ok?'':'none';if(ok)n++});document.getElementById('nov').style.display=n?'none':'block';toc.querySelectorAll('a').forEach(a=>{a.style.display=document.getElementById(a.dataset.id).style.display==='none'?'none':''})});
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)toc.querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.dataset.id===e.target.id))})},{rootMargin:'-20% 0px -70% 0px'});secs.forEach(s=>io.observe(s));
+</script>
+</body>
+</html>
