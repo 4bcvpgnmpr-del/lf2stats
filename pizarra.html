@@ -2400,14 +2400,14 @@ function iniciarPartido() {
     const q = E.q.trim().toLowerCase();
     const res = E.lista.filter(x => {
       if (E.carp && !(x.carpeta === E.carp || String(x.carpeta || "").startsWith(E.carp + "/"))) return false;
-      if (E.filtro.startsWith("m:")) { const mm = E.menus.find(z => z.id === E.filtro.slice(2)); if (!mm || !mm.ids.includes(x.id)) return false; }
+      if (E.filtro.startsWith("m:")) { const mm = E.menus.find(z => z.id === E.filtro.slice(2)); if (!mm || !(mm.ids.includes(x.id) || (mm.id === "rival" && esRivalAuto(x)))) return false; }
       if (E.filtro === "pin" && !E.pin.has(x.id)) return false;
       if (E.filtro === "fav" && !x.favorita) return false;
       if (E.filtro.startsWith("t:") && !(x.tags || []).includes(E.filtro.slice(2))) return false;
       if (E.filtro.startsWith("k:") && (x.tipo || "") !== E.filtro.slice(2)) return false;
       return !q || ((x.nombre || "") + " " + (x.tags || []).join(" ") + " " + (x.tipo || "") + " " + (x.carpeta || "")).toLowerCase().includes(q);
     });
-    if (E.filtro.startsWith("m:")) { const mm = E.menus.find(z => z.id === E.filtro.slice(2)); if (mm) res.sort((a, b) => mm.ids.indexOf(a.id) - mm.ids.indexOf(b.id)); }
+    if (E.filtro.startsWith("m:")) { const mm = E.menus.find(z => z.id === E.filtro.slice(2)); if (mm) res.sort((a, b) => { const ia = mm.ids.indexOf(a.id), ib = mm.ids.indexOf(b.id); return (ia < 0 ? 9e3 : ia) - (ib < 0 ? 9e3 : ib); }); }
     return res;
   };
   const pintarLista = () => {
@@ -2433,11 +2433,21 @@ function iniciarPartido() {
   const opcionesBarra = () => {
     const tipos = [...new Set(E.lista.map(x => x.tipo).filter(Boolean))].sort(), tags = [...new Set(E.lista.flatMap(x => x.tags || []))].sort();
     const o = [["todas", "Todas"], ["pin", "★ Mi libro" + (E.pin.size ? " (" + E.pin.size + ")" : "")], ["fav", "⭐ Favoritas"]];
-    E.menus.forEach(m => o.push(["m:" + m.id, "🏷 " + m.nombre + " (" + m.ids.filter(i => E.lista.some(x => x.id === i)).length + ")"]));
+    E.menus.forEach(m => o.push(["m:" + m.id, (m.id === "rival" ? "🛡 " : "🏷 ") + m.nombre + " (" + E.lista.filter(x => m.ids.includes(x.id) || (m.id === "rival" && esRivalAuto(x))).length + ")"]));
     tipos.forEach(t => o.push(["k:" + t, NOM_TIPO[t] || t])); tags.forEach(t => o.push(["t:" + t, "#" + t]));
     return o;
   };
   const claveBarra = () => (E.barra || ["todas", "pin", "fav"].concat(E.menus.map(m => "m:" + m.id)));
+  /* menú «Rival»: jugadas del rival (las que metas en él + las de carpetas/etiquetas que digan «rival») */
+  const esRivalAuto = (x) => /rival/i.test((x.carpeta || "") + " " + (x.tipo || "") + " " + (x.tags || []).join(" "));
+  const asegurarRival = () => {
+    let hecho = false; try { hecho = localStorage.getItem("scoutflow-rival-menu") === "1"; } catch (e) { /* nada */ }
+    if (hecho || E.menus.some(m => m.id === "rival")) return;
+    E.menus.unshift({ id: "rival", nombre: "Rival", ids: [] });
+    if (E.barra && !E.barra.includes("m:rival")) { const i = E.barra.indexOf("fav"); E.barra.splice(i >= 0 ? i + 1 : E.barra.length, 0, "m:rival"); try { localStorage.setItem(CLAVE_BAR, JSON.stringify(E.barra)); } catch (e) { /* nada */ } }
+    try { localStorage.setItem("scoutflow-rival-menu", "1"); } catch (e) { /* nada */ }
+    guardarMenus(); if (E.barra) guardarBarra();
+  };
   const pintarChips = () => {
     const op = opcionesBarra(), mapa = new Map(op), claves = claveBarra().filter(k => mapa.has(k));
     $("ptChips").innerHTML = `<button class="cfg" id="ptCfgB" title="Elegir qué botones salen en esta barra">⚙</button>` + claves.map(k => `<button data-f="${esc(k)}" class="${E.filtro === k && !(k === "todas" && E.carp) ? "on" : ""}">${esc(mapa.get(k))}</button>`).join("");
@@ -3062,6 +3072,7 @@ function iniciarPartido() {
     if (modoNube) { try { const { data } = await nube.from("archivos").select("*").eq("id", "_menus_partido"); const r = data && data[0]; if (r) { const m = JSON.parse(r.nombre || "[]"); if (Array.isArray(m)) { E.menus = m; try { localStorage.setItem(CLAVE_MEN, JSON.stringify(m)); } catch (e2) { /* nada */ } } } } catch (e) { /* nada */ } }
     if (modoNube) { try { const { data } = await nube.from("archivos").select("*").eq("id", "_barra_partido"); const r = data && data[0]; if (r) { const m = JSON.parse(r.nombre || "null"); if (Array.isArray(m)) { E.barra = m; try { localStorage.setItem(CLAVE_BAR, JSON.stringify(m)); } catch (e2) { /* nada */ } } } } catch (e) { /* nada */ } }
     if (modoNube) { try { const { data } = await nube.from("carpetas").select("*"); E.carpTabla = (data || []).filter(c => c.tipo === "jugadas").map(c => c.nombre); } catch (e) { /* nada */ } }
+    asegurarRival();
     const conCar = (r) => Object.assign(deFila(r), { carpeta: r.carpeta || (r.data && r.data.carpeta) || "" }); E.filas = filas || null;
     if (filas) E.lista = filas.map(conCar);
     else {
