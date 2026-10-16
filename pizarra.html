@@ -2410,10 +2410,25 @@ function iniciarPartido() {
     if (E.filtro.startsWith("m:")) { const mm = E.menus.find(z => z.id === E.filtro.slice(2)); if (mm) res.sort((a, b) => { const ia = mm.ids.indexOf(a.id), ib = mm.ids.indexOf(b.id); return (ia < 0 ? 9e3 : ia) - (ib < 0 ? 9e3 : ib); }); }
     return res;
   };
+  const enRival = (id) => { const rv = E.menus.find(z => z.id === "rival"); return !!(rv && rv.ids.includes(id)); };
+  /* barra de acciones del menú abierto: añadir jugadas, renombrar, eliminar */
+  const pintarBarraMenu = () => {
+    let bar = $("ptMenuBar"); const lista = $("ptLista"), mm = E.filtro.startsWith("m:") ? E.menus.find(z => z.id === E.filtro.slice(2)) : null;
+    if (!mm) { if (bar) bar.remove(); return; }
+    if (bar) bar.remove(); bar = document.createElement("div"); bar.id = "ptMenuBar"; bar.style.cssText = "flex:none;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;background:#223040;border-radius:12px;border:1px solid #3a4b5d;"; lista.insertBefore(bar, lista.firstChild);
+    bar.innerHTML = `<b style="flex:1 1 100%;font-size:14px;">${mm.id === "rival" ? "🛡" : "🏷"} ${esc(mm.nombre)} <span style="opacity:.6;font-weight:400;">· ${mm.ids.length} jugadas</span></b><button id="pbAdd" style="background:#2b8a3e;min-height:40px;flex:1;">＋ Añadir jugadas</button><button id="pbRen" title="Cambiar el nombre" style="min-height:40px;">✏️</button><button id="pbDel" title="Eliminar este menú (las jugadas no se borran)" style="min-height:40px;background:#a61e1e;">🗑</button>`;
+    $("pbAdd").onclick = () => gestorMenus(mm.id);
+    $("pbRen").onclick = () => { const n = (prompt("Nuevo nombre del menú:", mm.nombre) || "").trim(); if (!n) return; mm.nombre = n.slice(0, 24); guardarMenus(); pintarChips(); pintarLista(); };
+    $("pbDel").onclick = () => { if (!confirm("¿Eliminar el menú «" + mm.nombre + "»?\nLas jugadas NO se borran, solo el menú.")) return; E.menus = E.menus.filter(z => z !== mm); guardarMenus(); repintaMenus(); };
+  };
   const pintarLista = () => {
-    const v = visibles(), box = $("ptLista");
-    box.innerHTML = v.length ? v.map(x => `<div class="pt-it ${E.j && E.j.id === x.id ? "on" : ""}" data-id="${esc(x.id)}"><div class="m">${(() => { try { return svgPaso(normalizar(clonar(x)), 0, { mini: true }); } catch (e) { return ""; } })()}</div><div class="n">${esc(x.nombre || "(sin nombre)")}<small>${esc(x.tipo || "")}${(x.opciones && x.opciones.length > 1) ? " · " + x.opciones.length + " opciones" : ""}</small></div><button class="pin ${E.pin.has(x.id) ? "on" : ""}" data-pin="${esc(x.id)}" title="Añadir a mi libro del partido">${E.pin.has(x.id) ? "★" : "☆"}</button></div>`).join("") : `<div class="pt-vacio">${E.lista.length ? "Nada con ese filtro." : "No hay jugadas."}</div>`;
+    const v = visibles(), box = $("ptLista"), mm = E.filtro.startsWith("m:") ? E.menus.find(z => z.id === E.filtro.slice(2)) : null;
+    box.innerHTML = v.length ? v.map(x => `<div class="pt-it ${E.j && E.j.id === x.id ? "on" : ""}" data-id="${esc(x.id)}"><div class="m">${(() => { try { return svgPaso(normalizar(clonar(x)), 0, { mini: true }); } catch (e) { return ""; } })()}</div><div class="n">${esc(x.nombre || "(sin nombre)")}<small>${esc(x.tipo || "")}${(x.opciones && x.opciones.length > 1) ? " · " + x.opciones.length + " opciones" : ""}</small></div>${mm ? (mm.ids.includes(x.id) ? `<button class="pin on" data-quita="${esc(x.id)}" title="Quitar de este menú">✕</button>` : "") : `<button class="pin ${enRival(x.id) ? "on" : ""}" style="${enRival(x.id) ? "" : "opacity:.4;"}" data-rv="${esc(x.id)}" title="${enRival(x.id) ? "Quitar de las jugadas del rival" : "Marcar como jugada del rival"}">🛡</button><button class="pin ${E.pin.has(x.id) ? "on" : ""}" data-pin="${esc(x.id)}" title="Añadir a mi libro del partido">${E.pin.has(x.id) ? "★" : "☆"}</button>`}</div>`).join("") : `<div class="pt-vacio">${mm ? (mm.id === "rival" ? "Aquí van las jugadas del rival.<br>Pulsa <b>＋ Añadir jugadas</b> arriba, o toca 🛡 en cualquier jugada de «Todas»." : "Este menú está vacío.<br>Pulsa <b>＋ Añadir jugadas</b> arriba.") : E.lista.length ? "Nada con ese filtro." : "No hay jugadas."}</div>`;
+    pintarBarraMenu();
     box.querySelectorAll(".pt-it").forEach(el => el.addEventListener("click", (ev) => {
+      const qb = ev.target.closest("[data-quita]"), rb = ev.target.closest("[data-rv]");
+      if (qb && mm) { mm.ids = mm.ids.filter(i => i !== qb.dataset.quita); guardarMenus(); pintarChips(); pintarLista(); return; }
+      if (rb) { const id = rb.dataset.rv; let rv = E.menus.find(z => z.id === "rival"); if (!rv) { rv = { id: "rival", nombre: "Rival", ids: [] }; E.menus.unshift(rv); if (E.barra && !E.barra.includes("m:rival")) { E.barra = E.barra.concat(["m:rival"]); guardarBarra(); } } if (rv.ids.includes(id)) rv.ids = rv.ids.filter(i => i !== id); else { rv.ids.push(id); aviso("🛡 Añadida a las jugadas del rival"); } guardarMenus(); pintarChips(); pintarLista(); return; }
       const pb = ev.target.closest("[data-pin]");
       if (pb) { const id = pb.dataset.pin; if (E.pin.has(id)) E.pin.delete(id); else E.pin.add(id); guardarPin(E.pin); pintarChips(); pintarLista(); return; }
       abrir(el.dataset.id);
@@ -2505,7 +2520,7 @@ function iniciarPartido() {
     let q = "";
     const pinta = () => {
       const l = E.lista.filter(x => !q || ((x.nombre || "") + " " + (x.carpeta || "") + " " + (x.tipo || "")).toLowerCase().includes(q));
-      MN.innerHTML = `<div class="cr"><h4>Menú «${esc(m.nombre)}»</h4><input type="text" id="gmN" value="${esc(m.nombre)}" placeholder="Nombre del menú"><input type="text" id="gmQ" placeholder="Buscar jugada para añadir…" value="${esc(q)}">
+      MN.innerHTML = `<div class="cr"><h4>Menú «${esc(m.nombre)}»</h4><p style="opacity:.7;margin:0 0 6px;font-size:13px;">Marca las jugadas que van en este menú.</p><input type="text" id="gmN" value="${esc(m.nombre)}" placeholder="Nombre del menú"><input type="text" id="gmQ" placeholder="Buscar jugada para añadir…" value="${esc(q)}">
         <div style="max-height:44vh;overflow:auto;margin-top:8px;">${l.map(x => `<label class="it"><input type="checkbox" data-j="${esc(x.id)}" ${m.ids.includes(x.id) ? "checked" : ""}> <span style="flex:1;">${esc(x.nombre || "(sin nombre)")}</span><small style="opacity:.6;">${esc(x.carpeta || x.tipo || "")}</small></label>`).join("") || '<p style="opacity:.7;">Nada coincide.</p>'}</div>
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:10px;flex-wrap:wrap;"><button id="gmDel" style="background:#a61e1e;">🗑 Borrar menú</button><button id="gmOk" style="background:#e8590c;">Guardar</button></div></div>`;
       MN.querySelectorAll("[data-j]").forEach(c => c.onchange = () => { if (c.checked) { if (!m.ids.includes(c.dataset.j)) m.ids.push(c.dataset.j); } else m.ids = m.ids.filter(i => i !== c.dataset.j); });
