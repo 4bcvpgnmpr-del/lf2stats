@@ -2434,7 +2434,7 @@ function iniciarPartido() {
     let h = `<button data-c="x" class="${E.carp ? "on" : ""}" style="background:${E.carp ? "" : "#a83f15"};">📁 ${E.carp ? esc(E.carp.split("/").pop()) : "Carpetas"}</button>`;
     if (E.carp) h += `<button data-c="" title="Quitar carpeta">✕</button>`;
     h += `<button class="mv" id="ptMenJ" title="Poner la jugada abierta en uno o varios menús (BLOB, SLOB, acciones rápidas…)">🏷 ${E.j ? "Menús" : "Menús"}</button>`;
-    h += `<button class="mv" id="ptLibroC" title="Elegir las jugadas de este partido por carpetas, no una a una">★ Por carpetas</button>`;
+    h += `<button class="mv" id="ptLibroC" title="Elegir las jugadas de este partido: entras en cada carpeta y marcas las que vas a usar">★ Elegir jugadas</button>`;
     h += `<button class="mv" id="ptCarMv" title="Guardar la jugada que tienes abierta en una carpeta (o crear una nueva)">📁 ${E.j ? "Mover" : "＋ Carpeta"}</button>`;
     $("ptCarp").innerHTML = h;
     $("ptCarp").querySelectorAll("button[data-c]").forEach(b => b.addEventListener("click", () => { if (b.dataset.c === "x") { selCarpeta(); return; } E.carp = ""; if (E.filtro === "todas") E.filtro = "todas"; pintarChips(); pintarLista(); }));
@@ -2501,7 +2501,7 @@ function iniciarPartido() {
       MN.innerHTML = `<div class="cr"><h4>📁 Carpetas</h4><input type="text" id="scQ" placeholder="Buscar carpeta…" value="${esc(q)}">
         <div style="max-height:56vh;overflow:auto;margin-top:8px;"><div class="row" data-c="" style="cursor:pointer;${E.carp ? "" : "outline:2px solid #0b8f86;"}"><b style="flex:1;">Todas las jugadas</b><small style="opacity:.7;">${E.lista.length}</small></div>
         ${cs.map(r => `<div class="row" data-c="${esc(r)}" style="cursor:pointer;padding-left:${10 + 16 * (r.split("/").length - 1)}px;${E.carp === r ? "outline:2px solid #0b8f86;" : ""}"><span style="flex:1;">${r.includes("/") ? "↳ " : "📁 "}${esc(r.split("/").pop())}</span><small style="opacity:.7;">${cuenta(r)}</small></div>`).join("") || '<p style="opacity:.7;">Ninguna carpeta coincide.</p>'}</div>
-        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:10px;flex-wrap:wrap;"><button id="scLib" style="background:#e8590c;">★ Elegir para este partido</button><button id="scX" style="background:#2c3947;">Cerrar</button></div></div>`;
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:10px;flex-wrap:wrap;"><button id="scLib" style="background:#e8590c;">★ Elegir jugadas del partido</button><button id="scX" style="background:#2c3947;">Cerrar</button></div></div>`;
       MN.querySelectorAll("[data-c]").forEach(d => d.onclick = () => { E.carp = d.dataset.c; if (!E.carp && E.filtro !== "todas") E.filtro = "todas"; MN.classList.remove("ver"); pintarChips(); pintarLista(); });
       $("scX").onclick = () => MN.classList.remove("ver");
       $("scLib").onclick = () => libroCarpetas();
@@ -2509,31 +2509,34 @@ function iniciarPartido() {
     };
     pinta(); MN.classList.add("ver");
   };
-  /* elegir las jugadas del partido por carpetas (rellena «Mi libro») */
+  /* elegir las jugadas del partido: navegas por carpetas y marcas una a una (rellena «Mi libro») */
   const libroCarpetas = () => {
-    const SIN = "\u0000"; let q = "", vaciar = false; const tocadas = new Map();
-    const enRama = (x, r) => r === SIN ? !x.carpeta : (x.carpeta === r || String(x.carpeta || "").startsWith(r + "/"));
-    const ids = (r) => E.lista.filter(x => enRama(x, r)).map(x => x.id);
-    const sim = () => { const p = vaciar ? new Set() : new Set(E.pin); tocadas.forEach((v, r) => ids(r).forEach(i => { if (v) p.add(i); else p.delete(i); })); return p; };
-    const hayLibres = E.lista.some(x => !x.carpeta);
+    let cur = "", q = ""; const p = new Set([...E.pin].filter(i => E.lista.some(x => x.id === i)));
+    const enRama = (x, r) => !r || x.carpeta === r || String(x.carpeta || "").startsWith(r + "/");
+    const hijas = (r) => todasCarp().filter(c => (c.includes("/") ? c.slice(0, c.lastIndexOf("/")) : "") === r);
+    const mini = (x) => { try { return svgPaso(normalizar(clonar(x)), 0, { mini: true }); } catch (e) { return ""; } };
     const pinta = () => {
-      const p = sim(), carps = todasCarp().filter(r => !q || r.toLowerCase().includes(q)), filas = (hayLibres && !q ? [SIN] : []).concat(carps);
-      const est = (r) => { const l = ids(r); if (!l.length) return 0; const n = l.filter(i => p.has(i)).length; return n === l.length ? 1 : n ? 0.5 : 0; };
-      MN.innerHTML = `<div class="cr"><h4>★ Jugadas de este partido</h4><p style="opacity:.7;margin:0 0 8px;font-size:13.5px;">Marca las carpetas que vas a usar: entran todas sus jugadas en «Mi libro».</p>
-        <input type="text" id="lcQ" placeholder="Buscar carpeta…" value="${esc(q)}">
-        <div style="max-height:50vh;overflow:auto;margin-top:8px;">${filas.map(r => { const n = ids(r).length; return `<div class="row" data-r="${esc(r)}" style="cursor:pointer;padding-left:${10 + (r === SIN ? 0 : 16 * (r.split("/").length - 1))}px;"><input type="checkbox" data-st="${est(r)}" ${est(r) === 1 ? "checked" : ""} ${n ? "" : "disabled"}><span style="flex:1;">${r === SIN ? "📄 Sin carpeta" : (r.includes("/") ? "↳ " : "📁 ") + esc(r.split("/").pop())}</span><small style="opacity:.7;">${n}</small></div>`; }).join("") || '<p style="opacity:.6;">No hay carpetas.</p>'}</div>
-        <p style="margin:10px 0 0;font-size:14px;"><b>${p.size}</b> jugada${p.size === 1 ? "" : "s"} en el libro</p>
-        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:10px;flex-wrap:wrap;"><button id="lcVac" style="background:#2c3947;">Vaciar</button><span style="display:flex;gap:8px;"><button id="lcX" style="background:#2c3947;">Cancelar</button><button id="lcOk" style="background:#e8590c;">Usar en el partido</button></span></div></div>`;
-      MN.querySelectorAll("input[data-st]").forEach(c => { if (c.dataset.st === "0.5") c.indeterminate = true; });
-      MN.querySelectorAll(".row[data-r]").forEach(d => d.onclick = (e) => {
-        e.preventDefault(); const r = d.dataset.r, nuevo = est(r) !== 1, pp = sim(); void pp;
-        const dest = r === SIN ? [SIN] : todasCarp().filter(c => c === r || c.startsWith(r + "/"));
-        dest.forEach(c => { tocadas.delete(c); tocadas.set(c, nuevo); }); pinta();
-      });
+      const m = q ? E.lista.filter(x => ((x.nombre || "") + " " + (x.carpeta || "") + " " + (x.tipo || "") + " " + (x.tags || []).join(" ")).toLowerCase().includes(q))
+        : E.lista.filter(x => (x.carpeta || "") === cur);
+      const subs = q ? [] : hijas(cur), ruta = cur ? cur.split("/") : [];
+      const mig = `<button data-g="" class="mig">Todas</button>` + ruta.map((t, k) => `<span style="opacity:.5;">›</span><button data-g="${esc(ruta.slice(0, k + 1).join("/"))}" class="mig">${esc(t)}</button>`).join("");
+      const rama = E.lista.filter(x => enRama(x, cur)), nr = rama.filter(x => p.has(x.id)).length;
+      MN.innerHTML = `<div class="cr"><h4>★ Jugadas de este partido</h4><input type="text" id="lcQ" placeholder="Buscar jugada o carpeta…" value="${esc(q)}">
+        ${q ? "" : `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;">${mig}</div>`}
+        <div style="max-height:46vh;overflow:auto;margin-top:8px;">
+        ${subs.map(c => { const l = E.lista.filter(x => enRama(x, c)), n = l.filter(x => p.has(x.id)).length; return `<div class="row" data-c="${esc(c)}" style="cursor:pointer;"><span style="flex:1;">📁 ${esc(c.split("/").pop())}</span><small style="opacity:.75;">${n}/${l.length}</small><span style="opacity:.6;">›</span></div>`; }).join("")}
+        ${m.map(x => `<div class="row" data-j="${esc(x.id)}" style="cursor:pointer;gap:10px;"><input type="checkbox" ${p.has(x.id) ? "checked" : ""}><span style="width:46px;height:46px;flex:none;display:block;overflow:hidden;border-radius:6px;background:#1a2430;">${mini(x)}</span><span style="flex:1;">${esc(x.nombre || "(sin nombre)")}<small style="display:block;opacity:.65;">${esc(q ? (x.carpeta ? x.carpeta.split("/").join(" › ") + " · " : "") : "")}${esc(x.tipo || "")}</small></span></div>`).join("")}
+        ${subs.length || m.length ? "" : '<p style="opacity:.6;">No hay nada aquí.</p>'}</div>
+        <p style="margin:10px 0 0;font-size:14px;"><b>${p.size}</b> jugada${p.size === 1 ? "" : "s"} elegida${p.size === 1 ? "" : "s"}${q ? "" : ` · en esta carpeta: ${nr}/${rama.length}`}</p>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:10px;flex-wrap:wrap;"><span style="display:flex;gap:8px;flex-wrap:wrap;"><button id="lcTodo" style="background:#2c3947;">${nr === rama.length && rama.length ? "Quitar toda la carpeta" : "Marcar toda la carpeta"}</button><button id="lcVac" style="background:#2c3947;">Vaciar</button></span><span style="display:flex;gap:8px;"><button id="lcX" style="background:#2c3947;">Cancelar</button><button id="lcOk" style="background:#e8590c;">Usar</button></span></div></div>`;
+      MN.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { cur = b.dataset.g; pinta(); });
+      MN.querySelectorAll(".row[data-c]").forEach(d => d.onclick = () => { cur = d.dataset.c; pinta(); });
+      MN.querySelectorAll(".row[data-j]").forEach(d => d.onclick = (e) => { e.preventDefault(); const id = d.dataset.j; if (p.has(id)) p.delete(id); else p.add(id); const t = MN.scrollTop, bx = MN.querySelector("div[style*='max-height']"), st = bx ? bx.scrollTop : 0; pinta(); const b2 = MN.querySelector("div[style*='max-height']"); if (b2) b2.scrollTop = st; void t; });
       $("lcQ").oninput = (e) => { q = e.target.value.trim().toLowerCase(); const pos = e.target.selectionStart; pinta(); const z = $("lcQ"); z.focus(); z.setSelectionRange(pos, pos); };
-      $("lcVac").onclick = () => { vaciar = true; tocadas.clear(); pinta(); };
+      $("lcTodo").onclick = () => { if (nr === rama.length && rama.length) rama.forEach(x => p.delete(x.id)); else rama.forEach(x => p.add(x.id)); pinta(); };
+      $("lcVac").onclick = () => { p.clear(); pinta(); };
       $("lcX").onclick = () => MN.classList.remove("ver");
-      $("lcOk").onclick = () => { const p = sim(); E.pin = p; guardarPin(p); E.carp = ""; E.filtro = p.size ? "pin" : "todas"; MN.classList.remove("ver"); pintarChips(); pintarLista(); };
+      $("lcOk").onclick = () => { E.pin = new Set(p); guardarPin(E.pin); E.carp = ""; E.filtro = p.size ? "pin" : "todas"; MN.classList.remove("ver"); pintarChips(); pintarLista(); };
     };
     pinta(); MN.classList.add("ver");
   };
