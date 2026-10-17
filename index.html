@@ -1903,6 +1903,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
     <button id="btnPanelApp" data-view="mis-jugadoras" title="Panel de control: jugadoras, accesos, lo que ven y lo que les envias">⚙️ Panel</button>
     <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
     <button id="btnPdfPagina" title="Guardar esta pantalla como PDF">📄 Exportar PDF</button>
+    <button id="btnActLiga" title="Pide actualizar ahora los datos de la liga (tarda unos minutos)">🔄 Actualizar liga</button>
     <div class="hint" id="lastUpdated"></div>
   </div>
 </aside>
@@ -13633,6 +13634,28 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
     menu.querySelectorAll("a").forEach(a => a.addEventListener("click", (ev) => { if (a.dataset.z === ACTUAL) { ev.preventDefault(); cerrar(); } }));
   });
   document.addEventListener("click", cerrar); window.addEventListener("resize", cerrar);
+})();
+</script>
+
+<script>
+/* Actualizar los datos de la liga ahora (lanza el workflow de GitHub a traves de una funcion de Supabase) */
+(function () {
+  const b = document.getElementById("btnActLiga"); if (!b) return;
+  const txt0 = b.textContent;
+  b.addEventListener("click", async () => {
+    const sb = (typeof clienteJugadoras === "function") ? clienteJugadoras() : null;
+    if (!sb) { alert("No hay conexion con la nube."); return; }
+    b.disabled = true; b.textContent = "⏳ Pidiendo…";
+    try {
+      const r = await sb.functions.invoke("super-processor", { body: {} });
+      let msg = "";
+      if (r.error) { let det = ""; try { const j = await r.error.context.clone().json(); det = j.error || ""; } catch (e) { /* nada */ } throw new Error(det || r.error.message || "sin respuesta"); }
+      if (r.data && r.data.error) throw new Error(r.data.error);
+      msg = r.data && r.data.ya ? "Ya se pidió hace un momento. Espera " + Math.ceil((r.data.esperar || 60) / 60) + " min y recarga." : "✅ Pedido. Los datos tardan unos 2-5 minutos. Luego recarga con Cmd+Shift+R.";
+      b.textContent = "✅ Pedido"; alert(msg);
+    } catch (e) { b.textContent = "⚠️ No se pudo"; alert("No se pudo actualizar: " + (e.message || e)); }
+    setTimeout(() => { b.disabled = false; b.textContent = txt0; }, 8000);
+  });
 })();
 </script>
 </body>
