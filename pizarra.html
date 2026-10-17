@@ -2948,9 +2948,17 @@ function iniciarPartido() {
       if (!nube) { aviso("Hace falta conexión con la nube para traer datos de la FEB"); return; }
       FEB.msg = "📡 Pidiendo datos a la FEB…"; if (EP.classList.contains("ver")) pintarEs();
       try {
-        let r = null;
-        for (const fn of ["super-action", "clever-endpoint"]) { r = await nube.functions.invoke(fn, { body: { id } }); const st = r.error && r.error.context && r.error.context.status; if (!r.error || (st !== 404 && !/not found/i.test(String(r.error.message || "")))) break; }
-        if (r.error) throw new Error(r.error.message || "sin respuesta"); if (r.data && r.data.error) throw new Error(r.data.error);
+        let r = null, ult = "";
+        for (const fn of ["feb-directo", "super-action", "clever-endpoint"]) {
+          try { r = await nube.functions.invoke(fn, { body: { id } }); } catch (ex) { r = { error: ex }; }
+          if (!r.error) { if (r.data && r.data.error) throw new Error(r.data.error); break; }
+          const ctx = r.error.context, st = ctx && ctx.status; let det = "";
+          try { if (ctx && ctx.json) { const jb = await ctx.clone().json(); det = jb && (jb.error || jb.message) || ""; } } catch (ex) { /* nada */ }
+          ult = fn + (st ? " [" + st + "]" : "") + ": " + (det || r.error.message || "sin respuesta");
+          const noHay = st === 404 || /not found|failed to send|failed to fetch/i.test(String(r.error.message || "")) || !st;
+          if (!noHay) break;
+        }
+        if (r && r.error) throw new Error(ult);
         febAplicar(r.data);
       } catch (e) { FEB.msg = "⚠️ No se pudo traer de la FEB (" + (e.message || e) + "). Sigue con el panel manual."; if (!callado) aviso("FEB no disponible: usa el panel manual"); }
       if (EP.classList.contains("ver")) pintarEs();
