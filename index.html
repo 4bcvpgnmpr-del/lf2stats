@@ -10827,8 +10827,9 @@ function rebotesAgrupados(filtro) {
   return Object.keys(porTipo).length ? porTipo : null;
 }
 
-function tablaRebotesHtml(porTipo, titulo) {
+function tablaRebotesHtml(porTipo, titulo, modo) {
   if (!porTipo) return "";
+  const rv = modo === "rival";   // tabla de los tiros que falla el rival: desde TU punto de vista
   const filas = ORDEN_TIPOS_REB.filter(t => porTipo[t]).map(t => {
     const d = porTipo[t];
     const capturados = d.of + d.def;
@@ -10837,8 +10838,8 @@ function tablaRebotesHtml(porTipo, titulo) {
     return `<tr>
       <td class="equipo">${escapeHtml(t)}</td>
       <td>${d.fallados}</td>
-      <td class="${pctOf !== null && pctOf >= 30 ? "bueno" : ""}">${d.of}${pctOf !== null ? ` <span class="pct-reb">(${fmtNum(pctOf)}%)</span>` : ""}</td>
-      <td>${d.def}${pctDef !== null ? ` <span class="pct-reb">(${fmtNum(pctDef)}%)</span>` : ""}</td>
+      <td class="${rv ? (pctOf !== null && pctOf >= 30 ? "malo" : "") : (pctOf !== null && pctOf >= 30 ? "bueno" : "")}">${d.of}${pctOf !== null ? ` <span class="pct-reb">(${fmtNum(pctOf)}%)</span>` : ""}</td>
+      <td class="${rv && pctDef !== null && pctDef >= 70 ? "bueno" : ""}">${d.def}${pctDef !== null ? ` <span class="pct-reb">(${fmtNum(pctDef)}%)</span>` : ""}</td>
     </tr>`;
   }).join("");
   const tot = Object.values(porTipo).reduce((a, d) => ({
@@ -10849,8 +10850,8 @@ function tablaRebotesHtml(porTipo, titulo) {
   return `<h5 class="sub-bloque">${escapeHtml(titulo)}</h5>
     <div class="table-scroll"><table class="limpia"><thead><tr>
       <th class="equipo">Tiro fallado</th><th title="Tiros fallados de ese tipo">Fallos</th>
-      <th title="Rebotes cogidos por el propio equipo">Reb. ofensivo</th>
-      <th title="Rebotes cogidos por el rival">Reb. del rival</th></tr></thead>
+      <th title="${rv ? "Rebotes ofensivos del rival: segundas oportunidades que te hace" : "Rebotes cogidos por el propio equipo"}">${rv ? "Reb. ofensivo del rival" : "Reb. ofensivo"}</th>
+      <th title="${rv ? "Rebotes que coges tú: tu rebote defensivo" : "Rebotes cogidos por el rival"}">${rv ? "Tu reb. defensivo" : "Reb. del rival"}</th></tr></thead>
       <tbody>${filas}
       <tr class="total-reb"><td class="equipo">Total</td><td>${tot.fallados}</td>
         <td>${tot.of}${capt ? ` <span class="pct-reb">(${fmtNum(Math.round(tot.of / capt * 1000) / 10)}%)</span>` : ""}</td>
@@ -10884,13 +10885,15 @@ function bloqueRebotesPartido(partidoId, nombreL, nombreV) {
 function bloqueRebotesEquipo(nombre) {
   if (!rebotesCache || !rebotesCache.rows) return `<p class="hint">Proximamente: hace falta la pestaña Rebotes del Sheet.</p>`;
   const mio = (r) => normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === normalizarEquipo(equipoOficial(nombre));
-  const rival = (r) => !mio(r);
+  // Solo cuentan los partidos de este equipo: "rival" = el otro equipo de esos mismos partidos
+  const susPartidos = new Set(rebotesCache.rows.filter(mio).map(r => cellText(r, "PartidoID")));
+  const rival = (r) => !mio(r) && susPartidos.has(cellText(r, "PartidoID"));
   const atacando = rebotesAgrupados(mio);
-  // Cuando falla el rival, el rebote defensivo de ese equipo aparece como "RebDef" del rival
+  // Cuando falla el rival: "Reb. ofensivo" = el rebote que coge el propio rival; "Reb. del rival" = el que cogemos nosotros
   const defendiendo = rebotesAgrupados(rival);
   if (!atacando && !defendiendo) return `<p class="hint">Proximamente: sin datos de rebote de este equipo.</p>`;
   return `${tablaRebotesHtml(atacando, "Cuando falla el equipo")}
-    ${tablaRebotesHtml(defendiendo, "Cuando falla el rival (rebote del rival = ofensivo suyo)")}`;
+    ${tablaRebotesHtml(defendiendo, "Cuando falla el rival: ¿quién coge el rebote?", "rival")}`;
 }
 
 /* ============================================================
