@@ -673,6 +673,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <button data-s="equipos"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.500"/><path d="M3.500 19c0-3 2.500-5 5.500-5s5.500 2 5.500 5M15 14.500c3 0 5.500 1.500 5.500 4.500"/></svg></span><span class="tx">Quintetos y equipos</span><span class="n" id="n-equipos"></span></button>
       <button data-s="mini"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><span class="tx">Mini basket</span></button>
     </div>
+    <div class="grupo"><h4>Equipo</h4><button data-s="chat"><span class="i">💬</span><span class="tx">Equipo técnico</span><span class="n" id="chatN" style="display:none"></span></button></div>
     <div class="grupo"><h4>Archivos</h4>
       <button data-s="video"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2.500"/><path d="M16 10.500l5-3v9l-5-3"/></svg></span><span class="tx">Vídeos</span><span class="n" id="n-video"></span></button>
       <button data-s="imagen"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="4" width="17" height="16" rx="2.500"/><circle cx="9" cy="9.500" r="1.600"/><path d="M4 17l5-4.500 4 3.500 3-2.500 4 3.500"/></svg></span><span class="tx">Imágenes</span><span class="n" id="n-imagen"></span></button>
@@ -738,7 +739,7 @@ const ajena = (x) => !!(SOY_AYU && x && String(x.propietario || "") !== MI_EMAIL
 const carpetaAjena = (tipo, ruta) => SOY_AYU && !(D.carpetas || []).some(c => c.tipo === tipo && c.propietario === MI_EMAIL && enRama(c.nombre, ruta)) && !(D[tipo] || []).some(x => !ajena(x) && x.carpeta && enRama(x.carpeta, ruta));
 let puedeEscribir = true, faltaSql = "", seccion = "inicio", carpeta = "", busqueda = "", vistaDetalle = null;
 const CATEGORIAS = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"];
-const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 const kv = {
@@ -790,10 +791,69 @@ function pintar() {
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
   if (seccion === "calendario") return pintarCalendario(v);
   if (seccion === "playbooks") return pintarPlaybooks(v);
+  if (seccion === "chat") return pintarChat(v);
   if (seccion === "equipos") return pintarEquipos(v);
   if (seccion === "libro") return pintarLibro(v);
   if (seccion === "mini") { if (!EQ) EQ = Object.assign(eqLeer(), { sel: null }); return pintarMini(v); }
   return pintarArchivos(v, seccion);
+}
+
+
+/* ------------ Equipo técnico: chat y jugadas compartidas ------------ */
+let CHAT = [], chatTimer = null, chatYo = "";
+function chatFecha(t) { const d = new Date(t), h = d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }); return d.toDateString() === new Date().toDateString() ? h : d.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }) + " " + h; }
+async function chatCargar() {
+  const { data, error } = await nube.from("equipo_chat").select("*").order("id", { ascending: false }).limit(200);
+  if (error) return error;
+  CHAT = (data || []).reverse(); return null;
+}
+function chatPintaMsgs() {
+  const caja = document.getElementById("chatMsgs"); if (!caja) return;
+  const abajo = caja.scrollHeight - caja.scrollTop - caja.clientHeight < 80;
+  caja.innerHTML = CHAT.length ? CHAT.map(m => {
+    const mio = (m.autor || "").toLowerCase() === chatYo, j = m.jugada;
+    return `<div class="cm ${mio ? "mio" : ""}"><div class="cm-n">${esc(m.nombre || m.autor)} · ${chatFecha(m.creado)}${mio || !SOY_AYU ? ` <a href="#" data-cdel="${m.id}" title="Borrar">🗑</a>` : ""}</div>
+      ${m.texto ? `<div class="cm-t">${esc(m.texto).replace(/\n/g, "<br>")}</div>` : ""}
+      ${j ? `<div class="cm-j">🏀 <b>${esc(j.nombre || "Jugada")}</b><div><button class="gris" data-cver="${m.id}">▶ Ver</button> ${mio ? "" : `<button class="naranja" data-ccop="${m.id}">Copiar a mis jugadas</button>`}</div></div>` : ""}</div>`;
+  }).join("") : '<p class="vacio">Aún no hay mensajes. Escribe el primero o comparte una jugada.</p>';
+  if (abajo) caja.scrollTop = caja.scrollHeight;
+}
+async function chatEnviar(texto, jugada) {
+  texto = (texto || "").trim(); if (!texto && !jugada) return;
+  const nombre = (typeof equipoDe === "function" && (equipoDe() || {}).nombre) || chatYo.split("@")[0];
+  const { error } = await nube.from("equipo_chat").insert({ autor: chatYo, nombre: nombre, texto: texto, jugada: jugada || null });
+  if (error) { aviso(/does not exist|relation/.test(error.message) ? "Falta ejecutar equipo_chat.sql en Supabase" : "No se pudo enviar: " + error.message); return; }
+  await chatCargar(); chatPintaMsgs();
+  const c = document.getElementById("chatMsgs"); if (c) c.scrollTop = c.scrollHeight;
+}
+function chatElegirJugada() {
+  const l = D.jugadas.filter(x => !ajena(x) || true);
+  if (!l.length) { aviso("No tienes jugadas para compartir."); return; }
+  ventana(`<h3>Compartir una jugada</h3><input id="cjQ" placeholder="Buscar…" style="margin-bottom:8px"><div id="cjL" style="max-height:50vh;overflow:auto"></div><div class="pie-m"><button class="gris" id="cjX">Cancelar</button></div>`);
+  const pinta = () => { const q = $("cjQ").value.toLowerCase(); $("cjL").innerHTML = l.filter(x => (x.nombre || "").toLowerCase().includes(q)).map(x => `<button class="gris" style="display:block;width:100%;text-align:left;margin:3px 0" data-cj="${esc(x.id)}">${esc(x.nombre || "Sin nombre")} <small style="color:var(--ink-soft)">${esc(x.tipo || "")}</small></button>`).join("") || '<p class="vacio">Nada</p>'; };
+  pinta(); $("cjQ").oninput = pinta; $("cjX").onclick = cerrarVentana;
+  $("cjL").onclick = (e) => { const b = e.target.closest("[data-cj]"); if (!b) return; const x = l.find(y => y.id === b.dataset.cj); cerrarVentana(); if (x) chatEnviar($("chTxt") ? $("chTxt").value : "", { nombre: x.nombre, tipo: x.tipo || "", data: clonar(x.data || {}) }).then(() => { if ($("chTxt")) $("chTxt").value = ""; }); };
+}
+async function pintarChat(v) {
+  chatYo = (MI_EMAIL || ((await nube.auth.getSession()).data.session || { user: {} }).user.email || "").toLowerCase();
+  v.innerHTML = `<div class="cab"><h2>💬 Equipo técnico</h2></div><div id="chatBox"><div id="chatMsgs"><p class="vacio">Cargando…</p></div>
+    <div id="chatIn"><textarea id="chTxt" rows="1" placeholder="Escribe un mensaje…"></textarea><button class="gris" id="chJ" title="Compartir una jugada">🏀</button><button class="naranja" id="chEnv">Enviar</button></div></div>
+    <style>#chatBox{display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:320px;max-width:720px}#chatMsgs{flex:1;overflow:auto;padding:8px;background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px}
+    .cm{max-width:82%;margin:6px 0;padding:7px 10px;border-radius:12px;background:#eef1f5}.cm.mio{margin-left:auto;background:#ffe9d6}.cm-n{font-size:11.5px;color:#667}.cm-n a{text-decoration:none}.cm-t{font-size:14.5px;margin-top:2px;word-break:break-word}
+    .cm-j{margin-top:6px;padding:8px;border-radius:10px;background:#fff;border:1px solid #ddd}.cm-j button{margin:6px 4px 0 0;padding:5px 10px}#chatIn{display:flex;gap:6px;margin-top:8px}#chatIn textarea{flex:1;resize:none;padding:9px;border-radius:10px;border:1px solid #ccc;font:inherit}</style>`;
+  const err = await chatCargar();
+  if (err) { $("chatMsgs").innerHTML = '<div class="aviso-sql">' + (/does not exist|relation/.test(err.message) ? "Falta ejecutar <b>equipo_chat.sql</b> en Supabase (SQL Editor)." : esc(err.message)) + "</div>"; return; }
+  chatPintaMsgs(); $("chatMsgs").scrollTop = $("chatMsgs").scrollHeight;
+  const env = () => { const t = $("chTxt"); const x = t.value; t.value = ""; chatEnviar(x); };
+  $("chEnv").onclick = env; $("chJ").onclick = chatElegirJugada;
+  $("chTxt").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); env(); } };
+  $("chatMsgs").onclick = async (e) => {
+    const d = e.target.closest("[data-cdel]"), vv = e.target.closest("[data-cver]"), c = e.target.closest("[data-ccop]");
+    if (d) { e.preventDefault(); if (!await confirmar("¿Borrar este mensaje?")) return; await nube.from("equipo_chat").delete().eq("id", d.dataset.cdel); await chatCargar(); chatPintaMsgs(); }
+    if (vv) { const m = CHAT.find(z => String(z.id) === vv.dataset.cver); if (m && m.jugada) verJugada({ nombre: m.jugada.nombre, data: m.jugada.data }); }
+    if (c) { const m = CHAT.find(z => String(z.id) === c.dataset.ccop); if (!m || !m.jugada || !puedeCrear("jugadas")) return; const j = clonar(m.jugada); const id = idNuevo("j"); const f = { id, nombre: j.nombre || "Jugada", tipo: j.tipo || "", carpeta: "", compartida: false, data: Object.assign(j.data || {}, { id, nombre: j.nombre, compartida: false }) }; if (await guardarFila("jugadas", f)) { aviso("Copiada a tus jugadas"); await cargarTodo(); } }
+  };
+  clearInterval(chatTimer); chatTimer = setInterval(async () => { if (seccion !== "chat" || !document.getElementById("chatMsgs")) { clearInterval(chatTimer); return; } const n = CHAT.length ? CHAT[CHAT.length - 1].id : 0; if (!await chatCargar() && (CHAT.length ? CHAT[CHAT.length - 1].id : 0) !== n) chatPintaMsgs(); }, 10000);
 }
 
 /* ------------ menu emergente y ventana ------------ */
