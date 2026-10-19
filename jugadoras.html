@@ -2228,5 +2228,23 @@ window.addEventListener("afterprint", () => {
   document.querySelectorAll("details[data-abierto-antes]").forEach(d => { d.open = d.dataset.abiertoAntes === "1"; delete d.dataset.abiertoAntes; });
 });
 </script>
+<script>
+/* 📺 Ver en la tele: AirPlay / Chromecast en todos los vídeos con controles */
+(function () {
+  if (!("remote" in HTMLVideoElement.prototype)) return;
+  function listo(v) {
+    if (v._tv || !v.hasAttribute("controls")) return; v._tv = 1;
+    v.setAttribute("x-webkit-airplay", "allow"); v.removeAttribute("disableRemotePlayback");
+    const b = document.createElement("button"); b.type = "button"; b.textContent = "📺 Ver en la tele";
+    b.style.cssText = "display:none;margin:6px 0 0;padding:6px 12px;border:1px solid #cfd6dd;border-radius:999px;background:#fff;color:#1b2430;font:600 13px system-ui,sans-serif;cursor:pointer";
+    b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); v.remote.prompt().catch(() => {}); };
+    v.insertAdjacentElement("afterend", b);
+    const mostrar = () => { b.style.display = /^(blob|data):/.test(v.currentSrc || v.src || "") ? "none" : "inline-block"; };
+    v.addEventListener("loadedmetadata", mostrar); mostrar();
+  }
+  const barrer = () => document.querySelectorAll("video[controls]").forEach(listo);
+  barrer(); new MutationObserver(barrer).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
 </body>
 </html>

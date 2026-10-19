@@ -179,5 +179,23 @@ footer{padding:26px 0;text-align:center;color:var(--mut);font-size:14px;border-t
 <footer><div class="w">© <span id="y"></span> ScoutFlow · <a href="ayuda.html">Guía de uso</a> · <a href="privacidad.html">Privacidad</a> · <a href="condiciones.html">Condiciones</a></div></footer>
 <script>document.getElementById('y').textContent=new Date().getFullYear();
 document.querySelectorAll('.split video').forEach(v=>{const o=new IntersectionObserver(e=>e.forEach(x=>{x.isIntersecting?v.play().catch(()=>{}):v.pause()}),{threshold:.5});o.observe(v)});</script>
+<script>
+/* 📺 Ver en la tele: AirPlay / Chromecast en todos los vídeos con controles */
+(function () {
+  if (!("remote" in HTMLVideoElement.prototype)) return;
+  function listo(v) {
+    if (v._tv || !v.hasAttribute("controls")) return; v._tv = 1;
+    v.setAttribute("x-webkit-airplay", "allow"); v.removeAttribute("disableRemotePlayback");
+    const b = document.createElement("button"); b.type = "button"; b.textContent = "📺 Ver en la tele";
+    b.style.cssText = "display:none;margin:6px 0 0;padding:6px 12px;border:1px solid #cfd6dd;border-radius:999px;background:#fff;color:#1b2430;font:600 13px system-ui,sans-serif;cursor:pointer";
+    b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); v.remote.prompt().catch(() => {}); };
+    v.insertAdjacentElement("afterend", b);
+    const mostrar = () => { b.style.display = /^(blob|data):/.test(v.currentSrc || v.src || "") ? "none" : "inline-block"; };
+    v.addEventListener("loadedmetadata", mostrar); mostrar();
+  }
+  const barrer = () => document.querySelectorAll("video[controls]").forEach(listo);
+  barrer(); new MutationObserver(barrer).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
 </body>
 </html>
