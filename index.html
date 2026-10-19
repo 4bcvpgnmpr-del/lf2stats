@@ -13662,22 +13662,33 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
 })();
 </script>
 <script>
-/* 📺 Ver en la tele: AirPlay / Chromecast en todos los vídeos con controles */
+/* Transmitir a la tele: AirPlay / Chromecast en todos los vídeos con controles */
 (function () {
   if (!("remote" in HTMLVideoElement.prototype)) return;
+  const ICO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>';
   function listo(v) {
     if (v._tv || !v.hasAttribute("controls")) return; v._tv = 1;
     v.setAttribute("x-webkit-airplay", "allow"); v.removeAttribute("disableRemotePlayback");
-    const b = document.createElement("button"); b.type = "button"; b.textContent = "📺 Ver en la tele";
-    b.style.cssText = "display:none;margin:6px 0 0;padding:6px 12px;border:1px solid #cfd6dd;border-radius:999px;background:#fff;color:#1b2430;font:600 13px system-ui,sans-serif;cursor:pointer";
-    b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); v.remote.prompt().catch(() => {}); };
-    v.insertAdjacentElement("afterend", b);
-    const mostrar = () => { b.style.display = /^(blob|data):/.test(v.currentSrc || v.src || "") ? "none" : "inline-block"; };
+    const w = document.createElement("div"); w.style.cssText = "display:none;margin:6px 0 0;align-items:center;gap:8px;font:13px system-ui,sans-serif;color:#5b6670";
+    const b = document.createElement("button"); b.type = "button"; b.title = "Transmitir a la tele"; b.setAttribute("aria-label", "Transmitir a la tele"); b.innerHTML = ICO;
+    b.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:40px;height:34px;border:0;border-radius:9px;background:#000;color:#fff;cursor:pointer";
+    const m = document.createElement("span"); w.appendChild(b); w.appendChild(m);
+    b.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation(); m.textContent = "";
+      let p; try { p = v.remote.prompt(); } catch (x) { p = Promise.reject(x); }
+      p.catch((x) => {
+        const n = x && x.name;
+        m.textContent = n === "NotFoundError" ? "No encuentro ninguna tele o Chromecast en tu wifi." : n === "NotAllowedError" ? "" : "Aquí no se puede emitir: pulsa ⋮ en el vídeo y elige «Transmitir».";
+      });
+    };
+    v.insertAdjacentElement("afterend", w);
+    const mostrar = () => { w.style.display = /^(blob|data):/.test(v.currentSrc || v.src || "") ? "none" : "flex"; };
     v.addEventListener("loadedmetadata", mostrar); mostrar();
   }
   const barrer = () => document.querySelectorAll("video[controls]").forEach(listo);
   barrer(); new MutationObserver(barrer).observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
+
 </body>
 </html>
