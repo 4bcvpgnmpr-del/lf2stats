@@ -13685,8 +13685,8 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
     e.preventDefault(); e.stopPropagation(); if (!cur) return; m.style.display = "none";
     let p; try { p = cur.remote.prompt(); } catch (x) { p = Promise.reject(x); }
     p.catch((x) => {
-      const n = x && x.name; if (n === "NotAllowedError" || n === "AbortError") return;
-      m.textContent = n === "NotFoundError" ? "No encuentro ninguna tele o Chromecast en tu wifi." : "Aquí no se puede emitir: pulsa ⋮ en el vídeo y elige «Transmitir».";
+      const n = (x && x.name) || "error";
+      m.textContent = n === "NotFoundError" ? "No encuentro ninguna tele o Chromecast en tu wifi (tienen que estar en la misma red)." : "No se pudo abrir (" + n + "). Prueba: clic derecho sobre el vídeo → «Transmitir…», o menú ⋮ de Chrome → Guardar y compartir → Transmitir.";
       const r = b.getBoundingClientRect(); m.style.left = Math.max(4, r.right - 260) + "px"; m.style.top = (r.bottom + 6) + "px"; m.style.display = "block"; setTimeout(() => { m.style.display = "none"; }, 5000);
     });
   };
