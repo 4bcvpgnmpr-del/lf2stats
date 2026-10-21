@@ -1767,6 +1767,13 @@ function tiroEditor() {
     <details style="margin-bottom:10px;"><summary style="cursor:pointer;font-weight:700;">⚙️ Zonas y jugadoras que compiten</summary>
       <div style="margin-top:8px;overflow:auto;"><table class="tiTab"><tr><th style="text-align:left;">Zona</th><th>Pts</th><th>Tiros</th><th></th></tr>${z.map((q, i) => `<tr><td><input data-zn="${i}" value="${esc(q.nombre)}"></td><td><input data-zp="${i}" type="number" min="1" max="4" value="${q.pts}" style="width:56px;"></td><td><input data-zt="${i}" type="number" min="1" max="50" value="${q.tiros}" style="width:64px;"></td><td><button class="boton borrar fina" data-zd="${i}">✕</button></td></tr>`).join("")}</table>
       <button class="boton fina gris" id="tiZAdd">+ Añadir zona</button></div>
+      <div style="margin-top:10px;padding:10px;border:1px dashed var(--wood-line);border-radius:10px;"><b>Montar por series</b> <small style="color:var(--ink-soft);">(sustituye las zonas actuales)</small>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:6px;">
+          <label style="font-size:13px;">Series de 2 pts<br><input id="tiS2" type="number" min="0" max="20" value="3" style="width:70px;"></label>
+          <label style="font-size:13px;">Series de 3 pts<br><input id="tiS3" type="number" min="0" max="20" value="3" style="width:70px;"></label>
+          <label style="font-size:13px;">Series de libres<br><input id="tiS1" type="number" min="0" max="20" value="0" style="width:70px;"></label>
+          <label style="font-size:13px;">Tiros por serie<br><input id="tiST" type="number" min="1" max="50" value="5" style="width:70px;"></label>
+          <button class="boton fina" id="tiSer">Crear series</button><button class="boton fina gris" id="tiZon">Zonas por defecto</button></div></div>
       <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 14px;">${jugadoras.map(j => `<label style="display:flex;gap:5px;align-items:center;font-size:14px;"><input type="checkbox" data-jp="${j.id}" ${(s.part || []).some(p => p.id === String(j.id)) ? "checked" : ""}> ${esc(j.nombre)}</label>`).join("")}</div></details>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px;"><button class="boton fina" id="tiDAdd">+ Añadir duelo</button><button class="boton fina gris" id="tiSort">🎲 Sortear parejas</button></div>`;
   const duelo = (d, n) => { const t = tiDuelo(z, d), cl = (k) => t.gan === k ? "background:#e8f6ec;font-weight:800;" : (t.gan && t.gan !== "e" ? "background:#fbeeee;" : "");
@@ -1784,6 +1791,13 @@ function tiroEditor() {
   c.querySelectorAll("[data-zt]").forEach(i => i.onchange = () => { z[+i.dataset.zt].tiros = Math.max(1, +i.value || 1); tiAuto(); re(true); });
   c.querySelectorAll("[data-zd]").forEach(b => b.onclick = () => { z.splice(+b.dataset.zd, 1); tiAuto(); re(true); });
   $("tiZAdd").onclick = () => { z.push({ id: "z" + Math.random().toString(36).slice(2, 7), nombre: "Nueva zona", pts: 2, tiros: 5 }); tiAuto(); re(true); };
+  $("tiSer").onclick = async () => { if (ds.some(d => Object.keys(d.ra || {}).length || Object.keys(d.rb || {}).length) && !await confirmar("Cambiar las zonas borra los resultados ya apuntados en los duelos. ¿Seguir?")) return;
+    const n2 = +$("tiS2").value || 0, n3 = +$("tiS3").value || 0, n1 = +$("tiS1").value || 0, t = Math.max(1, +$("tiST").value || 5), nz = [];
+    for (let i = 1; i <= n2; i++) nz.push({ id: "s2_" + i, nombre: "2 pts · Serie " + i, pts: 2, tiros: t });
+    for (let i = 1; i <= n3; i++) nz.push({ id: "s3_" + i, nombre: "3 pts · Serie " + i, pts: 3, tiros: t });
+    for (let i = 1; i <= n1; i++) nz.push({ id: "s1_" + i, nombre: "Libres · Serie " + i, pts: 1, tiros: t });
+    if (!nz.length) return; s.zonas = nz; ds.forEach(d => { d.ra = {}; d.rb = {}; }); tiAuto(); re(true); };
+  $("tiZon").onclick = async () => { if (ds.some(d => Object.keys(d.ra || {}).length || Object.keys(d.rb || {}).length) && !await confirmar("Cambiar las zonas borra los resultados ya apuntados en los duelos. ¿Seguir?")) return; s.zonas = tiZonasBase(); ds.forEach(d => { d.ra = {}; d.rb = {}; }); tiAuto(); re(true); };
   c.querySelectorAll("[data-jp]").forEach(b => b.onchange = () => { const j = jugadoras.find(x => String(x.id) === b.dataset.jp); s.part = (s.part || []).filter(p => p.id !== b.dataset.jp); if (b.checked) s.part.push({ id: b.dataset.jp, nombre: j.nombre }); tiAuto(); re(true); });
   $("tiDAdd").onclick = () => { ds.push({ id: "d" + Math.random().toString(36).slice(2, 7), a: "", b: "", ra: {}, rb: {} }); tiAuto(); re(); };
   $("tiSort").onclick = async () => { if (ds.length && !await confirmar("Se sustituyen los duelos actuales por parejas nuevas al azar. ¿Seguir?")) return;
