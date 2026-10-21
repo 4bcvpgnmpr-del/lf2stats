@@ -2500,8 +2500,8 @@ const tiZonasBase = () => {
     .concat([{ id: "tl", nombre: "Tiros libres", pts: 1, tiros: 10 }]);
 };
 const tiDuelos = (s) => { s.resultados = s.resultados || {}; if (!Array.isArray(s.resultados.duelos)) s.resultados.duelos = []; return s.resultados.duelos; };
-const tiLado = (z, x) => { x = x || {}; let pts = 0, ac = 0, it = 0; z.forEach(q => { const v = Math.min(Number(x[q.id]) || 0, q.tiros); pts += v * q.pts; ac += v; it += q.tiros; });
-  return { pts, ac, it, pct: it ? Math.round(ac * 100 / it) : 0, jugo: Object.values(x).some(v => v !== "" && v != null) }; };
+const tiLado = (z, x) => { x = x || {}; let pts = 0, ac = 0, it = 0, fa = 0; z.forEach(q => { const v = Math.min(Number(x[q.id]) || 0, q.tiros); pts += v * q.pts; ac += v; it += q.tiros; if (x[q.id] !== "" && x[q.id] != null) fa += q.tiros - v; });
+  return { pts, ac, it, fa, pct: it ? Math.round(ac * 100 / it) : 0, jugo: Object.values(x).some(v => v !== "" && v != null) }; };
 const tiDuelo = (z, d) => { const A = tiLado(z, d.ra), B = tiLado(z, d.rb), jug = A.jugo && B.jugo;
   return { A, B, jug, gan: !jug ? null : (A.pts > B.pts ? "a" : B.pts > A.pts ? "b" : "e") }; };
 const tiNombre = (s, id) => { const j = (s.part || []).find(p => p.id === id); return j ? j.nombre : "—"; };
@@ -2557,7 +2557,7 @@ function tiroEditor() {
     return `<div class="item"  style="padding:10px;margin-bottom:12px;"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;"><b>Duelo ${n + 1}</b><select data-da="${n}" style="width:auto;flex:1;min-width:140px;max-width:260px;">${opt(d.a)}</select><b>vs</b><select data-db="${n}" style="width:auto;flex:1;min-width:140px;max-width:260px;">${opt(d.b)}</select><span style="flex:1;"></span>${t.jug ? `<b>${t.gan === "e" ? "🤝 Empate" : "✅ Gana " + esc(tiNombre(s, d[t.gan]))}</b>` : ""}<button class="gris" style="color:#b3261e;padding:7px 12px;" data-dd="${n}">✕</button></div>
       <div style="overflow:auto;"><table class="tiTab"><tr><th style="text-align:left;">Zona</th><th>${esc(tiNombre(s, d.a))}</th><th>${esc(tiNombre(s, d.b))}</th></tr>
       ${z.map(q => `<tr><td style="text-align:left;">${esc(q.nombre)} <small style="color:var(--soft);">${q.pts}pt · /${q.tiros}</small></td><td>${inp("a", q)}</td><td>${inp("b", q)}</td></tr>`).join("")}
-      <tr><td style="text-align:left;"><b>Puntos</b></td><td style="${cl("a")}">${t.A.pts}</td><td style="${cl("b")}">${t.B.pts}</td></tr><tr><td style="text-align:left;">Acierto</td><td>${t.A.pct}%</td><td>${t.B.pct}%</td></tr></table></div></div>`; };
+      <tr><td style="text-align:left;"><b>Puntos</b></td><td style="${cl("a")}">${t.A.pts}</td><td style="${cl("b")}">${t.B.pts}</td></tr><tr><td style="text-align:left;">Metidos – Fallados</td><td><b>${t.A.ac}</b> – ${t.A.fa}</td><td><b>${t.B.ac}</b> – ${t.B.fa}</td></tr><tr><td style="text-align:left;">Acierto</td><td>${t.A.pct}%</td><td>${t.B.pct}%</td></tr></table></div></div>`; };
   c.innerHTML = `<style>.tiTab{border-collapse:collapse;width:100%;font-size:13.5px;} .tiTab th,.tiTab td{border:1px solid var(--line);padding:5px 6px;text-align:center;} .tiTab th{background:var(--suave);font-size:12px;} .tiN{width:60px;text-align:center;padding:6px 2px;}</style>${cab}${ds.length ? ds.map(duelo).join("") : '<div class="vacio">Añade un duelo o sortea las parejas.</div>'}`;
   const re = (abierto) => { tiroEditor(); if (abierto) document.querySelector("#tiroCont details").open = true; };
   $c("tiVol").onclick = async () => { clearTimeout(TI.tm); await tiroGuardar(); TI.ses = null; tiroLista(); };
