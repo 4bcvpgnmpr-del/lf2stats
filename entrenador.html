@@ -340,6 +340,8 @@
   #planEd .pv-seg .pe-mini.grande svg{width:100%;height:100%;}
   #planEd .pv-seg .pe-mini.grande[data-ver]::after{width:30px;height:30px;font-size:13px;right:8px;bottom:8px;}
   @media (max-width:700px){#planEd .pv-seg{flex-wrap:wrap;gap:10px 14px;} #planEd .pv-seg>div:not(.pv-m){flex-basis:calc(100% - 90px);} #planEd .pv-seg .pe-mini.grande{width:100%;height:200px;order:3;}}
+  .pv-eq{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 8px;max-width:520px;} .pv-eqc{border:1px solid var(--pln);border-top:3px solid var(--c);border-radius:8px;padding:6px 10px;} .pv-eqc.vac{border-style:dashed;border-top-style:solid;}
+  .pv-eqc small{display:block;color:#7b8794;font-weight:700;letter-spacing:.5px;font-size:11px;} .pv-eqc b{display:block;} .pv-eqc span{font-size:13px;color:#5b6670;} .pv-eqc input{width:100%;border:0;border-bottom:1px solid #9aa5b1;border-radius:0;padding:3px 0;font-size:15px;font-weight:700;background:transparent;outline:0;} .pv-eqc i{display:block;border-bottom:1px solid #9aa5b1;height:18px;}
   @media print{
     #app,#detalleJ,#menuPop,.velo,#editorMarco,#visorMarco,#planEd,#pbEd,#aviso{display:none !important;}
     body{background:#fff;}
@@ -2065,7 +2067,7 @@ function pEd() {
     lista.forEach((e) => {
       if (e.sec) { cierra(); sub = 0; secAbierta = true; ci++; filas += `<div class="pv-sec" style="--k:${PVC[ci % 5]}">${esc(e.titulo || "Sección")}<span>§SUB§</span></div>`; return; }
       const ini = hmDe(d.inicio, acum), ej = ejDe(e), dd = (ej && ej.data) || {}; acum += Number(e.min) || 0; sub += Number(e.min) || 0;
-      filas += `<div class="pv-seg" style="--k:${PVC[Math.max(ci, 0) % 5]}"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}${ej && animDe(ej) ? `<div class="pv-d"><button class="gris" data-ver="${esc(ej.id)}" style="padding:6px 12px;">▶ Ver en movimiento</button></div>` : ""}${repDe(e) ? `<div class="pv-d">👥 <b>${esc(repDe(e).nombre)}:</b> ${repDe(e).equipos.map(q => esc(q.n) + " (" + q.s.map(id => id && eqJug(id) ? esc(eqJug(id).nombre) : "").filter(Boolean).join(", ") + ")").join(" · ")}</div>` : ""}</div>${ej ? `<span class="pe-mini grande" data-mini="${esc(ej.id)}"${animDe(ej) ? ` data-ver="${esc(ej.id)}" title="Ver en movimiento"` : ""}>${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}</div>`;
+      filas += `<div class="pv-seg" data-i="${lista.indexOf(e)}" style="--k:${PVC[Math.max(ci, 0) % 5]}"><div class="pv-m">${Number(e.min) || 0}<small>min</small></div><div style="flex:1;min-width:0;"><b>${esc(tituloSeg(e) || "(sin título)")}</b> <span class="peq">${ini}–${hmDe(d.inicio, acum)}</span>${e.notas ? `<div class="pv-n">${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${dd.descripcion ? `<div class="pv-d">${esc(dd.descripcion).replace(/\n/g, "<br>")}</div>` : ""}${dd.materiales ? `<div class="pv-d"><i>Material: ${esc(dd.materiales)}</i></div>` : ""}${eqBloque(e, "pv")}${ej && animDe(ej) ? `<div class="pv-d"><button class="gris" data-ver="${esc(ej.id)}" style="padding:6px 12px;">▶ Ver en movimiento</button></div>` : ""}${false ? `<div class="pv-d">👥 <b>${esc(repDe(e).nombre)}:</b> ${repDe(e).equipos.map(q => esc(q.n) + " (" + q.s.map(id => id && eqJug(id) ? esc(eqJug(id).nombre) : "").filter(Boolean).join(", ") + ")").join(" · ")}</div>` : ""}</div>${ej ? `<span class="pe-mini grande" data-mini="${esc(ej.id)}"${animDe(ej) ? ` data-ver="${esc(ej.id)}" title="Ver en movimiento"` : ""}>${MINIS[ej.id + "|" + ej.actualizada] || "🎯"}</span>` : ""}</div>`;
     });
     cierra();
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><h2 style="font-size:22px;">${esc(p.nombre || "Plan sin título")}</h2><button class="gris" id="pvImp" style="float:right;padding:8px 14px;">🖨️ Imprimir / PDF</button><p class="peq" style="margin:2px 0 12px;">${solofecha(p.fecha)} · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · ${total} min · ${d.inicio}–${hmDe(d.inicio, total)}</p>${d.notas ? `<p style="white-space:pre-wrap;margin:0 0 12px;">${esc(d.notas)}</p>` : ""}<div class="pv-grid">${filas || '<div class="vacio">Aún no hay segmentos.</div>'}</div>
@@ -2073,6 +2075,7 @@ function pEd() {
   }
   root.innerHTML = cab + cuerpo;
   root.querySelectorAll("[data-ver]").forEach(el => el.addEventListener("click", (ev) => { ev.stopPropagation(); verEjercicio(D.ejercicios.find(y => y.id === el.dataset.ver)); }));
+  root.querySelectorAll("input[data-eqn]").forEach(inp => inp.oninput = () => { const e = lista[Number(inp.closest(".pv-seg").dataset.i)]; if (e) { e.eqn = e.eqn || ["", ""]; e.eqn[Number(inp.dataset.eqn)] = inp.value; } });
   if ($("pvImp")) $("pvImp").onclick = () => imprimirPlan(p);
   if (tab === "tl" || tab === "pre") pedirMiniaturas(D.ejercicios);
   // eventos
@@ -2095,7 +2098,7 @@ function pEd() {
       const vb = el.querySelector("[data-v]"); if (vb) vb.onclick = () => elegirEjercicio((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista[i].id = id; lista[i].titulo = ej.nombre; if (!Number(lista[i].min)) lista[i].min = (ej.data && ej.data.minutos) || 10; histPlan(); pEd(); });
       const dp = el.querySelector("[data-dup]"); if (dp) dp.onclick = () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); };
       const dl = el.querySelector("[data-del]"); if (dl) dl.onclick = () => { lista.splice(i, 1); histPlan(); pEd(); };
-      const mb = el.querySelector("[data-r]"); if (mb) mb.onclick = (ev) => abrirMenu(ev, ro ? [] : [["👥 " + (lista[i].reparto ? "Cambiar reparto de equipos…" : "Vincular reparto de equipos…"), () => elegirReparto(lista[i].reparto || "", (id) => { if (id) lista[i].reparto = id; else delete lista[i].reparto; histPlan(); pEd(); })], ["↑ Subir", () => mover(i, -1)], ["↓ Bajar", () => mover(i, 1)], ["⧉ Duplicar", () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); }]].concat(lista[i].id && ejDe(lista[i]) ? [["🔗 Quitar vínculo con el ejercicio", () => { lista[i].titulo = tituloSeg(lista[i]); delete lista[i].id; histPlan(); pEd(); }]] : []).concat([["🗑 Eliminar", () => { lista.splice(i, 1); histPlan(); pEd(); }, "pel"]]));
+      const mb = el.querySelector("[data-r]"); if (mb) mb.onclick = (ev) => abrirMenu(ev, ro ? [] : [["👥 " + (lista[i].reparto ? "Cambiar reparto de equipos…" : "Vincular reparto de equipos…"), () => elegirReparto(lista[i].reparto || "", (id) => { if (id) lista[i].reparto = id; else delete lista[i].reparto; histPlan(); pEd(); })], [lista[i].dosEq ? "👥 Quitar hueco de dos equipos" : "👥 Añadir hueco de dos equipos", () => { if (lista[i].dosEq) delete lista[i].dosEq; else lista[i].dosEq = true; histPlan(); pEd(); }], ["↑ Subir", () => mover(i, -1)], ["↓ Bajar", () => mover(i, 1)], ["⧉ Duplicar", () => { lista.splice(i + 1, 0, clonar(lista[i])); histPlan(); pEd(); }]].concat(lista[i].id && ejDe(lista[i]) ? [["🔗 Quitar vínculo con el ejercicio", () => { lista[i].titulo = tituloSeg(lista[i]); delete lista[i].id; histPlan(); pEd(); }]] : []).concat([["🗑 Eliminar", () => { lista.splice(i, 1); histPlan(); pEd(); }, "pel"]]));
       // arrastrar
       const asa = el.querySelector(".pe-asa");
       if (asa && !ro) {
@@ -2208,7 +2211,7 @@ async function imprimirPlan(p) {
     const fin = hmDe(d.inicio, acum), svgs = (dib[e.id] || []).slice(0, 6);
     res += `<tr><td>${ini}–${fin}</td><td><b>${esc(tituloSeg(e) || "(sin título)")}</b></td><td style="text-align:right;">${e.min || 0} min</td></tr>`;
     const chips = [dd.categoria, dd.materiales ? "Material: " + dd.materiales : ""].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join("");
-    det += `<div class="pdf-ej"><div class="pdf-t"><b>${ini}</b><span>${e.min || 0} min</span><i>Ejercicio ${n}</i></div><div class="pdf-c"><h3>${esc(tituloSeg(e) || "(sin título)")}</h3>${chips ? `<div class="pdf-chips">${chips}</div>` : ""}${dd.descripcion ? `<p>${esc(dd.descripcion).replace(/\n/g, "<br>")}</p>` : ""}${e.notas ? `<div class="pdf-nota"><b>Notas:</b> ${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${repDe(e) ? eqHtmlPdf(repDe(e)) : ""}${svgs.length ? `<div class="pdf-dib">${svgs.map((sv, i) => `<figure><div>${sv}</div>${svgs.length > 1 ? `<figcaption>Fase ${i + 1}</figcaption>` : ""}</figure>`).join("")}</div>` : ""}</div></div>`;
+    det += `<div class="pdf-ej"><div class="pdf-t"><b>${ini}</b><span>${e.min || 0} min</span><i>Ejercicio ${n}</i></div><div class="pdf-c"><h3>${esc(tituloSeg(e) || "(sin título)")}</h3>${chips ? `<div class="pdf-chips">${chips}</div>` : ""}${dd.descripcion ? `<p>${esc(dd.descripcion).replace(/\n/g, "<br>")}</p>` : ""}${e.notas ? `<div class="pdf-nota"><b>Notas:</b> ${esc(e.notas).replace(/\n/g, "<br>")}</div>` : ""}${eqBloque(e, "pdf")}${svgs.length ? `<div class="pdf-dib">${svgs.map((sv, i) => `<figure><div>${sv}</div>${svgs.length > 1 ? `<figcaption>Fase ${i + 1}</figcaption>` : ""}</figure>`).join("")}</div>` : ""}</div></div>`;
   });
   cierra();
   const h = $("hojaImp"); h.className = "pdf-plan";
@@ -2313,6 +2316,14 @@ function pintarEquipos(v) {
 }
 const eqAsegurar = () => { if (!EQ) EQ = Object.assign(eqLeer(), { sel: null }); return EQ; };
 const repDe = (e) => { if (!e || !e.reparto) return null; eqAsegurar(); return EQ.sets.find(x => x.id === e.reparto) || null; };
+const eqBloque = (e, modo) => {   /* modo: "pv" (editable) o "pdf" */
+  const r = repDe(e), col = ["#e0602a", "#2a7bb8"];
+  if (!r && !e.dosEq) return "";
+  const n = (e.eqn = e.eqn || ["", ""]);
+  const cajas = r ? r.equipos.map((q, k) => ({ t: q.n, c: q.c || col[k % 2], j: q.s.map(id => id && eqJug(id) ? eqJug(id).nombre : "").filter(Boolean).join(", ") }))
+    : [0, 1].map(k => ({ t: n[k], c: col[k], j: "", k }));
+  return `<div class="pv-eq">${cajas.map((c, k) => `<div class="pv-eqc${r ? "" : " vac"}" style="--c:${c.c}"><small>EQUIPO ${k + 1}</small>${r ? `<b>${esc(c.t)}</b><span>${esc(c.j)}</span>` : (modo === "pv" ? `<input data-eqn="${k}" value="${esc(c.t || "")}" placeholder="Nombre del equipo">` : `<b>${esc(c.t || "")}</b><i></i>`)}</div>`).join("")}</div>`;
+};
 const eqNombreJ = (j) => (j.num !== "" && j.num != null ? esc(String(j.num)) + " " : "") + esc(j.nombre);
 function eqHtmlPdf(set) {
   eqAsegurar();
