@@ -206,6 +206,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <button data-grupo="jugadoras" class="activa">👥 Jugadoras</button>
       <button data-grupo="ven">📱 Lo que ven</button>
       <button data-grupo="tests">📝 Tests</button>
+      <button data-grupo="tiro">🎯 Tiro</button>
       <button data-grupo="enviado">📤 Enviado</button>
       <button data-grupo="accesos">🔑 Equipo y accesos</button>
     </div>
@@ -235,6 +236,15 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <div id="avisoOrden"></div>
     </div>
 
+    </div>
+
+    <div class="grupo-panel" data-grupo="tiro" hidden>
+    <div class="caja" id="cajaTiro">
+      <h2>🎯 Competición de tiro</h2>
+      <p class="expl">Crea una sesión (por ejemplo, el jueves), marca quién compite y apunta cuántos tiros mete cada una en cada zona. La tabla calcula puntos, %, ganadora y última, y las jugadoras lo ven en su app (pestaña «Tiro»).</p>
+      <div id="tiroCont" class="cargando">Cargando...</div>
+      <div id="avisoTiro"></div>
+    </div>
     </div>
 
     <div class="grupo-panel" data-grupo="tests" hidden>
@@ -598,6 +608,7 @@ function mostrarGrupoPanel(g) {
   document.querySelectorAll(".grupo-panel").forEach(x => { x.hidden = x.getAttribute("data-grupo") !== g; });
   document.querySelectorAll("#menuPanel button").forEach(b => b.classList.toggle("activa", b.getAttribute("data-grupo") === g));
   try { localStorage.setItem("lf2_panel_grupo", g); } catch (e) { /* nada */ }
+  if (g === "tiro" && typeof tiroCargar === "function") tiroCargar();
 }
 document.querySelectorAll("#menuPanel button").forEach(b => b.addEventListener("click", () => {
   mostrarGrupoPanel(b.getAttribute("data-grupo"));
@@ -1178,7 +1189,7 @@ async function quitarEntrenador(correo) {
 const PESTANAS_APP = [
   { id: "inicio", t: "Inicio" }, { id: "numeros", t: "Mis numeros" }, { id: "mensajes", t: "Mensajes" }, { id: "clips", t: "Videos" },
   { id: "rival", t: "El rival" }, { id: "equipo", t: "Mi equipo" }, { id: "despues", t: "Después del partido" }, { id: "jugadas", t: "Jugadas" },
-  { id: "tests", t: "Tests" },
+  { id: "tests", t: "Tests" }, { id: "tiro", t: "Tiro" },
 ];
 const SECCIONES_APP = [
   { id: "pdf", t: "Playbook en PDF" }, { id: "playbook", t: "Playbook (de Entrenador)" }, { id: "datos", t: "Datos del equipo" },
@@ -1701,6 +1712,81 @@ document.querySelectorAll(".pestanas [data-p]").forEach(b => {
     if (ses && $("pantallaPanel").hidden) entrar(ses);
   });
 })();
+
+/* ============================================================
+   COMPETICION DE TIRO
+   ============================================================ */
+let TI = { lista: null, ses: null, tm: null };
+const tiZonasBase = () => {
+  const l = [["Esquina izq.", "esqi"], ["45° izq.", "d45i"], ["Centro", "cen"], ["45° der.", "d45d"], ["Esquina der.", "esqd"]];
+  return l.map(([n, k]) => ({ id: "t_" + k, nombre: "Triple · " + n, pts: 3, tiros: 5 }))
+    .concat(l.map(([n, k]) => ({ id: "d_" + k, nombre: "2 pts · " + n, pts: 2, tiros: 5 })))
+    .concat([{ id: "tl", nombre: "Tiros libres", pts: 1, tiros: 10 }]);
+};
+const tiCalc = (s) => {
+  const z = s.zonas || [], r = s.resultados || {};
+  const filas = (s.part || []).map(j => {
+    const x = r[j.id] || {}; let pts = 0, ac = 0, it = 0;
+    z.forEach(q => { const a = Math.min(Number(x[q.id]) || 0, q.tiros); pts += a * q.pts; ac += a; it += q.tiros; });
+    return { id: j.id, nombre: j.nombre, pts, ac, it, pct: it ? Math.round(ac * 100 / it) : 0, x, jugo: Object.values(x).some(v => v !== "" && v != null) };
+  }).sort((a, b) => (b.jugo - a.jugo) || b.pts - a.pts || b.ac - a.ac);
+  const jug = filas.some(f => f.ac > 0), nj = filas.filter(f => f.jugo).length;
+  return { filas, jug, nj };
+};
+async function tiroCargar() {
+  const c = $("tiroCont"); if (!c) return;
+  const r = await sb.from("tiro_sesiones").select("*").order("fecha", { ascending: false }).order("creado", { ascending: false });
+  if (r.error) { c.className = ""; c.innerHTML = `<div class="vacio">${/relation|schema cache|does not exist|Could not find/i.test(r.error.message) ? "Falta un paso: ejecuta el archivo <b>tiro.sql</b> una vez en Supabase &gt; SQL Editor y recarga." : esc(r.error.message)}</div>`; return; }
+  TI.lista = r.data || []; c.className = ""; if (TI.ses) tiroEditor(); else tiroLista();
+}
+function tiroLista() {
+  const c = $("tiroCont"), L = TI.lista || [];
+  const gan = {}, ult = {}, pts = {};
+  L.forEach(s => { const t = tiCalc(s); if (!t.jug) return; t.filas.filter(f => f.jugo).forEach(f => { pts[f.nombre] = (pts[f.nombre] || 0) + f.pts; });
+    gan[t.filas[0].nombre] = (gan[t.filas[0].nombre] || 0) + 1; if (t.nj > 1) { const u = t.filas[t.nj - 1].nombre; ult[u] = (ult[u] || 0) + 1; } });
+  const gen = Object.keys(pts).sort((a, b) => (gan[b] || 0) - (gan[a] || 0) || pts[b] - pts[a]);
+  c.innerHTML = `<button class="boton" id="tiNueva">+ Nueva sesión de tiro</button>
+    ${L.length ? "" : '<div class="vacio">Todavía no hay sesiones.</div>'}
+    ${L.map(s => { const t = tiCalc(s); return `<div class="item" style="padding:12px;margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><div style="flex:1;min-width:180px;"><b>${esc(s.titulo)}</b> <span style="color:var(--ink-soft);font-size:13px;">${esc(s.fecha)}</span><div style="font-size:13px;color:var(--ink-soft);">${t.jug ? "🥇 " + esc(t.filas[0].nombre) + " (" + t.filas[0].pts + " pts)" + (t.nj > 1 ? " · última: " + esc(t.filas[t.nj - 1].nombre) : "") : (s.part || []).length + " jugadoras · sin resultados"}</div></div><button class="boton fina" data-ab="${s.id}">Abrir</button><button class="boton borrar fina" data-bo="${s.id}">Borrar</button></div>`; }).join("")}
+    ${gen.length ? `<h3 style="margin:18px 0 6px;">Clasificación general</h3><div style="overflow:auto;"><table class="tiTab"><tr><th>#</th><th style="text-align:left;">Jugadora</th><th>🥇 Victorias</th><th>Última</th><th>Puntos</th></tr>${gen.map((n, i) => `<tr><td>${i + 1}</td><td style="text-align:left;">${esc(n)}</td><td>${gan[n] || 0}</td><td>${ult[n] || 0}</td><td>${pts[n]}</td></tr>`).join("")}</table></div>` : ""}`;
+  $("tiNueva").onclick = () => { TI.ses = { id: null, fecha: new Date().toISOString().slice(0, 10), titulo: "Tiro del jueves", zonas: tiZonasBase(), part: jugadoras.map(j => ({ id: String(j.id), nombre: j.nombre })), resultados: {} }; tiroGuardar(true).then(tiroEditor); };
+  c.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => { TI.ses = JSON.parse(JSON.stringify(L.find(x => x.id === b.dataset.ab))); tiroEditor(); });
+  c.querySelectorAll("[data-bo]").forEach(b => b.onclick = async () => { const s = L.find(x => x.id === b.dataset.bo); if (!await confirmar(`¿Borrar la sesión «${s.titulo}»?`)) return; const e = await sb.from("tiro_sesiones").delete().eq("id", s.id); if (e.error) return avisar("avisoTiro", e.error.message, "mal"); tiroCargar(); });
+}
+async function tiroGuardar(nueva) {
+  const s = TI.ses, fila = { fecha: s.fecha, titulo: s.titulo, zonas: s.zonas, part: s.part, resultados: s.resultados };
+  const r = s.id ? await sb.from("tiro_sesiones").update(fila).eq("id", s.id) : await sb.from("tiro_sesiones").insert(fila).select().single();
+  if (r.error) { avisar("avisoTiro", "No se pudo guardar: " + r.error.message, "mal"); return; }
+  if (!s.id && r.data) s.id = r.data.id;
+  const i = (TI.lista || []).findIndex(x => x.id === s.id); const copia = JSON.parse(JSON.stringify(s));
+  if (i >= 0) TI.lista[i] = copia; else (TI.lista = TI.lista || []).unshift(copia);
+}
+const tiAuto = () => { clearTimeout(TI.tm); TI.tm = setTimeout(() => tiroGuardar(), 700); };
+function tiroEditor() {
+  const s = TI.ses, c = $("tiroCont"), t = tiCalc(s), z = s.zonas;
+  const cab = `<button class="boton fina gris" id="tiVol">← Sesiones</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;"><input id="tiTit" value="${esc(s.titulo)}" style="flex:1;min-width:180px;"><input type="date" id="tiFec" value="${esc(s.fecha)}"></div>
+    <details style="margin-bottom:10px;"><summary style="cursor:pointer;font-weight:700;">⚙️ Zonas y jugadoras</summary>
+      <div style="margin-top:8px;overflow:auto;"><table class="tiTab"><tr><th style="text-align:left;">Zona</th><th>Pts</th><th>Tiros</th><th></th></tr>${z.map((q, i) => `<tr><td><input data-zn="${i}" value="${esc(q.nombre)}"></td><td><input data-zp="${i}" type="number" min="1" max="4" value="${q.pts}" style="width:56px;"></td><td><input data-zt="${i}" type="number" min="1" max="50" value="${q.tiros}" style="width:64px;"></td><td><button class="boton borrar fina" data-zd="${i}">✕</button></td></tr>`).join("")}</table>
+      <button class="boton fina gris" id="tiZAdd">+ Añadir zona</button></div>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 14px;">${jugadoras.map(j => `<label style="display:flex;gap:5px;align-items:center;font-size:14px;"><input type="checkbox" data-jp="${j.id}" ${(s.part || []).some(p => p.id === String(j.id)) ? "checked" : ""}> ${esc(j.nombre)}</label>`).join("")}</div></details>`;
+  const orden = new Map(t.filas.map((f, i) => [f.id, i]));
+  const filas = (s.part || []).map(j => t.filas.find(f => f.id === j.id));
+  const tabla = `<div style="overflow:auto;"><table class="tiTab"><tr><th>#</th><th style="text-align:left;">Jugadora</th>${z.map(q => `<th title="${esc(q.nombre)}">${esc(q.nombre)}<br><small>${q.pts} pt · /${q.tiros}</small></th>`).join("")}<th>Pts</th><th>%</th></tr>
+    ${filas.map((f, i) => { const rk = orden.get(f.id), cls = !f.jugo ? "" : (t.jug && rk === 0 ? "tiGan" : (t.jug && rk === t.nj - 1 && t.nj > 1 ? "tiUlt" : "")); return `<tr class="${cls}"><td>${t.jug && f.jugo ? (rk === 0 ? "🥇" : rk + 1) : ""}</td><td style="text-align:left;white-space:nowrap;">${esc(f.nombre)}${cls === "tiUlt" ? " 🧊" : ""}</td>${z.map(q => `<td><input class="tiN" type="number" min="0" max="${q.tiros}" data-j="${f.id}" data-z="${q.id}" value="${(f.x[q.id] != null && f.x[q.id] !== "") ? f.x[q.id] : ""}"></td>`).join("")}<td><b>${f.pts}</b></td><td>${f.pct}%</td></tr>`; }).join("")}</table></div>
+    ${t.jug ? `<p style="margin:10px 0 0;font-size:14px;">🥇 <b>Ganadora:</b> ${esc(t.filas[0].nombre)} (${t.filas[0].pts} pts)${t.nj > 1 ? ` · 🧊 <b>Última:</b> ${esc(t.filas[t.nj - 1].nombre)} (${t.filas[t.nj - 1].pts} pts)` : ""}</p>` : ""}`;
+  c.innerHTML = `<style>.tiTab{border-collapse:collapse;width:100%;font-size:13.5px;} .tiTab th,.tiTab td{border:1px solid var(--wood-line);padding:5px 6px;text-align:center;} .tiTab th{background:var(--suave);font-size:12px;} .tiN{width:54px;text-align:center;padding:6px 2px;} .tiGan td{background:#e8f6ec;font-weight:700;} .tiUlt td{background:#eef3fb;}</style>${cab}${tabla}`;
+  const re = () => { tiroEditor(); };
+  $("tiVol").onclick = async () => { clearTimeout(TI.tm); await tiroGuardar(); TI.ses = null; tiroLista(); };
+  $("tiTit").oninput = (e) => { s.titulo = e.target.value; tiAuto(); }; $("tiFec").onchange = (e) => { s.fecha = e.target.value; tiAuto(); };
+  c.querySelectorAll("[data-zn]").forEach(i => i.oninput = () => { z[+i.dataset.zn].nombre = i.value; tiAuto(); });
+  c.querySelectorAll("[data-zp]").forEach(i => i.onchange = () => { z[+i.dataset.zp].pts = Math.max(1, +i.value || 1); tiAuto(); re(); });
+  c.querySelectorAll("[data-zt]").forEach(i => i.onchange = () => { z[+i.dataset.zt].tiros = Math.max(1, +i.value || 1); tiAuto(); re(); });
+  c.querySelectorAll("[data-zd]").forEach(b => b.onclick = () => { z.splice(+b.dataset.zd, 1); tiAuto(); re(); });
+  $("tiZAdd").onclick = () => { z.push({ id: "z" + Math.random().toString(36).slice(2, 7), nombre: "Nueva zona", pts: 2, tiros: 5 }); tiAuto(); re(); document.querySelector("#tiroCont details").open = true; };
+  c.querySelectorAll("[data-jp]").forEach(b => b.onchange = () => { const j = jugadoras.find(x => String(x.id) === b.dataset.jp); s.part = (s.part || []).filter(p => p.id !== b.dataset.jp); if (b.checked) s.part.push({ id: b.dataset.jp, nombre: j.nombre }); tiAuto(); re(); document.querySelector("#tiroCont details").open = true; });
+  c.querySelectorAll(".tiN").forEach(i => i.onchange = () => { const q = z.find(x => x.id === i.dataset.z); (s.resultados[i.dataset.j] = s.resultados[i.dataset.j] || {})[i.dataset.z] = i.value === "" ? "" : Math.max(0, Math.min(+i.value || 0, q.tiros)); tiAuto(); const y = window.scrollY, ix = [...c.querySelectorAll(".tiN")].indexOf(i); re(); const nx = c.querySelectorAll(".tiN")[ix + 1]; if (nx) { nx.focus(); nx.select(); } window.scrollTo(0, y); });
+}
 </script>
 </body>
 </html>

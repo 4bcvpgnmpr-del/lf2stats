@@ -464,6 +464,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <button data-tab="numeros">Mis numeros</button>
       <button data-tab="mensajes">Mensajes<span class="punto" id="puntoMensajes" hidden></span></button>
       <button data-tab="tests">Tests<span class="punto" id="puntoTests" hidden></span></button>
+      <button data-tab="tiro">Tiro</button>
       <button data-tab="clips">Videos</button>
       <button data-tab="rival">El rival<span class="punto" id="puntoRival" hidden></span></button>
       <button data-tab="equipo">Mi equipo<span class="punto" id="puntoEquipo" hidden></span></button>
@@ -475,6 +476,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
     <section id="tab-numeros" hidden></section>
     <section id="tab-mensajes" hidden></section>
     <section id="tab-tests" hidden></section>
+    <section id="tab-tiro" hidden></section>
     <section id="tab-clips" hidden></section>
     <section id="tab-rival" hidden></section>
     <section id="tab-equipo" hidden></section>
@@ -2165,9 +2167,10 @@ document.querySelectorAll(".pestanas button").forEach(b => {
   b.addEventListener("click", () => {
     const t = b.getAttribute("data-tab");
     document.querySelectorAll(".pestanas button").forEach(x => x.classList.toggle("activa", x === b));
-    ["inicio", "numeros", "mensajes", "tests", "clips", "rival", "equipo", "despues", "jugadas"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
+    ["inicio", "numeros", "mensajes", "tests", "tiro", "clips", "rival", "equipo", "despues", "jugadas"].forEach(n => { const c = $("tab-" + n); if (c) c.hidden = (n !== t); });
     if (t === "mensajes") marcarLeidos();
     if (t === "tests") cargarTests();
+    if (t === "tiro") cargarTiro();
     if (t === "rival") {
       $("puntoRival").hidden = true;
       try { localStorage.setItem("lf2_rival_visto", ultimoInforme || ""); }
@@ -2260,6 +2263,35 @@ window.addEventListener("afterprint", () => {
   document.addEventListener("DOMContentLoaded", () => { document.body.appendChild(b); document.body.appendChild(m); });
   if (document.body) { document.body.appendChild(b); document.body.appendChild(m); }
 })();
+
+/* ---------- Tiro: competicion de los jueves ---------- */
+async function cargarTiro() {
+  const caja = $("tab-tiro"); if (!caja) return;
+  if (modoVistaPrevia) { caja.innerHTML = `<div class="vacio">Aquí cada jugadora ve la competición de tiro.</div>`; return; }
+  caja.innerHTML = `<div class="vacio">Cargando…</div>`;
+  const { data, error } = await sb.from("tiro_sesiones").select("*").order("fecha", { ascending: false });
+  if (error) { caja.innerHTML = `<div class="vacio">${/Could not find|schema cache|does not exist/i.test(error.message || "") ? "El tiro todavía no está activado. Díselo al entrenador." : "No se ha podido cargar.<br><small>" + esc(error.message || "") + "</small>"}</div>`; return; }
+  const calc = (s) => {
+    const z = s.zonas || [], r = s.resultados || {};
+    return (s.part || []).map(j => { const x = r[j.id] || {}; let pts = 0, ac = 0, it = 0;
+      z.forEach(q => { const a = Math.min(Number(x[q.id]) || 0, q.tiros); pts += a * q.pts; ac += a; it += q.tiros; });
+      return { id: j.id, nombre: j.nombre, pts, ac, it, pct: it ? Math.round(ac * 100 / it) : 0, x, jugo: Object.values(x).some(v => v !== "" && v != null) }; }).filter(f => f.jugo).sort((a, b) => b.pts - a.pts || b.ac - a.ac);
+  };
+  const ses = (data || []).map(s => ({ s, t: calc(s) })).filter(o => o.t.some(f => f.ac > 0));
+  if (!ses.length) { caja.innerHTML = `<div class="vacio">Todavía no hay resultados de tiro.</div>`; return; }
+  const yo = String(jugadora.id), ult = ses[0];
+  const tabla = (o) => `<div style="overflow:auto;"><table style="border-collapse:collapse;width:100%;font-size:14px;"><tr style="background:var(--suave);"><th style="padding:6px;">#</th><th style="text-align:left;padding:6px;">Jugadora</th><th>Pts</th><th>%</th></tr>${o.t.map((f, i) => `<tr style="${f.id === yo ? "background:#fdeee3;font-weight:800;" : ""}${i === 0 ? "color:#1d7a3a;" : ""}border-top:1px solid var(--wood-line);"><td style="padding:6px;text-align:center;">${i === 0 ? "🥇" : i + 1}</td><td style="padding:6px;">${esc(f.nombre)}${i === o.t.length - 1 && o.t.length > 1 ? " 🧊" : ""}</td><td style="text-align:center;">${f.pts}</td><td style="text-align:center;">${f.pct}%</td></tr>`).join("")}</table></div>`;
+  // mis % por zona (todas las sesiones)
+  const zon = {};
+  ses.forEach(o => { const m = o.t.find(f => f.id === yo); if (!m) return; (o.s.zonas || []).forEach(q => { const a = Math.min(Number(m.x[q.id]) || 0, q.tiros); const k = q.nombre; (zon[k] = zon[k] || { a: 0, t: 0 }); zon[k].a += a; zon[k].t += q.tiros; }); });
+  const mias = ses.map(o => { const i = o.t.findIndex(f => f.id === yo); return i < 0 ? null : { f: o.s.fecha, t: o.s.titulo, pos: i + 1, n: o.t.length, pts: o.t[i].pts, pct: o.t[i].pct }; }).filter(Boolean);
+  const gan = ses.filter(o => o.t[0].id === yo).length;
+  caja.innerHTML = `<div class="bloque"><h3>${esc(ult.s.titulo)} <small style="color:var(--ink-soft);font-weight:500;">${esc(ult.s.fecha)}</small></h3>${tabla(ult)}</div>
+    ${mias.length ? `<div class="bloque"><h3>Mi tiro</h3><p class="expl">${mias.length} sesiones · ${gan} victoria${gan === 1 ? "" : "s"}</p>
+      ${Object.keys(zon).map(k => { const p = zon[k].t ? Math.round(zon[k].a * 100 / zon[k].t) : 0; return `<div style="margin:6px 0;"><div style="display:flex;justify-content:space-between;font-size:13.5px;"><span>${esc(k)}</span><b>${p}% <small style="font-weight:500;color:var(--ink-soft);">(${zon[k].a}/${zon[k].t})</small></b></div><div style="height:8px;background:var(--suave);border-radius:6px;overflow:hidden;"><div style="height:100%;width:${p}%;background:var(--orange,#e0602a);"></div></div></div>`; }).join("")}</div>
+    <div class="bloque"><h3>Mi evolución</h3>${mias.map(m => `<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--wood-line);font-size:14px;"><span style="min-width:84px;color:var(--ink-soft);">${esc(m.f)}</span><span style="flex:1;">${m.pos === 1 ? "🥇 " : ""}Puesto ${m.pos}/${m.n}</span><b>${m.pts} pts · ${m.pct}%</b></div>`).join("")}</div>` : ""}
+    ${ses.length > 1 ? `<div class="bloque"><h3>Sesiones anteriores</h3>${ses.slice(1, 8).map(o => `<details style="margin:6px 0;"><summary style="cursor:pointer;">${esc(o.s.fecha)} · ${esc(o.s.titulo)} — 🥇 ${esc(o.t[0].nombre)}</summary>${tabla(o)}</details>`).join("")}</div>` : ""}`;
+}
 </script>
 
 
