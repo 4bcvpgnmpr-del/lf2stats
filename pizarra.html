@@ -480,6 +480,28 @@
     body.editor .paleta button.puesta{background:#e8f1ff;border-color:#2f7bd8;}
     body.editor .paleta button.x{color:#d12b4a;}
   }
+
+  /* ===== Visor de jugadas: alrededores de la pista ===== */
+  html:has(body.visor:not(.inline)){background:#141a22;}
+  body.visor:not(.inline){min-height:100vh;background:radial-gradient(ellipse at 50% 30%,#2a3342 0%,#141a22 70%) fixed;color:#e8edf4;}
+  body.visor:not(.inline) #visor h3{color:#fff;font-size:20px;}
+  body.visor:not(.inline) #visor:not(.pc) #vsPista{background:radial-gradient(ellipse at center,#38455a 0%,#1b222d 100%);border:1px solid #0e1218;border-radius:16px;padding:14px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 40px rgba(0,0,0,.35);}
+  body.visor:not(.inline) #visor:not(.pc) #vsPista svg{width:auto;max-width:100%;height:auto;max-height:calc(100vh - 150px);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.55);}
+  body.visor:not(.inline) #visor:not(.pc) .leyenda{background:#1d2530;border-color:#2e3a4b;color:#e8edf4;}
+  body.visor:not(.inline) #visor:not(.pc) .reprod{background:#1d2530;border-color:#2e3a4b;color:#e8edf4;}
+  body.visor:not(.inline) #visor:not(.pc) .linea-tiempo .seg{background:#34425a;}
+  body.visor:not(.inline) #visor:not(.pc) .hint{color:#c6d0de;font-size:15px;line-height:1.5;}
+  body.visor:not(.inline) #visor:not(.pc) .tiempo{color:#c6d0de;}
+  @media (min-width:900px) and (min-aspect-ratio:13/10){
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video){display:grid !important;grid-template-columns:minmax(0,1fr) 360px;grid-template-areas:"t t" "p l" "p r" "p n" "p v";grid-template-rows:auto auto auto auto 1fr;gap:12px 18px;align-items:start;padding:14px 22px;max-width:1600px;margin:0 auto;}
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video) #vsTitulo{grid-area:t;margin:0;}
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video) #vsPista{grid-area:p;margin:0;}
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video) #vsLeyenda{grid-area:l;margin:0;}
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video) .reprod{grid-area:r;margin:0;}
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video) #vsNotas{grid-area:n;margin:0;}
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video) #vsVideos{grid-area:v;margin:0;}
+    body.visor:not(.inline) #visor:not(.pc):not(.vm-dual):not(.vm-video) > :not(#vsTitulo):not(#vsPista):not(#vsLeyenda):not(.reprod):not(#vsNotas):not(#vsVideos){grid-column:1/-1;}
+  }
 </style>
 <style id="sfTemaCss">
 html.oscuro{filter:invert(1) hue-rotate(180deg);background:#fff}
