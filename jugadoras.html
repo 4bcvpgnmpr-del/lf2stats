@@ -2271,8 +2271,8 @@ async function cargarTiro() {
   caja.innerHTML = `<div class="vacio">Cargando…</div>`;
   const { data, error } = await sb.from("tiro_sesiones").select("*").order("fecha", { ascending: false });
   if (error) { caja.innerHTML = `<div class="vacio">${/Could not find|schema cache|does not exist/i.test(error.message || "") ? "El tiro todavía no está activado. Díselo al entrenador." : "No se ha podido cargar.<br><small>" + esc(error.message || "") + "</small>"}</div>`; return; }
-  const lado = (z, x) => { x = x || {}; let pts = 0, ac = 0, it = 0; z.forEach(q => { const v = Math.min(Number(x[q.id]) || 0, q.tiros); pts += v * q.pts; ac += v; it += q.tiros; });
-    return { pts, ac, it, pct: it ? Math.round(ac * 100 / it) : 0, jugo: Object.values(x).some(v => v !== "" && v != null) }; };
+  const lado = (z, x) => { x = x || {}; let pts = 0, ac = 0, it = 0, fa = 0; z.forEach(q => { const v = Math.min(Number(x[q.id]) || 0, q.tiros); pts += v * q.pts; ac += v; it += q.tiros; if (x[q.id] !== "" && x[q.id] != null) fa += q.tiros - v; });
+    return { pts, ac, it, fa, pct: it ? Math.round(ac * 100 / it) : 0, jugo: Object.values(x).some(v => v !== "" && v != null) }; };
   const nom = (s, id) => { const j = (s.part || []).find(p => p.id === id); return j ? j.nombre : "—"; };
   const yo = String(jugadora.id);
   const ses = (data || []).map(s => { const z = s.zonas || [];
@@ -2282,11 +2282,11 @@ async function cargarTiro() {
   if (!ses.length) { caja.innerHTML = `<div class="vacio">Todavía no hay duelos de tiro.</div>`; return; }
   const fila = (o, x) => { const mio = x.d.a === yo || x.d.b === yo; const w = (k) => x.gan === k ? "font-weight:800;color:#1d7a3a;" : "";
     return `<div style="display:flex;gap:8px;align-items:center;padding:8px 6px;border-top:1px solid var(--wood-line);font-size:14px;${mio ? "background:#fdeee3;" : ""}"><span style="flex:1;text-align:right;${w("a")}">${esc(nom(o.s, x.d.a))}</span><b style="min-width:76px;text-align:center;">${x.A.pts} – ${x.B.pts}</b><span style="flex:1;${w("b")}">${esc(nom(o.s, x.d.b))}</span><span>${x.gan === "e" ? "🤝" : "✅"}</span></div>`; };
-  let V = 0, D = 0, E = 0; const zon = {}, mias = [];
+  let V = 0, D = 0, E = 0, TA = 0, TF = 0; const zon = {}, mias = [];
   ses.forEach(o => o.ds.forEach(x => { const k = x.d.a === yo ? "a" : x.d.b === yo ? "b" : null; if (!k) return;
     const m = k === "a" ? x.A : x.B, r = k === "a" ? x.B : x.A, rival = nom(o.s, k === "a" ? x.d.b : x.d.a);
     if (x.gan === "e") E++; else if (x.gan === k) V++; else D++;
-    mias.push({ f: o.s.fecha, rival, m: m.pts, r: r.pts, res: x.gan === "e" ? "🤝" : x.gan === k ? "✅" : "❌" });
+    TA += m.ac; TF += m.fa; mias.push({ f: o.s.fecha, rival, m: m.pts, r: r.pts, ac: m.ac, fa: m.fa, res: x.gan === "e" ? "🤝" : x.gan === k ? "✅" : "❌" });
     o.z.forEach(q => { const v = Math.min(Number((x.d["r" + k] || {})[q.id]) || 0, q.tiros); const t = (zon[q.nombre] = zon[q.nombre] || { a: 0, t: 0 }); t.a += v; t.t += q.tiros; }); }));
   const rec = {};
   ses.forEach(o => o.ds.forEach(x => [["a", x.A], ["b", x.B]].forEach(([k, m]) => { const id = x.d[k]; if (!id) return; const r = (rec[id] = rec[id] || { n: nom(o.s, id), v: 0, d: 0, e: 0, pts: 0, ac: 0, it: 0 });
@@ -2296,9 +2296,9 @@ async function cargarTiro() {
   const ult = ses[0];
   caja.innerHTML = `<div class="bloque"><h3>${esc(ult.s.titulo)} <small style="color:var(--ink-soft);font-weight:500;">${esc(ult.s.fecha)}</small></h3>${ult.ds.map(x => fila(ult, x)).join("")}</div>
     ${clasif}
-    ${mias.length ? `<div class="bloque"><h3>Mi tiro</h3><p class="expl">${V} ganado${V === 1 ? "" : "s"} · ${D} perdido${D === 1 ? "" : "s"}${E ? " · " + E + " empate" + (E === 1 ? "" : "s") : ""}</p>
+    ${mias.length ? `<div class="bloque"><h3>Mi tiro</h3><p class="expl">${V} ganado${V === 1 ? "" : "s"} · ${D} perdido${D === 1 ? "" : "s"}${E ? " · " + E + " empate" + (E === 1 ? "" : "s") : ""} · ${TA} metidos · ${TF} fallados</p>
       ${Object.keys(zon).map(k => { const p = zon[k].t ? Math.round(zon[k].a * 100 / zon[k].t) : 0; return `<div style="margin:6px 0;"><div style="display:flex;justify-content:space-between;font-size:13.5px;"><span>${esc(k)}</span><b>${p}% <small style="font-weight:500;color:var(--ink-soft);">(${zon[k].a}/${zon[k].t})</small></b></div><div style="height:8px;background:var(--suave);border-radius:6px;overflow:hidden;"><div style="height:100%;width:${p}%;background:#e0602a;"></div></div></div>`; }).join("")}</div>
-    <div class="bloque"><h3>Mis duelos</h3>${mias.map(m => `<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--wood-line);font-size:14px;"><span style="min-width:84px;color:var(--ink-soft);">${esc(m.f)}</span><span style="flex:1;">vs ${esc(m.rival)}</span><b>${m.m} – ${m.r} ${m.res}</b></div>`).join("")}</div>` : ""}
+    <div class="bloque"><h3>Mis duelos</h3>${mias.map(m => `<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--wood-line);font-size:14px;"><span style="min-width:84px;color:var(--ink-soft);">${esc(m.f)}</span><span style="flex:1;">vs ${esc(m.rival)}</span><span style="text-align:right;"><b>${m.m} – ${m.r} ${m.res}</b><br><small style="color:var(--ink-soft);">Metidos ${m.ac} · Fallados ${m.fa}</small></span></div>`).join("")}</div>` : ""}
     ${ses.length > 1 ? `<div class="bloque"><h3>Sesiones anteriores</h3>${ses.slice(1, 8).map(o => `<details style="margin:6px 0;"><summary style="cursor:pointer;">${esc(o.s.fecha)} · ${esc(o.s.titulo)}</summary>${o.ds.map(x => fila(o, x)).join("")}</details>`).join("")}</div>` : ""}`;
 }
 </script>
