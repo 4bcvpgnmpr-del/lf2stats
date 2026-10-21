@@ -2929,6 +2929,125 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame =
 # ----------------------------- MAIN ----------------------------------------
 
 
+# ----------------------------- ACCIONES (para cortar vídeo) ----------------
+# Cada acción del jugada a jugada (tiros, rebotes, pérdidas, faltas...) con su
+# cuarto y su reloj. El Editor de vídeo las usa para crear cortes automáticos
+# («todos los triples de la 7», «pérdidas del rival»...).
+TAB_ACCIONES = "Acciones_Partido"
+MAX_PARTIDOS_ACCIONES = int(os.environ.get("FEB_MAX_ACCIONES", "80"))
+RE_ROBO = re.compile(r"robo|recuperaci", re.I)
+RE_FALTA = re.compile(r"falta", re.I)
+RE_TM = re.compile(r"tiempo\s+muerto", re.I)
+
+
+def _clasifica_accion(texto: str) -> tuple:
+    """(accion, puntos) a partir del texto de la FEB; ('', 0) si no interesa."""
+    if RE_ENTRA.search(texto) or RE_SALE.search(texto):
+        return "", 0
+    t = RE_TIRO.search(texto)
+    if t:
+        n = int(t.group(1))
+        ok = t.group(2).lower().startswith(("anotad", "encestad"))
+        if n == 3:
+            return ("Triple anotado", 3) if ok else ("Triple fallado", 0)
+        if n == 2:
+            return ("Canasta de 2", 2) if ok else ("Tiro de 2 fallado", 0)
+        return ("Tiro libre anotado", 1) if ok else ("Tiro libre fallado", 0)
+    if RE_TAPON.search(texto):
+        return "Tapón", 0
+    if RE_ASISTENCIA.search(texto):
+        return "Asistencia", 0
+    if RE_REB_OF.search(texto):
+        return "Rebote ofensivo", 0
+    if RE_REB_DEF.search(texto):
+        return "Rebote defensivo", 0
+    if RE_REB_CUALQUIERA.search(texto):
+        return "Rebote", 0
+    if RE_PERDIDA.search(texto):
+        return "Pérdida", 0
+    if RE_ROBO.search(texto):
+        return "Robo", 0
+    if RE_FALTA.search(texto):
+        return "Falta", 0
+    if RE_TM.search(texto):
+        return "Tiempo muerto", 0
+    return "", 0
+
+
+def acciones_de_partido(datos: dict, partido_id: str) -> list:
+    cabecera = datos.get("HEADER") or {}
+    equipos = [str(t.get("name", "")).strip() for t in (cabecera.get("TEAM") or [])]
+    lineas = ((datos.get("PLAYBYPLAY") or {}).get("LINES")) or []
+    filas = []
+    for linea in lineas:
+        if linea.get("deleted"):
+            continue
+        texto = str(linea.get("text") or "")
+        try:
+            cuarto = int(str(linea.get("quarter") or "1"))
+            num = int(str(linea.get("num") or "0"))
+        except ValueError:
+            continue
+        accion, puntos = _clasifica_accion(texto)
+        if not accion:
+            continue
+        m = RE_EQUIPO_JUGADORA.match(texto)
+        equipo = m.group("equipo").strip() if m else ""
+        jugadora = re.sub(r"\s+", " ", m.group("jugadora")).strip() if m else ""
+        for e in equipos:
+            if equipo and e and (e.upper() == equipo.upper() or e.upper().startswith(equipo.upper()[:12])):
+                equipo = e
+                break
+        restantes = _segundos_restantes(linea.get("time"))
+        filas.append({"PartidoID": partido_id, "Num": num, "Cuarto": cuarto,
+                      "Reloj": str(linea.get("time") or ""),
+                      "Seg": _segundos_absolutos(cuarto, restantes),
+                      "Equipo": equipo, "Jugadora": jugadora, "Accion": accion,
+                      "Puntos": puntos, "Texto": re.sub(r"\s+", " ", texto)[:200]})
+    filas.sort(key=lambda f: (f["Cuarto"], f["Num"]))
+    return filas
+
+
+def sincronizar_acciones(sh, resultados_df: pd.DataFrame) -> str:
+    """Guarda en la pestaña Acciones_Partido las acciones de los partidos nuevos."""
+    if resultados_df.empty or "PartidoID" not in resultados_df.columns:
+        return f"{TAB_ACCIONES}: sin partidos"
+    try:
+        ws = _hoja(sh, tab(TAB_ACCIONES))
+        valores = _gs(ws.get_all_values)
+        viejo = pd.DataFrame(valores[1:], columns=valores[0]) if len(valores) > 1 else pd.DataFrame()
+    except Exception:  # noqa: BLE001
+        viejo = pd.DataFrame()
+    ya = set(viejo["PartidoID"]) if "PartidoID" in viejo.columns else set()
+    jugados = resultados_df[(resultados_df["Jugado"] == "Si") & (resultados_df["PartidoID"] != "")]
+    pendientes = [p for p in dict.fromkeys(jugados["PartidoID"]) if p not in ya][:MAX_PARTIDOS_ACCIONES]
+    if not pendientes:
+        return f"{TAB_ACCIONES}: al día ({len(ya)} partidos)"
+    session = requests.Session()
+    token = obtener_token_livestats(session, pendientes[0])
+    if not token:
+        return f"{TAB_ACCIONES}: sin token de LiveStats"
+    cab = dict(HEADERS)
+    cab["Authorization"] = "Bearer " + token
+    cab["Accept"] = "application/json"
+
+    def _uno(pid):
+        resp = _request_con_reintentos(session, "GET", KEYFACTS_URL.format(id=pid.lstrip("p")), headers_extra=cab)
+        return acciones_de_partido(resp.json(), pid)
+
+    nuevas = []
+    for filas in _en_paralelo(pendientes, _uno):
+        if filas:
+            nuevas.extend(filas)
+    if not nuevas:
+        return f"{TAB_ACCIONES}: ningún partido con jugada a jugada utilizable"
+    df = pd.DataFrame(nuevas)
+    if not viejo.empty:
+        df = pd.concat([viejo, df.astype(str)], ignore_index=True)
+    write_dataframe(sh, TAB_ACCIONES, df)
+    return f"{TAB_ACCIONES}: {df['PartidoID'].nunique()} partidos ({len(nuevas)} acciones nuevas)"
+
+
 def main():
     client = get_gspread_client()
     sh = client.open_by_key(SHEET_ID)
@@ -3110,6 +3229,12 @@ def main():
         resumen.append(f"{TAB_QUINTETOS}: {len(resumen_q)} quintetos de {n_part_q} partidos ({nuevos_q} nuevos)")
     except Exception as exc:  # noqa: BLE001
         resumen.append(f"{TAB_QUINTETOS}: error ({exc})")
+
+    # 5b) Acciones del jugada a jugada (para cortar vídeo en el Editor)
+    try:
+        resumen.append(sincronizar_acciones(sh, resultados_df))
+    except Exception as exc:  # noqa: BLE001
+        resumen.append(f"{TAB_ACCIONES}: error ({exc})")
 
     # 6) Detective del jugada a jugada (solo mira, no descarga estadisticas)
     if INVESTIGAR_PBP and not resultados_df.empty and "PartidoID" in resultados_df.columns:
