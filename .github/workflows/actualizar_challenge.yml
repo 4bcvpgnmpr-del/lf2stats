@@ -1,0 +1,30 @@
+# Workflow de GitHub Actions para la LF Challenge.
+# Va en el repo de las estadísticas, en  .github/workflows/actualizar_challenge.yml
+# (si ya tienes uno para la LF2, es el mismo con las 5 líneas "env" de abajo cambiadas).
+name: Actualizar estadisticas LF Challenge
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"      # cada 3 horas
+  workflow_dispatch:             # y el botón "Run workflow" a mano
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar dependencias
+        run: pip install requests pandas gspread beautifulsoup4 lxml html5lib google-auth
+      - name: Descargar LF Challenge a su hoja
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}   # el mismo secreto que ya usas
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID_CHALLENGE }}                 # secreto NUEVO: ID de la hoja de la Challenge
+          FEB_COMPETICION: "67"
+          FEB_SLUG_URL: "lfchallenge"
+          FEB_COMPETICIONES: "U:67"
+          FEB_SEASON_START: "2026"
+        run: python feb_stats_sync.py
