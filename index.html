@@ -5640,7 +5640,7 @@ function reproductorHtml(v, segundos) {
 
 /* --- estado de la videoteca (que ficha esta abierta y con que filtros) --- */
 const scoutEstado = {};
-function estadoDe(tipo, nombre) {
+function estadoFich(tipo, nombre) {
   const k = tipo + "|" + scoutClave(tipo, nombre);
   if (!scoutEstado[k]) scoutEstado[k] = { seleccion: null, etiqueta: "", busqueda: "", formulario: "" };
   return scoutEstado[k];
@@ -5654,7 +5654,7 @@ function elementosDe(ficha) {
 
 function scoutingPanelHtml(tipo, nombre) {
   const ficha = scoutFicha(tipo, nombre);
-  const est = estadoDe(tipo, nombre);
+  const est = estadoFich(tipo, nombre);
   const todos = elementosDe(ficha);
   const etiquetas = [...new Set(todos.flatMap(x => x.etiquetas || []))].sort();
 
@@ -5770,7 +5770,7 @@ function wireScouting(contenedor, alGuardar) {
   const panel = contenedor.querySelector(".scout");
   if (!panel) return;
   const tipo = panel.getAttribute("data-tipo"), nombre = panel.getAttribute("data-nombre");
-  const est = estadoDe(tipo, nombre);
+  const est = estadoFich(tipo, nombre);
   const refrescar = (guardar) => { if (guardar !== false) scoutGuardar(); if (alGuardar) alGuardar(); };
   montarVideosLocales(panel);   // los videos subidos se cargan desde el navegador
 
@@ -8938,8 +8938,12 @@ function dibujarRadarJugadora(playerName, equipoNombre) {
    Se guarda junto al scouting, asi entra en la copia de seguridad.
    ============================================================ */
 const PRIORIDADES = ["Alta", "Media", "Baja"];
+const ESTADOS = ["Por ver", "Vista", "Contactada", "Negociando", "Descartada", "Fichada"];
+const COLOR_ESTADO = { "Por ver": "#6b7280", "Vista": "#2563eb", "Contactada": "#b7791f", "Negociando": "#7c3aed", "Descartada": "#b3261e", "Fichada": "#0a7d4f" };
+const estFich = (i) => ESTADOS.includes(i.estado) ? i.estado : "Por ver";
+const chapaEstado = (i) => `<span class="chapa" style="background:${COLOR_ESTADO[estFich(i)]}1a;color:${COLOR_ESTADO[estFich(i)]};border:1px solid ${COLOR_ESTADO[estFich(i)]}55;">${estFich(i)}</span>`;
 const PUESTOS = ["Base", "Escolta", "Alero", "Ala-pivot", "Pivot", "Sin indicar"];
-let filtrosFichajes = { puesto: "", pais: "", liga: "", origen: "" };
+let filtrosFichajes = { puesto: "", pais: "", liga: "", origen: "", estado: "" };
 
 function listaFichajes() {
   if (!scouting.fichajes) scouting.fichajes = {};
@@ -8985,20 +8989,23 @@ function tarjetaFichaje(item, liga) {
     .filter(([, v]) => v !== null && v !== undefined)
     .map(([k, v]) => `<div class="p-dato"><b>${fmtNum(v)}</b><span>${k}</span></div>`).join("") : "";
 
-  return `<div class="tarjeta-perfil tarjeta-fichaje" data-clave="${escapeAttr(clave)}">
+  return `<div class="tarjeta-perfil tarjeta-fichaje" data-clave="${escapeAttr(clave)}" style="${estFich(item) === "Descartada" ? "opacity:.6;" : ""}">
     <div class="p-cab">
       ${st.foto ? `<img src="${escapeAttr(st.foto)}" onerror="this.style.display='none'" alt="">`
                 : `<div class="p-sinfoto">${escapeHtml(item.nombre.slice(0, 2).toUpperCase())}</div>`}
       <div style="flex:1;min-width:0;">
         <b class="rank-name" data-player="${escapeAttr(item.nombre)}">${escapeHtml(item.nombre)}</b>
         <div class="hint">${escudoImgHtml(item.equipo, 16)}${escapeHtml(item.equipo)}${item.liga ? " · " + escapeHtml(item.liga) : ""}${m && m.PJ ? " · " + fmtNum(m.PJ) + " partidos" : ""}</div>
-        <div class="hint">${[item.puesto, item.pais].filter(Boolean).map(escapeHtml).join(" · ")} ${chapaOrigen(item.pais)}</div>
+        <div class="hint">${[item.puesto, item.pais].filter(Boolean).map(escapeHtml).join(" · ")} ${chapaOrigen(item.pais)} ${chapaEstado(item)}</div>
       </div>
       <button class="scout-borrar quitar-fichaje" title="Quitar de la lista">✕</button>
     </div>
     ${datos ? `<div class="p-datos" style="grid-template-columns:repeat(6,1fr);">${datos}</div>` : `<p class="hint">Sin datos en los rankings de esta temporada.</p>`}
     ${chapas ? `<div class="p-chapas">${chapas}</div>` : ""}
     <div class="campos-fichaje">
+      <label class="hint">Estado
+        <select class="estado-fichaje">${ESTADOS.map(p => `<option ${p === estFich(item) ? "selected" : ""}>${p}</option>`).join("")}</select>
+      </label>
       <label class="hint">Prioridad
         <select class="prioridad-fichaje">${PRIORIDADES.map(p => `<option ${p === item.prioridad ? "selected" : ""}>${p}</option>`).join("")}</select>
       </label>
@@ -9042,8 +9049,10 @@ function renderFichajes() {
     (!filtrosFichajes.puesto || (i.puesto || "") === filtrosFichajes.puesto) &&
     (!filtrosFichajes.pais || (i.pais || "") === filtrosFichajes.pais) &&
     (!filtrosFichajes.liga || (i.liga || "") === filtrosFichajes.liga) &&
-    (!filtrosFichajes.origen || claseOrigen(i.pais) === filtrosFichajes.origen));
-  visibles.sort((a, b) => (orden[a.prioridad] ?? 1) - (orden[b.prioridad] ?? 1));
+    (!filtrosFichajes.origen || claseOrigen(i.pais) === filtrosFichajes.origen) &&
+    (!filtrosFichajes.estado || estFich(i) === filtrosFichajes.estado));
+  const finalEst = (i) => estFich(i) === "Descartada" ? 1 : 0;
+  visibles.sort((a, b) => finalEst(a) - finalEst(b) || (orden[a.prioridad] ?? 1) - (orden[b.prioridad] ?? 1));
 
   // Tabla comparativa de todas las candidatas
   const comparables = visibles.map(i => ({ item: i, fila: filaJugadoraPorNombre(i.nombre, i.equipo) }))
@@ -9052,7 +9061,7 @@ function renderFichajes() {
   const cols = [["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["VAL", "VAL"], ["MIN", "MIN"],
                 ["TS%", "TS%"], ["3P%", "3P%"], ["USO%", "USO%"], ["PER", "PER"]];
   const tabla = comparables.length ? `<div class="table-scroll"><table class="limpia"><thead><tr>
-      <th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Pais</th><th>Procedencia</th><th>Prioridad</th>
+      <th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Pais</th><th>Procedencia</th><th>Estado</th><th>Prioridad</th>
       ${cols.map(c => `<th>${escapeHtml(c[1])}</th>`).join("")}</tr></thead><tbody>
       ${comparables.map(x => `<tr>
         <td class="equipo"><b class="rank-name" data-player="${escapeAttr(x.item.nombre)}"><span class="txt">${escapeHtml(x.item.nombre)}</span></b></td>
@@ -9061,6 +9070,7 @@ function renderFichajes() {
         <td>${escapeHtml(x.item.puesto || "-")}</td>
         <td>${escapeHtml(x.item.pais || "-")}</td>
         <td>${chapaOrigen(x.item.pais) || "-"}</td>
+        <td>${chapaEstado(x.item)}</td>
         <td>${escapeHtml(x.item.prioridad || "Media")}</td>
         ${cols.map(c => `<td>${x.m[c[0]] === null || x.m[c[0]] === undefined ? "-" : fmtNum(x.m[c[0]])}</td>`).join("")}
       </tr>`).join("")}</tbody></table></div>` : "";
@@ -9224,6 +9234,7 @@ function panelBuscarFichajes() {
   const val = (k) => escapeAttr(P[k] == null ? "" : P[k]);
   return `<details class="panel" id="bfPanel" style="margin-top:12px;" ${busquedaFich.ver ? "open" : ""}><summary style="cursor:pointer;font-weight:800;">🔎 Buscar fichajes por parámetros</summary>
     <p class="hint">Filtra a las jugadoras de la liga con lo que necesitas y guarda con ⭐ las que te gusten. Deja en blanco lo que no te importe.</p>
+    ${(() => { const B = scouting.busquedas || []; return B.length ? `<div style="margin:6px 0 10px;"><span class="hint"><b>Búsquedas guardadas:</b></span> ${B.map((b, i) => `<span class="chapa" style="cursor:pointer;margin:2px 4px 2px 0;"><span class="bs-ir" data-i="${i}">📌 ${escapeHtml(b.nombre)}</span> <span class="bs-del" data-i="${i}" title="Borrar" style="margin-left:6px;opacity:.6;">✕</span></span>`).join("")}</div>` : ""; })()}
     <div class="campos-fichaje" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
       <label class="hint">Puesto<select id="bf-puesto"><option value="">Todos</option>${puestos.map(x => `<option ${P.puesto === x ? "selected" : ""}>${escapeHtml(x)}</option>`).join("")}</select></label>
       <label class="hint">Procedencia<select id="bf-origen"><option value="">Todas</option>${ORIGENES.map(x => `<option ${P.origen === x ? "selected" : ""}>${x}</option>`).join("")}<option value="EUCO" ${P.origen === "EUCO" ? "selected" : ""}>Española + Europea + Cotonú (no extranjera)</option></select></label>
@@ -9239,13 +9250,18 @@ function panelBuscarFichajes() {
       ${PESOS_ENC.map(([k, t]) => `<label class="hint">${t}<select id="bw-${k.replace('%', 'p')}">${["Nada", "Algo", "Mucho", "Clave"].map((x, i) => `<option value="${i}" ${(+((P.w || {})[k] || 0)) === i ? "selected" : ""}>${x}</option>`).join("")}</select></label>`).join("")}
     </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn-partido" id="bf-recom" style="background:#0a7d4f;">✨ Recomiéndame</button><button class="btn-partido" id="bf-buscar">Buscar</button><button class="btn-partido" id="bf-limpiar" style="background:var(--ink);">Limpiar</button></div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;"><input type="text" id="bf-nom" placeholder="Nombre para guardar esta búsqueda (ej: Pívot joven europea)" style="flex:1;min-width:220px;"><button class="btn-partido" id="bf-guardar" style="background:#5b3fd1;">💾 Guardar búsqueda</button></div>
     <div id="bf-res" style="margin-top:10px;"></div></details>`;
 }
-function ejecutarBusquedaFichajes(box) {
+function leerFormBusqueda(box) {
   const g = (id) => { const e = box.querySelector("#" + id); return e ? e.value.trim() : ""; };
   const P = { puesto: g("bf-puesto"), origen: g("bf-origen"), edmin: g("bf-edmin"), edmax: g("bf-edmax"), alt: g("bf-alt"), eq: g("bf-eq"), orden: g("bf-orden") || "VAL" };
   CAMPOS_BUSCA.forEach(([k]) => { P[k] = g("bf-" + k.replace("%", "p")); });
   P.w = {}; PESOS_ENC.forEach(([k]) => { P.w[k] = +g("bw-" + k.replace("%", "p")) || 0; });
+  return P;
+}
+function ejecutarBusquedaFichajes(box) {
+  const P = leerFormBusqueda(box);
   const hayPesos = Object.values(P.w).some(v => v > 0);
   if (P.orden === "Encaje" && !hayPesos) P.orden = "VAL";
   busquedaFich = { p: P, ver: true };
@@ -9359,6 +9375,22 @@ function wireBuscadorFichajes(box) {
     }
     ejecutarBusquedaFichajes(box);
   });
+  const gb = box.querySelector("#bf-guardar");
+  if (gb) gb.addEventListener("click", () => {
+    const nom = (box.querySelector("#bf-nom").value || "").trim();
+    if (!nom) { box.querySelector("#bf-nom").focus(); box.querySelector("#bf-nom").placeholder = "Escribe un nombre primero"; return; }
+    if (!scouting.busquedas) scouting.busquedas = [];
+    const P = leerFormBusqueda(box), i = scouting.busquedas.findIndex(x => x.nombre.toLowerCase() === nom.toLowerCase());
+    if (i >= 0) scouting.busquedas[i].p = P; else scouting.busquedas.push({ nombre: nom, p: P });
+    scoutGuardar(); busquedaFich = { p: P, ver: true }; renderFichajes();
+  });
+  box.querySelectorAll(".bs-ir").forEach(el => el.addEventListener("click", () => {
+    const b = (scouting.busquedas || [])[+el.dataset.i]; if (!b) return;
+    busquedaFich = { p: JSON.parse(JSON.stringify(b.p)), ver: true }; renderFichajes();
+  }));
+  box.querySelectorAll(".bs-del").forEach(el => el.addEventListener("click", (ev) => {
+    ev.stopPropagation(); const B = scouting.busquedas || []; B.splice(+el.dataset.i, 1); scoutGuardar(); busquedaFich.ver = true; renderFichajes();
+  }));
   const l = box.querySelector("#bf-limpiar"); if (l) l.addEventListener("click", () => { busquedaFich = { p: {}, ver: true }; renderFichajes(); });
   if (busquedaFich.ver && Object.keys(busquedaFich.p).length) ejecutarBusquedaFichajes(box);
 }
@@ -9394,6 +9426,7 @@ function buscadorFichajesHtml() {
       ${selector("filtroPais", "Nacionalidad", valores("pais"), filtrosFichajes.pais)}
       ${selector("filtroLiga", "Liga", valores("liga"), filtrosFichajes.liga)}
       ${selector("filtroOrigen", "Procedencia", ORIGENES, filtrosFichajes.origen)}
+      ${selector("filtroEstado", "Estado", ESTADOS, filtrosFichajes.estado)}
     </div>` : ""}
     ${panelBuscarFichajes()}`;
 }
@@ -9442,7 +9475,7 @@ function wireFichajes() {
     scoutGuardar();
     renderFichajes();
   });
-  [["filtroPuesto", "puesto"], ["filtroPais", "pais"], ["filtroLiga", "liga"], ["filtroOrigen", "origen"]].forEach(([id, campo]) => {
+  [["filtroPuesto", "puesto"], ["filtroPais", "pais"], ["filtroLiga", "liga"], ["filtroOrigen", "origen"], ["filtroEstado", "estado"]].forEach(([id, campo]) => {
     const sel = box.querySelector("#" + id);
     if (sel) sel.addEventListener("change", () => { filtrosFichajes[campo] = sel.value; renderFichajes(); });
   });
@@ -9469,6 +9502,7 @@ function wireFichajes() {
       });
     };
     guardaCampo(".prioridad-fichaje", "prioridad", true);
+    guardaCampo(".estado-fichaje", "estado", true);
     guardaCampo(".puesto-fichaje", "puesto", true);
     guardaCampo(".pais-fichaje", "pais", false);
     guardaCampo(".liga-fichaje", "liga", false);
