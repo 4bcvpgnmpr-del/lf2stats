@@ -9058,6 +9058,7 @@ function tarjetaFichaje(item, liga) {
     </div>
     ${datos ? `<div class="p-datos" style="grid-template-columns:repeat(6,1fr);">${datos}</div>` : `<p class="hint">Sin datos en los rankings de esta temporada.</p>`}
     ${chapas ? `<div class="p-chapas">${chapas}</div>` : ""}
+    ${(() => { const c = cambiosFich(item, m); if (!c) return ""; return `<div class="hint" style="margin:8px 0;padding:8px 10px;border-radius:8px;background:${c.cs.length ? "#fff7e6" : "#f4f4f6"};">🔔 +${c.dPJ} partido${c.dPJ === 1 ? "" : "s"} desde el ${fechaCorta(c.desde)}${c.cs.length ? ": " + c.cs.map(x => `<b style="color:${x.d > 0 ? "#0a7d4f" : "#b3261e"};">${x.k} ${x.d > 0 ? "▲" : "▼"} ${fmtNum(x.antes)} → ${fmtNum(x.ahora)}</b>`).join(" · ") : " · sin cambios importantes"} <button class="btn-visto" style="margin-left:6px;padding:2px 8px;">✓ Visto</button></div>`; })()}
     <div class="campos-fichaje">
       <label class="hint">Estado
         <select class="estado-fichaje">${ESTADOS.map(p => `<option ${p === estFich(item) ? "selected" : ""}>${p}</option>`).join("")}</select>
@@ -9082,10 +9083,30 @@ function tarjetaFichaje(item, liga) {
   </div>`;
 }
 
+/* ---- Avisos de cambios: se compara con la "foto" de sus numeros de la ultima vez que la marcaste como vista ---- */
+const SNAP_K = ["PJ", "PTS", "REB", "AST", "VAL", "3P%", "TS%"];
+const snapDe = (m) => { const o = { f: new Date().toISOString() }; SNAP_K.forEach(k => { o[k] = m[k] == null ? null : m[k]; }); return o; };
+const UMBRAL_CAMBIO = { "PTS": [1.5, "pts"], "REB": [1, "reb"], "AST": [0.8, "ast"], "VAL": [2, "val"], "3P%": [3, "3P%"], "TS%": [3, "TS%"] };
+function cambiosFich(item, m) {
+  const sn = item.snap; if (!sn || !m) return null;
+  const dPJ = (m.PJ || 0) - (sn.PJ || 0); if (dPJ <= 0) return null;
+  const cs = [];
+  Object.keys(UMBRAL_CAMBIO).forEach(k => {
+    if (m[k] == null || sn[k] == null) return;
+    const d = m[k] - sn[k]; if (Math.abs(d) >= UMBRAL_CAMBIO[k][0]) cs.push({ k, d, antes: sn[k], ahora: m[k] });
+  });
+  return { dPJ, cs, desde: sn.f };
+}
+function avisosFichajes(lista) {
+  const out = [];
+  lista.forEach(i => { const f = filaJugadoraPorNombre(i.nombre, i.equipo); if (!f) return; const c = cambiosFich(i, metricasJugadora(f)); if (c && c.cs.length) out.push({ i, c }); });
+  return out;
+}
 function renderFichajes() {
   const box = document.getElementById("fichajesContent");
   if (!box) return;
   const lista = Object.values(listaFichajes());
+  { let nuevo = false; lista.forEach(i => { if (!i.snap) { const f = filaJugadoraPorNombre(i.nombre, i.equipo); if (f) { i.snap = snapDe(metricasJugadora(f)); nuevo = true; } } }); if (nuevo) scoutGuardar(); }
   box.className = "";
 
   if (!lista.length) {
@@ -9135,6 +9156,9 @@ function renderFichajes() {
       <h2 class="section-title" style="margin-top:0;">Fichajes · ${visibles.length} de ${lista.length} jugadora${lista.length === 1 ? "" : "s"}</h2>
       <p class="hint" style="margin-top:-6px;">Tu lista de candidatas, con sus numeros de esta temporada y tus notas.
       Se guarda en este navegador y entra en la copia de seguridad del scouting.</p>
+      ${(() => { const A = avisosFichajes(visibles); return A.length ? `<div style="margin:10px 0;padding:12px 14px;border-radius:12px;background:#fff7e6;border:1.5px solid #f3d9a4;"><b>🔔 ${A.length} fichaje${A.length === 1 ? " ha" : "s han"} cambiado desde la última vez que lo revisaste</b>
+        <ul style="margin:6px 0 8px 18px;font-size:14px;line-height:1.5;">${A.map(x => `<li><b>${escapeHtml(x.i.nombre)}</b> · +${x.c.dPJ} partido${x.c.dPJ === 1 ? "" : "s"}: ${x.c.cs.map(c => `<span style="color:${c.d > 0 ? "#0a7d4f" : "#b3261e"};font-weight:700;">${c.k} ${c.d > 0 ? "▲" : "▼"} ${c.d > 0 ? "+" : ""}${fmtNum(c.d)}</span>`).join(" · ")}</li>`).join("")}</ul>
+        <button class="btn-partido" id="btnVistoTodo" style="background:var(--ink);">✓ Marcar todo como visto</button></div>` : ""; })()}
       ${buscadorFichajesHtml()}
       ${tabla ? `<h4 class="kpi-grupo">Comparativa</h4>${tabla}` : ""}
     </div>
@@ -9491,6 +9515,8 @@ function wireFichajes() {
   const box = document.getElementById("fichajesContent");
   if (!box) return;
   wireBuscadorFichajes(box);
+  const vt = box.querySelector("#btnVistoTodo");
+  if (vt) vt.addEventListener("click", () => { Object.values(listaFichajes()).forEach(i => { const f = filaJugadoraPorNombre(i.nombre, i.equipo); if (f) i.snap = snapDe(metricasJugadora(f)); }); scoutGuardar(); renderFichajes(); });
 
   const buscador = box.querySelector("#buscarFichaje");
   if (buscador) buscador.addEventListener("input", () => {
@@ -9546,6 +9572,8 @@ function wireFichajes() {
       scoutGuardar();
       renderFichajes();
     });
+    const visto = t.querySelector(".btn-visto");
+    if (visto) visto.addEventListener("click", () => { const f = filaJugadoraPorNombre(item.nombre, item.equipo); if (f) { item.snap = snapDe(metricasJugadora(f)); scoutGuardar(); renderFichajes(); } });
     const nota = t.querySelector(".nota-fichaje");
     if (nota) nota.addEventListener("blur", () => { item.nota = nota.value.trim(); scoutGuardar(); });
     const guardaCampo = (sel, campo, recargar) => {
