@@ -9030,13 +9030,21 @@ function filaJugadoraPorNombre(nombre, equipo) {
   return jugadoras.rows.find(r => claveFichaje(cellText(r, "Jugador"), cellText(r, "Equipo")) === busca) || null;
 }
 
+const MAN_CAMPOS = [["PJ", "Partidos"], ["MIN", "Min."], ["PTS", "Puntos"], ["REB", "Rebotes"], ["AST", "Asist."], ["3P%", "% triples"], ["TS%", "TS%"], ["VAL", "Valoración"]];
+function metricasFich(item) {
+  const fila = filaJugadoraPorNombre(item.nombre, item.equipo);
+  if (fila) return metricasJugadora(fila);
+  const man = item.man || {}, o = {}; let hay = false;
+  MAN_CAMPOS.forEach(([k]) => { if (man[k] != null && man[k] !== "") { o[k] = +man[k]; hay = true; } });
+  return hay ? o : null;
+}
 function tarjetaFichaje(item, liga) {
   const fila = filaJugadoraPorNombre(item.nombre, item.equipo);
   const st = estadisticasJugadora(item.nombre, item.equipo);
-  const m = fila ? metricasJugadora(fila) : null;
+  const m = metricasFich(item);
   const clave = claveFichaje(item.nombre, item.equipo);
 
-  const chapas = m ? METRICAS_PERFIL.map(([c, texto]) => {
+  const chapas = (m && fila) ? METRICAS_PERFIL.map(([c, texto]) => {
     const d = puestosYpercentiles(c, m[c], liga);
     return d && d.percentil >= 85 ? `<span class="chapa ${d.puesto <= 10 ? "top10" : ""}">${d.puesto <= 10 ? d.puesto + "º" : "Top " + (100 - d.percentil) + "%"} ${escapeHtml(texto)}</span>` : "";
   }).filter(Boolean).slice(0, 4).join("") : "";
@@ -9052,11 +9060,11 @@ function tarjetaFichaje(item, liga) {
       <div style="flex:1;min-width:0;">
         <b class="rank-name" data-player="${escapeAttr(item.nombre)}">${escapeHtml(item.nombre)}</b>
         <div class="hint">${escudoImgHtml(item.equipo, 16)}${escapeHtml(item.equipo)}${item.liga ? " · " + escapeHtml(item.liga) : ""}${m && m.PJ ? " · " + fmtNum(m.PJ) + " partidos" : ""}</div>
-        <div class="hint">${[item.puesto, item.pais].filter(Boolean).map(escapeHtml).join(" · ")} ${chapaOrigen(item.pais)} ${chapaEstado(item)}</div>
+        <div class="hint">${[item.puesto, item.pais, !fila && (item.man || {}).edad ? item.man.edad + " años" : "", !fila && (item.man || {}).alt ? item.man.alt + " cm" : ""].filter(Boolean).map(escapeHtml).join(" · ")} ${chapaOrigen(item.pais)} ${chapaEstado(item)}</div>
       </div>
       <button class="scout-borrar quitar-fichaje" title="Quitar de la lista">✕</button>
     </div>
-    ${datos ? `<div class="p-datos" style="grid-template-columns:repeat(6,1fr);">${datos}</div>` : `<p class="hint">Sin datos en los rankings de esta temporada.</p>`}
+    ${datos ? `<div class="p-datos" style="grid-template-columns:repeat(6,1fr);">${datos}</div>` : `<p class="hint">Sin datos en los rankings de esta temporada.${fila ? "" : " Puedes apuntarlos tú abajo en «Datos manuales»."}</p>`}
     ${chapas ? `<div class="p-chapas">${chapas}</div>` : ""}
     ${(() => { const c = cambiosFich(item, m); if (!c) return ""; return `<div class="hint" style="margin:8px 0;padding:8px 10px;border-radius:8px;background:${c.cs.length ? "#fff7e6" : "#f4f4f6"};">🔔 +${c.dPJ} partido${c.dPJ === 1 ? "" : "s"} desde el ${fechaCorta(c.desde)}${c.cs.length ? ": " + c.cs.map(x => `<b style="color:${x.d > 0 ? "#0a7d4f" : "#b3261e"};">${x.k} ${x.d > 0 ? "▲" : "▼"} ${fmtNum(x.antes)} → ${fmtNum(x.ahora)}</b>`).join(" · ") : " · sin cambios importantes"} <button class="btn-visto" style="margin-left:6px;padding:2px 8px;">✓ Visto</button></div>`; })()}
     <div class="campos-fichaje">
@@ -9077,6 +9085,13 @@ function tarjetaFichaje(item, liga) {
         <input type="text" class="liga-fichaje" value="${escapeAttr(item.liga || "")}" placeholder="Liga Femenina 2, LF Challenge...">
       </label>
     </div>
+    ${fila ? "" : `<details class="man-fich" style="margin:8px 0;" ${item.man && Object.keys(item.man).length ? "" : ""}><summary class="hint" style="cursor:pointer;"><b>✏️ Datos manuales</b> (liga sin datos automáticos) · se actualizan al cerrar</summary>
+      <div class="campos-fichaje" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr));margin-top:6px;">
+        <label class="hint">Edad<input type="number" class="man-in" data-k="edad" value="${escapeAttr((item.man || {}).edad == null ? "" : item.man.edad)}"></label>
+        <label class="hint">Altura (cm)<input type="number" class="man-in" data-k="alt" value="${escapeAttr((item.man || {}).alt == null ? "" : item.man.alt)}"></label>
+        ${MAN_CAMPOS.map(([k, t]) => `<label class="hint">${t}<input type="number" step="0.1" class="man-in" data-k="${escapeAttr(k)}" value="${escapeAttr((item.man || {})[k] == null ? "" : item.man[k])}"></label>`).join("")}
+      </div></details>`}
+    <details class="scout-fich" data-n="${escapeAttr(item.nombre)}" style="margin:8px 0;"><summary class="hint" style="cursor:pointer;"><b>🎬 Vídeos y notas de scouting</b> (${scoutContador("jugadoras", item.nombre)})</summary><div class="scout-fich-caja" style="margin-top:8px;"></div></details>
     <button class="btn-partido btn-informe-ia" data-bn="${escapeAttr(item.nombre)}" data-be="${escapeAttr(item.equipo)}" style="margin:8px 0;background:#5b3fd1;">🧠 Informe IA</button>
     <textarea class="nota-fichaje" rows="2" placeholder="Por que te interesa, que aporta, que dudas tienes...">${escapeHtml(item.nota || "")}</textarea>
     <div class="vids-fichaje" data-clave="${escapeAttr(clave)}" style="margin-top:10px;"><p class="hint" style="margin:0;">🎬 Cargando vídeos…</p></div>
@@ -9133,9 +9148,8 @@ function renderFichajes() {
   visibles.sort((a, b) => finalEst(a) - finalEst(b) || (orden[a.prioridad] ?? 1) - (orden[b.prioridad] ?? 1));
 
   // Tabla comparativa de todas las candidatas
-  const comparables = visibles.map(i => ({ item: i, fila: filaJugadoraPorNombre(i.nombre, i.equipo) }))
-    .filter(x => x.fila)
-    .map(x => ({ item: x.item, m: metricasJugadora(x.fila) }));
+  const comparables = visibles.map(i => ({ item: i, m: metricasFich(i) }))
+    .filter(x => x.m);
   const cols = [["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["VAL", "VAL"], ["MIN", "MIN"],
                 ["TS%", "TS%"], ["3P%", "3P%"], ["USO%", "USO%"], ["PER", "PER"]];
   const tabla = comparables.length ? `<div class="table-scroll"><table class="limpia"><thead><tr>
@@ -9174,9 +9188,9 @@ function htmlInformeFichajes(items) {
   const liga = ligaComparable(), W = (busquedaFich.p || {}).w || {}, hayW = Object.values(W).some(v => v > 0);
   const calc = hayW ? notaEncaje((jugadoras && jugadoras.rows) || [], W) : null;
   const filas = items.map(i => {
-    const fila = filaJugadoraPorNombre(i.nombre, i.equipo), m = fila ? metricasJugadora(fila) : null, f = fichaOficial(i.nombre, i.equipo);
-    const edad = f ? cellText(f, "Edad") : "", alt = f ? cellText(f, "Altura") : "", en = (calc && m) ? calc(m) : null;
-    const fuertes = m ? METRICAS_PERFIL.map(([c, t]) => { const d = puestosYpercentiles(c, m[c], liga); return d && d.percentil >= 85 ? (d.puesto <= 10 ? d.puesto + "º " : "Top " + (100 - d.percentil) + "% ") + t : ""; }).filter(Boolean).slice(0, 5) : [];
+    const fila = filaJugadoraPorNombre(i.nombre, i.equipo), m = metricasFich(i), f = fichaOficial(i.nombre, i.equipo);
+    const edad = f ? cellText(f, "Edad") : ((i.man || {}).edad == null ? "" : String(i.man.edad)), alt = f ? cellText(f, "Altura") : ((i.man || {}).alt == null ? "" : i.man.alt + " cm"), en = (calc && m && fila) ? calc(m) : null;
+    const fuertes = (m && fila) ? METRICAS_PERFIL.map(([c, t]) => { const d = puestosYpercentiles(c, m[c], liga); return d && d.percentil >= 85 ? (d.puesto <= 10 ? d.puesto + "º " : "Top " + (100 - d.percentil) + "% ") + t : ""; }).filter(Boolean).slice(0, 5) : [];
     const pais = i.pais || (f ? cellText(f, "Nacionalidad") : ""), puesto = i.puesto || (f ? cellText(f, "Puesto") : "");
     return { i: Object.assign({}, i, { pais, puesto }), m, edad, alt, en, fuertes, org: claseOrigen(pais) || "" };
   });
@@ -9615,6 +9629,19 @@ function wireFichajes() {
       scoutGuardar();
       renderFichajes();
     });
+    t.querySelectorAll(".man-in").forEach(inp => inp.addEventListener("change", () => {
+      item.man = item.man || {}; const k = inp.getAttribute("data-k");
+      if (inp.value === "") delete item.man[k]; else item.man[k] = +inp.value;
+      scoutGuardar();
+    }));
+    const mf = t.querySelector(".man-fich");
+    if (mf) mf.addEventListener("toggle", () => { if (!mf.open) renderFichajes(); });
+    const sf = t.querySelector(".scout-fich");
+    if (sf) {
+      const caja = sf.querySelector(".scout-fich-caja");
+      const pintarSF = () => { caja.innerHTML = scoutingPanelHtml("jugadoras", item.nombre); wireScouting(caja, pintarSF); const n = sf.querySelector("summary b"); const c = scoutContador("jugadoras", item.nombre); sf.querySelector("summary").lastChild.textContent = " (" + c + ")"; };
+      sf.addEventListener("toggle", () => { if (sf.open && !caja.innerHTML) pintarSF(); });
+    }
     const visto = t.querySelector(".btn-visto");
     if (visto) visto.addEventListener("click", () => { const f = filaJugadoraPorNombre(item.nombre, item.equipo); if (f) { item.snap = snapDe(metricasJugadora(f)); scoutGuardar(); renderFichajes(); } });
     const nota = t.querySelector(".nota-fichaje");
