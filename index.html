@@ -1442,6 +1442,21 @@
   .tarjeta-perfil{border:1.5px solid var(--wood-line);border-radius:10px;padding:14px;background:var(--white);}
   .tarjeta-perfil .p-cab{display:flex;gap:12px;align-items:center;margin-bottom:10px;}
   .tarjeta-perfil .p-cab img, .tarjeta-perfil .p-sinfoto{width:48px;height:72px;border-radius:8px;object-fit:cover;object-position:top center;background:var(--barra);flex:none;}
+  img.bandera{width:20px !important;height:15px !important;max-width:none !important;object-fit:cover !important;border-radius:2px !important;display:inline-block;flex:none !important;}
+  .tarjeta-fichaje .p-cab{align-items:flex-start;gap:14px;}
+  .tarjeta-fichaje .p-cab img.foto, .tarjeta-fichaje .p-cab .p-sinfoto{width:64px;height:88px;}
+  .tarjeta-fichaje .p-cab b.rank-name{font-size:16px;line-height:1.2;display:block;}
+  .tarjeta-fichaje .fc-equipo{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13px;color:var(--ink-soft);}
+  .tarjeta-fichaje .fc-tags{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;margin-top:7px;}
+  .tarjeta-fichaje .fc-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;background:var(--suave);font-size:12px;color:var(--ink);font-weight:600;}
+  .tarjeta-fichaje .fc-fila{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .tarjeta-fichaje .fc-fila label{display:flex;flex-direction:column;gap:2px;}
+  .tarjeta-fichaje details.fc-d{margin:8px 0;border:1px solid var(--wood-line);border-radius:8px;padding:6px 10px;}
+  .tarjeta-fichaje details.fc-d>summary{cursor:pointer;font-size:13px;padding:2px 0;}
+  .tarjeta-fichaje .scout-columnas{display:flex !important;flex-direction:column !important;}
+  .tarjeta-fichaje .scout-columnas>*{width:100% !important;max-width:100% !important;border-left:0 !important;min-width:0 !important;}
+  .tarjeta-fichaje .p-datos{grid-template-columns:repeat(auto-fit,minmax(64px,1fr)) !important;}
+  .tarjeta-fichaje .fc-acc{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 8px;}
   .tarjeta-perfil .p-sinfoto{display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;color:var(--ink-soft);}
   .tarjeta-perfil .p-cab b{cursor:pointer;font-size:14.5px;overflow-wrap:anywhere;}
   .p-datos{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;}
@@ -9055,45 +9070,52 @@ function tarjetaFichaje(item, liga) {
 
   return `<div class="tarjeta-perfil tarjeta-fichaje" data-clave="${escapeAttr(clave)}" style="${estFich(item) === "Descartada" ? "opacity:.6;" : ""}">
     <div class="p-cab">
-      ${st.foto ? `<img src="${escapeAttr(st.foto)}" onerror="this.style.display='none'" alt="">`
+      ${st.foto ? `<img class="foto" src="${escapeAttr(st.foto)}" onerror="this.style.display='none'" alt="">`
                 : `<div class="p-sinfoto">${escapeHtml(item.nombre.slice(0, 2).toUpperCase())}</div>`}
       <div style="flex:1;min-width:0;">
         <b class="rank-name" data-player="${escapeAttr(item.nombre)}">${escapeHtml(item.nombre)}</b>
-        <div class="hint">${escudoImgHtml(item.equipo, 16)}${escapeHtml(item.equipo)}${item.liga ? " · " + escapeHtml(item.liga) : ""}${m && m.PJ ? " · " + fmtNum(m.PJ) + " partidos" : ""}</div>
-        <div class="hint">${[item.puesto, item.pais, !fila && (item.man || {}).edad ? item.man.edad + " años" : "", !fila && (item.man || {}).alt ? item.man.alt + " cm" : ""].filter(Boolean).map(escapeHtml).join(" · ")} ${chapaOrigen(item.pais)} ${chapaEstado(item)}</div>
+        <div class="fc-equipo">${escudoImgHtml(item.equipo, 16)}<span>${escapeHtml(item.equipo)}${item.liga ? " · " + escapeHtml(item.liga) : ""}${m && m.PJ ? " · " + fmtNum(m.PJ) + " partidos" : ""}</span></div>
+        <div class="fc-tags">${(() => { const f = fichaOficial(item.nombre, item.equipo), tc = (t) => String(t || "").toLowerCase().replace(/(^|[\s-])\S/g, c => c.toUpperCase());
+          const edad = f ? _numTxt(cellText(f, "Edad")) : (item.man || {}).edad, alt = f ? alturaCm(cellText(f, "Altura")) : (item.man || {}).alt, org = claseOrigen(item.pais), col = { "Española": "#2EA36B", "Europea": "#2a7bb8", "Cotonú": "#c9961a", "Extranjera": "#b3261e" }[org];
+          return [item.puesto ? `<span class="fc-tag">${escapeHtml(item.puesto)}</span>` : "", edad ? `<span class="fc-tag">${escapeHtml(String(edad))} años</span>` : "", alt ? `<span class="fc-tag">${escapeHtml(String(alt))} cm</span>` : "",
+            item.pais ? `<span class="fc-tag">${banderasDe(item.pais)}${escapeHtml(tc(item.pais))}</span>` : "", org ? `<span class="fc-tag" style="background:${col}22;color:${col};">${org}</span>` : "", chapaEstado(item)].join(""); })()}</div>
       </div>
       <button class="scout-borrar quitar-fichaje" title="Quitar de la lista">✕</button>
     </div>
     ${datos ? `<div class="p-datos" style="grid-template-columns:repeat(6,1fr);">${datos}</div>` : `<p class="hint">Sin datos en los rankings de esta temporada.${fila ? "" : " Puedes apuntarlos tú abajo en «Datos manuales»."}</p>`}
     ${chapas ? `<div class="p-chapas">${chapas}</div>` : ""}
     ${(() => { const c = cambiosFich(item, m); if (!c) return ""; return `<div class="hint" style="margin:8px 0;padding:8px 10px;border-radius:8px;background:${c.cs.length ? "#fff7e6" : "#f4f4f6"};">🔔 +${c.dPJ} partido${c.dPJ === 1 ? "" : "s"} desde el ${fechaCorta(c.desde)}${c.cs.length ? ": " + c.cs.map(x => `<b style="color:${x.d > 0 ? "#0a7d4f" : "#b3261e"};">${x.k} ${x.d > 0 ? "▲" : "▼"} ${fmtNum(x.antes)} → ${fmtNum(x.ahora)}</b>`).join(" · ") : " · sin cambios importantes"} <button class="btn-visto" style="margin-left:6px;padding:2px 8px;">✓ Visto</button></div>`; })()}
-    <div class="campos-fichaje">
+    <div class="fc-fila">
       <label class="hint">Estado
         <select class="estado-fichaje">${ESTADOS.map(p => `<option ${p === estFich(item) ? "selected" : ""}>${p}</option>`).join("")}</select>
       </label>
       <label class="hint">Prioridad
         <select class="prioridad-fichaje">${PRIORIDADES.map(p => `<option ${p === item.prioridad ? "selected" : ""}>${p}</option>`).join("")}</select>
       </label>
-      <label class="hint">Puesto
-        <select class="puesto-fichaje"><option value="">Sin indicar</option>
-          ${PUESTOS.filter(p => p !== "Sin indicar").map(p => `<option ${p === item.puesto ? "selected" : ""}>${p}</option>`).join("")}</select>
-      </label>
-      <label class="hint">Nacionalidad
-        <input type="text" class="pais-fichaje" value="${escapeAttr(item.pais || "")}" placeholder="Espana, EE.UU...">
-      </label>
-      <label class="hint">Liga
-        <input type="text" class="liga-fichaje" value="${escapeAttr(item.liga || "")}" placeholder="Liga Femenina 2, LF Challenge...">
-      </label>
     </div>
-    ${fila ? "" : `<details class="man-fich" style="margin:8px 0;" ${item.man && Object.keys(item.man).length ? "" : ""}><summary class="hint" style="cursor:pointer;"><b>✏️ Datos manuales</b> (liga sin datos automáticos) · se actualizan al cerrar</summary>
+    <textarea class="nota-fichaje" rows="2" style="margin-top:10px;" placeholder="Por que te interesa, que aporta, que dudas tienes...">${escapeHtml(item.nota || "")}</textarea>
+    <div class="fc-acc"><button class="btn-partido btn-informe-ia" data-bn="${escapeAttr(item.nombre)}" data-be="${escapeAttr(item.equipo)}" style="background:#5b3fd1;">🧠 Informe IA</button></div>
+    <details class="fc-d"><summary class="hint"><b>✏️ Editar ficha</b> (puesto, nacionalidad, liga)</summary>
+      <div class="campos-fichaje" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">
+        <label class="hint">Puesto
+          <select class="puesto-fichaje"><option value="">Sin indicar</option>
+            ${PUESTOS.filter(p => p !== "Sin indicar").map(p => `<option ${p === item.puesto ? "selected" : ""}>${p}</option>`).join("")}</select>
+        </label>
+        <label class="hint">Nacionalidad
+          <input type="text" class="pais-fichaje" value="${escapeAttr(item.pais || "")}" placeholder="España, EE.UU...">
+        </label>
+        <label class="hint">Liga
+          <input type="text" class="liga-fichaje" value="${escapeAttr(item.liga || "")}" placeholder="Liga Femenina 2, LF Challenge...">
+        </label>
+      </div>
+    </details>
+    ${fila ? "" : `<details class="man-fich fc-d" ${item.man && Object.keys(item.man).length ? "" : ""}><summary class="hint" style="cursor:pointer;"><b>✏️ Datos manuales</b> (liga sin datos automáticos) · se actualizan al cerrar</summary>
       <div class="campos-fichaje" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr));margin-top:6px;">
         <label class="hint">Edad<input type="number" class="man-in" data-k="edad" value="${escapeAttr((item.man || {}).edad == null ? "" : item.man.edad)}"></label>
         <label class="hint">Altura (cm)<input type="number" class="man-in" data-k="alt" value="${escapeAttr((item.man || {}).alt == null ? "" : item.man.alt)}"></label>
         ${MAN_CAMPOS.map(([k, t]) => `<label class="hint">${t}<input type="number" step="0.1" class="man-in" data-k="${escapeAttr(k)}" value="${escapeAttr((item.man || {})[k] == null ? "" : item.man[k])}"></label>`).join("")}
       </div></details>`}
-    <details class="scout-fich" data-n="${escapeAttr(item.nombre)}" style="margin:8px 0;"><summary class="hint" style="cursor:pointer;"><b>🎬 Vídeos y notas de scouting</b> (${scoutContador("jugadoras", item.nombre)})</summary><div class="scout-fich-caja" style="margin-top:8px;"></div></details>
-    <button class="btn-partido btn-informe-ia" data-bn="${escapeAttr(item.nombre)}" data-be="${escapeAttr(item.equipo)}" style="margin:8px 0;background:#5b3fd1;">🧠 Informe IA</button>
-    <textarea class="nota-fichaje" rows="2" placeholder="Por que te interesa, que aporta, que dudas tienes...">${escapeHtml(item.nota || "")}</textarea>
+    <details class="scout-fich fc-d" data-n="${escapeAttr(item.nombre)}"><summary class="hint" style="cursor:pointer;"><b>🎬 Vídeos y notas de scouting</b> (${scoutContador("jugadoras", item.nombre)})</summary><div class="scout-fich-caja" style="margin-top:8px;"></div></details>
     <div class="vids-fichaje" data-clave="${escapeAttr(clave)}" style="margin-top:10px;"><p class="hint" style="margin:0;">🎬 Cargando vídeos…</p></div>
   </div>`;
 }
@@ -9324,7 +9346,7 @@ function isosDe(pais) {
 }
 const emojiBandera = (iso) => iso.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
 function banderasDe(pais) {
-  return isosDe(pais).map(i => `<img src="https://flagcdn.com/w40/${i}.png" alt="${emojiBandera(i)}" width="20" height="15" style="vertical-align:-2px;border-radius:2px;margin-right:3px;box-shadow:0 0 0 1px rgba(0,0,0,.15);" onerror="this.replaceWith(document.createTextNode('${emojiBandera(i)} '))">`).join("");
+  return isosDe(pais).map(i => `<img class="bandera" src="https://flagcdn.com/w40/${i}.png" alt="${emojiBandera(i)}" width="20" height="15" style="vertical-align:-2px;border-radius:2px;margin-right:3px;box-shadow:0 0 0 1px rgba(0,0,0,.15);" onerror="this.replaceWith(document.createTextNode('${emojiBandera(i)} '))">`).join("");
 }
 const chapaOrigen = (pais) => { const c = claseOrigen(pais); if (!c) return ""; const col = { "Española": "#2EA36B", "Europea": "#2a7bb8", "Cotonú": "#c9961a", "Extranjera": "#b3261e" }[c]; return `${banderasDe(pais)}<span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;font-weight:800;color:#fff;background:${col}">${c}</span>`; };
 
