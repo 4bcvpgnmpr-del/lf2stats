@@ -1888,9 +1888,13 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
 <aside id="barraLateral">
   <div class="marca-app zona-sel" data-zona="estadisticas" title="Cambiar de zona">
     <span class="logo-bola">●</span>
-    <div><b>Scout<span>Flow</span></b><small>Estadísticas</small><small id="marcaTemporada" style="display:none">Liga Femenina 2</small></div><span class="chev">▾</span>
+    <div><b>Scout<span>Flow</span></b><small>Estadísticas</small><small id="marcaTemporada" style="display:none"></small></div><span class="chev">▾</span>
   </div>
   <div class="tarj-eq" id="tarjetaEquipo" role="button" tabindex="0" title="Mi equipo"></div>
+  <div class="sel-temporada">
+    <label for="selLiga">Liga</label>
+    <select id="selLiga"></select>
+  </div>
   <div class="sel-temporada">
     <label for="selTemporada">Temporada</label>
     <select id="selTemporada"></select>
@@ -2168,7 +2172,23 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
 /* ============================================================
    CONFIGURACION
    ============================================================ */
-const SHEET_ID = "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94";
+/* Ligas: cada una vive en su propio Google Sheet (la LF Challenge se rellena con otro workflow de GitHub Actions).
+   Para activar la Challenge: pega aqui el ID de su hoja, o la app te lo pedira al elegirla. */
+const SHEET_ID_CHALLENGE = "1saNjPCuhOY_FB5OdPHmft0OtJiqL5cBaOBhBo6R1Nzo";
+const LIGAS = [
+  { id: "lf2", n: "Liga Femenina 2", sheet: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94" },
+  { id: "challenge", n: "LF Challenge", sheet: SHEET_ID_CHALLENGE },
+];
+let ligaActiva = "lf2";
+try {
+  const l = localStorage.getItem("lf2_liga"), ch = localStorage.getItem("lf2_sheet_challenge");
+  if (ch) LIGAS[1].sheet = ch;
+  if (l && LIGAS.some(x => x.id === l && x.sheet)) ligaActiva = l;
+} catch (e) { /* se usa la LF2 */ }
+{ const q = new URLSearchParams(location.search).get("liga"); if (q && LIGAS.some(x => x.id === q && x.sheet)) ligaActiva = q; }
+const LIGA_ACTUAL = LIGAS.find(x => x.id === ligaActiva) || LIGAS[0];
+const LIGA_NOMBRE = LIGA_ACTUAL.n;
+const SHEET_ID = LIGA_ACTUAL.sheet;
 
 /* ============================================================
    TEMPORADAS
@@ -7498,7 +7518,7 @@ function informeHtml(nombre) {
         <div>
           <span class="tipo">Informe de scouting</span>
           <h2>${escapeHtml(nombre)}</h2>
-          <span class="sub">${escapeHtml(grupoDeEquipo(nombre) ? "Liga Femenina 2 · Grupo " + grupoDeEquipo(nombre) : "Liga Femenina 2")}</span>
+          <span class="sub">${escapeHtml(grupoDeEquipo(nombre) ? LIGA_NOMBRE + " · Grupo " + grupoDeEquipo(nombre) : LIGA_NOMBRE)}</span>
         </div>
       </div>
       <div class="fecha-print">
@@ -7730,7 +7750,7 @@ function htmlImpresionInforme(nombre) {
         ${escudo ? `<img class="escudo" src="${escapeAttr(escudo)}" alt="">` : ""}
         <div><span class="tipo">Informe de scouting</span>
           <h1>${esc(nombre)}</h1>
-          <span class="sub">${esc(grupo ? "Liga Femenina 2 · Grupo " + grupo : "Liga Femenina 2")}</span></div>
+          <span class="sub">${esc(grupo ? LIGA_NOMBRE + " · Grupo " + grupo : LIGA_NOMBRE)}</span></div>
       </div>
       <div class="fecha">${esc(new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }))}</div>
     </div>
@@ -9034,7 +9054,7 @@ function alternarFichaje(nombre, equipo) {
   const clave = claveFichaje(nombre, equipo);
   if (lista[clave]) delete lista[clave];
   else lista[clave] = { nombre, equipo, fecha: new Date().toISOString(), nota: "", prioridad: "Media",
-                        puesto: "", pais: "", liga: "Liga Femenina 2", externa: false };
+                        puesto: "", pais: "", liga: LIGA_NOMBRE, externa: false };
   scoutGuardar();
   return !!lista[clave];
 }
@@ -9451,14 +9471,14 @@ function ejecutarBusquedaFichajes(box) {
   const top = out.slice(0, 40);
   res.innerHTML = out.length ? `<p class="hint">${out.length} jugadora${out.length === 1 ? "" : "s"}${out.length > 40 ? " (se muestran las 40 primeras)" : ""}. ⭐ = guardar en tus fichajes.</p><div class="table-scroll"><table class="limpia"><thead><tr><th></th><th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Edad</th><th>Alt.</th><th>Procedencia</th>${hayPesos ? "<th>Encaje</th>" : ""}${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>
     ${top.map(x => `<tr><td><button class="anadir-fichaje" data-bn="${escapeAttr(x.nombre)}" data-be="${escapeAttr(x.equipo)}" style="padding:2px 8px;">${esFichaje(x.nombre, x.equipo) ? "✓" : "⭐"}</button> <button class="btn-informe-ia" data-bn="${escapeAttr(x.nombre)}" data-be="${escapeAttr(x.equipo)}" title="Informe IA" style="padding:2px 8px;">🧠</button></td>
-      <td class="equipo"><b class="rank-name" data-player="${escapeAttr(x.nombre)}"><span class="txt">${escapeHtml(x.nombre)}</span></b></td><td style="text-align:left;">${escapeHtml(x.equipo)}</td><td style="text-align:left;">Liga Femenina 2</td><td>${escapeHtml(x.puesto || "-")}</td><td>${x.edad == null ? "-" : x.edad}</td><td>${x.alt == null ? "-" : x.alt}</td><td>${x.origen ? chapaOrigen(x.pais) + `<div class="hint" style="font-size:11px;">${escapeHtml(x.pais)}</div>` : "-"}</td>
+      <td class="equipo"><b class="rank-name" data-player="${escapeAttr(x.nombre)}"><span class="txt">${escapeHtml(x.nombre)}</span></b></td><td style="text-align:left;">${escapeHtml(x.equipo)}</td><td style="text-align:left;">${escapeHtml(LIGA_NOMBRE)}</td><td>${escapeHtml(x.puesto || "-")}</td><td>${x.edad == null ? "-" : x.edad}</td><td>${x.alt == null ? "-" : x.alt}</td><td>${x.origen ? chapaOrigen(x.pais) + `<div class="hint" style="font-size:11px;">${escapeHtml(x.pais)}</div>` : "-"}</td>
       ${hayPesos ? `<td style="text-align:left;min-width:150px;"><b style="font-size:16px;color:${x.nota >= 70 ? "#0a7d4f" : x.nota >= 50 ? "#b7791f" : "#6b7280"};">${x.nota == null ? "-" : x.nota}</b><div class="hint" style="font-size:11px;">${escapeHtml(x.porque || "")}</div></td>` : ""}
       ${cols.map(c => `<td>${x.m[c] == null ? "-" : fmtNum(x.m[c])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<p class="hint">Ninguna jugadora cumple todo a la vez. Prueba a bajar algún mínimo.</p>`;
   res.querySelectorAll(".anadir-fichaje").forEach(b => b.addEventListener("click", () => {
     const n = b.getAttribute("data-bn"), e = b.getAttribute("data-be");
     if (!esFichaje(n, e)) {
       alternarFichaje(n, e); const it = listaFichajes()[claveFichaje(n, e)]; const f = fichaOficial(n, e);
-      if (it && f) { const pu = cellText(f, "Puesto"); const ok = PUESTOS.find(p => _sin(p).replace(/[^a-z]/g, "") === _sin(pu).replace(/[^a-z]/g, "")); if (ok) it.puesto = ok; it.pais = cellText(f, "Nacionalidad"); it.liga = "Liga Femenina 2"; scoutGuardar(); }
+      if (it && f) { const pu = cellText(f, "Puesto"); const ok = PUESTOS.find(p => _sin(p).replace(/[^a-z]/g, "") === _sin(pu).replace(/[^a-z]/g, "")); if (ok) it.puesto = ok; it.pais = cellText(f, "Nacionalidad"); it.liga = LIGA_NOMBRE; scoutGuardar(); }
     } else { alternarFichaje(n, e); }
     renderFichajes();
   }));
@@ -9468,7 +9488,7 @@ function ejecutarBusquedaFichajes(box) {
 function datosParaIA(nombre, equipo) {
   const fila = filaJugadoraPorNombre(nombre, equipo) || ((jugadoras && jugadoras.rows) || []).find(r => cellText(r, "Jugador") === nombre);
   const f = fichaOficial(nombre, equipo), it = listaFichajes()[claveFichaje(nombre, equipo)] || {};
-  const L = [`Jugadora: ${nombre}`, `Equipo: ${equipo}`, `Liga: ${it.liga || "Liga Femenina 2"}`];
+  const L = [`Jugadora: ${nombre}`, `Equipo: ${equipo}`, `Liga: ${it.liga || LIGA_NOMBRE}`];
   const pu = (f && cellText(f, "Puesto")) || it.puesto, pais = (f && cellText(f, "Nacionalidad")) || it.pais;
   if (pu) L.push("Puesto: " + pu);
   if (pais) L.push(`Nacionalidad: ${pais} (${claseOrigen(pais) || "sin clasificar"})`);
@@ -13088,7 +13108,7 @@ function portadaInforme() {
 
   const nPartidos = resultados
     ? resultados.rows.filter(r => cellText(r, "Jugado") === "Si").length : 0;
-  const competicion = "Liga Femenina 2" + (grupoActivo ? " · Grupo " + grupoActivo : "");
+  const competicion = LIGA_NOMBRE + (grupoActivo ? " · Grupo " + grupoActivo : "");
   const fecha = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
 
   const pie = (etiqueta, valor) => valor
@@ -13156,9 +13176,9 @@ function rellenarCabeceraImpresion() {
 
   if (sub) {
     sub.textContent = enInforme ? tit.value.trim() + grupoTxt
-      : (NOMBRE_VISTA[vistaActual] || "Liga Femenina 2") + grupoTxt;
+      : (NOMBRE_VISTA[vistaActual] || LIGA_NOMBRE) + grupoTxt;
   }
-  if (der) der.textContent = enInforme ? "Informe tecnico" : "Liga Femenina 2";
+  if (der) der.textContent = enInforme ? "Informe tecnico" : LIGA_NOMBRE;
   if (pieDer) pieDer.textContent = "Generado el " + fecha;
 }
 
@@ -13961,13 +13981,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 })();
+function prepararSelectorLiga() {
+  const sel = document.getElementById("selLiga"); if (!sel) return;
+  sel.innerHTML = LIGAS.map(l => `<option value="${escapeAttr(l.id)}"${l.id === ligaActiva ? " selected" : ""}>${escapeHtml(l.n)}</option>`).join("");
+  sel.addEventListener("change", () => {
+    const l = LIGAS.find(x => x.id === sel.value); if (!l) return;
+    if (!l.sheet) {
+      const id = (window.prompt("Pega el ID de la hoja de Google de " + l.n + " (lo que va entre /d/ y /edit en su dirección):") || "").trim();
+      if (!id) { sel.value = ligaActiva; return; }
+      try { localStorage.setItem("lf2_sheet_challenge", id); } catch (e) { /* nada */ }
+    }
+    try { localStorage.setItem("lf2_liga", l.id); } catch (e) { /* nada */ }
+    location.reload();   // hay muchas tablas en memoria: no se mezclan dos ligas
+  });
+}
 function prepararSelectorTemporada() {
   const sel = document.getElementById("selTemporada");
   if (!sel) return;
   sel.innerHTML = TEMPORADAS.map(t =>
     `<option value="${escapeAttr(t.id)}"${t.id === temporadaActiva ? " selected" : ""}>${escapeHtml(t.etiqueta)}</option>`).join("");
   const marca = document.getElementById("marcaTemporada");
-  if (marca) marca.textContent = "Liga Femenina 2 · " + datosTemporada().etiqueta;
+  if (marca) marca.textContent = LIGA_NOMBRE + " · " + datosTemporada().etiqueta;
 
   sel.addEventListener("change", () => {
     const nueva = sel.value;
@@ -13981,6 +14015,7 @@ function prepararSelectorTemporada() {
 }
 
 console.log("ScoutFlow - version", VERSION_APP, "· temporada", temporadaActiva);
+prepararSelectorLiga();
 prepararSelectorTemporada();
 document.getElementById("lastUpdated").textContent = "Cargando... (v" + VERSION_APP + ")";
 Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
