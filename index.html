@@ -5517,6 +5517,7 @@ function scoutUnion(nube, loc) {
   });
   const bs = (nube && nube.busquedas) || [], bl = (loc && loc.busquedas) || [];
   out.busquedas = bs.concat(bl.filter(x => !bs.some(y => (y.nombre || "").toLowerCase() === (x.nombre || "").toLowerCase())));
+  out.miEquipo = Object.assign({}, (nube && nube.miEquipo) || {}, (loc && loc.miEquipo) || {});
   out.actualizado = new Date().toISOString();
   return out;
 }
@@ -9987,8 +9988,12 @@ function dashboardMiEquipo(nombre, partidos, jugados, pendientes, proximo) {
 /* ============================================================
    MI EQUIPO: panel propio del equipo que elija el usuario
    ============================================================ */
+/* Cada liga recuerda su propio "mi equipo": elegir uno en la Challenge no cambia el de la LF2 */
+const CLAVE_MI_EQUIPO = ligaActiva === "lf2" ? "lf2_mi_equipo" : "lf2_mi_equipo_" + ligaActiva;
 let miEquipo = "";
-try { miEquipo = localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { miEquipo = ""; }
+try { miEquipo = localStorage.getItem(CLAVE_MI_EQUIPO) || ""; } catch (e) { miEquipo = ""; }
+if (!miEquipo && scouting && scouting.miEquipo && scouting.miEquipo[ligaActiva]) miEquipo = scouting.miEquipo[ligaActiva];
+if (miEquipo && !((scouting.miEquipo || {})[ligaActiva])) { scouting.miEquipo = Object.assign({}, scouting.miEquipo || {}, { [ligaActiva]: miEquipo }); scoutGuardar(); }
 
 function pintarTarjetaEquipo() {
   const c = document.getElementById("tarjetaEquipo"); if (!c) return;
@@ -9999,7 +10004,8 @@ function pintarTarjetaEquipo() {
 }
 function guardarMiEquipo(nombre) {
   miEquipo = nombre;
-  try { localStorage.setItem("lf2_mi_equipo", nombre); } catch (e) { /* sin guardar, no pasa nada */ }
+  try { localStorage.setItem(CLAVE_MI_EQUIPO, nombre); } catch (e) { /* sin guardar, no pasa nada */ }
+  try { scouting.miEquipo = Object.assign({}, scouting.miEquipo || {}, { [ligaActiva]: nombre }); scoutGuardar(); } catch (e) { /* nada */ }   // se sincroniza con la tablet
   pintarTarjetaEquipo();
   try { pintarHeroInicio(); } catch (e) { /* nada */ }
   renderMiEquipo();
