@@ -9013,6 +9013,7 @@ function tarjetaFichaje(item, liga) {
         <input type="text" class="liga-fichaje" value="${escapeAttr(item.liga || "")}" placeholder="Liga Femenina 2, LF Challenge...">
       </label>
     </div>
+    <button class="btn-partido btn-informe-ia" data-bn="${escapeAttr(item.nombre)}" data-be="${escapeAttr(item.equipo)}" style="margin:8px 0;background:#5b3fd1;">🧠 Informe IA</button>
     <textarea class="nota-fichaje" rows="2" placeholder="Por que te interesa, que aporta, que dudas tienes...">${escapeHtml(item.nota || "")}</textarea>
     <div class="vids-fichaje" data-clave="${escapeAttr(clave)}" style="margin-top:10px;"><p class="hint" style="margin:0;">🎬 Cargando vídeos…</p></div>
   </div>`;
@@ -9275,7 +9276,7 @@ function ejecutarBusquedaFichajes(box) {
   const cols = ["PJ", "MIN", "PTS", "REB", "AST", "3P%", "TS%", "VAL"];
   const top = out.slice(0, 40);
   res.innerHTML = out.length ? `<p class="hint">${out.length} jugadora${out.length === 1 ? "" : "s"}${out.length > 40 ? " (se muestran las 40 primeras)" : ""}. ⭐ = guardar en tus fichajes.</p><div class="table-scroll"><table class="limpia"><thead><tr><th></th><th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Edad</th><th>Alt.</th><th>Procedencia</th>${hayPesos ? "<th>Encaje</th>" : ""}${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>
-    ${top.map(x => `<tr><td><button class="anadir-fichaje" data-bn="${escapeAttr(x.nombre)}" data-be="${escapeAttr(x.equipo)}" style="padding:2px 8px;">${esFichaje(x.nombre, x.equipo) ? "✓" : "⭐"}</button></td>
+    ${top.map(x => `<tr><td><button class="anadir-fichaje" data-bn="${escapeAttr(x.nombre)}" data-be="${escapeAttr(x.equipo)}" style="padding:2px 8px;">${esFichaje(x.nombre, x.equipo) ? "✓" : "⭐"}</button> <button class="btn-informe-ia" data-bn="${escapeAttr(x.nombre)}" data-be="${escapeAttr(x.equipo)}" title="Informe IA" style="padding:2px 8px;">🧠</button></td>
       <td class="equipo"><b class="rank-name" data-player="${escapeAttr(x.nombre)}"><span class="txt">${escapeHtml(x.nombre)}</span></b></td><td style="text-align:left;">${escapeHtml(x.equipo)}</td><td style="text-align:left;">Liga Femenina 2</td><td>${escapeHtml(x.puesto || "-")}</td><td>${x.edad == null ? "-" : x.edad}</td><td>${x.alt == null ? "-" : x.alt}</td><td>${x.origen ? chapaOrigen(x.pais) + `<div class="hint" style="font-size:11px;">${escapeHtml(x.pais)}</div>` : "-"}</td>
       ${hayPesos ? `<td style="text-align:left;min-width:150px;"><b style="font-size:16px;color:${x.nota >= 70 ? "#0a7d4f" : x.nota >= 50 ? "#b7791f" : "#6b7280"};">${x.nota == null ? "-" : x.nota}</b><div class="hint" style="font-size:11px;">${escapeHtml(x.porque || "")}</div></td>` : ""}
       ${cols.map(c => `<td>${x.m[c] == null ? "-" : fmtNum(x.m[c])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<p class="hint">Ninguna jugadora cumple todo a la vez. Prueba a bajar algún mínimo.</p>`;
@@ -9289,6 +9290,61 @@ function ejecutarBusquedaFichajes(box) {
   }));
   if (typeof wireRankClicks === "function") wireRankClicks(res);
 }
+/* ---- Informe IA de una jugadora (con clave en Supabase) o datos listos para pegar en Claude ---- */
+function datosParaIA(nombre, equipo) {
+  const fila = filaJugadoraPorNombre(nombre, equipo) || ((jugadoras && jugadoras.rows) || []).find(r => cellText(r, "Jugador") === nombre);
+  const f = fichaOficial(nombre, equipo), it = listaFichajes()[claveFichaje(nombre, equipo)] || {};
+  const L = [`Jugadora: ${nombre}`, `Equipo: ${equipo}`, `Liga: ${it.liga || "Liga Femenina 2"}`];
+  const pu = (f && cellText(f, "Puesto")) || it.puesto, pais = (f && cellText(f, "Nacionalidad")) || it.pais;
+  if (pu) L.push("Puesto: " + pu);
+  if (pais) L.push(`Nacionalidad: ${pais} (${claseOrigen(pais) || "sin clasificar"})`);
+  if (f) { const ed = cellText(f, "Edad"), al = cellText(f, "Altura"); if (ed) L.push("Edad: " + ed); if (al) L.push("Altura: " + al); }
+  if (fila) {
+    const m = metricasJugadora(fila), liga = ligaComparable();
+    L.push("", "Estadísticas de la temporada (media por partido) y puesto entre las jugadoras de la liga:");
+    METRICAS_PERFIL.forEach(([c, t]) => {
+      if (m[c] == null) return; const d = puestosYpercentiles(c, m[c], liga);
+      L.push(`- ${t}: ${fmtNum(m[c])}${d ? ` (${d.puesto}.ª de ${d.total})` : ""}`);
+    });
+    ["PJ", "MIN"].forEach(c => { if (m[c] != null) L.push(`- ${c}: ${fmtNum(m[c])}`); });
+  } else L.push("", "Sin estadísticas de esta temporada en la liga.");
+  if (it.nota) L.push("", "Nota del entrenador: " + it.nota);
+  return L.join("\n");
+}
+function abrirInformeIA(nombre, equipo) {
+  const datos = datosParaIA(nombre, equipo);
+  let ov = document.getElementById("iaOv"); if (ov) ov.remove();
+  ov = document.createElement("div"); ov.id = "iaOv";
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;";
+  ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:90vh;overflow:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <div style="display:flex;justify-content:space-between;align-items:center;"><h3 style="margin:0;">🧠 Informe IA · ${escapeHtml(nombre)}</h3><button id="iaX" class="btn-partido" style="background:var(--ink);padding:4px 12px;">✕</button></div>
+    <label class="hint" style="display:block;margin-top:10px;">¿Qué buscas? (opcional)<input type="text" id="iaEnfoque" placeholder="Ej: pívot que corra la pista y rebotee, presupuesto bajo" style="width:100%;"></label>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn-partido" id="iaGen" style="background:#5b3fd1;">🧠 Generar informe</button><button class="btn-partido" id="iaCopia" style="background:var(--ink);">📋 Copiar datos para pegarlos en Claude</button></div>
+    <div id="iaRes" style="margin-top:12px;white-space:pre-wrap;line-height:1.5;"></div>
+    <details style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Ver los datos que se envían</summary><pre style="white-space:pre-wrap;font-size:12px;background:#f4f4f6;padding:10px;border-radius:8px;">${escapeHtml(datos)}</pre></details></div>`;
+  document.body.appendChild(ov);
+  const q = (id) => ov.querySelector("#" + id), cerrar = () => ov.remove();
+  q("iaX").onclick = cerrar; ov.addEventListener("click", (e) => { if (e.target === ov) cerrar(); });
+  q("iaCopia").onclick = async () => {
+    const enf = q("iaEnfoque").value.trim();
+    const txt = `Hazme un informe de scouting breve de esta jugadora usando SOLO estos datos (sin inventar nada)${enf ? ". Busco: " + enf : ""}:\n\n${datos}`;
+    try { await navigator.clipboard.writeText(txt); q("iaRes").textContent = "✅ Copiado. Pégalo en el chat con Claude."; } catch (e) { q("iaRes").textContent = txt; }
+  };
+  q("iaGen").onclick = async () => {
+    const sb = (typeof clienteJugadoras === "function") ? clienteJugadoras() : null;
+    const res = q("iaRes"), btn = q("iaGen");
+    if (!sb) { res.textContent = "No hay conexión con la nube."; return; }
+    btn.disabled = true; res.textContent = "⏳ Redactando…";
+    try {
+      const r = await sb.functions.invoke("informe-ia", { body: { datos, enfoque: q("iaEnfoque").value.trim() } });
+      if (r.error) { let det = ""; try { const j = await r.error.context.clone().json(); det = j.error || ""; } catch (e) { /* nada */ } throw new Error(det || r.error.message || "sin respuesta"); }
+      if (r.data && r.data.error) throw new Error(r.data.error);
+      res.textContent = (r.data && r.data.texto) || "La IA no devolvió texto.";
+    } catch (e) { res.textContent = "⚠️ No se pudo generar: " + (e.message || e) + "\n\nPuedes usar «Copiar datos» y pegarlos en el chat con Claude."; }
+    btn.disabled = false;
+  };
+}
+document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest(".btn-informe-ia"); if (b) abrirInformeIA(b.getAttribute("data-bn"), b.getAttribute("data-be")); });
 function wireBuscadorFichajes(box) {
   const b = box.querySelector("#bf-buscar"); if (!b) return;
   const det = box.querySelector("#bfPanel");
