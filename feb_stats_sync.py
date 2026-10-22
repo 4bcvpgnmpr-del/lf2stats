@@ -15,6 +15,9 @@ CONFIGURACION (variables de entorno):
                         para los resultados)
     FEB_SEASON_START -> año de inicio de temporada, p.ej. 2025 para 2025/2026
     FEB_SLUG         -> "nm" que usa la URL (LF2 = "lf2")
+    FEB_SLUG_URL     -> (opcional) nombre que va en la direccion, p.ej. lfchallenge
+                        (LF Challenge: FEB_COMPETICION=67, FEB_SLUG_URL=lfchallenge,
+                        FEB_COMPETICIONES="U:67", y su propio GOOGLE_SHEET_ID)
     GOOGLE_SHEET_ID  -> ID de tu Google Sheet
     GOOGLE_SERVICE_ACCOUNT_JSON -> contenido JSON de la service account
 """
@@ -77,9 +80,13 @@ BASE_URL = "https://www.feb.es/competiciones"
 SITIO_DATOS = os.environ.get("FEB_SITIO", "https://baloncestoenvivo.feb.es")
 COMPETICION = os.environ.get("FEB_COMPETICION", "9")
 
-ESTADISTICAS_URL = f"{SITIO_DATOS}/estadisticas/{COMPETICION}/{SEASON_START}"
-RANKINGS_URL = f"{SITIO_DATOS}/rankings/{COMPETICION}/{SEASON_START}"
-RESULTADOS_URL = f"{SITIO_DATOS}/resultados/{COMPETICION}/{SEASON_START}"
+# Algunas competiciones llevan un nombre en la direccion, p.ej. LF Challenge:
+#   /resultados/lfchallenge/67/2026   -> FEB_SLUG_URL=lfchallenge  y  FEB_COMPETICION=67
+# Para la LF2 se deja vacio y todo funciona como siempre.
+PREFIJO_URL = (os.environ.get("FEB_SLUG_URL", "").strip().strip("/") + "/") if os.environ.get("FEB_SLUG_URL", "").strip() else ""
+ESTADISTICAS_URL = f"{SITIO_DATOS}/estadisticas/{PREFIJO_URL}{COMPETICION}/{SEASON_START}"
+RANKINGS_URL = f"{SITIO_DATOS}/rankings/{PREFIJO_URL}{COMPETICION}/{SEASON_START}"
+RESULTADOS_URL = f"{SITIO_DATOS}/resultados/{PREFIJO_URL}{COMPETICION}/{SEASON_START}"
 
 # Las fichas de partido siguen en el dominio de siempre
 PARTIDO_BASE = BASE_URL
@@ -514,7 +521,7 @@ def _es_liga_regular(texto: str) -> bool:
 
 def _nombre_grupo(texto: str) -> str:
     """'Liga Regular "A"' -> 'A'. Si no es un grupo de liga regular -> ''."""
-    m = re.search(r"liga\s+regular\W*([A-Za-z0-9]+)", texto, re.I)
+    m = re.search(r"liga\s+regular\W*([^\W_]+)", texto, re.I)
     return m.group(1).upper() if m else ""
 
 
@@ -1358,7 +1365,7 @@ RE_FECHA = re.compile(r"(\d{2}/\d{2}/\d{4})")
 
 def _equipos_de_grupo_envivo(session, competicion: str) -> dict:
     """{id_equipo: nombre} de un grupo, leyendo los enlaces de su calendario."""
-    url = f"{BALONCESTO_BASE}/resultados/{competicion}/{SEASON_START}"
+    url = f"{BALONCESTO_BASE}/resultados/{PREFIJO_URL}{competicion}/{SEASON_START}"
     try:
         html = _request_con_reintentos(session, "GET", url).text
     except Exception as exc:  # noqa: BLE001
