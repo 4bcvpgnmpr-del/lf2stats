@@ -8939,7 +8939,7 @@ function dibujarRadarJugadora(playerName, equipoNombre) {
    ============================================================ */
 const PRIORIDADES = ["Alta", "Media", "Baja"];
 const PUESTOS = ["Base", "Escolta", "Alero", "Ala-pivot", "Pivot", "Sin indicar"];
-let filtrosFichajes = { puesto: "", pais: "", liga: "" };
+let filtrosFichajes = { puesto: "", pais: "", liga: "", origen: "" };
 
 function listaFichajes() {
   if (!scouting.fichajes) scouting.fichajes = {};
@@ -8992,7 +8992,7 @@ function tarjetaFichaje(item, liga) {
       <div style="flex:1;min-width:0;">
         <b class="rank-name" data-player="${escapeAttr(item.nombre)}">${escapeHtml(item.nombre)}</b>
         <div class="hint">${escudoImgHtml(item.equipo, 16)}${escapeHtml(item.equipo)}${item.liga ? " · " + escapeHtml(item.liga) : ""}${m && m.PJ ? " · " + fmtNum(m.PJ) + " partidos" : ""}</div>
-        <div class="hint">${[item.puesto, item.pais].filter(Boolean).map(escapeHtml).join(" · ")}</div>
+        <div class="hint">${[item.puesto, item.pais].filter(Boolean).map(escapeHtml).join(" · ")} ${chapaOrigen(item.pais)}</div>
       </div>
       <button class="scout-borrar quitar-fichaje" title="Quitar de la lista">✕</button>
     </div>
@@ -9040,7 +9040,8 @@ function renderFichajes() {
   const visibles = lista.filter(i =>
     (!filtrosFichajes.puesto || (i.puesto || "") === filtrosFichajes.puesto) &&
     (!filtrosFichajes.pais || (i.pais || "") === filtrosFichajes.pais) &&
-    (!filtrosFichajes.liga || (i.liga || "") === filtrosFichajes.liga));
+    (!filtrosFichajes.liga || (i.liga || "") === filtrosFichajes.liga) &&
+    (!filtrosFichajes.origen || claseOrigen(i.pais) === filtrosFichajes.origen));
   visibles.sort((a, b) => (orden[a.prioridad] ?? 1) - (orden[b.prioridad] ?? 1));
 
   // Tabla comparativa de todas las candidatas
@@ -9050,7 +9051,7 @@ function renderFichajes() {
   const cols = [["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["VAL", "VAL"], ["MIN", "MIN"],
                 ["TS%", "TS%"], ["3P%", "3P%"], ["USO%", "USO%"], ["PER", "PER"]];
   const tabla = comparables.length ? `<div class="table-scroll"><table class="limpia"><thead><tr>
-      <th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Pais</th><th>Prioridad</th>
+      <th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Pais</th><th>Procedencia</th><th>Prioridad</th>
       ${cols.map(c => `<th>${escapeHtml(c[1])}</th>`).join("")}</tr></thead><tbody>
       ${comparables.map(x => `<tr>
         <td class="equipo"><b class="rank-name" data-player="${escapeAttr(x.item.nombre)}"><span class="txt">${escapeHtml(x.item.nombre)}</span></b></td>
@@ -9058,6 +9059,7 @@ function renderFichajes() {
         <td style="text-align:left;">${escapeHtml(x.item.liga || "-")}</td>
         <td>${escapeHtml(x.item.puesto || "-")}</td>
         <td>${escapeHtml(x.item.pais || "-")}</td>
+        <td>${chapaOrigen(x.item.pais) || "-"}</td>
         <td>${escapeHtml(x.item.prioridad || "Media")}</td>
         ${cols.map(c => `<td>${x.m[c[0]] === null || x.m[c[0]] === undefined ? "-" : fmtNum(x.m[c[0]])}</td>`).join("")}
       </tr>`).join("")}</tbody></table></div>` : "";
@@ -9140,6 +9142,132 @@ function verVideoFichaje(v, item, lista) {
   document.getElementById("capaVidFich").addEventListener("click", (e) => { if (e.target.id === "capaVidFich") cerrar(); });
 }
 
+/* ---------- Procedencia de la jugadora: española, europea, cotonú o extranjera ---------- */
+const _sin = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const PAISES_ES = ["espana", "spain"];
+const PAISES_EU = ["alemania", "austria", "belgica", "bulgaria", "chipre", "croacia", "dinamarca", "eslovaquia", "eslovenia", "estonia", "finlandia", "francia", "grecia", "hungria", "irlanda", "italia", "letonia", "lituania", "luxemburgo", "malta", "paises bajos", "holanda", "polonia", "portugal", "republica checa", "chequia", "rumania", "suecia", "noruega", "islandia", "liechtenstein", "suiza",
+  "germany", "france", "italy", "netherlands", "poland", "sweden", "belgium", "greece", "czech", "romania", "hungary", "denmark", "finland", "ireland", "latvia", "lithuania", "slovenia", "slovakia", "croatia", "switzerland"];
+const PAISES_COTONU = ["angola", "benin", "camerun", "costa de marfil", "senegal", "nigeria", "mali", "congo", "gabon", "guinea", "ghana", "gambia", "sierra leona", "liberia", "togo", "burkina", "niger", "chad", "mauritania", "cabo verde", "santo tome", "etiopia", "kenia", "tanzania", "uganda", "ruanda", "burundi", "sudan", "somalia", "yibuti", "eritrea", "mozambique", "zambia", "zimbabue", "malaui", "namibia", "botsuana", "sudafrica", "lesoto", "esuatini", "suazilandia", "madagascar", "mauricio", "seychelles", "comoras", "centroafricana",
+  "cuba", "dominicana", "haiti", "jamaica", "bahamas", "barbados", "trinidad", "granada", "santa lucia", "san vicente", "dominica", "antigua", "san cristobal", "belice", "guyana", "surinam",
+  "fiyi", "papua", "samoa", "tonga", "vanuatu", "salomon", "kiribati", "tuvalu", "nauru", "micronesia", "marshall", "palaos", "timor",
+  "cameroon", "ivory", "senegal", "dominican", "haiti"];
+function claseOrigen(pais) {
+  const p = _sin(pais).trim(); if (!p) return "";
+  const tiene = (lista) => lista.some(x => p.includes(x));
+  if (tiene(PAISES_ES)) return "Española";
+  if (tiene(PAISES_EU)) return "Europea";
+  if (tiene(PAISES_COTONU)) return "Cotonú";
+  return "Extranjera";
+}
+const ORIGENES = ["Española", "Europea", "Cotonú", "Extranjera"];
+/* ---------- Banderas ---------- */
+const ISO_PAIS = { "espana": "es", "spain": "es", "alemania": "de", "germany": "de", "austria": "at", "belgica": "be", "belgium": "be", "bulgaria": "bg", "chipre": "cy", "croacia": "hr", "croatia": "hr", "dinamarca": "dk", "denmark": "dk", "eslovaquia": "sk", "slovakia": "sk", "eslovenia": "si", "slovenia": "si", "estonia": "ee", "finlandia": "fi", "finland": "fi", "francia": "fr", "france": "fr", "grecia": "gr", "greece": "gr", "hungria": "hu", "hungary": "hu", "irlanda": "ie", "ireland": "ie", "italia": "it", "italy": "it", "letonia": "lv", "latvia": "lv", "lituania": "lt", "lithuania": "lt", "luxemburgo": "lu", "malta": "mt", "paises bajos": "nl", "holanda": "nl", "netherlands": "nl", "polonia": "pl", "poland": "pl", "portugal": "pt", "republica checa": "cz", "chequia": "cz", "czech": "cz", "rumania": "ro", "romania": "ro", "suecia": "se", "sweden": "se", "noruega": "no", "islandia": "is", "liechtenstein": "li", "suiza": "ch", "switzerland": "ch",
+  "reino unido": "gb", "inglaterra": "gb", "gran bretana": "gb", "united kingdom": "gb", "escocia": "gb", "gales": "gb", "serbia": "rs", "montenegro": "me", "bosnia": "ba", "macedonia": "mk", "albania": "al", "kosovo": "xk", "ucrania": "ua", "ukraine": "ua", "rusia": "ru", "russia": "ru", "bielorrusia": "by", "belarus": "by", "moldavia": "md", "georgia": "ge", "armenia": "am", "turquia": "tr", "turkey": "tr", "israel": "il", "israël": "il",
+  "estados unidos": "us", "ee.uu": "us", "eeuu": "us", "usa": "us", "united states": "us", "canada": "ca", "mexico": "mx", "argentina": "ar", "brasil": "br", "brazil": "br", "chile": "cl", "colombia": "co", "venezuela": "ve", "peru": "pe", "uruguay": "uy", "paraguay": "py", "bolivia": "bo", "ecuador": "ec", "panama": "pa", "costa rica": "cr", "puerto rico": "pr", "nicaragua": "ni", "honduras": "hn", "guatemala": "gt", "el salvador": "sv",
+  "cuba": "cu", "dominicana": "do", "haiti": "ht", "jamaica": "jm", "bahamas": "bs", "barbados": "bb", "trinidad": "tt", "belice": "bz", "guyana": "gy", "surinam": "sr", "granada": "gd", "santa lucia": "lc", "dominica": "dm", "antigua": "ag",
+  "angola": "ao", "benin": "bj", "camerun": "cm", "cameroon": "cm", "costa de marfil": "ci", "ivory": "ci", "senegal": "sn", "nigeria": "ng", "mali": "ml", "congo": "cg", "gabon": "ga", "guinea ecuatorial": "gq", "guinea-bisau": "gw", "guinea bisau": "gw", "guinea": "gn", "ghana": "gh", "gambia": "gm", "sierra leona": "sl", "liberia": "lr", "togo": "tg", "burkina": "bf", "niger": "ne", "chad": "td", "mauritania": "mr", "cabo verde": "cv", "santo tome": "st", "etiopia": "et", "kenia": "ke", "tanzania": "tz", "uganda": "ug", "ruanda": "rw", "burundi": "bi", "sudan del sur": "ss", "sudan": "sd", "somalia": "so", "yibuti": "dj", "eritrea": "er", "mozambique": "mz", "zambia": "zm", "zimbabue": "zw", "malaui": "mw", "namibia": "na", "botsuana": "bw", "sudafrica": "za", "south africa": "za", "lesoto": "ls", "madagascar": "mg", "mauricio": "mu", "seychelles": "sc", "comoras": "km", "centroafricana": "cf",
+  "marruecos": "ma", "argelia": "dz", "tunez": "tn", "libia": "ly", "egipto": "eg",
+  "china": "cn", "japon": "jp", "japan": "jp", "corea": "kr", "filipinas": "ph", "india": "in", "australia": "au", "nueva zelanda": "nz", "fiyi": "fj", "papua": "pg", "samoa": "ws", "tonga": "to", "kazajistan": "kz", "irán": "ir", "iran": "ir", "libano": "lb", "arabia": "sa", "qatar": "qa" };
+const CLAVES_ISO = Object.keys(ISO_PAIS).sort((a, b) => b.length - a.length);
+function isosDe(pais) {
+  const p = _sin(pais); const out = [];
+  p.split(/[,;\/]|\sy\s|\se\s/).forEach(parte => { const t = parte.trim(); if (!t) return;
+    const k = CLAVES_ISO.find(x => t === x || t.includes(x)); if (k && !out.includes(ISO_PAIS[k])) out.push(ISO_PAIS[k]); });
+  return out;
+}
+const emojiBandera = (iso) => iso.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+function banderasDe(pais) {
+  return isosDe(pais).map(i => `<img src="https://flagcdn.com/w40/${i}.png" alt="${emojiBandera(i)}" width="20" height="15" style="vertical-align:-2px;border-radius:2px;margin-right:3px;box-shadow:0 0 0 1px rgba(0,0,0,.15);" onerror="this.replaceWith(document.createTextNode('${emojiBandera(i)} '))">`).join("");
+}
+const chapaOrigen = (pais) => { const c = claseOrigen(pais); if (!c) return ""; const col = { "Española": "#2EA36B", "Europea": "#2a7bb8", "Cotonú": "#c9961a", "Extranjera": "#b3261e" }[c]; return `${banderasDe(pais)}<span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;font-weight:800;color:#fff;background:${col}">${c}</span>`; };
+
+let _fichaMapa = null, _fichaN = -1;
+function fichaOficial(nombre, equipo) {
+  const filas = filasPlantilla();
+  if (!_fichaMapa || _fichaN !== filas.length) {
+    _fichaMapa = new Map(); _fichaN = filas.length;
+    filas.forEach(r => { for (const c of clavesNombre(cellText(r, "Jugadora"), cellText(r, "Equipo"))) if (!_fichaMapa.has(c)) _fichaMapa.set(c, r); });
+  }
+  for (const c of clavesNombre(nombre, equipo)) if (_fichaMapa.has(c)) return _fichaMapa.get(c);
+  return null;
+}
+const _numTxt = (t) => { const m = String(t || "").replace(",", ".").match(/\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null; };
+const alturaCm = (t) => { const n = _numTxt(t); if (n == null) return null; return n < 3 ? Math.round(n * 100) : n; };
+
+let busquedaFich = { p: {}, ver: false };
+const CAMPOS_BUSCA = [["PTS", "Puntos ≥"], ["REB", "Rebotes ≥"], ["AST", "Asistencias ≥"], ["3P%", "% triples ≥"], ["TS%", "TS% ≥"], ["VAL", "Valoración ≥"], ["MIN", "Minutos ≥"], ["PJ", "Partidos ≥"]];
+function panelBuscarFichajes() {
+  const filas = filasPlantilla();
+  const puestos = [...new Set(filas.map(r => cellText(r, "Puesto")).filter(Boolean))].sort();
+  const P = busquedaFich.p || {};
+  const val = (k) => escapeAttr(P[k] == null ? "" : P[k]);
+  return `<details class="panel" id="bfPanel" style="margin-top:12px;" ${busquedaFich.ver ? "open" : ""}><summary style="cursor:pointer;font-weight:800;">🔎 Buscar fichajes por parámetros</summary>
+    <p class="hint">Filtra a las jugadoras de la liga con lo que necesitas y guarda con ⭐ las que te gusten. Deja en blanco lo que no te importe.</p>
+    <div class="campos-fichaje" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
+      <label class="hint">Puesto<select id="bf-puesto"><option value="">Todos</option>${puestos.map(x => `<option ${P.puesto === x ? "selected" : ""}>${escapeHtml(x)}</option>`).join("")}</select></label>
+      <label class="hint">Procedencia<select id="bf-origen"><option value="">Todas</option>${ORIGENES.map(x => `<option ${P.origen === x ? "selected" : ""}>${x}</option>`).join("")}<option value="EUCO" ${P.origen === "EUCO" ? "selected" : ""}>Española + Europea + Cotonú (no extranjera)</option></select></label>
+      <label class="hint">Edad mín.<input type="number" id="bf-edmin" value="${val("edmin")}"></label>
+      <label class="hint">Edad máx.<input type="number" id="bf-edmax" value="${val("edmax")}"></label>
+      <label class="hint">Altura mín. (cm)<input type="number" id="bf-alt" value="${val("alt")}"></label>
+      <label class="hint">Equipo contiene<input type="text" id="bf-eq" value="${val("eq")}"></label>
+      ${CAMPOS_BUSCA.map(([k, t]) => `<label class="hint">${t}<input type="number" step="0.1" id="bf-${k.replace('%', 'p')}" value="${val(k)}"></label>`).join("")}
+      <label class="hint">Ordenar por<select id="bf-orden">${["VAL", "PTS", "REB", "AST", "3P%", "TS%", "MIN", "Edad"].map(x => `<option ${(P.orden || "VAL") === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-partido" id="bf-buscar">Buscar</button><button class="btn-partido" id="bf-limpiar" style="background:var(--ink);">Limpiar</button></div>
+    <div id="bf-res" style="margin-top:10px;"></div></details>`;
+}
+function ejecutarBusquedaFichajes(box) {
+  const g = (id) => { const e = box.querySelector("#" + id); return e ? e.value.trim() : ""; };
+  const P = { puesto: g("bf-puesto"), origen: g("bf-origen"), edmin: g("bf-edmin"), edmax: g("bf-edmax"), alt: g("bf-alt"), eq: g("bf-eq"), orden: g("bf-orden") || "VAL" };
+  CAMPOS_BUSCA.forEach(([k]) => { P[k] = g("bf-" + k.replace("%", "p")); });
+  busquedaFich = { p: P, ver: true };
+  const res = box.querySelector("#bf-res"); if (!res) return;
+  const rows = (jugadoras && jugadoras.rows) ? jugadoras.rows : [];
+  if (!rows.length) { res.innerHTML = `<p class="hint">Todavía no hay estadísticas cargadas.</p>`; return; }
+  const out = [];
+  rows.forEach(r => {
+    const nombre = cellText(r, "Jugador"), equipo = cellText(r, "Equipo"); if (!nombre) return;
+    const f = fichaOficial(nombre, equipo);
+    const puesto = f ? cellText(f, "Puesto") : "", pais = f ? cellText(f, "Nacionalidad") : "";
+    const edad = f ? _numTxt(cellText(f, "Edad")) : null, alt = f ? alturaCm(cellText(f, "Altura")) : null;
+    const m = metricasJugadora(r), origen = claseOrigen(pais);
+    if (P.puesto && puesto !== P.puesto) return;
+    if (P.origen === "EUCO" ? (origen === "Extranjera" || !origen) : (P.origen && origen !== P.origen)) return;
+    if (P.edmin && (edad == null || edad < +P.edmin)) return;
+    if (P.edmax && (edad == null || edad > +P.edmax)) return;
+    if (P.alt && (alt == null || alt < +P.alt)) return;
+    if (P.eq && !_sin(equipo).includes(_sin(P.eq))) return;
+    for (const [k] of CAMPOS_BUSCA) { if (P[k] !== "" && !(m[k] != null && m[k] >= parseFloat(P[k]))) return; }
+    out.push({ nombre, equipo, puesto, pais, origen, edad, alt, m });
+  });
+  const key = P.orden;
+  if (key === "Edad") out.sort((a, b) => (a.edad == null ? 99 : a.edad) - (b.edad == null ? 99 : b.edad));
+  else out.sort((a, b) => (b.m[key] == null ? -1e9 : b.m[key]) - (a.m[key] == null ? -1e9 : a.m[key]));
+  const cols = ["PJ", "MIN", "PTS", "REB", "AST", "3P%", "TS%", "VAL"];
+  const top = out.slice(0, 40);
+  res.innerHTML = out.length ? `<p class="hint">${out.length} jugadora${out.length === 1 ? "" : "s"}${out.length > 40 ? " (se muestran las 40 primeras)" : ""}. ⭐ = guardar en tus fichajes.</p><div class="table-scroll"><table class="limpia"><thead><tr><th></th><th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Edad</th><th>Alt.</th><th>Procedencia</th>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>
+    ${top.map(x => `<tr><td><button class="anadir-fichaje" data-bn="${escapeAttr(x.nombre)}" data-be="${escapeAttr(x.equipo)}" style="padding:2px 8px;">${esFichaje(x.nombre, x.equipo) ? "✓" : "⭐"}</button></td>
+      <td class="equipo"><b class="rank-name" data-player="${escapeAttr(x.nombre)}"><span class="txt">${escapeHtml(x.nombre)}</span></b></td><td style="text-align:left;">${escapeHtml(x.equipo)}</td><td style="text-align:left;">Liga Femenina 2</td><td>${escapeHtml(x.puesto || "-")}</td><td>${x.edad == null ? "-" : x.edad}</td><td>${x.alt == null ? "-" : x.alt}</td><td>${x.origen ? chapaOrigen(x.pais) + `<div class="hint" style="font-size:11px;">${escapeHtml(x.pais)}</div>` : "-"}</td>
+      ${cols.map(c => `<td>${x.m[c] == null ? "-" : fmtNum(x.m[c])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<p class="hint">Ninguna jugadora cumple todo a la vez. Prueba a bajar algún mínimo.</p>`;
+  res.querySelectorAll(".anadir-fichaje").forEach(b => b.addEventListener("click", () => {
+    const n = b.getAttribute("data-bn"), e = b.getAttribute("data-be");
+    if (!esFichaje(n, e)) {
+      alternarFichaje(n, e); const it = listaFichajes()[claveFichaje(n, e)]; const f = fichaOficial(n, e);
+      if (it && f) { const pu = cellText(f, "Puesto"); const ok = PUESTOS.find(p => _sin(p).replace(/[^a-z]/g, "") === _sin(pu).replace(/[^a-z]/g, "")); if (ok) it.puesto = ok; it.pais = cellText(f, "Nacionalidad"); it.liga = "Liga Femenina 2"; scoutGuardar(); }
+    } else { alternarFichaje(n, e); }
+    renderFichajes();
+  }));
+  if (typeof wireRankClicks === "function") wireRankClicks(res);
+}
+function wireBuscadorFichajes(box) {
+  const b = box.querySelector("#bf-buscar"); if (!b) return;
+  const det = box.querySelector("#bfPanel");
+  if (det) det.addEventListener("toggle", () => { busquedaFich.ver = det.open; });
+  b.addEventListener("click", () => ejecutarBusquedaFichajes(box));
+  const l = box.querySelector("#bf-limpiar"); if (l) l.addEventListener("click", () => { busquedaFich = { p: {}, ver: true }; renderFichajes(); });
+  if (busquedaFich.ver && Object.keys(busquedaFich.p).length) ejecutarBusquedaFichajes(box);
+}
+
 function buscadorFichajesHtml() {
   const lista = Object.values(listaFichajes());
   const valores = (campo) => [...new Set(lista.map(i => (i[campo] || "").trim()).filter(Boolean))].sort();
@@ -9170,12 +9298,15 @@ function buscadorFichajesHtml() {
       ${selector("filtroPuesto", "Puesto", valores("puesto"), filtrosFichajes.puesto)}
       ${selector("filtroPais", "Nacionalidad", valores("pais"), filtrosFichajes.pais)}
       ${selector("filtroLiga", "Liga", valores("liga"), filtrosFichajes.liga)}
-    </div>` : ""}`;
+      ${selector("filtroOrigen", "Procedencia", ORIGENES, filtrosFichajes.origen)}
+    </div>` : ""}
+    ${panelBuscarFichajes()}`;
 }
 
 function wireFichajes() {
   const box = document.getElementById("fichajesContent");
   if (!box) return;
+  wireBuscadorFichajes(box);
 
   const buscador = box.querySelector("#buscarFichaje");
   if (buscador) buscador.addEventListener("input", () => {
@@ -9216,7 +9347,7 @@ function wireFichajes() {
     scoutGuardar();
     renderFichajes();
   });
-  [["filtroPuesto", "puesto"], ["filtroPais", "pais"], ["filtroLiga", "liga"]].forEach(([id, campo]) => {
+  [["filtroPuesto", "puesto"], ["filtroPais", "pais"], ["filtroLiga", "liga"], ["filtroOrigen", "origen"]].forEach(([id, campo]) => {
     const sel = box.querySelector("#" + id);
     if (sel) sel.addEventListener("change", () => { filtrosFichajes[campo] = sel.value; renderFichajes(); });
   });
