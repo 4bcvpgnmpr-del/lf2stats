@@ -2271,8 +2271,8 @@ async function cargarTiro() {
   caja.innerHTML = `<div class="vacio">Cargando…</div>`;
   const { data, error } = await sb.from("tiro_sesiones").select("*").order("fecha", { ascending: false });
   if (error) { caja.innerHTML = `<div class="vacio">${/Could not find|schema cache|does not exist/i.test(error.message || "") ? "El tiro todavía no está activado. Díselo al entrenador." : "No se ha podido cargar.<br><small>" + esc(error.message || "") + "</small>"}</div>`; return; }
-  const lado = (z, x) => { x = x || {}; let pts = 0, ac = 0, it = 0, fa = 0; z.forEach(q => { const v = Math.min(Number(x[q.id]) || 0, q.tiros); pts += v * q.pts; ac += v; it += q.tiros; if (x[q.id] !== "" && x[q.id] != null) fa += q.tiros - v; });
-    return { pts, ac, it, fa, pct: it ? Math.round(ac * 100 / it) : 0, jugo: Object.values(x).some(v => v !== "" && v != null) }; };
+  const lado = (z, x) => { x = x || {}; let pts = 0, ac = 0, it = 0, fa = 0; const por = {}; z.forEach(q => { const v = Math.min(Number(x[q.id]) || 0, q.tiros); { const fl = x[q.id] !== "" && x[q.id] != null, b = (por[q.pts] = por[q.pts] || { ac: 0, it: 0 }); if (fl) { b.ac += v; b.it += q.tiros; } } pts += v * q.pts; ac += v; it += q.tiros; if (x[q.id] !== "" && x[q.id] != null) fa += q.tiros - v; });
+    return { pts, ac, it, fa, por, pct: it ? Math.round(ac * 100 / it) : 0, jugo: Object.values(x).some(v => v !== "" && v != null) }; };
   const nom = (s, id) => { const j = (s.part || []).find(p => p.id === id); return j ? j.nombre : "—"; };
   const yo = String(jugadora.id);
   const ses = (data || []).map(s => { const z = s.zonas || [];
@@ -2289,13 +2289,35 @@ async function cargarTiro() {
     TA += m.ac; TF += m.fa; mias.push({ f: o.s.fecha, rival, m: m.pts, r: r.pts, ac: m.ac, fa: m.fa, res: x.gan === "e" ? "🤝" : x.gan === k ? "✅" : "❌" });
     o.z.forEach(q => { const v = Math.min(Number((x.d["r" + k] || {})[q.id]) || 0, q.tiros); const t = (zon[q.nombre] = zon[q.nombre] || { a: 0, t: 0 }); t.a += v; t.t += q.tiros; }); }));
   const rec = {};
-  ses.forEach(o => o.ds.forEach(x => [["a", x.A], ["b", x.B]].forEach(([k, m]) => { const id = x.d[k]; if (!id) return; const r = (rec[id] = rec[id] || { n: nom(o.s, id), v: 0, d: 0, e: 0, pts: 0, ac: 0, it: 0 });
-    r.pts += m.pts; r.ac += m.ac; r.it += m.it; if (x.gan === "e") r.e++; else if (x.gan === k) r.v++; else r.d++; })));
-  const gen = Object.entries(rec).sort((p, q) => q[1].v - p[1].v || p[1].d - q[1].d || q[1].pts - p[1].pts);
-  const clasif = `<div class="bloque"><h3>Clasificación</h3><div style="overflow:auto;"><table style="border-collapse:collapse;width:100%;font-size:14px;"><tr style="background:var(--suave);"><th style="padding:6px;">#</th><th style="text-align:left;padding:6px;">Jugadora</th><th>✅ G</th><th>P</th><th>E</th><th>Pts</th><th>%</th></tr>${gen.map(([id, r], i) => `<tr style="${id === yo ? "background:#fdeee3;font-weight:800;" : ""}border-top:1px solid var(--wood-line);"><td style="padding:6px;text-align:center;">${i === 0 ? "🥇" : i + 1}</td><td style="padding:6px;">${esc(r.n)}</td><td style="text-align:center;"><b>${r.v}</b></td><td style="text-align:center;">${r.d}</td><td style="text-align:center;">${r.e}</td><td style="text-align:center;">${r.pts}</td><td style="text-align:center;">${r.it ? Math.round(r.ac * 100 / r.it) : 0}%</td></tr>`).join("")}</table></div></div>`;
+  ses.forEach(o => o.ds.forEach(x => [["a", x.A], ["b", x.B]].forEach(([k, m]) => { const id = x.d[k]; if (!id) return; const r = (rec[id] = rec[id] || { id, n: nom(o.s, id), v: 0, d: 0, e: 0, pts: 0, ac: 0, it: 0 });
+    r.pts += m.pts; r.ac += m.ac; r.it += m.it; r.fa = (r.fa || 0) + m.fa; [1, 2, 3].forEach(q => { const b = (m.por || {})[q] || { ac: 0, it: 0 }; r["a" + q] = (r["a" + q] || 0) + b.ac; r["t" + q] = (r["t" + q] || 0) + b.it; }); if (x.gan === "e") r.e++; else if (x.gan === k) r.v++; else r.d++; })));
+  const gen = Object.values(rec).sort((a, b) => b.v - a.v || a.d - b.d || b.pts - a.pts);
+  const tiTablas = (rows, yo) => {
+  const med = (i) => i === 0 ? "🥇" : i + 1, mio = (r) => yo != null && String(r.id) === String(yo) ? ' style="background:#fdeee3;font-weight:800;"' : "";
+  const por = (k, tit, pt) => { const L = rows.filter(r => r["t" + k] > 0).map(r => ({ r, a: r["a" + k], t: r["t" + k] })).sort((x, y) => (y.a - x.a) || (y.a / y.t) - (x.a / x.t));
+    return L.length ? `<h3 style="margin:16px 0 6px;">${tit}</h3><div style="overflow:auto;"><table class="tiTab"><tr><th>#</th><th style="text-align:left;">Jugadora</th><th>Metidos / tirados</th><th>%</th><th>Puntos</th></tr>${L.map((x, i) => `<tr${mio(x.r)}><td>${med(i)}</td><td style="text-align:left;">${esc(x.r.n)}</td><td><b>${x.a}</b> / ${x.t}</td><td>${Math.round(x.a * 100 / x.t)}%</td><td>${x.a * pt}</td></tr>`).join("")}</table></div>` : ""; };
+  const TA = rows.reduce((s, r) => s + r.ac, 0), TT = rows.reduce((s, r) => s + r.ac + (r.fa || 0), 0);
+  return `<p style="margin:10px 0 0;font-size:15px;"><b>Total de tiros:</b> ${TA} metidos de ${TT} tirados${TT ? " (" + Math.round(TA * 100 / TT) + "%)" : ""}</p>
+    ${por(3, "🎯 Triples (3 pts)", 3)}${por(2, "🏀 Dobles (2 pts)", 2)}
+    <h3 style="margin:16px 0 6px;">🏆 Clasificación total</h3><div style="overflow:auto;"><table class="tiTab"><tr><th>#</th><th style="text-align:left;">Jugadora</th><th>✅ V</th><th>D</th><th>E</th><th>Puntos</th><th>Metidos / tirados</th><th>%</th></tr>${rows.map((r, i) => { const tt = r.ac + (r.fa || 0); return `<tr${mio(r)}><td>${med(i)}</td><td style="text-align:left;">${esc(r.n)}</td><td><b>${r.v}</b></td><td>${r.d}</td><td>${r.e}</td><td>${r.pts}</td><td>${r.ac} / ${tt}</td><td>${tt ? Math.round(r.ac * 100 / tt) : 0}%</td></tr>`; }).join("")}</table></div>`;
+};
+  const clasif = `<div class="bloque"><h2 style="margin:0;font-size:18px;">Clasificaciones</h2>${tiTablas(gen, yo)}</div>`;
+  const expl = (() => { const zz = ses[0].z; const f = (p) => zz.filter(q => q.pts === p), sum = (a) => a.reduce((n, q) => n + q.tiros, 0);
+    const linea = (p, t) => f(p).length ? `<li><b>${t}:</b> ${f(p).length} serie${f(p).length === 1 ? "" : "s"} · ${sum(f(p))} tiros · cada canasta vale ${p} punto${p === 1 ? "" : "s"} (máximo ${sum(f(p)) * p})</li>` : "";
+    return `<div class="bloque"><h3>📖 Cómo se cuentan los puntos</h3><ul style="margin:6px 0 0 18px;line-height:1.55;font-size:14px;">
+      <li>Cada duelo es <b>1 contra 1</b>: las dos tiran las mismas series.</li>
+      <li>Cada canasta suma según el tiro: <b>3 puntos</b> en triples, <b>2 puntos</b> en dobles y <b>1 punto</b> en tiros libres. Fallar no resta.</li>
+      <li><b>Gana el duelo</b> quien suma más puntos. Si hay los mismos puntos, es empate.</li>
+      <li><b>Clasificación total:</b> manda quien gana más duelos. Si empatan, quien ha perdido menos; y si siguen igual, quien tiene más puntos.</li>
+      <li><b>Tablas de triples y dobles:</b> ordenan por canastas metidas de ese tipo. Si empatan, por porcentaje de acierto.</li>
+      <li><b>Metidos / tirados:</b> las canastas que has metido sobre los tiros que has hecho. El % es esa división.</li></ul>
+      ${zz.length ? `<div class="expl" style="margin-top:8px;">Esta sesión: <ul style="margin:4px 0 0 18px;line-height:1.5;font-size:14px;">${linea(3, "Triples")}${linea(2, "Dobles")}${linea(1, "Tiros libres")}</ul></div>` : ""}</div>`; })();
+
   const ult = ses[0];
-  caja.innerHTML = `<div class="bloque"><h3>${esc(ult.s.titulo)} <small style="color:var(--ink-soft);font-weight:500;">${esc(ult.s.fecha)}</small></h3>${ult.ds.map(x => fila(ult, x)).join("")}</div>
+  const tl = (() => { let A = 0, T = 0; ult.ds.forEach(x => { A += x.A.ac + x.B.ac; T += x.A.ac + x.A.fa + x.B.ac + x.B.fa; }); return T ? `<p class="expl" style="margin:8px 0 0;"><b>Total de la sesión:</b> ${A} metidos de ${T} tirados (${Math.round(A * 100 / T)}%)</p>` : ""; })();
+  caja.innerHTML = `<style>.tiTab{border-collapse:collapse;width:100%;font-size:14px;} .tiTab th,.tiTab td{border-top:1px solid var(--wood-line);padding:6px;text-align:center;} .tiTab th{background:var(--suave);font-size:12px;}</style><div class="bloque"><h3>${esc(ult.s.titulo)} <small style="color:var(--ink-soft);font-weight:500;">${esc(ult.s.fecha)}</small></h3>${ult.ds.map(x => fila(ult, x)).join("")}${tl}</div>
     ${clasif}
+    ${expl}
     ${mias.length ? `<div class="bloque"><h3>Mi tiro</h3><p class="expl">${V} ganado${V === 1 ? "" : "s"} · ${D} perdido${D === 1 ? "" : "s"}${E ? " · " + E + " empate" + (E === 1 ? "" : "s") : ""} · ${TA} metidos · ${TF} fallados</p>
       ${Object.keys(zon).map(k => { const p = zon[k].t ? Math.round(zon[k].a * 100 / zon[k].t) : 0; return `<div style="margin:6px 0;"><div style="display:flex;justify-content:space-between;font-size:13.5px;"><span>${esc(k)}</span><b>${p}% <small style="font-weight:500;color:var(--ink-soft);">(${zon[k].a}/${zon[k].t})</small></b></div><div style="height:8px;background:var(--suave);border-radius:6px;overflow:hidden;"><div style="height:100%;width:${p}%;background:#e0602a;"></div></div></div>`; }).join("")}</div>
     <div class="bloque"><h3>Mis duelos</h3>${mias.map(m => `<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--wood-line);font-size:14px;"><span style="min-width:84px;color:var(--ink-soft);">${esc(m.f)}</span><span style="flex:1;">vs ${esc(m.rival)}</span><span style="text-align:right;"><b>${m.m} – ${m.r} ${m.res}</b><br><small style="color:var(--ink-soft);">Metidos ${m.ac} · Fallados ${m.fa}</small></span></div>`).join("")}</div>` : ""}
