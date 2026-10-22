@@ -9128,6 +9128,7 @@ function renderFichajes() {
     (!filtrosFichajes.liga || (i.liga || "") === filtrosFichajes.liga) &&
     (!filtrosFichajes.origen || claseOrigen(i.pais) === filtrosFichajes.origen) &&
     (!filtrosFichajes.estado || estFich(i) === filtrosFichajes.estado));
+  window._fichVisibles = visibles;
   const finalEst = (i) => estFich(i) === "Descartada" ? 1 : 0;
   visibles.sort((a, b) => finalEst(a) - finalEst(b) || (orden[a.prioridad] ?? 1) - (orden[b.prioridad] ?? 1));
 
@@ -9153,7 +9154,7 @@ function renderFichajes() {
       </tr>`).join("")}</tbody></table></div>` : "";
 
   box.innerHTML = `<div class="panel">
-      <h2 class="section-title" style="margin-top:0;">Fichajes · ${visibles.length} de ${lista.length} jugadora${lista.length === 1 ? "" : "s"}</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h2 class="section-title" style="margin:0;">Fichajes · ${visibles.length} de ${lista.length} jugadora${lista.length === 1 ? "" : "s"}</h2><button class="btn-partido" id="btnPdfFich" style="background:#5b3fd1;">📄 Informe PDF</button></div>
       <p class="hint" style="margin-top:-6px;">Tu lista de candidatas, con sus numeros de esta temporada y tus notas.
       Se guarda en este navegador y entra en la copia de seguridad del scouting.</p>
       ${(() => { const A = avisosFichajes(visibles); return A.length ? `<div style="margin:10px 0;padding:12px 14px;border-radius:12px;background:#fff7e6;border:1.5px solid #f3d9a4;"><b>🔔 ${A.length} fichaje${A.length === 1 ? " ha" : "s han"} cambiado desde la última vez que lo revisaste</b>
@@ -9166,6 +9167,47 @@ function renderFichajes() {
   wireFichajes();
   wireRankClicks(box);
   cargarVideosFichajes(box);
+}
+
+/* ---- Informe PDF de fichajes (se abre el dialogo de imprimir > Guardar como PDF) ---- */
+function htmlInformeFichajes(items) {
+  const liga = ligaComparable(), W = (busquedaFich.p || {}).w || {}, hayW = Object.values(W).some(v => v > 0);
+  const calc = hayW ? notaEncaje((jugadoras && jugadoras.rows) || [], W) : null;
+  const filas = items.map(i => {
+    const fila = filaJugadoraPorNombre(i.nombre, i.equipo), m = fila ? metricasJugadora(fila) : null, f = fichaOficial(i.nombre, i.equipo);
+    const edad = f ? cellText(f, "Edad") : "", alt = f ? cellText(f, "Altura") : "", en = (calc && m) ? calc(m) : null;
+    const fuertes = m ? METRICAS_PERFIL.map(([c, t]) => { const d = puestosYpercentiles(c, m[c], liga); return d && d.percentil >= 85 ? (d.puesto <= 10 ? d.puesto + "º " : "Top " + (100 - d.percentil) + "% ") + t : ""; }).filter(Boolean).slice(0, 5) : [];
+    const pais = i.pais || (f ? cellText(f, "Nacionalidad") : ""), puesto = i.puesto || (f ? cellText(f, "Puesto") : "");
+    return { i: Object.assign({}, i, { pais, puesto }), m, edad, alt, en, fuertes, org: claseOrigen(pais) || "" };
+  });
+  const E = escapeHtml, N = (v) => v == null ? "-" : fmtNum(v);
+  const fecha = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  const cols = ["PJ", "MIN", "PTS", "REB", "AST", "3P%", "TS%", "VAL"];
+  const resumen = `<table class="res"><tr><th style="text-align:left;">Jugadora</th><th>Equipo</th><th>Puesto</th><th>Edad</th><th>Proced.</th><th>Estado</th>${hayW ? "<th>Encaje</th>" : ""}${cols.map(c => `<th>${c}</th>`).join("")}</tr>
+    ${filas.map(x => `<tr><td style="text-align:left;"><b>${E(x.i.nombre)}</b></td><td>${E(x.i.equipo)}</td><td>${E(x.i.puesto || "-")}</td><td>${E(x.edad || "-")}</td><td>${E(x.org || "-")}</td><td>${E(estFich(x.i))}</td>${hayW ? `<td><b>${x.en ? x.en.nota : "-"}</b></td>` : ""}${cols.map(c => `<td>${x.m ? N(x.m[c]) : "-"}</td>`).join("")}</tr>`).join("")}</table>`;
+  const fichas = filas.map(x => `<div class="fic"><div class="cab"><div><div class="nom">${E(x.i.nombre)}</div><div class="sub">${E(x.i.equipo)}${x.i.liga ? " · " + E(x.i.liga) : ""}</div></div><div class="der"><span class="tag">${E(estFich(x.i))}</span> <span class="tag">Prioridad ${E(x.i.prioridad || "Media")}</span>${x.en ? ` <span class="tag enc">Encaje ${x.en.nota}</span>` : ""}</div></div>
+    <div class="dat">${[x.i.puesto, x.edad && x.edad + " años", x.alt && x.alt, x.i.pais && x.i.pais + (x.org ? " (" + x.org + ")" : "")].filter(Boolean).map(E).join(" · ")}</div>
+    ${x.m ? `<div class="num">${cols.map(c => `<div><b>${N(x.m[c])}</b><span>${c}</span></div>`).join("")}</div>` : `<p class="peq">Sin estadísticas de esta temporada.</p>`}
+    ${x.fuertes.length ? `<div class="fu"><b>Destaca en:</b> ${x.fuertes.map(E).join(" · ")}</div>` : ""}
+    ${x.en && x.en.porque ? `<div class="fu"><b>Por qué encaja:</b> ${E(x.en.porque)}</div>` : ""}
+    ${x.i.nota ? `<div class="nota"><b>Mi nota:</b> ${E(x.i.nota)}</div>` : ""}</div>`).join("");
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe de fichajes · ${E(fecha)}</title><style>
+    @page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1f2933;font-size:12px;margin:0}
+    h1{font-size:22px;margin:0}.sub0{color:#6b7280;margin:2px 0 12px}
+    table.res{border-collapse:collapse;width:100%;font-size:10.5px;margin-bottom:14px}table.res th,table.res td{border:1px solid #d9dde3;padding:4px 5px;text-align:center}table.res th{background:#f1f3f6}
+    .fic{border:1px solid #d9dde3;border-radius:10px;padding:10px 12px;margin-bottom:10px;break-inside:avoid;page-break-inside:avoid}
+    .cab{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.nom{font-size:15px;font-weight:800}.sub{color:#6b7280}.der{text-align:right}
+    .tag{display:inline-block;border:1px solid #cbd2db;border-radius:99px;padding:1px 8px;font-size:10.5px;background:#f6f7f9}.tag.enc{background:#e8f6ec;border-color:#b7e1c4;font-weight:700}
+    .dat{margin:5px 0;color:#374151}.num{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:6px 0}.num div{background:#f6f7f9;border-radius:6px;text-align:center;padding:4px 0}.num b{display:block;font-size:13px}.num span{font-size:9.5px;color:#6b7280}
+    .fu{margin-top:4px}.nota{margin-top:6px;padding:6px 8px;background:#fff7e6;border-radius:6px}.peq{color:#6b7280}
+    </style></head><body><h1>Informe de fichajes</h1><div class="sub0">${E(fecha)} · ${filas.length} jugadora${filas.length === 1 ? "" : "s"}${hayW ? " · ordenadas por encaje" : ""}</div>${resumen}${fichas}</body></html>`;
+}
+function imprimirFichajes(items) {
+  if (!items || !items.length) { alert("No hay fichajes que imprimir con los filtros actuales."); return; }
+  const v = window.open("", "_blank");
+  if (!v) { alert("El navegador ha bloqueado la ventana del informe. Permite las ventanas emergentes de esta pagina y vuelve a intentarlo."); return; }
+  v.document.open(); v.document.write(htmlInformeFichajes(items)); v.document.close();
+  setTimeout(() => { try { v.focus(); v.print(); } catch (e) { /* nada */ } }, 400);
 }
 
 /* Vídeos de Entrenador (Vídeos) en la ficha de cada candidata: los suyos salen solos y puedes añadir más */
@@ -9515,6 +9557,7 @@ function wireFichajes() {
   const box = document.getElementById("fichajesContent");
   if (!box) return;
   wireBuscadorFichajes(box);
+  const pdf = box.querySelector("#btnPdfFich"); if (pdf) pdf.addEventListener("click", () => imprimirFichajes(window._fichVisibles));
   const vt = box.querySelector("#btnVistoTodo");
   if (vt) vt.addEventListener("click", () => { Object.values(listaFichajes()).forEach(i => { const f = filaJugadoraPorNombre(i.nombre, i.equipo); if (f) i.snap = snapDe(metricasJugadora(f)); }); scoutGuardar(); renderFichajes(); });
 
