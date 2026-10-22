@@ -5464,8 +5464,63 @@ function scoutCargar() {
 }
 scoutCargar();
 
+/* ---- Sincronizacion con la nube (tabla scout_nube): fichajes, estados, busquedas y notas en todos tus aparatos ---- */
+const scoutSync = { listo: false, email: "", tm: null, error: "" };
+function scoutUnion(nube, loc) {
+  const out = Object.assign({ equipos: {}, jugadoras: {} }, nube || {});
+  ["equipos", "jugadoras", "fichajes"].forEach(t => {
+    const A = (nube && nube[t]) || {}, B = (loc && loc[t]) || {}, R = Object.assign({}, A);
+    Object.keys(B).forEach(k => {
+      const a = A[k], b = B[k];
+      if (!a) { R[k] = b; return; }
+      if (b && Array.isArray(b.notas) && Array.isArray(a.notas)) {
+        const uni = (x, y) => { const v = new Set(), o = []; x.concat(y || []).forEach(e => { const j = JSON.stringify(e); if (!v.has(j)) { v.add(j); o.push(e); } }); return o; };
+        R[k] = Object.assign({}, a, b, { notas: uni(a.notas, b.notas), videos: uni(a.videos || [], b.videos || []) });
+      } else R[k] = b;
+    });
+    out[t] = R;
+  });
+  const bs = (nube && nube.busquedas) || [], bl = (loc && loc.busquedas) || [];
+  out.busquedas = bs.concat(bl.filter(x => !bs.some(y => (y.nombre || "").toLowerCase() === (x.nombre || "").toLowerCase())));
+  out.actualizado = new Date().toISOString();
+  return out;
+}
+async function scoutNubeSubir() {
+  if (!scoutSync.listo) return;
+  const sb = clienteJugadoras(); if (!sb) return;
+  try {
+    const { error } = await sb.from("scout_nube").upsert({ id: scoutSync.email, datos: scouting, actualizado: scouting.actualizado || new Date().toISOString() });
+    scoutSync.error = error ? error.message : "";
+  } catch (e) { scoutSync.error = String(e.message || e); }
+}
+async function scoutNubeInit(sb, email) {
+  try {
+    scoutSync.email = String(email || "").toLowerCase(); if (!scoutSync.email) return;
+    const { data, error } = await sb.from("scout_nube").select("datos,actualizado").eq("id", scoutSync.email).maybeSingle();
+    if (error) { scoutSync.error = error.message; return; }
+    const marca = "lf2_scout_sync_" + scoutSync.email;
+    let primera = true; try { primera = !localStorage.getItem(marca); } catch (e) { /* nada */ }
+    const nube = data && data.datos; let cambio = false, subir = !nube;
+    if (nube) {
+      if (primera) { scouting = scoutUnion(nube, scouting); cambio = true; subir = true; }
+      else if ((nube.actualizado || "") > (scouting.actualizado || "")) { scouting = Object.assign({ equipos: {}, jugadoras: {} }, nube); cambio = true; }
+      else if ((nube.actualizado || "") < (scouting.actualizado || "")) subir = true;
+    }
+    try { localStorage.setItem(SCOUT_KEY, JSON.stringify(scouting)); localStorage.setItem(marca, "1"); } catch (e) { /* nada */ }
+    scoutSync.listo = true; scoutSync.error = "";
+    if (subir) await scoutNubeSubir();
+    if (cambio) location.reload();
+    else if (typeof renderFichajes === "function" && document.getElementById("fichajesContent")) { try { renderFichajes(); } catch (e) { /* nada */ } }
+  } catch (e) { scoutSync.error = String(e.message || e); }
+}
+function estadoNubeHtml() {
+  return scoutSync.listo ? `<p class="hint" style="margin:6px 0;">☁️ Sincronizado con la nube: lo ves igual en el ordenador y en la tablet.</p>`
+    : `<p class="hint" style="margin:6px 0;">💾 Se guarda solo en este aparato${scoutSync.error ? " (" + escapeHtml(/relation|schema cache|does not exist|Could not find/i.test(scoutSync.error) ? "falta ejecutar scout_nube.sql en Supabase" : scoutSync.error) + ")" : ""}.</p>`;
+}
+
 function scoutGuardar() {
   scouting.actualizado = new Date().toISOString();
+  clearTimeout(scoutSync.tm); scoutSync.tm = setTimeout(scoutNubeSubir, 1500);
   try {
     localStorage.setItem(SCOUT_KEY, JSON.stringify(scouting));
     return true;
@@ -7953,6 +8008,7 @@ async function verificarAcceso() {
   if (ROL_APP === "ayudante") aplicarRolAyudante();
   document.documentElement.classList.remove("sin-acceso");
   const puerta = document.getElementById("puertaAcceso"); if (puerta) puerta.remove();
+  scoutNubeInit(sb, user.email);
 }
 
 function aplicarRolAyudante() {
@@ -9402,7 +9458,7 @@ function buscadorFichajesHtml() {
       <select id="${id}"><option value="">Todas</option>
         ${opciones.map(o => `<option ${o === actual ? "selected" : ""}>${escapeHtml(o)}</option>`).join("")}</select></label>`;
 
-  return `<div class="toolbar" style="margin-top:12px;">
+  return `${estadoNubeHtml()}<div class="toolbar" style="margin-top:12px;">
       <input type="text" id="buscarFichaje" placeholder="Buscar una jugadora de esta liga para anadirla...">
       <button class="btn-partido" id="btnOtraLiga" style="background:var(--ink);">+ Jugadora de otra liga</button>
     </div>
