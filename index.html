@@ -6249,10 +6249,20 @@ function estadisticasJugadora(nombre, equipo) {
     if (tirosDeEsta) { salida[cual] = "0/0"; salida.calculado[cual] = "no ha intentado ninguno"; }
   });
 
+  // Si la FEB no la incluye en sus rankings (por ejemplo, ha jugado pocos partidos), las medias se calculan sumando sus partidos
+  if (tirosDeEsta && tirosDeEsta.partidos > 0 && tirosDeEsta.minutos > 0) {
+    const n = tirosDeEsta.partidos, f1 = (v) => (Math.round(v / n * 10) / 10).toFixed(1).replace(".", ",");
+    [["PT", "puntos"], ["RT", "rebTot"], ["AS", "asistencias"], ["BR", "robos"], ["VAL", "valoracion"], ["MIN", "minutos"]].forEach(([corta, k]) => {
+      if (salida[corta] !== null && salida[corta] !== "") return;
+      if (tirosDeEsta[k] == null) return;
+      salida[corta] = f1(tirosDeEsta[k]); salida.calculado[corta] = "media de " + n + " partido" + (n === 1 ? "" : "s");
+    });
+  }
+
   salida.dorsal = dorsalDe(nombre, equipo);
   const fila = filaJugadoraEn(jugadoras, nombre, equipo) || filaJugadoraEn(rankingExtra["Valoracion"], nombre, equipo);
   salida.foto = fotoJugadora(nombre, equipo, fila && fila["FotoURL"] ? fila["FotoURL"].display : "");
-  salida.partidos = fila && fila["Part"] ? fila["Part"].display : "";
+  salida.partidos = fila && fila["Part"] ? fila["Part"].display : (tirosDeEsta && tirosDeEsta.partidos ? String(tirosDeEsta.partidos) : "");
   return salida;
 }
 
