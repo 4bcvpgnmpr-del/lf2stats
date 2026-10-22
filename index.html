@@ -9195,6 +9195,26 @@ const _numTxt = (t) => { const m = String(t || "").replace(",", ".").match(/\d+(
 const alturaCm = (t) => { const n = _numTxt(t); if (n == null) return null; return n < 3 ? Math.round(n * 100) : n; };
 
 let busquedaFich = { p: {}, ver: false };
+const PESOS_ENC = [["PTS", "Anotación"], ["REB", "Rebotes"], ["AST", "Asistencias"], ["3P%", "Triples (%)"], ["TS%", "Eficiencia (TS%)"], ["VAL", "Valoración"]];
+function notaEncaje(rows, W) {
+  // percentil de cada jugadora en cada métrica frente a toda la liga (mín. 3 partidos)
+  const base = rows.map(r => ({ r, m: metricasJugadora(r) })).filter(x => (x.m.PJ || 0) >= 3);
+  const orden = {};
+  PESOS_ENC.forEach(([k]) => { orden[k] = base.map(x => x.m[k]).filter(v => v != null).sort((a, b) => b - a); });
+  return (m) => {
+    let tot = 0, suma = 0; const partes = [];
+    PESOS_ENC.forEach(([k, t]) => {
+      const w = +W[k] || 0; if (!w) return;
+      const v = m[k], arr = orden[k]; if (v == null || !arr.length) { tot += w; return; }
+      const pos = arr.filter(x => x > v).length + 1, pct = 1 - (pos - 1) / Math.max(1, arr.length - 1 || 1);
+      tot += w; suma += w * pct; partes.push({ k, t, w, v, pos, n: arr.length });
+    });
+    if (!tot) return null;
+    partes.sort((a, b) => (a.pos / a.n) - (b.pos / b.n));
+    const porque = partes.filter(x => x.pos / x.n <= 0.35).slice(0, 3).map(x => `${x.t} ${fmtNum(x.v)} (${x.pos}.ª de ${x.n})`).join(" · ");
+    return { nota: Math.round(100 * suma / tot), porque };
+  };
+}
 const CAMPOS_BUSCA = [["PTS", "Puntos ≥"], ["REB", "Rebotes ≥"], ["AST", "Asistencias ≥"], ["3P%", "% triples ≥"], ["TS%", "TS% ≥"], ["VAL", "Valoración ≥"], ["MIN", "Minutos ≥"], ["PJ", "Partidos ≥"]];
 function panelBuscarFichajes() {
   const filas = filasPlantilla();
@@ -9211,20 +9231,27 @@ function panelBuscarFichajes() {
       <label class="hint">Altura mín. (cm)<input type="number" id="bf-alt" value="${val("alt")}"></label>
       <label class="hint">Equipo contiene<input type="text" id="bf-eq" value="${val("eq")}"></label>
       ${CAMPOS_BUSCA.map(([k, t]) => `<label class="hint">${t}<input type="number" step="0.1" id="bf-${k.replace('%', 'p')}" value="${val(k)}"></label>`).join("")}
-      <label class="hint">Ordenar por<select id="bf-orden">${["VAL", "PTS", "REB", "AST", "3P%", "TS%", "MIN", "Edad"].map(x => `<option ${(P.orden || "VAL") === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
+      <label class="hint">Ordenar por<select id="bf-orden">${["Encaje", "VAL", "PTS", "REB", "AST", "3P%", "TS%", "MIN", "Edad"].map(x => `<option ${(P.orden || "VAL") === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-partido" id="bf-buscar">Buscar</button><button class="btn-partido" id="bf-limpiar" style="background:var(--ink);">Limpiar</button></div>
+    <p class="hint" style="margin:12px 0 4px;"><b>¿Qué te importa más? (para «Recomiéndame»)</b> Elige cuánto pesa cada cosa y la app da a cada jugadora una nota de encaje de 0 a 100 comparándola con toda la liga.</p>
+    <div class="campos-fichaje" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">
+      ${PESOS_ENC.map(([k, t]) => `<label class="hint">${t}<select id="bw-${k.replace('%', 'p')}">${["Nada", "Algo", "Mucho", "Clave"].map((x, i) => `<option value="${i}" ${(+((P.w || {})[k] || 0)) === i ? "selected" : ""}>${x}</option>`).join("")}</select></label>`).join("")}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn-partido" id="bf-recom" style="background:#0a7d4f;">✨ Recomiéndame</button><button class="btn-partido" id="bf-buscar">Buscar</button><button class="btn-partido" id="bf-limpiar" style="background:var(--ink);">Limpiar</button></div>
     <div id="bf-res" style="margin-top:10px;"></div></details>`;
 }
 function ejecutarBusquedaFichajes(box) {
   const g = (id) => { const e = box.querySelector("#" + id); return e ? e.value.trim() : ""; };
   const P = { puesto: g("bf-puesto"), origen: g("bf-origen"), edmin: g("bf-edmin"), edmax: g("bf-edmax"), alt: g("bf-alt"), eq: g("bf-eq"), orden: g("bf-orden") || "VAL" };
   CAMPOS_BUSCA.forEach(([k]) => { P[k] = g("bf-" + k.replace("%", "p")); });
+  P.w = {}; PESOS_ENC.forEach(([k]) => { P.w[k] = +g("bw-" + k.replace("%", "p")) || 0; });
+  const hayPesos = Object.values(P.w).some(v => v > 0);
+  if (P.orden === "Encaje" && !hayPesos) P.orden = "VAL";
   busquedaFich = { p: P, ver: true };
   const res = box.querySelector("#bf-res"); if (!res) return;
   const rows = (jugadoras && jugadoras.rows) ? jugadoras.rows : [];
   if (!rows.length) { res.innerHTML = `<p class="hint">Todavía no hay estadísticas cargadas.</p>`; return; }
-  const out = [];
+  const out = []; const calc = hayPesos ? notaEncaje(rows, P.w) : null;
   rows.forEach(r => {
     const nombre = cellText(r, "Jugador"), equipo = cellText(r, "Equipo"); if (!nombre) return;
     const f = fichaOficial(nombre, equipo);
@@ -9238,16 +9265,19 @@ function ejecutarBusquedaFichajes(box) {
     if (P.alt && (alt == null || alt < +P.alt)) return;
     if (P.eq && !_sin(equipo).includes(_sin(P.eq))) return;
     for (const [k] of CAMPOS_BUSCA) { if (P[k] !== "" && !(m[k] != null && m[k] >= parseFloat(P[k]))) return; }
-    out.push({ nombre, equipo, puesto, pais, origen, edad, alt, m });
+    const en = calc ? calc(m) : null;
+    out.push({ nombre, equipo, puesto, pais, origen, edad, alt, m, nota: en ? en.nota : null, porque: en ? en.porque : "" });
   });
   const key = P.orden;
-  if (key === "Edad") out.sort((a, b) => (a.edad == null ? 99 : a.edad) - (b.edad == null ? 99 : b.edad));
+  if (key === "Encaje") out.sort((a, b) => (b.nota == null ? -1 : b.nota) - (a.nota == null ? -1 : a.nota));
+  else if (key === "Edad") out.sort((a, b) => (a.edad == null ? 99 : a.edad) - (b.edad == null ? 99 : b.edad));
   else out.sort((a, b) => (b.m[key] == null ? -1e9 : b.m[key]) - (a.m[key] == null ? -1e9 : a.m[key]));
   const cols = ["PJ", "MIN", "PTS", "REB", "AST", "3P%", "TS%", "VAL"];
   const top = out.slice(0, 40);
-  res.innerHTML = out.length ? `<p class="hint">${out.length} jugadora${out.length === 1 ? "" : "s"}${out.length > 40 ? " (se muestran las 40 primeras)" : ""}. ⭐ = guardar en tus fichajes.</p><div class="table-scroll"><table class="limpia"><thead><tr><th></th><th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Edad</th><th>Alt.</th><th>Procedencia</th>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>
+  res.innerHTML = out.length ? `<p class="hint">${out.length} jugadora${out.length === 1 ? "" : "s"}${out.length > 40 ? " (se muestran las 40 primeras)" : ""}. ⭐ = guardar en tus fichajes.</p><div class="table-scroll"><table class="limpia"><thead><tr><th></th><th class="equipo">Jugadora</th><th>Equipo</th><th>Liga</th><th>Puesto</th><th>Edad</th><th>Alt.</th><th>Procedencia</th>${hayPesos ? "<th>Encaje</th>" : ""}${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>
     ${top.map(x => `<tr><td><button class="anadir-fichaje" data-bn="${escapeAttr(x.nombre)}" data-be="${escapeAttr(x.equipo)}" style="padding:2px 8px;">${esFichaje(x.nombre, x.equipo) ? "✓" : "⭐"}</button></td>
       <td class="equipo"><b class="rank-name" data-player="${escapeAttr(x.nombre)}"><span class="txt">${escapeHtml(x.nombre)}</span></b></td><td style="text-align:left;">${escapeHtml(x.equipo)}</td><td style="text-align:left;">Liga Femenina 2</td><td>${escapeHtml(x.puesto || "-")}</td><td>${x.edad == null ? "-" : x.edad}</td><td>${x.alt == null ? "-" : x.alt}</td><td>${x.origen ? chapaOrigen(x.pais) + `<div class="hint" style="font-size:11px;">${escapeHtml(x.pais)}</div>` : "-"}</td>
+      ${hayPesos ? `<td style="text-align:left;min-width:150px;"><b style="font-size:16px;color:${x.nota >= 70 ? "#0a7d4f" : x.nota >= 50 ? "#b7791f" : "#6b7280"};">${x.nota == null ? "-" : x.nota}</b><div class="hint" style="font-size:11px;">${escapeHtml(x.porque || "")}</div></td>` : ""}
       ${cols.map(c => `<td>${x.m[c] == null ? "-" : fmtNum(x.m[c])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<p class="hint">Ninguna jugadora cumple todo a la vez. Prueba a bajar algún mínimo.</p>`;
   res.querySelectorAll(".anadir-fichaje").forEach(b => b.addEventListener("click", () => {
     const n = b.getAttribute("data-bn"), e = b.getAttribute("data-be");
@@ -9264,6 +9294,15 @@ function wireBuscadorFichajes(box) {
   const det = box.querySelector("#bfPanel");
   if (det) det.addEventListener("toggle", () => { busquedaFich.ver = det.open; });
   b.addEventListener("click", () => ejecutarBusquedaFichajes(box));
+  const rc = box.querySelector("#bf-recom");
+  if (rc) rc.addEventListener("click", () => {
+    const sel = box.querySelector("#bf-orden"); if (sel) sel.value = "Encaje";
+    if (!PESOS_ENC.some(([k]) => +(box.querySelector("#bw-" + k.replace("%", "p")) || {}).value > 0)) {
+      PESOS_ENC.forEach(([k]) => { const e = box.querySelector("#bw-" + k.replace("%", "p")); if (e) e.value = "1"; });
+      if (typeof aviso === "function") aviso("No marcaste nada: puse todo en «Algo». Sube lo que más te importe.");
+    }
+    ejecutarBusquedaFichajes(box);
+  });
   const l = box.querySelector("#bf-limpiar"); if (l) l.addEventListener("click", () => { busquedaFich = { p: {}, ver: true }; renderFichajes(); });
   if (busquedaFich.ver && Object.keys(busquedaFich.p).length) ejecutarBusquedaFichajes(box);
 }
