@@ -7291,8 +7291,6 @@ function jugadasDe(nombre) {
   return ficha.jugadas;
 }
 
-const URL_PLAYBOOK = "https://app.thehoopsgeek.com/dashboard/plays";
-
 // Guardar la imagen tal cual llenaria el almacenamiento del navegador,
 // asi que se reduce a 1100 px de ancho antes de guardarla.
 function imagenReducida(archivo, alTerminar) {
@@ -7346,7 +7344,7 @@ function jugadasHtml(nombre) {
         <select class="j-tipo">${TIPOS_JUGADA.map(t => `<option>${escapeHtml(t)}</option>`).join("")}</select>
       </div>
       <textarea class="j-desc" rows="3" placeholder="Como la ejecutan, quien la inicia, opciones y finales. Como la vamos a defender."></textarea>
-      <input type="text" class="j-enlace" placeholder="Enlace: The Hoops Geek, video (YouTube, .mp4) o imagen de la pizarra">
+      <input type="text" class="j-enlace" placeholder="Enlace de video (YouTube, .mp4) o imagen de la pizarra">
       <label class="j-imagen-campo">
         <span>Imagenes de la jugada (puedes elegir varias)</span>
         <input type="file" class="j-imagen" accept="image/*" multiple>
@@ -7355,9 +7353,8 @@ function jugadasHtml(nombre) {
       </label>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <button class="btn-partido j-guardar">Anadir jugada</button>
-        <a class="btn-partido" href="${URL_PLAYBOOK}" target="_blank" rel="noopener" style="background:var(--ink);">Abrir mi playbook</a>
       </div>
-      <p class="hint">En The Hoops Geek, abre la jugada, pulsa compartir y pega aqui el enlace publico. Tambien vale un MP4 exportado o una imagen.</p>
+      <p class="hint">Pega un enlace de video (YouTube, MP4) o sube una imagen. Las jugadas animadas se crean en la pizarra de ScoutFlow (Entrenador).</p>
     </div>
 
     ${jugadas.length ? jugadasAgrupadasHtml(jugadas) : `<p class="hint">Todavia no hay jugadas guardadas.</p>`}
@@ -7401,6 +7398,10 @@ function wireJugadas(panel, recargar) {
     const desc = caja.querySelector(".j-desc").value.trim();
     const enlace = caja.querySelector(".j-enlace").value.trim();
     const tipo = caja.querySelector(".j-tipo").value;
+    if (esHoopsGeek(enlace)) {
+      alert("Los enlaces de The Hoops Geek ya no se admiten. Crea la jugada en la pizarra de ScoutFlow, o pega un video (YouTube, MP4) o una imagen.");
+      return;
+    }
     if (!titulo && !desc && !enlace) {
       alert("Escribe al menos un nombre, una descripcion o un enlace.");
       return;
