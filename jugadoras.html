@@ -2267,7 +2267,6 @@ window.addEventListener("afterprint", () => {
 /* ---------- Tiro: duelos de los jueves ---------- */
 async function cargarTiro() {
   const caja = $("tab-tiro"); if (!caja) return;
-  if (modoVistaPrevia) { caja.innerHTML = `<div class="vacio">Aquí cada jugadora ve sus duelos de tiro.</div>`; return; }
   caja.innerHTML = `<div class="vacio">Cargando…</div>`;
   const { data, error } = await sb.from("tiro_sesiones").select("*").order("fecha", { ascending: false });
   if (error) { caja.innerHTML = `<div class="vacio">${/Could not find|schema cache|does not exist/i.test(error.message || "") ? "El tiro todavía no está activado. Díselo al entrenador." : "No se ha podido cargar.<br><small>" + esc(error.message || "") + "</small>"}</div>`; return; }
@@ -2279,7 +2278,9 @@ async function cargarTiro() {
     const ds = ((s.resultados || {}).duelos || []).map(d => { const A = lado(z, d.ra), B = lado(z, d.rb), jug = A.jugo && B.jugo;
       return { d, A, B, jug, gan: !jug ? null : (A.pts > B.pts ? "a" : B.pts > A.pts ? "b" : "e") }; }).filter(x => x.jug);
     return { s, z, ds }; }).filter(o => o.ds.length);
-  if (!ses.length) { caja.innerHTML = `<div class="vacio">Todavía no hay duelos de tiro.</div>`; return; }
+  if (!ses.length) { caja.innerHTML = (data || []).length
+    ? `<div class="vacio">Hay ${(data || []).length} sesión${(data || []).length === 1 ? "" : "es"} de tiro, pero todavía ningún duelo con resultados.<br><small>Salen cuando el entrenador apunta los tiros de las dos jugadoras del duelo.</small></div>`
+    : `<div class="vacio">No veo ninguna sesión de tiro.<br><small>Si el entrenador ya la creó, avísale: tu correo (${esc((jugadora && jugadora.email) || "")}) tiene que estar en tu ficha y debe haberse ejecutado tiro.sql en Supabase.</small></div>`; return; }
   const fila = (o, x) => { const mio = x.d.a === yo || x.d.b === yo; const w = (k) => x.gan === k ? "font-weight:800;color:#1d7a3a;" : "";
     return `<div style="display:flex;gap:8px;align-items:center;padding:8px 6px;border-top:1px solid var(--wood-line);font-size:14px;${mio ? "background:#fdeee3;" : ""}"><span style="flex:1;text-align:right;${w("a")}">${esc(nom(o.s, x.d.a))}</span><b style="min-width:76px;text-align:center;">${x.A.pts} – ${x.B.pts}</b><span style="flex:1;${w("b")}">${esc(nom(o.s, x.d.b))}</span><span>${x.gan === "e" ? "🤝" : "✅"}</span></div>`; };
   let V = 0, D = 0, E = 0, TA = 0, TF = 0; const zon = {}, mias = [];
