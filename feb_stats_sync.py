@@ -971,8 +971,18 @@ def fetch_resultados_y_clasificacion(url: str) -> tuple:
 
     resultados_df = pd.DataFrame(todas)
     if not resultados_df.empty:
-        resultados_df = resultados_df.drop_duplicates(
-            subset=["Fase", "Jornada", "Local", "Visitante"]).reset_index(drop=True)
+        # La pagina de la jornada N tambien lista los partidos de la N+1 (con la
+        # etiqueta de N). Para cada partido nos quedamos con la jornada mas alta.
+        def _num_j(t):
+            m = re.search(r"(\d+)", str(t))
+            return int(m.group(1)) if m else 0
+        resultados_df["_nj"] = resultados_df["Jornada"].map(_num_j)
+        _k = resultados_df["PartidoID"].astype(str).str.strip()
+        resultados_df["_k"] = [k if k else f"{f}|{l}|{v}|{j}" for k, f, l, v, j in zip(
+            _k, resultados_df["Fase"], resultados_df["Local"], resultados_df["Visitante"], resultados_df["Jornada"])]
+        resultados_df = (resultados_df.sort_values("_nj", kind="stable")
+                         .drop_duplicates(subset=["_k"], keep="last")
+                         .drop(columns=["_nj", "_k"]).reset_index(drop=True))
         # PartidoID: primera columna, para que la app pueda buscar por ella
         resultados_df = resultados_df[["PartidoID"] + [c for c in resultados_df.columns if c != "PartidoID"]]
         orden = sorted(range(len(resultados_df)),
