@@ -12412,11 +12412,12 @@ function evolucionEquipo(nombre) {
   const cortes = [
     corteEvolucion("Local", todos.filter(x => x.casa === true)),
     corteEvolucion("Visitante", todos.filter(x => x.casa === false)),
-    corteEvolucion("1a vuelta", todos.slice(0, mitad)),
-    corteEvolucion("2a vuelta", todos.slice(mitad)),
+    ...(todos.length >= 4 ? [
+      corteEvolucion("1a mitad jugada", todos.slice(0, mitad)),
+      corteEvolucion("2a mitad jugada", todos.slice(mitad))] : []),
   ].filter(Boolean);
-  const v1 = cortes.find(c => c.etiqueta === "1a vuelta");
-  const v2 = cortes.find(c => c.etiqueta === "2a vuelta");
+  const v1 = cortes.find(c => c.etiqueta === "1a mitad jugada");
+  const v2 = cortes.find(c => c.etiqueta === "2a mitad jugada");
   return { partidos: todos, cortes, v1, v2 };
 }
 
@@ -12438,9 +12439,9 @@ function bloqueEvolucion(nombre) {
     const cambio = Math.round((e.v2.net - e.v1.net) * 10) / 10;
     lectura = `<div class="evo-lectura">
       <div class="e-tit">Lectura de evolucion</div>
-      <div class="e-fila"><span class="e-et">Primera vuelta</span>
+      <div class="e-fila"><span class="e-et">Primera mitad</span>
         <span>Net Rating ${signo(e.v1.net)} en ${e.v1.pj} partidos (${e.v1.v}-${e.v1.d}).</span></div>
-      <div class="e-fila"><span class="e-et">Segunda vuelta</span>
+      <div class="e-fila"><span class="e-et">Segunda mitad</span>
         <span>Net Rating ${signo(e.v2.net)} en ${e.v2.pj} partidos (${e.v2.v}-${e.v2.d}): ${
           cambio > 0 ? `mejora de ${fmtNum(cambio)} puntos por 100 posesiones`
           : (cambio < 0 ? `caida de ${fmtNum(Math.abs(cambio))} puntos por 100 posesiones` : "mismo rendimiento")}.</span></div>
