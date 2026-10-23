@@ -3697,7 +3697,8 @@ function showEquipoDetail(teamName) {
       <div>
         <h2>${escapeHtml(teamName)}</h2>
         <div class="sub">Partidos jugados: ${row["Part"] ? row["Part"].display : "N/D"}${clasifRow && clasifRow["Po"] ? ` &middot; Posicion #${clasifRow["Po"].display} en la liga` : ""}</div>
-        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" data-eq="${escapeAttr(teamName)}" onclick="abrirInformeVisual(this.dataset.eq)">Informe visual</button>
+        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" data-eq="${escapeAttr(teamName)}" onclick="abrirInformeVisual(this.dataset.eq)">Informe visual (scouting)</button>
+        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" onclick="abrirPerfilVisualEquipo(this.dataset.eq)" data-eq="${escapeAttr(teamName)}">Perfil en imagen</button>
       </div>
     </div>
     <div class="section-block">
@@ -7183,18 +7184,20 @@ const IV_CSS2 = `.iv .gp{margin:0 48px 18px;background:linear-gradient(160deg,#1
 .iv .gb img{max-width:100%}.iv .gb .status{color:#8b95a3!important}
 .iv .hero.h2{padding-bottom:22px}.iv .gt{font:900 italic 56px/1 'Inter Display',Inter;text-transform:uppercase;letter-spacing:-.04em;background:linear-gradient(180deg,#fff 30%,#9aa4b2);-webkit-background-clip:text;color:transparent;margin-top:26px}`;
 
-function informeVisualVistaHtml(id) {
+function informeVisualVistaHtml(id, opts) {
+  opts = opts || {};
   const sec = document.getElementById("view-" + id); if (!sec) return null;
   const clon = sec.cloneNode(true);
+  (opts.quitar || []).forEach(q => clon.querySelectorAll(q).forEach(n => (n.closest(".section-block") || n).remove()));
   const orig = sec.querySelectorAll("canvas");
   clon.querySelectorAll("canvas").forEach((c, i) => { try { const im = document.createElement("img"); im.src = orig[i].toDataURL("image/png"); im.style.width = "100%"; c.replaceWith(im); } catch (e) { c.remove(); } });
-  clon.querySelectorAll("button, input, select, textarea, .toolbar, .subnav, .back-btn, .no-iv, script, style, .table-scroll > .hint").forEach(e => e.remove());
+  clon.querySelectorAll("button, input, select, textarea, .toolbar, .subnav, .back-btn, .no-iv, .no-imprimir, script, style, .table-scroll > .hint").forEach(e => e.remove());
   clon.removeAttribute("id"); clon.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
-  const titulo = (typeof NOMBRE_VISTA !== "undefined" && NOMBRE_VISTA[id]) || id;
+  const titulo = opts.titulo || (typeof NOMBRE_VISTA !== "undefined" && NOMBRE_VISTA[id]) || id;
   const eq = (typeof miEquipo !== "undefined" && miEquipo) ? miEquipo : "";
   const esc = eq ? escudoUrlFor(eq) : "";
   const temp = (document.getElementById("selTemporada") || {}).value || "";
-  const tablas = [...clon.querySelectorAll("table")].filter(t => t.querySelectorAll("tbody tr").length);
+  const tablas = opts.todo ? [] : [...clon.querySelectorAll("table")].filter(t => t.querySelectorAll("tbody tr").length);
   let cuerpo;
   if (tablas.length) {
     cuerpo = tablas.slice(0, 4).map(t => {
@@ -7210,6 +7213,10 @@ function informeVisualVistaHtml(id) {
   return `<div class="iv" data-iv><style>${IV_CSS2}</style><div class="hero h2"><div class="bar"><span class="live">SCOUTFLOW · ESTADÍSTICAS</span><span><b>${escapeHtml(temp)}</b></span></div>
     <div class="ttl" style="margin-top:22px;gap:20px">${esc ? `<div class="hex" style="width:84px;height:95px"><i style="width:75px;height:85px"><img src="${escapeAttr(esc)}" alt="" style="width:46px;height:46px"></i></div>` : ""}<div><div class="gt" style="margin-top:0">${escapeHtml(titulo)}</div><div class="sub">${escapeHtml(String(eq).toUpperCase())}</div></div></div></div>
     ${cuerpo}<div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(titulo.toUpperCase())}</span></div></div>`;
+}
+function abrirPerfilVisualEquipo(nombre) {
+  const h = informeVisualVistaHtml("equipo-detail", { todo: true, quitar: ["#planEquipo"], titulo: "Perfil · " + nombre });
+  if (h) ivMostrar(h, nombre);
 }
 function abrirInformeVisualVista(id) {
   if (id === "jugadora-detail" && JUG_VISTA) { abrirInformeVisualJugadora(JUG_VISTA); return; }
