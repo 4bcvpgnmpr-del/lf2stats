@@ -14576,11 +14576,13 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
   function svgNetBarras() {
     const l = equiposLiga().filter(x => x.m.net !== null).sort((a, b) => b.m.net - a.m.net);
     if (!l.length) return "";
-    const W = 640, fila = 22, H = l.length * fila + 20, mx = Math.max(5, ...l.map(x => Math.abs(x.m.net))), cx = 300, esc2 = 190 / mx;
+    const fila = 22, H = l.length * fila + 20, W = 640, etiquetaAncho = 220, maxw = 170, cx = etiquetaAncho + 40 + maxw;
+    const mx = Math.max(5, ...l.map(x => Math.abs(x.m.net))), esc2 = maxw / mx;
     const mio = miEquipo ? normalizarEquipo(equipoOficial(miEquipo)) : "";
+    const corto = (t) => { t = String(t); return t.length > 30 ? t.slice(0, 29) + "…" : t; };
     const barras = l.map((x, i) => {
       const w = Math.abs(x.m.net) * esc2, y = 10 + i * fila, pos = x.m.net >= 0, esMio = mio && normalizarEquipo(equipoOficial(x.eq)) === mio;
-      return `<text x="${cx - 200}" y="${y + 14}" text-anchor="end" font-size="10.5" ${esMio ? 'font-weight="800" fill="#e0602a"' : 'fill="#334"'}>${esc(String(x.eq).slice(0, 30))}</text>
+      return `<text x="${etiquetaAncho}" y="${y + 14}" text-anchor="end" font-size="10.5" ${esMio ? 'font-weight="800" fill="#e0602a"' : 'fill="#334"'}>${esc(corto(x.eq))}</text>
         <rect x="${pos ? cx : cx - w}" y="${y + 3}" width="${Math.max(w, 1)}" height="${fila - 8}" rx="2" fill="${pos ? "#1f7a5a" : "#c4512a"}"/>
         <text x="${pos ? cx + w + 4 : cx - w - 4}" y="${y + 14}" text-anchor="${pos ? "start" : "end"}" font-size="10" font-weight="700" fill="#334">${sg(x.m.net)}</text>`;
     }).join("");
