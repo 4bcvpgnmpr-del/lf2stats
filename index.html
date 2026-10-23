@@ -829,6 +829,7 @@
   .solo-lectura{pointer-events:none;}
 
   @media print{
+    body.sin-plan-pdf .section-block:has(#planEquipo){display:none !important;}
     @page{ size:A4 portrait; margin:15mm 12mm 16mm; }
 
     body{background:#fff;color:#111;font-size:10.5pt;}
@@ -2122,6 +2123,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
 
       <div class="inf-botones">
         <button class="inf-btn principal" id="infGenerar" type="button">Generar vista previa</button>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" class="chk-plan-pdf"> Incluir plan de intervención en el PDF</label>
         <button class="inf-btn" id="infPdf" type="button">Exportar PDF</button>
         <button class="inf-btn" id="infGuardar" type="button">Guardar plantilla</button>
         <button class="inf-btn" id="infCargar" type="button">Cargar plantilla</button>
@@ -3703,6 +3705,7 @@ function showEquipoDetail(teamName) {
     </div>
     <div class="section-block">
       <h3 class="section-title">Plan de intervencion</h3>
+      <label class="no-imprimir" style="display:flex;gap:8px;align-items:center;font-size:13px;margin:0 0 8px"><input type="checkbox" class="chk-plan-pdf"> Incluir este plan en los PDF</label>
       <div class="panel" id="planEquipo"><p class="hint">Calculando...</p></div>
     </div>
     <div class="stat-big-grid">
@@ -6948,7 +6951,7 @@ const IV_CSS5 = `
 .xx .xr{grid-template-columns:1fr 110px}.xx .xr .n{grid-column:1/-1}.xx .xfx{grid-template-columns:150px 1fr}.xx .xfv{min-height:260px}.xx .xft h4{font-size:17px;padding-right:46px}.xx .xnu{font-size:40px}.xx .xld{grid-template-columns:1fr}.xx .xmp{grid-template-columns:1fr}.xx .xkg{grid-template-columns:1fr 1fr}.cin .hero .in .nm{font-size:34px!important;max-width:100%}.cin .hero .jph{opacity:.45;width:70%}.xx .xrs b.m{font-size:16px}.xx .xrs{grid-template-columns:72px 34px 1fr 84px}}
 `;
 let IV_LIVIANO = false, IV_DAT = null;
-const ivCompletoActivo = () => { try { return localStorage.getItem("iv_completo") === "1"; } catch (e) { return false; } };
+const ivCompletoActivo = () => { try { return localStorage.getItem("iv_completo2") !== "0"; } catch (e) { return false; } };
 /* El informe (con todo) como documento independiente: se manda a las jugadoras y se ve dentro de su app */
 async function ivDocumentoCompleto(nombre, estilo) {
   try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
@@ -7088,7 +7091,7 @@ function ivMostrar(html, nombre, render, conCompleto) {
   document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div>${chips}<div class="iv-scroll">${html}</div></div>`);
   if (!document.getElementById("ivEstilo2")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo2">#ivCapa .iv-est{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}#ivCapa .iv-est button{border:1px solid #ffffff33;background:transparent;color:#fff;border-radius:99px;padding:7px 14px;font:700 12.5px Inter,sans-serif;cursor:pointer}#ivCapa .iv-est button.on{background:#fff;color:#14181c}</style>`);
   document.querySelectorAll("#ivCapa .iv-est button[data-comp]").forEach(b => b.addEventListener("click", () => {
-    try { localStorage.setItem("iv_completo", ivCompletoActivo() ? "0" : "1"); } catch (e) { /* nada */ }
+    try { localStorage.setItem("iv_completo2", ivCompletoActivo() ? "0" : "1"); } catch (e) { /* nada */ }
     const h = render(ivEstiloGuardado()); if (!h) return;
     document.querySelector("#ivCapa .iv-scroll").innerHTML = h; b.classList.toggle("on", ivCompletoActivo()); ivAjusta();
   }));
@@ -13027,6 +13030,20 @@ function guardarInforme() {
   pintarListaInforme();
 }
 
+function planEnPdf() { try { return localStorage.getItem("lf2_plan_pdf") !== "0"; } catch (e) { return true; } }
+function aplicarPlanPdf() {
+  const on = planEnPdf();
+  document.body.classList.toggle("sin-plan-pdf", !on);
+  document.querySelectorAll(".chk-plan-pdf").forEach(c => { c.checked = on; });
+}
+document.addEventListener("change", (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains("chk-plan-pdf")) {
+    try { localStorage.setItem("lf2_plan_pdf", e.target.checked ? "1" : "0"); } catch (x) {}
+    aplicarPlanPdf();
+  }
+});
+new MutationObserver(aplicarPlanPdf).observe(document.body, { childList: true, subtree: true });
+document.addEventListener("DOMContentLoaded", aplicarPlanPdf);
 // Copia un trozo de pantalla dejandolo listo para papel
 function clonarParaInforme(origen) {
   const copia = origen.cloneNode(true);
@@ -13061,6 +13078,7 @@ function clonarParaInforme(origen) {
       bt.replaceWith(sp);
     } else { bt.remove(); }
   });
+  if (!planEnPdf()) copia.querySelectorAll("#planEquipo").forEach(p => (p.closest(".section-block") || p).remove());
   copia.querySelectorAll("select, input, textarea, .back-btn, .no-imprimir").forEach(n => n.remove());
   // Al quitar un grafico su caja se queda vacia y dejaria un hueco en blanco
   for (let vuelta = 0; vuelta < 3; vuelta++) {
