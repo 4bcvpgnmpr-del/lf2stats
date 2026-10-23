@@ -3518,9 +3518,11 @@ window.RT_SOLO='#notas,#textosFases textarea';
   window.__rtListo = true;
   const $ = (s, r) => (r || document).querySelector(s);
 
-  const COLORES = ["#14181c", "#e0602a", "#c0392b", "#1f7a5a", "#1d5fb4", "#7a3fb3", "#b07a10", "#6b7280"];
-  const FUENTES = [["Normal", ""], ["Elegante", "Georgia, serif"], ["Máquina", "'Courier New', monospace"], ["Manuscrita", "'Comic Sans MS', cursive"], ["Estrecha", "'Arial Narrow', Arial, sans-serif"]];
-  const TAMANOS = [["Pequeño", 2], ["Normal", 3], ["Grande", 5], ["Muy grande", 6], ["Enorme", 7]];
+  const COLORES = ["#111111", "#e0602a", "#d62839", "#2e8b57", "#1d6fd6", "#7a3fb3"];
+  const FUENTES = [["Normal", ""], ["Archivo", "Archivo, Arial, sans-serif"], ["Oswald", "Oswald, 'Arial Narrow', sans-serif"], ["Playfair", "'Playfair Display', Georgia, serif"], ["Caveat", "Caveat, 'Comic Sans MS', cursive"], ["Roboto Mono", "'Roboto Mono', 'Courier New', monospace"], ["Bebas Neue", "'Bebas Neue', Impact, sans-serif"]];
+  const TAMANOS = [11, 12, 14, 16, 18, 22, 28, 36];
+  const ESTILOS = { titulo: [28, true], sub: [20, true], normal: [0, false] };
+  try { if (!document.getElementById("rtFuentes")) { const l = document.createElement("link"); l.id = "rtFuentes"; l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;800&family=Oswald:wght@500&family=Playfair+Display:wght@600&family=Caveat:wght@600&family=Roboto+Mono&family=Bebas+Neue&display=swap"; document.head.appendChild(l); } } catch (e) { /* nada */ }
 
   /* Cuando el usuario cambia algo desde fuera (por ejemplo al cargar), el editor se pone al día */
   const nativo = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
@@ -3547,8 +3549,9 @@ window.RT_SOLO='#notas,#textosFases textarea';
     barra.id = "rtBarra";
     barra.className = "no-imprimir";
     barra.innerHTML =
-      `<select data-c="fuente" title="Tipo de letra">${FUENTES.map(f => `<option value="${rtEscRaw(f[1])}">${f[0]}</option>`).join("")}</select>` +
-      `<select data-c="tam" title="Tamaño">${TAMANOS.map(t => `<option value="${t[1]}"${t[1] === 3 ? " selected" : ""}>${t[0]}</option>`).join("")}</select>` +
+      `<select data-c="estilo" title="Título o texto normal"><option value="">Estilo</option><option value="titulo">Título</option><option value="sub">Subtítulo</option><option value="normal">Texto normal</option></select>` +
+      `<select data-c="fuente" title="Tipo de letra" style="width:118px">${FUENTES.map(f => `<option value="${rtEscRaw(f[1])}" style="font-family:${rtEscRaw(f[1] || "inherit")}">${f[0]}</option>`).join("")}</select>` +
+      `<select data-c="tam" title="Tamaño"><option value="">Tam.</option>${TAMANOS.map(t => `<option value="${t}">${t}</option>`).join("")}</select>` +
       `<button type="button" data-c="b" title="Negrita"><b>N</b></button><button type="button" data-c="i" title="Cursiva"><i>C</i></button><button type="button" data-c="u" title="Subrayado"><u>S</u></button>` +
       `<span class="rt-sep"></span>` +
       COLORES.map(c => `<button type="button" class="rt-col" data-c="color" data-v="${c}" title="Color" style="background:${c}"></button>`).join("") +
@@ -3572,10 +3575,27 @@ window.RT_SOLO='#notas,#textosFases textarea';
     barra.addEventListener("change", (e) => {
       const t = e.target; if (!editorActivo) return;
       if (t.dataset.c === "fuente") { editorActivo.focus(); if (t.value) orden("fontName", t.value); else orden("removeFormat"); }
-      else if (t.dataset.c === "tam") { editorActivo.focus(); orden("fontSize", t.value); }
+      else if (t.dataset.c === "tam") { editorActivo.focus(); if (t.value) tamPx(Number(t.value)); t.selectedIndex = 0; }
+      else if (t.dataset.c === "estilo") { editorActivo.focus(); estilo(t.value); t.selectedIndex = 0; }
       else if (t.dataset.c === "color2") { editorActivo.focus(); orden("foreColor", t.value); }
     });
     return barra;
+  }
+  function tamPx(px) {
+    if (!editorActivo) return;
+    orden("fontSize", 7);
+    editorActivo.querySelectorAll("[style]").forEach(n => { if (/font-size:\s*(-webkit-)?xxx-large/i.test(n.getAttribute("style"))) n.style.fontSize = px + "px"; });
+    editorActivo.querySelectorAll("font[size='7']").forEach(n => { n.removeAttribute("size"); n.style.fontSize = px + "px"; });
+    editorActivo.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function estilo(k) {
+    if (!editorActivo || !ESTILOS[k]) return;
+    const sel = getSelection();
+    if (sel.rangeCount && sel.isCollapsed && sel.modify) { sel.modify("move", "backward", "lineboundary"); sel.modify("extend", "forward", "lineboundary"); }
+    const [px, neg] = ESTILOS[k];
+    let negAct = false; try { negAct = document.queryCommandState("bold"); } catch (x) { /* nada */ }
+    if (px) { if (negAct !== neg) orden("bold"); tamPx(px); }
+    else { orden("removeFormat"); quitarFondo(); }
   }
   function quitarFondo() {
     orden("hiliteColor", "transparent"); orden("backColor", "transparent");
@@ -3665,13 +3685,14 @@ window.RT_SOLO='#notas,#textosFases textarea';
 .rt-ed:focus{border-color:var(--orange,#e0602a);box-shadow:0 0 0 3px rgba(224,96,42,.15)}
 .rt-ed:empty:before{content:attr(data-ph);color:#9aa3af;pointer-events:none}
 .rt-ed ul,.rt-ed ol{margin:4px 0;padding-left:22px}
-#rtBarra{display:none;position:fixed;z-index:100000;gap:5px;align-items:center;flex-wrap:wrap;max-width:min(96vw,640px);padding:6px 8px;border-radius:10px;background:#14181c;color:#fff;box-shadow:0 8px 28px rgba(0,0,0,.35);font:600 13px Inter,sans-serif}
-#rtBarra select{background:#232a33;color:#fff;border:1px solid #3a434f;border-radius:6px;padding:4px 6px;font:600 12.5px Inter,sans-serif;max-width:110px}
-#rtBarra button{min-width:28px;height:28px;padding:0 7px;border:1px solid #3a434f;background:#232a33;color:#fff;border-radius:6px;cursor:pointer;font:700 13px Inter,sans-serif}
-#rtBarra button:hover{background:#2f3944}
-#rtBarra .rt-col{min-width:22px;width:22px;height:22px;padding:0;border-radius:50%;border:2px solid #fff3}
-#rtBarra .rt-marca{background:#fff3a3;color:#14181c}
-#rtBarra .rt-sep{width:1px;height:20px;background:#3a434f;margin:0 3px}
+#rtBarra{display:none;position:fixed;z-index:100000;gap:6px;align-items:center;flex-wrap:wrap;max-width:min(96vw,680px);padding:8px 10px;border-radius:12px;background:#fff;color:#14181c;border:1px solid #e5ded3;box-shadow:0 6px 24px rgba(0,0,0,.2);font:600 13px Archivo,Inter,sans-serif}
+#rtBarra select{background:#f3efe9;color:#14181c;border:0;border-radius:8px;padding:6px 8px;height:30px;font:700 13px Archivo,Inter,sans-serif;max-width:120px;cursor:pointer}
+#rtBarra button{min-width:30px;height:30px;padding:0 9px;border:0;background:#f3efe9;color:#14181c;border-radius:8px;cursor:pointer;font:700 14px Archivo,Inter,sans-serif}
+#rtBarra button:hover{background:#e8e0d3}
+#rtBarra .rt-col{min-width:22px;width:22px;height:22px;padding:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0002}
+#rtBarra .rt-col:hover{transform:scale(1.15)}
+#rtBarra .rt-marca{background:#fff3a3}
+#rtBarra .rt-sep{width:1px;height:22px;background:#d8d0c4;margin:0 3px}
 #rtBarra .rt-mas{position:relative;width:24px;height:24px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
 #rtBarra .rt-mas input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 @media print{#rtBarra{display:none!important}.rt-ed{display:none!important}}
