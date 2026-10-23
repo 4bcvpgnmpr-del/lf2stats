@@ -3697,6 +3697,7 @@ function showEquipoDetail(teamName) {
       <div>
         <h2>${escapeHtml(teamName)}</h2>
         <div class="sub">Partidos jugados: ${row["Part"] ? row["Part"].display : "N/D"}${clasifRow && clasifRow["Po"] ? ` &middot; Posicion #${clasifRow["Po"].display} en la liga` : ""}</div>
+        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" data-eq="${escapeAttr(teamName)}" onclick="abrirInformeVisual(this.dataset.eq)">Informe visual</button>
       </div>
     </div>
     <div class="section-block">
