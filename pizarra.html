@@ -705,6 +705,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
               <span class="tiempo" id="faseAni"></span>
               <select id="vel" style="flex:none;width:auto;margin-left:auto;"><option value="1800">Lenta</option><option value="1200" selected>Normal</option><option value="700">Rápida</option></select>
               <button class="gris" id="btnFsAni" type="button" title="Pantalla completa" style="flex:none;">⛶ Pantalla completa</button>
+              <button class="gris" id="btnHornear" type="button" title="Descarga la jugada animada para ponerla en 2D y 3D sobre un vídeo en el editor de vídeo" style="flex:none;">🎬 Para el editor de vídeo</button>
             </div>
           </div>
         </div>
@@ -1428,6 +1429,35 @@ function grabarVideo(cfg) {
   } catch (e) { resp({ error: String(e && e.message || e) }); }
 }
 
+/* "hornea" la jugada: posiciones por fotograma, para dibujarla en 2D y 3D en el editor de video */
+function hornearJugada(jug, dur) {
+  const j = normalizar(JSON.parse(JSON.stringify(jug))); fijarCampo(j);
+  const { segs, total } = segmentosAnim(j, dur, 0, j.pasos.length);
+  if (!segs.length) return null;
+  const fps = 20, n = Math.floor(total / 1000 * fps) + 1, r2 = (v) => Math.round(v * 100) / 100;
+  const fichas = {}, balon = [], vis = [], lineas = [], idx = new Map();
+  for (let k = 0; k < n; k++) {
+    const ms = Math.min(total, k * 1000 / fps), sg = segs.find(s => ms < s.fin) || segs[segs.length - 1], t = Math.min(1, Math.max(0, (ms - sg.ini) / sg.dur));
+    fijarEtq(j, j.pasos[sg.i]);
+    const E = estadoEn(j, sg.i, t, dur);
+    Object.keys(E.pos).forEach(key => {
+      const q = fichas[key] || (fichas[key] = { t: key[0], n: etiquetaFicha(key), p: new Array(n).fill(null) });
+      q.n = etiquetaFicha(key); q.p[k] = [r2(E.pos[key].x), r2(E.pos[key].y)];
+    });
+    balon.push(E.balon ? [r2(E.balon.x), r2(E.balon.y)] : null);
+    vis.push(E.vis.map(v => {
+      let id = idx.get(v.l);
+      if (id == null) {
+        const tr = trayectoria(v.l), paso = Math.max(1, Math.ceil(tr.length / 70)), pts = [];
+        for (let i = 0; i < tr.length; i += paso) pts.push([r2(tr[i][0]), r2(tr[i][1])]);
+        const u = tr[tr.length - 1]; if (!pts.length || pts[pts.length - 1][0] !== r2(u[0]) || pts[pts.length - 1][1] !== r2(u[1])) pts.push([r2(u[0]), r2(u[1])]);
+        id = lineas.length; idx.set(v.l, id); lineas.push({ t: v.l.t, color: v.l.color || "", pts });
+      }
+      return [id, r2(v.f)];
+    }));
+  }
+  return { v: 1, nombre: j.nombre || "Jugada", campo: CAMPO_LARGO ? "completo" : "medio", fondo: FONDO, fps, n, dur: total / 1000, fichas, balon, lineas, vis, fases: segs.map(s => ({ ini: s.ini / 1000, fin: s.fin / 1000, titulo: j.pasos[s.i].titulo || "" })) };
+}
 /* ---------- video: youtube, vimeo, archivo o enlace ---------- */
 function videoHtml(u) {
   u = String(u || "").trim(); if (!u) return "";
@@ -2426,6 +2456,13 @@ function conectarPC(idBoton, idCaja) {
 }
 document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && pcActivo && pcApi) salirPC(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pcActivo) salirPC(); });
+$("btnHornear").addEventListener("click", () => {
+  try { volcarCampos(); } catch (e) { /* nada */ }
+  const d = hornearJugada(jugada, Number($("vel").value) || 1200);
+  if (!d) { aviso("Dibuja alguna acción (pase, corte…) para poder animarla."); return; }
+  descargar(nombreArchivo() + ".jugada.json", new Blob([JSON.stringify(d)], { type: "application/json" }));
+  aviso("Descargada. En el editor de vídeo usa la herramienta «Jugada» y elige este archivo.");
+});
 conectarPC("btnFsAni", "cajaAni"); conectarPC("mvFs", "mvCaja"); conectarPC("vsFs", "visor");
 if ($("btnDatos")) { $("btnDatos").addEventListener("click", () => document.querySelector(".datos-ed").classList.toggle("plegado")); if (window.innerWidth <= 760) document.querySelector(".datos-ed").classList.add("plegado"); }
 
