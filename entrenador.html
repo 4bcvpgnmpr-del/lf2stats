@@ -726,7 +726,80 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
 const VERSION = "2026-10-14";
 const $ = (id) => document.getElementById(id);
-const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/*RTCORE*/
+/* ===== Texto con formato: núcleo ===== */
+const RT_MARK = "<!--rt-->";
+function rtEscRaw(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+const RT_ESTILOS = { "color": 1, "background-color": 1, "font-family": 1, "font-size": 1, "font-weight": 1, "font-style": 1, "text-decoration": 1, "text-decoration-line": 1 };
+const RT_TAM = { "1": "x-small", "2": "small", "3": "medium", "4": "large", "5": "x-large", "6": "xx-large", "7": "xxx-large" };
+function rtEstiloLimpio(css) {
+  const salida = [];
+  String(css || "").split(";").forEach(par => {
+    const i = par.indexOf(":"); if (i < 0) return;
+    const k = par.slice(0, i).trim().toLowerCase(), v = par.slice(i + 1).trim();
+    if (!RT_ESTILOS[k] || !v || v.length > 90) return;
+    if (!/^[#\w\s,.'"%()\-]+$/.test(v) || /url|expression|javascript|@import/i.test(v)) return;
+    salida.push(k + ":" + v.replace(/"/g, "'"));
+  });
+  return salida.join(";");
+}
+function rtSan(html) {
+  const origen = document.createElement("div");
+  origen.innerHTML = String(html || "");
+  const destino = document.createElement("div");
+  const OK = { B: "b", STRONG: "b", I: "i", EM: "i", U: "u", BR: "br", UL: "ul", OL: "ol", LI: "li", DIV: "div", P: "div", SPAN: "span", FONT: "span" };
+  (function copiar(desde, hasta) {
+    desde.childNodes.forEach(n => {
+      if (n.nodeType === 3) { hasta.appendChild(document.createTextNode(n.nodeValue)); return; }
+      if (n.nodeType !== 1) return;
+      const t = n.tagName;
+      if (t === "SCRIPT" || t === "STYLE" || t === "IFRAME" || t === "OBJECT") return;
+      const nombre = OK[t];
+      if (!nombre) { copiar(n, hasta); return; }
+      const e = document.createElement(nombre);
+      if (nombre === "span") {
+        let css = rtEstiloLimpio(n.getAttribute("style"));
+        if (t === "FONT") {
+          const extra = [];
+          if (n.getAttribute("color")) extra.push("color:" + n.getAttribute("color"));
+          if (n.getAttribute("face")) extra.push("font-family:" + n.getAttribute("face"));
+          if (n.getAttribute("size") && RT_TAM[n.getAttribute("size")]) extra.push("font-size:" + RT_TAM[n.getAttribute("size")]);
+          css = [css, rtEstiloLimpio(extra.join(";"))].filter(Boolean).join(";");
+        }
+        if (css) e.setAttribute("style", css);
+      }
+      if (nombre === "br") { hasta.appendChild(e); return; }
+      copiar(n, e);
+      hasta.appendChild(e);
+    });
+  })(origen, destino);
+  return destino;
+}
+function rtText(el) {
+  let s = "";
+  (function rec(n) {
+    n.childNodes.forEach(h => {
+      if (h.nodeType === 3) { s += h.nodeValue; return; }
+      if (h.nodeType !== 1) return;
+      if (h.tagName === "BR") { s += "\n"; return; }
+      const bloque = /^(DIV|LI|UL|OL)$/.test(h.tagName);
+      if (bloque && s && !s.endsWith("\n")) s += "\n";
+      if (h.tagName === "LI") s += "• ";
+      rec(h);
+      if (bloque && s && !s.endsWith("\n")) s += "\n";
+    });
+  })(el);
+  return s.replace(/\n{3,}/g, "\n\n");
+}
+function rtPlain(s) {
+  s = String(s == null ? "" : s);
+  return s.indexOf(RT_MARK) === 0 ? rtText(rtSan(s.slice(RT_MARK.length))).trim() : s;
+}
+const esc = (t) => { t = String(t == null ? "" : t); return t.indexOf(RT_MARK) === 0 ? rtSan(t.slice(RT_MARK.length)).innerHTML : t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+/*FINRTCORE*/
+
 const clonar = (o) => JSON.parse(JSON.stringify(o));
 const idNuevo = (p) => (p || "x") + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 const fechaTxt = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) + " " + d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }); };
@@ -1737,7 +1810,7 @@ function formPlaybook(p, alGuardar) {
   const m = ventana(`<h3>${nuevo ? "Nuevo playbook" : "Datos del playbook"}</h3>
     <label>Título</label><input id="pbN" value="${esc(p.nombre)}" placeholder="Ej: Sistemas de ataque">
     <div class="dos"><div><label>Equipo</label><input id="pbE" value="${esc(p.equipo || "")}"></div><div><label>Temporada</label><input id="pbT" value="${esc(p.temporada || "")}" placeholder="2026/27"></div></div>
-    <label>Notas de introducción</label><textarea id="pbNo" style="min-height:70px;">${esc(p.data.notas || "")}</textarea>
+    <label>Notas de introducción</label><textarea id="pbNo" style="min-height:70px;">${rtEscRaw(p.data.notas || "")}</textarea>
     <label>Escudo de la portada</label><div class="esc-prev"><div class="box" id="pbEBox"></div><div><select id="pbEMod" style="margin-bottom:6px;"><option value="">Mi equipo</option><option value="otro">Otro escudo (rival…)</option><option value="none">Sin escudo</option></select><div id="pbEBt" style="display:none;"><button class="gris" id="pbEEl" type="button">Elegir imagen…</button><input type="file" id="pbEFile" accept="image/*" style="display:none;"></div></div></div>
     <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);"><input type="checkbox" id="pbC" style="width:auto;" ${p.compartido ? "checked" : ""}>📤 Visible para las jugadoras</label>
     <div class="pie-m"><button class="gris" id="pbX">Cancelar</button><button class="naranja" id="pbG">${nuevo ? "Crear y añadir jugadas" : "Guardar"}</button></div>`);
@@ -1842,7 +1915,7 @@ function pbMain() {
 }
 function pbFila(it, ci, ii, ro) {
   const asa = `<span class="pb-asa">${IC.asa}</span>`, dat = `data-ci="${ci}" data-ii="${ii}"`;
-  if (it.t === "txt") return `<div class="pb-fila txt" ${dat}>${asa}<textarea placeholder="Escribe un párrafo: reglas, notas, introducción…" ${ro ? "disabled" : ""}>${esc(it.txt || "")}</textarea>${ro ? "" : `<button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
+  if (it.t === "txt") return `<div class="pb-fila txt" ${dat}>${asa}<textarea placeholder="Escribe un párrafo: reglas, notas, introducción…" ${ro ? "disabled" : ""}>${rtEscRaw(it.txt || "")}</textarea>${ro ? "" : `<button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
   if (it.t === "salto") return `<div class="pb-fila salto" ${dat}>${asa}<span class="pb-sl">⤓ Salto de página (empieza una página nueva en el PDF)</span>${ro ? "" : `<button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
   const x = pbElem(it), mini = x ? (MINIS[x.id + "|" + x.actualizada] || "") : "";
   return `<div class="pb-fila" ${dat}>${asa}<div class="pb-th" ${x ? `data-mini="${esc(x.id)}"` : ""}>${mini || (x && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length ? "" : "🏀")}</div><span class="pb-n">${x ? esc(x.nombre || "(sin nombre)") : "<i>(elemento eliminado)</i>"}${it.t === "e" ? ' <em class="pb-tag">Ejercicio</em>' : ""}</span>${ro ? "" : `<button class="pb-ic" data-mas title="Más">${IC.mas}</button><button class="pb-ic" data-del title="Quitar">${IC.del}</button>`}</div>`;
@@ -1945,7 +2018,7 @@ function formEjercicio(x) {
     <div class="dos"><div><label>Carpeta</label><input id="ejC" list="dlej" value="${esc(x.carpeta || "")}" placeholder="Sin carpeta"><datalist id="dlej">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
       <div><label>Categoría</label><select id="ejK">${CATEGORIAS.map(c => `<option ${c === (d.categoria || "Otro") ? "selected" : ""}>${c}</option>`).join("")}</select></div></div>
     <div class="dos"><div><label>Duración (minutos)</label><input type="number" id="ejM" min="0" step="1" value="${esc(d.minutos || "")}"></div><div><label>Material</label><input id="ejMat" value="${esc(d.materiales || "")}" placeholder="Balones, conos, petos…"></div></div>
-    <label>Descripción / cómo se hace</label><textarea id="ejD">${esc(d.descripcion || "")}</textarea>
+    <label>Descripción / cómo se hace</label><textarea id="ejD">${rtEscRaw(d.descripcion || "")}</textarea>
     <div class="dos"><div><label>Jugada vinculada</label><select id="ejJ"><option value="">— ninguna —</option>${D.jugadas.map(j => `<option value="${esc(j.id)}" ${j.id === d.jugadaId ? "selected" : ""}>${esc(j.nombre)}</option>`).join("")}</select></div>
       <div><label>Vídeo o enlace</label><input id="ejV" value="${esc(d.video || "")}" placeholder="https://…"></div></div>
     ${vids.length ? `<label>…o elegir de mis archivos</label><select id="ejA"><option value="">— elegir —</option>${vids.map(a => `<option value="${esc(pubUrl(a))}">${a.tipo === "video" ? "🎬" : "🖼️"} ${esc(a.nombre)}</option>`).join("")}</select>` : ""}
@@ -2063,7 +2136,7 @@ function pEd() {
   } else if (tab === "det") {
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><div class="dos"><div><label style="margin-top:0;">Fecha</label><input type="date" id="pdF" value="${esc(p.fecha || "")}" ${ro ? "disabled" : ""}></div><div><label style="margin-top:0;">Hora de inicio</label><input type="time" id="pdH" value="${esc(d.inicio || "18:00")}" ${ro ? "disabled" : ""}></div></div>
       <label>Carpeta</label><input id="pdC" list="dlpl" value="${esc(p.carpeta || "")}" placeholder="Sin carpeta" ${ro ? "disabled" : ""}><datalist id="dlpl">${carpetasDe("planes").map(c => `<option value="${esc(c.nombre)}">`).join("")}</datalist>
-      <label>Objetivo / notas generales</label><textarea id="pdN" style="min-height:120px;" ${ro ? "disabled" : ""}>${esc(d.notas || "")}</textarea></div></div>`;
+      <label>Objetivo / notas generales</label><textarea id="pdN" style="min-height:120px;" ${ro ? "disabled" : ""}>${rtEscRaw(d.notas || "")}</textarea></div></div>`;
   } else {
     let acum = 0, sub = 0, filas = "", secAbierta = false, ci = -1; const PVC = ["#e0602a", "#2a7bb8", "#2f9e6b", "#8e5bc7", "#c9962b"];
     const cierra = () => { if (secAbierta) filas = filas.replace("§SUB§", sub + " min"); };
@@ -2074,7 +2147,7 @@ function pEd() {
     });
     cierra();
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><h2 style="font-size:22px;">${esc(p.nombre || "Plan sin título")}</h2><button class="gris" id="pvImp" style="float:right;padding:8px 14px;">🖨️ Imprimir / PDF</button><p class="peq" style="margin:2px 0 12px;">${solofecha(p.fecha)} · ${nSeg} ${nSeg === 1 ? "ejercicio" : "ejercicios"} · ${total} min · ${d.inicio}–${hmDe(d.inicio, total)}</p>${d.notas ? `<p style="white-space:pre-wrap;margin:0 0 12px;">${esc(d.notas)}</p>` : ""}<div class="pv-grid">${filas || '<div class="vacio">Aún no hay segmentos.</div>'}</div>
-      ${d.reflexion != null ? `<label>Reflexión</label><textarea id="pvR" style="min-height:90px;" placeholder="¿Qué funcionó? ¿Qué cambiarías?" ${ro ? "disabled" : ""}>${esc(d.reflexion)}</textarea>` : (ro ? "" : '<div style="margin-top:14px;"><button class="gris" id="pvAddR">＋ Añadir reflexión</button></div>')}</div></div>`;
+      ${d.reflexion != null ? `<label>Reflexión</label><textarea id="pvR" style="min-height:90px;" placeholder="¿Qué funcionó? ¿Qué cambiarías?" ${ro ? "disabled" : ""}>${rtEscRaw(d.reflexion)}</textarea>` : (ro ? "" : '<div style="margin-top:14px;"><button class="gris" id="pvAddR">＋ Añadir reflexión</button></div>')}</div></div>`;
   }
   root.innerHTML = cab + cuerpo;
   root.querySelectorAll("[data-ver]").forEach(el => el.addEventListener("click", (ev) => { ev.stopPropagation(); verEjercicio(D.ejercicios.find(y => y.id === el.dataset.ver)); }));
@@ -3514,7 +3587,7 @@ function calForm(e, fecha, pre) {
     <div class="dos"><div><label>Fecha</label><input type="date" id="ceF" value="${esc(x.fecha)}"></div><div><label>Desde</label><input type="time" id="ceH" value="${esc(x.hora || "")}"></div></div>
     <div class="dos"><div><label>Hasta</label><input type="time" id="ceFin" value="${esc(x.fin || "")}"></div><div><label>Lugar</label><input id="ceL" value="${esc(x.lugar || "")}" placeholder="Pabellón…"></div></div>
     <div id="ceRivW" ${x.tipo === "partido" ? "" : "hidden"}><label>Rival</label><input id="ceR" value="${esc(x.rival || "")}" placeholder="Equipo rival"></div>
-    <label>Notas</label><textarea id="ceN" style="min-height:70px;">${esc(x.notas || "")}</textarea>
+    <label>Notas</label><textarea id="ceN" style="min-height:70px;">${rtEscRaw(x.notas || "")}</textarea>
     ${n ? `<label>Repetir cada semana hasta (opcional)</label><input type="date" id="ceRep">` : ""}
     <div class="pie-m">${n ? "" : '<button class="rojo" id="ceD">Borrar</button>'}<span class="esp"></span><button class="gris" id="ceX">Cancelar</button><button class="naranja" id="ceG">Guardar</button></div>`);
   let tipo = x.tipo;
@@ -3829,5 +3902,180 @@ iniciar();
 </script>
 
 
+<script id="rtScript">
+window.RT_SOLO='#pbNo,#ejD,#pdN,#pvR,#ceN,.pb-fila.txt textarea';
+/* ============================================================
+   TEXTO CON FORMATO
+   Las cajas de texto largas permiten cambiar letra, tamaño, color,
+   negrita, cursiva, subrayado y marcador. El texto con formato se
+   guarda como un trozo de HTML limpio (empieza por <!--rt-->); el
+   que no lleva formato sigue siendo texto normal, como siempre.
+   ============================================================ */
+(function () {
+  if (window.__rtListo) return;
+  window.__rtListo = true;
+  const $ = (s, r) => (r || document).querySelector(s);
+
+  const COLORES = ["#14181c", "#e0602a", "#c0392b", "#1f7a5a", "#1d5fb4", "#7a3fb3", "#b07a10", "#6b7280"];
+  const FUENTES = [["Normal", ""], ["Elegante", "Georgia, serif"], ["Máquina", "'Courier New', monospace"], ["Manuscrita", "'Comic Sans MS', cursive"], ["Estrecha", "'Arial Narrow', Arial, sans-serif"]];
+  const TAMANOS = [["Pequeño", 2], ["Normal", 3], ["Grande", 5], ["Muy grande", 6], ["Enorme", 7]];
+
+  /* Cuando el usuario cambia algo desde fuera (por ejemplo al cargar), el editor se pone al día */
+  const nativo = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+
+  function aEditor(valor) {
+    valor = String(valor || "");
+    if (valor.indexOf(RT_MARK) === 0) return rtSan(valor.slice(RT_MARK.length)).innerHTML;
+    return rtEscRaw(valor).replace(/\n/g, "<br>");
+  }
+  function deEditor(ed) {
+    const limpio = rtSan(ed.innerHTML);
+    const texto = rtText(limpio).replace(/\s+$/g, "");
+    if (!texto.trim()) return "";
+    const html = limpio.innerHTML;
+    if (!/<(b|i|u|span|ul|ol|li)\b/i.test(html)) return texto;     // sin formato: texto normal
+    return RT_MARK + html;
+  }
+
+  /* ---------- Barra de herramientas ---------- */
+  let barra = null, editorActivo = null;
+  function crearBarra() {
+    if (barra) return barra;
+    barra = document.createElement("div");
+    barra.id = "rtBarra";
+    barra.className = "no-imprimir";
+    barra.innerHTML =
+      `<select data-c="fuente" title="Tipo de letra">${FUENTES.map(f => `<option value="${rtEscRaw(f[1])}">${f[0]}</option>`).join("")}</select>` +
+      `<select data-c="tam" title="Tamaño">${TAMANOS.map(t => `<option value="${t[1]}"${t[1] === 3 ? " selected" : ""}>${t[0]}</option>`).join("")}</select>` +
+      `<button type="button" data-c="b" title="Negrita"><b>N</b></button><button type="button" data-c="i" title="Cursiva"><i>C</i></button><button type="button" data-c="u" title="Subrayado"><u>S</u></button>` +
+      `<span class="rt-sep"></span>` +
+      COLORES.map(c => `<button type="button" class="rt-col" data-c="color" data-v="${c}" title="Color" style="background:${c}"></button>`).join("") +
+      `<label class="rt-mas" title="Otro color">+<input type="color" data-c="color2"></label>` +
+      `<span class="rt-sep"></span>` +
+      `<button type="button" data-c="marca" title="Marcador amarillo" class="rt-marca">A</button>` +
+      `<button type="button" data-c="lista" title="Lista con viñetas">•≡</button>` +
+      `<button type="button" data-c="limpiar" title="Quitar formato">Aa✕</button>`;
+    document.body.appendChild(barra);
+    barra.addEventListener("mousedown", (e) => { if (e.target.tagName !== "SELECT" && e.target.tagName !== "INPUT") e.preventDefault(); });
+    barra.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b || !editorActivo) return;
+      const c = b.dataset.c;
+      if (c === "b") orden("bold"); else if (c === "i") orden("italic"); else if (c === "u") orden("underline");
+      else if (c === "color") orden("foreColor", b.dataset.v);
+      else if (c === "marca") orden("hiliteColor", "#fff3a3");
+      else if (c === "lista") orden("insertUnorderedList");
+      else if (c === "limpiar") { orden("removeFormat"); orden("hiliteColor", "transparent"); }
+    });
+    barra.addEventListener("change", (e) => {
+      const t = e.target; if (!editorActivo) return;
+      if (t.dataset.c === "fuente") { editorActivo.focus(); if (t.value) orden("fontName", t.value); else orden("removeFormat"); }
+      else if (t.dataset.c === "tam") { editorActivo.focus(); orden("fontSize", t.value); }
+      else if (t.dataset.c === "color2") { editorActivo.focus(); orden("foreColor", t.value); }
+    });
+    return barra;
+  }
+  function orden(cmd, val) {
+    if (!editorActivo) return;
+    editorActivo.focus();
+    try { document.execCommand("styleWithCSS", false, true); } catch (e) { /* nada */ }
+    try { document.execCommand(cmd, false, val); } catch (e) { /* nada */ }
+    editorActivo.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function colocarBarra() {
+    if (!barra || !editorActivo) return;
+    const r = editorActivo.getBoundingClientRect();
+    barra.style.display = "flex";
+    const alto = barra.offsetHeight || 42, ancho = barra.offsetWidth || 420;
+    let top = r.top - alto - 6; if (top < 6) top = Math.min(r.bottom + 6, window.innerHeight - alto - 6);
+    let left = Math.max(6, Math.min(r.left, window.innerWidth - ancho - 6));
+    barra.style.top = top + "px"; barra.style.left = left + "px";
+  }
+  function ocultarBarra() { if (barra) barra.style.display = "none"; }
+
+  /* ---------- Mejora de cada textarea ---------- */
+  function mejorar(ta) {
+    if (ta._rt) return;
+    if (ta.readOnly || ta.disabled) { if (nativo.get.call(ta).indexOf(RT_MARK) === 0) nativo.set.call(ta, rtPlain(nativo.get.call(ta))); return; }
+    if (window.RT_SOLO && !ta.matches(window.RT_SOLO)) return;
+    if (ta.dataset.rt === "no" || ta.dataset.plan !== undefined || ta.closest("[data-rt='no']") || ta.closest("#rtBarra")) return;
+    ta._rt = true;
+    crearBarra();
+    const ed = document.createElement("div");
+    ed.className = "rt-ed " + (ta.className || "").replace(/\bscout-columnas\b/g, "");
+    ed.contentEditable = "true";
+    ed.setAttribute("role", "textbox"); ed.setAttribute("aria-multiline", "true");
+    ed.dataset.ph = ta.getAttribute("placeholder") || "";
+    const filas = Number(ta.getAttribute("rows")) || 3;
+    ed.style.minHeight = (filas * 1.55 + 1.2) + "em";
+    if (ta.style.minHeight) ed.style.minHeight = ta.style.minHeight;
+    if (ta.style.marginTop) ed.style.marginTop = ta.style.marginTop;
+    ed.innerHTML = aEditor(ta.value);
+    ta.parentNode.insertBefore(ed, ta);
+    ta.classList.add("rt-oculto");
+    ta._rtEd = ed;
+
+    // Si el programa cambia el valor desde fuera, el editor se actualiza
+    Object.defineProperty(ta, "value", {
+      configurable: true,
+      get() { return nativo.get.call(this); },
+      set(v) { nativo.set.call(this, v); if (document.activeElement !== ed) ed.innerHTML = aEditor(v); },
+    });
+    ta.focus = () => ed.focus();
+    const sync = () => { nativo.set.call(ta, deEditor(ed)); };
+    ed.addEventListener("input", () => { sync(); ta.dispatchEvent(new Event("input", { bubbles: true })); colocarBarra(); });
+    ed.addEventListener("focus", () => { editorActivo = ed; colocarBarra(); });
+    ed.addEventListener("keyup", () => { if (editorActivo === ed) colocarBarra(); });
+    ed.addEventListener("blur", () => {
+      sync();
+      ta.dispatchEvent(new Event("change", { bubbles: true }));
+      ta.dispatchEvent(new Event("blur"));
+      ta.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      setTimeout(() => { if (document.activeElement !== ed && !(barra && barra.contains(document.activeElement))) { if (editorActivo === ed) editorActivo = null; ocultarBarra(); } }, 150);
+    });
+    ed.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const t = (e.clipboardData || window.clipboardData).getData("text/plain");
+      document.execCommand("insertText", false, t);
+    });
+    // Cuando el textarea cambia de visibilidad (p. ej. se oculta una caja), el editor le sigue
+    new MutationObserver(() => { ed.style.display = ta.style.display === "none" ? "none" : ""; }).observe(ta, { attributes: true, attributeFilter: ["style"] });
+    if (ta.style.display === "none") ed.style.display = "none";
+  }
+  function recorrer(raiz) {
+    (raiz.querySelectorAll ? raiz.querySelectorAll("textarea") : []).forEach(mejorar);
+    if (raiz.tagName === "TEXTAREA") mejorar(raiz);
+  }
+  window.rtMejorar = recorrer;
+
+  window.addEventListener("scroll", () => { if (editorActivo) colocarBarra(); }, true);
+  window.addEventListener("resize", () => { if (editorActivo) colocarBarra(); });
+
+  const css = document.createElement("style");
+  css.textContent = `
+.rt-oculto{display:none!important}
+.rt-ed{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--wood-line,#ddd);border-radius:8px;background:var(--white,#fff);color:var(--ink,#1b2432);font:inherit;line-height:1.55;overflow:auto;resize:vertical;white-space:pre-wrap;word-break:break-word;outline:none;max-height:70vh}
+.rt-ed:focus{border-color:var(--orange,#e0602a);box-shadow:0 0 0 3px rgba(224,96,42,.15)}
+.rt-ed:empty:before{content:attr(data-ph);color:#9aa3af;pointer-events:none}
+.rt-ed ul,.rt-ed ol{margin:4px 0;padding-left:22px}
+#rtBarra{display:none;position:fixed;z-index:100000;gap:5px;align-items:center;flex-wrap:wrap;max-width:min(96vw,640px);padding:6px 8px;border-radius:10px;background:#14181c;color:#fff;box-shadow:0 8px 28px rgba(0,0,0,.35);font:600 13px Inter,sans-serif}
+#rtBarra select{background:#232a33;color:#fff;border:1px solid #3a434f;border-radius:6px;padding:4px 6px;font:600 12.5px Inter,sans-serif;max-width:110px}
+#rtBarra button{min-width:28px;height:28px;padding:0 7px;border:1px solid #3a434f;background:#232a33;color:#fff;border-radius:6px;cursor:pointer;font:700 13px Inter,sans-serif}
+#rtBarra button:hover{background:#2f3944}
+#rtBarra .rt-col{min-width:22px;width:22px;height:22px;padding:0;border-radius:50%;border:2px solid #fff3}
+#rtBarra .rt-marca{background:#fff3a3;color:#14181c}
+#rtBarra .rt-sep{width:1px;height:20px;background:#3a434f;margin:0 3px}
+#rtBarra .rt-mas{position:relative;width:24px;height:24px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+#rtBarra .rt-mas input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+@media print{#rtBarra{display:none!important}.rt-ed{display:none!important}}
+`;
+  document.head.appendChild(css);
+
+  const obs = new MutationObserver((muts) => { muts.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) recorrer(n); })); });
+  function arrancar() { recorrer(document.body); obs.observe(document.body, { childList: true, subtree: true }); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar); else arrancar();
+})();
+
+</script>
+<style>.pb-fila.txt .rt-ed{flex:1;border:0;background:#f7f8fa;min-height:44px;font-size:14px}</style>
 </body>
 </html>
