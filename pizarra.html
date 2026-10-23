@@ -630,6 +630,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
             <div class="lnfila" id="obColorFila"><span>Color</span><button id="obColor" class="muestra" title="Color"></button></div>
             <div id="obPaleta" class="paleta-col" style="display:none;"></div>
             <div class="lnfila" id="obMedidas" style="gap:5px;"><span>An</span><input type="number" id="obW" step="0.1" min="0.3" style="width:54px"><span>Al</span><input type="number" id="obH" step="0.1" min="0.3" style="width:54px"><span>°</span><input type="number" id="obRot" step="5" style="width:54px"></div>
+            <div class="lnfila" id="obFuente" style="gap:5px;flex-wrap:wrap;display:none;"><select id="obFam" style="width:auto;padding:6px 8px;font-size:13px;"><option value="Arial">Normal</option><option value="Georgia, serif">Elegante</option><option value="'Courier New', monospace">Máquina</option><option value="'Comic Sans MS', cursive">Manuscrita</option><option value="'Arial Narrow', Arial, sans-serif">Estrecha</option></select><button class="gris" id="obNeg" style="width:auto;min-height:0;padding:6px 10px;"><b>N</b></button><button class="gris" id="obCur" style="width:auto;min-height:0;padding:6px 10px;"><i>C</i></button><button class="gris" id="obSub" style="width:auto;min-height:0;padding:6px 10px;"><u>S</u></button><button class="gris" id="obMenos" style="width:auto;min-height:0;padding:6px 10px;">A−</button><button class="gris" id="obMas" style="width:auto;min-height:0;padding:6px 10px;">A+</button></div>
             <div class="fila"><button class="gris" id="obTexto">✏️ Editar texto</button><button class="rojo" id="obBorrar" style="width:auto;">🗑 Eliminar</button></div>
             <p class="aviso-herr" style="margin:6px 0 0;">Arrastra los puntos azules para estirarlo; el círculo de arriba lo gira.</p>
           </div>
@@ -846,7 +847,81 @@ const VISOR = PARAMS.get("visor") === "1", PARTIDO = PARAMS.get("partido") === "
 const EJ = PARAMS.get("tabla") === "ejercicios", ORIG = {}, CATEG = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"], TABLA = EJ ? "ejercicios" : "jugadas";
 const EDITOR = PARAMS.get("editor") === "1", ID_ED = PARAMS.get("id") || "", CARPETA_ED = PARAMS.get("carpeta") || "";
 const $ = (id) => document.getElementById(id);
-const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/*RTCORE*/
+/* ===== Texto con formato: núcleo ===== */
+const RT_MARK = "<!--rt-->";
+function rtEscRaw(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+const RT_ESTILOS = { "color": 1, "background-color": 1, "font-family": 1, "font-size": 1, "font-weight": 1, "font-style": 1, "text-decoration": 1, "text-decoration-line": 1 };
+const RT_TAM = { "1": "x-small", "2": "small", "3": "medium", "4": "large", "5": "x-large", "6": "xx-large", "7": "xxx-large" };
+function rtEstiloLimpio(css) {
+  const salida = [];
+  String(css || "").split(";").forEach(par => {
+    const i = par.indexOf(":"); if (i < 0) return;
+    const k = par.slice(0, i).trim().toLowerCase(), v = par.slice(i + 1).trim();
+    if (!RT_ESTILOS[k] || !v || v.length > 90) return;
+    if (k === "background-color" && /^(transparent|rgba\(0,\s*0,\s*0,\s*0\)|initial|inherit)$/i.test(v)) return;
+    if (!/^[#\w\s,.'"%()\-]+$/.test(v) || /url|expression|javascript|@import/i.test(v)) return;
+    salida.push(k + ":" + v.replace(/"/g, "'"));
+  });
+  return salida.join(";");
+}
+function rtSan(html) {
+  const origen = document.createElement("div");
+  origen.innerHTML = String(html || "");
+  const destino = document.createElement("div");
+  const OK = { B: "b", STRONG: "b", I: "i", EM: "i", U: "u", BR: "br", UL: "ul", OL: "ol", LI: "li", DIV: "div", P: "div", SPAN: "span", FONT: "span" };
+  (function copiar(desde, hasta) {
+    desde.childNodes.forEach(n => {
+      if (n.nodeType === 3) { hasta.appendChild(document.createTextNode(n.nodeValue)); return; }
+      if (n.nodeType !== 1) return;
+      const t = n.tagName;
+      if (t === "SCRIPT" || t === "STYLE" || t === "IFRAME" || t === "OBJECT") return;
+      const nombre = OK[t];
+      if (!nombre) { copiar(n, hasta); return; }
+      const e = document.createElement(nombre);
+      if (nombre === "span") {
+        let css = rtEstiloLimpio(n.getAttribute("style"));
+        if (t === "FONT") {
+          const extra = [];
+          if (n.getAttribute("color")) extra.push("color:" + n.getAttribute("color"));
+          if (n.getAttribute("face")) extra.push("font-family:" + n.getAttribute("face"));
+          if (n.getAttribute("size") && RT_TAM[n.getAttribute("size")]) extra.push("font-size:" + RT_TAM[n.getAttribute("size")]);
+          css = [css, rtEstiloLimpio(extra.join(";"))].filter(Boolean).join(";");
+        }
+        if (css) e.setAttribute("style", css);
+      }
+      if (nombre === "br") { hasta.appendChild(e); return; }
+      copiar(n, e);
+      hasta.appendChild(e);
+    });
+  })(origen, destino);
+  return destino;
+}
+function rtText(el) {
+  let s = "";
+  (function rec(n) {
+    n.childNodes.forEach(h => {
+      if (h.nodeType === 3) { s += h.nodeValue; return; }
+      if (h.nodeType !== 1) return;
+      if (h.tagName === "BR") { s += "\n"; return; }
+      const bloque = /^(DIV|LI|UL|OL)$/.test(h.tagName);
+      if (bloque && s && !s.endsWith("\n")) s += "\n";
+      if (h.tagName === "LI") s += "• ";
+      rec(h);
+      if (bloque && s && !s.endsWith("\n")) s += "\n";
+    });
+  })(el);
+  return s.replace(/\n{3,}/g, "\n\n");
+}
+function rtPlain(s) {
+  s = String(s == null ? "" : s);
+  return s.indexOf(RT_MARK) === 0 ? rtText(rtSan(s.slice(RT_MARK.length))).trim() : s;
+}
+const esc = (t) => { t = String(t == null ? "" : t); return t.indexOf(RT_MARK) === 0 ? rtSan(t.slice(RT_MARK.length)).innerHTML : t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+/*FINRTCORE*/
+
 const clonar = (o) => JSON.parse(JSON.stringify(o));
 const idNuevo = () => "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
@@ -1084,7 +1159,7 @@ function objetoSvg(o, i, interactivo, sel) {
     else {
       const txt = o.txt || "", vacio = !txt, fs = Math.max(8, Math.min(h * 0.62, w * 1.75 / Math.max(4, (txt || "Editar texto").length)));
       forma = (sel ? `<rect x="${f(-hw)}" y="${f(-hh)}" width="${f(w)}" height="${f(h)}" fill="rgba(255,255,255,.4)" stroke="#1a73e8" stroke-width="1.4"/>` : `<rect x="${f(-hw)}" y="${f(-hh)}" width="${f(w)}" height="${f(h)}" fill="transparent"/>`) +
-        `<text x="0" y="${f(fs * 0.34)}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="${f(fs)}" fill="${vacio ? "#8a7a66" : col}" stroke="${vacio ? "none" : "#f3e0c0"}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">${esc(txt || (sel ? "Editar texto" : ""))}</text>`;
+        `<text x="0" y="${f(fs * 0.34)}" text-anchor="middle" font-family="${esc(o.fam || "Arial")}" font-weight="${o.neg === false ? 400 : 800}"${o.cur ? ' font-style="italic"' : ""}${o.sub ? ' text-decoration="underline"' : ""} font-size="${f(fs * (o.tam || 1))}" fill="${vacio ? "#8a7a66" : col}" stroke="${vacio ? "none" : "#f3e0c0"}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">${esc(txt || (sel ? "Editar texto" : ""))}</text>`;
     }
     g = `<g transform="translate(${f(x)} ${f(y)}) rotate(${o.rot || 0})">${forma}</g>`;
   }
@@ -1129,7 +1204,7 @@ function svgPaso(j, i, opciones) {
   const VB = opciones.mini ? `-14 -14 ${ANCHO * S + 28} ${FONDO * S + 28}` : `${-MG} ${-MG} ${ANCHO * S + 2 * MG} ${FONDO * S + 2 * MG}`;
   return `<svg xmlns="http://www.w3.org/2000/svg"${opciones.mini ? ' class="sfm"' : ""} viewBox="${VB}"${opciones.ancho ? ` width="${opciones.ancho}"` : ""}>${MINI_CSS}${CLIP_INI}${pistaFondo()}${objetosSvg(p.objs, opciones.interactivo)}${anillosPase(p)}${lineas}${jugadoresSvg(p.pos, posBalon(p.pos, p.balon), opciones.interactivo)}${opciones.rotulo && p.mostrarTitulo && p.titulo ? rotuloSvg(p.titulo, 1) : ""}${CLIP_FIN}</svg>`;
 }
-const textoLista = (t) => { const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
+const textoLista = (t) => { t = String(t || ""); if (t.indexOf(RT_MARK) === 0) return `<div class="rt-fase" style="white-space:pre-wrap">${esc(t)}</div>`; const l = String(t || "").split("\n").map(x => x.trim()).filter(Boolean); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
 
 /* ---------- animacion: las jugadoras recorren su linea, el balon vuela en los pases y tiros ---------- */
 const easeIO = (t) => 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, t)));
@@ -1426,6 +1501,8 @@ function pintarPanelObj() {
   const caj = CAJA.includes(o.t); $("obMedidas").style.display = caj ? "" : "none";
   if (caj) { if (document.activeElement !== $("obW")) $("obW").value = o.w.toFixed(1); if (document.activeElement !== $("obH")) $("obH").value = o.h.toFixed(1); if (document.activeElement !== $("obRot")) $("obRot").value = Math.round(o.rot || 0); }
   $("obTexto").style.display = o.t === "texto" ? "" : "none";
+  $("obFuente").style.display = o.t === "texto" ? "flex" : "none";
+  if (o.t === "texto") { $("obFam").value = o.fam || "Arial"; $("obNeg").style.outline = o.neg === false ? "" : "2px solid var(--orange,#e0602a)"; $("obCur").style.outline = o.cur ? "2px solid var(--orange,#e0602a)" : ""; $("obSub").style.outline = o.sub ? "2px solid var(--orange,#e0602a)" : ""; }
 }
 function editarTexto(i) {
   const o = jugada.pasos[paso].objs[i]; if (!o || o.t !== "texto") return;
@@ -1910,7 +1987,7 @@ function editarAccion(i, k) {
 function pintarTexto() {
   $("notas").value = jugada.notas || "";
   $("textosFases").innerHTML = jugada.pasos.map((p, i) => `<div class="card"><h2>Fase ${i + 1}${p.titulo ? " · " + esc(p.titulo) : ""}</h2><div class="fila-texto"><div class="mini">${svgPaso(jugada, i, {})}</div>
-    <div><textarea data-i="${i}" placeholder="Una idea por línea. Ej:&#10;El 1 pasa al 3&#10;El 5 sube a poner bloqueo">${esc(p.texto || "")}</textarea></div></div></div>`).join("");
+    <div><textarea data-i="${i}" placeholder="Una idea por línea. Ej:&#10;El 1 pasa al 3&#10;El 5 sube a poner bloqueo">${rtEscRaw(p.texto || "")}</textarea></div></div></div>`).join("");
   $("textosFases").querySelectorAll("textarea").forEach(t => {
     t.addEventListener("focus", snap);
     t.addEventListener("input", () => { jugada.pasos[Number(t.dataset.i)].texto = t.value; guardarBorrador(); });
@@ -1969,7 +2046,7 @@ function crearVisor(ids, dur) {
   v.abrir = (j) => {
     detener(); v.j = normalizar(clonar(j)); v.i = 0;
     $(ids.titulo).textContent = v.j.nombre || "Jugada";
-    $(ids.notas).textContent = v.j.notas || "";
+    $(ids.notas).innerHTML = esc(v.j.notas || "");
     if (ids.videos) $(ids.videos).innerHTML = videosHtml(v.j);
     prepararOpciones();
     if (ids.videos) prepararModos();
@@ -3240,6 +3317,13 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
   const medidas = () => { const o = objSel(); if (!o) return; const w = parseFloat($("obW").value), h = parseFloat($("obH").value), r = parseFloat($("obRot").value); if (w > 0.2) o.w = w; if (h > 0.2) o.h = h; if (isFinite(r)) o.rot = r; pintar(); };
   ["obW", "obH", "obRot"].forEach(id => { $(id).addEventListener("focus", snap); $(id).addEventListener("input", medidas); });
   $("obTexto").addEventListener("click", () => editarTexto(selObj));
+  const estT = (fn) => { const o = objSel(); if (!o || o.t !== "texto") return; snap(); fn(o); pintar(); };
+  $("obFam").addEventListener("change", () => estT(o => { o.fam = $("obFam").value; }));
+  $("obNeg").addEventListener("click", () => estT(o => { o.neg = o.neg === false; }));
+  $("obCur").addEventListener("click", () => estT(o => { o.cur = !o.cur; }));
+  $("obSub").addEventListener("click", () => estT(o => { o.sub = !o.sub; }));
+  $("obMas").addEventListener("click", () => estT(o => { o.tam = Math.min(3, +((o.tam || 1) * 1.2).toFixed(2)); }));
+  $("obMenos").addEventListener("click", () => estT(o => { o.tam = Math.max(0.4, +((o.tam || 1) / 1.2).toFixed(2)); }));
   $("obBorrar").addEventListener("click", () => { if (selObj < 0) return; snap(); jugada.pasos[paso].objs.splice(selObj, 1); selObj = -1; pintar(); });
   $("pista").addEventListener("dblclick", (ev) => { const p = aMetros(ev), oi = objetoCerca(p, 0.9); if (oi >= 0 && jugada.pasos[paso].objs[oi].t === "texto") editarTexto(oi); });
   document.addEventListener("keydown", (e) => {
@@ -3420,5 +3504,185 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
 </script>
 
 
+<script id="rtScript">
+window.RT_SOLO='#notas,#textosFases textarea';
+/* ============================================================
+   TEXTO CON FORMATO
+   Las cajas de texto largas permiten cambiar letra, tamaño, color,
+   negrita, cursiva, subrayado y marcador. El texto con formato se
+   guarda como un trozo de HTML limpio (empieza por <!--rt-->); el
+   que no lleva formato sigue siendo texto normal, como siempre.
+   ============================================================ */
+(function () {
+  if (window.__rtListo) return;
+  window.__rtListo = true;
+  const $ = (s, r) => (r || document).querySelector(s);
+
+  const COLORES = ["#14181c", "#e0602a", "#c0392b", "#1f7a5a", "#1d5fb4", "#7a3fb3", "#b07a10", "#6b7280"];
+  const FUENTES = [["Normal", ""], ["Elegante", "Georgia, serif"], ["Máquina", "'Courier New', monospace"], ["Manuscrita", "'Comic Sans MS', cursive"], ["Estrecha", "'Arial Narrow', Arial, sans-serif"]];
+  const TAMANOS = [["Pequeño", 2], ["Normal", 3], ["Grande", 5], ["Muy grande", 6], ["Enorme", 7]];
+
+  /* Cuando el usuario cambia algo desde fuera (por ejemplo al cargar), el editor se pone al día */
+  const nativo = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+
+  function aEditor(valor) {
+    valor = String(valor || "");
+    if (valor.indexOf(RT_MARK) === 0) return rtSan(valor.slice(RT_MARK.length)).innerHTML;
+    return rtEscRaw(valor).replace(/\n/g, "<br>");
+  }
+  function deEditor(ed) {
+    const limpio = rtSan(ed.innerHTML);
+    const texto = rtText(limpio).replace(/\s+$/g, "");
+    if (!texto.trim()) return "";
+    const html = limpio.innerHTML;
+    if (!/<(b|i|u|span|ul|ol|li)\b/i.test(html)) return texto;     // sin formato: texto normal
+    return RT_MARK + html;
+  }
+
+  /* ---------- Barra de herramientas ---------- */
+  let barra = null, editorActivo = null;
+  function crearBarra() {
+    if (barra) return barra;
+    barra = document.createElement("div");
+    barra.id = "rtBarra";
+    barra.className = "no-imprimir";
+    barra.innerHTML =
+      `<select data-c="fuente" title="Tipo de letra">${FUENTES.map(f => `<option value="${rtEscRaw(f[1])}">${f[0]}</option>`).join("")}</select>` +
+      `<select data-c="tam" title="Tamaño">${TAMANOS.map(t => `<option value="${t[1]}"${t[1] === 3 ? " selected" : ""}>${t[0]}</option>`).join("")}</select>` +
+      `<button type="button" data-c="b" title="Negrita"><b>N</b></button><button type="button" data-c="i" title="Cursiva"><i>C</i></button><button type="button" data-c="u" title="Subrayado"><u>S</u></button>` +
+      `<span class="rt-sep"></span>` +
+      COLORES.map(c => `<button type="button" class="rt-col" data-c="color" data-v="${c}" title="Color" style="background:${c}"></button>`).join("") +
+      `<label class="rt-mas" title="Otro color">+<input type="color" data-c="color2"></label>` +
+      `<span class="rt-sep"></span>` +
+      `<button type="button" data-c="marca" title="Marcador amarillo (pulsa otra vez para quitarlo)" class="rt-marca">A</button><button type="button" data-c="sinfondo" title="Quitar fondo de color">A⌀</button>` +
+      `<button type="button" data-c="lista" title="Lista con viñetas">•≡</button>` +
+      `<button type="button" data-c="limpiar" title="Quitar formato">Aa✕</button>`;
+    document.body.appendChild(barra);
+    barra.addEventListener("mousedown", (e) => { if (e.target.tagName !== "SELECT" && e.target.tagName !== "INPUT") e.preventDefault(); });
+    barra.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b || !editorActivo) return;
+      const c = b.dataset.c;
+      if (c === "b") orden("bold"); else if (c === "i") orden("italic"); else if (c === "u") orden("underline");
+      else if (c === "color") orden("foreColor", b.dataset.v);
+      else if (c === "marca") { let act = ""; try { act = document.queryCommandValue("hiliteColor") || document.queryCommandValue("backColor") || ""; } catch (x) { /* nada */ } const hay = act && !/transparent|rgba\(0, 0, 0, 0\)/i.test(act) && act !== "rgb(255, 255, 255)"; if (hay) quitarFondo(); else orden("hiliteColor", "#fff3a3"); }
+      else if (c === "sinfondo") quitarFondo();
+      else if (c === "lista") orden("insertUnorderedList");
+      else if (c === "limpiar") { orden("removeFormat"); quitarFondo(); }
+    });
+    barra.addEventListener("change", (e) => {
+      const t = e.target; if (!editorActivo) return;
+      if (t.dataset.c === "fuente") { editorActivo.focus(); if (t.value) orden("fontName", t.value); else orden("removeFormat"); }
+      else if (t.dataset.c === "tam") { editorActivo.focus(); orden("fontSize", t.value); }
+      else if (t.dataset.c === "color2") { editorActivo.focus(); orden("foreColor", t.value); }
+    });
+    return barra;
+  }
+  function quitarFondo() {
+    orden("hiliteColor", "transparent"); orden("backColor", "transparent");
+    if (editorActivo) editorActivo.querySelectorAll("[style]").forEach(n => { if (/background/i.test(n.getAttribute("style"))) { n.style.backgroundColor = ""; if (!n.getAttribute("style").trim()) n.removeAttribute("style"); } });
+    editorActivo && editorActivo.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function orden(cmd, val) {
+    if (!editorActivo) return;
+    editorActivo.focus();
+    try { document.execCommand("styleWithCSS", false, true); } catch (e) { /* nada */ }
+    try { document.execCommand(cmd, false, val); } catch (e) { /* nada */ }
+    editorActivo.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function colocarBarra() {
+    if (!barra || !editorActivo) return;
+    const r = editorActivo.getBoundingClientRect();
+    barra.style.display = "flex";
+    const alto = barra.offsetHeight || 42, ancho = barra.offsetWidth || 420;
+    let top = r.top - alto - 6; if (top < 6) top = Math.min(r.bottom + 6, window.innerHeight - alto - 6);
+    let left = Math.max(6, Math.min(r.left, window.innerWidth - ancho - 6));
+    barra.style.top = top + "px"; barra.style.left = left + "px";
+  }
+  function ocultarBarra() { if (barra) barra.style.display = "none"; }
+
+  /* ---------- Mejora de cada textarea ---------- */
+  function mejorar(ta) {
+    if (ta._rt) return;
+    if (ta.readOnly || ta.disabled) { if (nativo.get.call(ta).indexOf(RT_MARK) === 0) nativo.set.call(ta, rtPlain(nativo.get.call(ta))); return; }
+    if (window.RT_SOLO && !ta.matches(window.RT_SOLO)) return;
+    if (ta.dataset.rt === "no" || ta.dataset.plan !== undefined || ta.closest("[data-rt='no']") || ta.closest("#rtBarra")) return;
+    ta._rt = true;
+    crearBarra();
+    const ed = document.createElement("div");
+    ed.className = "rt-ed " + (ta.className || "").replace(/\bscout-columnas\b/g, "");
+    ed.contentEditable = "true";
+    ed.setAttribute("role", "textbox"); ed.setAttribute("aria-multiline", "true");
+    ed.dataset.ph = ta.getAttribute("placeholder") || "";
+    const filas = Number(ta.getAttribute("rows")) || 3;
+    ed.style.minHeight = (filas * 1.55 + 1.2) + "em";
+    if (ta.style.minHeight) ed.style.minHeight = ta.style.minHeight;
+    if (ta.style.marginTop) ed.style.marginTop = ta.style.marginTop;
+    ed.innerHTML = aEditor(ta.value);
+    ta.parentNode.insertBefore(ed, ta);
+    ta.classList.add("rt-oculto");
+    ta._rtEd = ed;
+
+    // Si el programa cambia el valor desde fuera, el editor se actualiza
+    Object.defineProperty(ta, "value", {
+      configurable: true,
+      get() { return nativo.get.call(this); },
+      set(v) { nativo.set.call(this, v); if (document.activeElement !== ed) ed.innerHTML = aEditor(v); },
+    });
+    ta.focus = () => ed.focus();
+    const sync = () => { nativo.set.call(ta, deEditor(ed)); };
+    ed.addEventListener("input", () => { sync(); ta.dispatchEvent(new Event("input", { bubbles: true })); colocarBarra(); });
+    ed.addEventListener("focus", () => { editorActivo = ed; colocarBarra(); });
+    ed.addEventListener("keyup", () => { if (editorActivo === ed) colocarBarra(); });
+    ed.addEventListener("blur", () => {
+      sync();
+      ta.dispatchEvent(new Event("change", { bubbles: true }));
+      ta.dispatchEvent(new Event("blur"));
+      ta.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      setTimeout(() => { if (document.activeElement !== ed && !(barra && barra.contains(document.activeElement))) { if (editorActivo === ed) editorActivo = null; ocultarBarra(); } }, 150);
+    });
+    ed.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const t = (e.clipboardData || window.clipboardData).getData("text/plain");
+      document.execCommand("insertText", false, t);
+    });
+    // Cuando el textarea cambia de visibilidad (p. ej. se oculta una caja), el editor le sigue
+    new MutationObserver(() => { ed.style.display = ta.style.display === "none" ? "none" : ""; }).observe(ta, { attributes: true, attributeFilter: ["style"] });
+    if (ta.style.display === "none") ed.style.display = "none";
+  }
+  function recorrer(raiz) {
+    (raiz.querySelectorAll ? raiz.querySelectorAll("textarea") : []).forEach(mejorar);
+    if (raiz.tagName === "TEXTAREA") mejorar(raiz);
+  }
+  window.rtMejorar = recorrer;
+
+  window.addEventListener("scroll", () => { if (editorActivo) colocarBarra(); }, true);
+  window.addEventListener("resize", () => { if (editorActivo) colocarBarra(); });
+
+  const css = document.createElement("style");
+  css.textContent = `
+.rt-oculto{display:none!important}
+.rt-ed{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--wood-line,#ddd);border-radius:8px;background:var(--white,#fff);color:var(--ink,#1b2432);font:inherit;line-height:1.55;overflow:auto;resize:vertical;white-space:pre-wrap;word-break:break-word;outline:none;max-height:70vh}
+.rt-ed:focus{border-color:var(--orange,#e0602a);box-shadow:0 0 0 3px rgba(224,96,42,.15)}
+.rt-ed:empty:before{content:attr(data-ph);color:#9aa3af;pointer-events:none}
+.rt-ed ul,.rt-ed ol{margin:4px 0;padding-left:22px}
+#rtBarra{display:none;position:fixed;z-index:100000;gap:5px;align-items:center;flex-wrap:wrap;max-width:min(96vw,640px);padding:6px 8px;border-radius:10px;background:#14181c;color:#fff;box-shadow:0 8px 28px rgba(0,0,0,.35);font:600 13px Inter,sans-serif}
+#rtBarra select{background:#232a33;color:#fff;border:1px solid #3a434f;border-radius:6px;padding:4px 6px;font:600 12.5px Inter,sans-serif;max-width:110px}
+#rtBarra button{min-width:28px;height:28px;padding:0 7px;border:1px solid #3a434f;background:#232a33;color:#fff;border-radius:6px;cursor:pointer;font:700 13px Inter,sans-serif}
+#rtBarra button:hover{background:#2f3944}
+#rtBarra .rt-col{min-width:22px;width:22px;height:22px;padding:0;border-radius:50%;border:2px solid #fff3}
+#rtBarra .rt-marca{background:#fff3a3;color:#14181c}
+#rtBarra .rt-sep{width:1px;height:20px;background:#3a434f;margin:0 3px}
+#rtBarra .rt-mas{position:relative;width:24px;height:24px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+#rtBarra .rt-mas input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+@media print{#rtBarra{display:none!important}.rt-ed{display:none!important}}
+`;
+  document.head.appendChild(css);
+
+  const obs = new MutationObserver((muts) => { muts.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) recorrer(n); })); });
+  function arrancar() { recorrer(document.body); obs.observe(document.body, { childList: true, subtree: true }); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar); else arrancar();
+})();
+
+</script>
 </body>
 </html>

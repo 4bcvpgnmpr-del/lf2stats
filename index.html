@@ -2416,6 +2416,7 @@ function rtEstiloLimpio(css) {
     const i = par.indexOf(":"); if (i < 0) return;
     const k = par.slice(0, i).trim().toLowerCase(), v = par.slice(i + 1).trim();
     if (!RT_ESTILOS[k] || !v || v.length > 90) return;
+    if (k === "background-color" && /^(transparent|rgba\(0,\s*0,\s*0,\s*0\)|initial|inherit)$/i.test(v)) return;
     if (!/^[#\w\s,.'"%()\-]+$/.test(v) || /url|expression|javascript|@import/i.test(v)) return;
     salida.push(k + ":" + v.replace(/"/g, "'"));
   });
@@ -5928,7 +5929,7 @@ function scoutingPanelHtml(tipo, nombre) {
         <button class="scout-item ${x.id === est.seleccion ? "activo" : ""}" data-id="${escapeAttr(x.id)}">
           <span class="icono ${x.clase}">${x.clase === "video" ? "▶" : "✎"}</span>
           <span class="txt">
-            <span class="tit">${escapeHtml(x.clase === "video" ? (x.titulo || "Video sin titulo") : rtPlainrtPlain(x.texto || "").slice(0, 60))}</span>
+            <span class="tit">${escapeHtml(x.clase === "video" ? (x.titulo || "Video sin titulo") : rtPlainrtPlainrtPlain(x.texto || "").slice(0, 60))}</span>
             <span class="hint">${escapeHtml(fechaCorta(x.fecha))}${(x.etiquetas || []).length ? " · " + escapeHtml(x.etiquetas.join(", ")) : ""}</span>
           </span>
         </button>`).join("")
@@ -13417,7 +13418,7 @@ function textosParaImprimir() {
       destino.dataset.sustituto = "1";
       ta.parentNode.insertBefore(destino, ta.nextSibling);
     }
-    if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else destino.textContent = valor;                 // siempre lo ultimo escrito
+    if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else destino.textContent = valor;                 // siempre lo ultimo escrito
     destino.style.whiteSpace = "pre-wrap";
 
     // La ayuda ("Ritmo, como quieren jugar...") es para ti, no para el papel
@@ -15051,7 +15052,7 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
       COLORES.map(c => `<button type="button" class="rt-col" data-c="color" data-v="${c}" title="Color" style="background:${c}"></button>`).join("") +
       `<label class="rt-mas" title="Otro color">+<input type="color" data-c="color2"></label>` +
       `<span class="rt-sep"></span>` +
-      `<button type="button" data-c="marca" title="Marcador amarillo" class="rt-marca">A</button>` +
+      `<button type="button" data-c="marca" title="Marcador amarillo (pulsa otra vez para quitarlo)" class="rt-marca">A</button><button type="button" data-c="sinfondo" title="Quitar fondo de color">A⌀</button>` +
       `<button type="button" data-c="lista" title="Lista con viñetas">•≡</button>` +
       `<button type="button" data-c="limpiar" title="Quitar formato">Aa✕</button>`;
     document.body.appendChild(barra);
@@ -15061,9 +15062,10 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
       const c = b.dataset.c;
       if (c === "b") orden("bold"); else if (c === "i") orden("italic"); else if (c === "u") orden("underline");
       else if (c === "color") orden("foreColor", b.dataset.v);
-      else if (c === "marca") orden("hiliteColor", "#fff3a3");
+      else if (c === "marca") { let act = ""; try { act = document.queryCommandValue("hiliteColor") || document.queryCommandValue("backColor") || ""; } catch (x) { /* nada */ } const hay = act && !/transparent|rgba\(0, 0, 0, 0\)/i.test(act) && act !== "rgb(255, 255, 255)"; if (hay) quitarFondo(); else orden("hiliteColor", "#fff3a3"); }
+      else if (c === "sinfondo") quitarFondo();
       else if (c === "lista") orden("insertUnorderedList");
-      else if (c === "limpiar") { orden("removeFormat"); orden("hiliteColor", "transparent"); }
+      else if (c === "limpiar") { orden("removeFormat"); quitarFondo(); }
     });
     barra.addEventListener("change", (e) => {
       const t = e.target; if (!editorActivo) return;
@@ -15072,6 +15074,11 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
       else if (t.dataset.c === "color2") { editorActivo.focus(); orden("foreColor", t.value); }
     });
     return barra;
+  }
+  function quitarFondo() {
+    orden("hiliteColor", "transparent"); orden("backColor", "transparent");
+    if (editorActivo) editorActivo.querySelectorAll("[style]").forEach(n => { if (/background/i.test(n.getAttribute("style"))) { n.style.backgroundColor = ""; if (!n.getAttribute("style").trim()) n.removeAttribute("style"); } });
+    editorActivo && editorActivo.dispatchEvent(new Event("input", { bubbles: true }));
   }
   function orden(cmd, val) {
     if (!editorActivo) return;
