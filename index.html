@@ -1923,7 +1923,7 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
 .ip-stack span{display:flex;align-items:center;justify-content:center}.ip-stack .a,.ip-leyenda .a{background:#e0602a}.ip-stack .b,.ip-leyenda .b{background:#14181c}.ip-stack .c,.ip-leyenda .c{background:#98a2b3}
 .ip-leyenda{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;color:var(--g)}.ip-leyenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
 .ip-fichas{display:flex;flex-direction:column;gap:12px;margin-top:12px}
-.ip-ficha{display:grid;grid-template-columns:110px 1fr 160px;gap:14px;border:1px solid var(--l);border-radius:10px;overflow:hidden;background:#fafbfc;break-inside:avoid;border-bottom:3px solid var(--o)}
+.ip-ficha{display:grid;grid-template-columns:110px 1fr 210px;gap:14px;border:1px solid var(--l);border-radius:10px;overflow:hidden;background:#fafbfc;break-inside:avoid;border-bottom:3px solid var(--o)}
 .ip-ficha .ft{position:relative;background:linear-gradient(160deg,#1a222c,#0f1319);min-height:150px;display:flex;align-items:center;justify-content:center;color:#6b7686;font:900 italic 30px Inter,sans-serif}
 .ip-ficha .ft img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
 .ip-ficha .fb{padding:12px 0}.ip-ficha small{color:var(--o);font-weight:800;letter-spacing:.1em;text-transform:uppercase;font-size:10.5px}
@@ -1950,6 +1950,8 @@ body.rol-ayudante #btnPdfPagina{display:inline-block;}
   #ipCapa .ip-sec,#ipCapa .ip-indice{padding-left:4mm;padding-right:4mm}
   #ipCapa .ip-pie{display:none}
 }
+
+.ip-tb tr.mio td{background:#fff1e8!important;font-weight:700}
 </style>
 <style id="sfTemaCss">
 html.oscuro{filter:invert(1) hue-rotate(180deg);background:#fff}
@@ -2179,7 +2181,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <h2 class="section-title">Informes profesionales</h2>
       <p class="hint" style="margin-top:-6px;">Elige el tipo de informe y de qué trata. Se genera completo (portada, índice, gráficos y tablas) y después puedes quitar o reordenar apartados y añadir tus notas. Se exporta a PDF listo para compartir.</p>
       <div class="fila">
-        <div><label class="t" for="ipTipo">Tipo de informe</label><select id="ipTipo"><option value="rival">Rival (scouting)</option><option value="equipo">Mi equipo / temporada</option><option value="jugadora">Jugadora</option><option value="partido">Post-partido</option></select></div>
+        <div><label class="t" for="ipTipo">Tipo de informe</label><select id="ipTipo"><option value="rival">Rival (scouting)</option><option value="equipo">Mi equipo / temporada</option><option value="jugadora">Jugadora</option><option value="partido">Post-partido</option><option value="liga">Resumen estadístico de la liga</option></select></div>
         <div style="flex:2"><label class="t" for="ipValor" id="ipValorEt">Equipo</label><select id="ipValor"></select></div>
         <div style="flex:0 0 auto;min-width:0"><button class="ip-btn p" id="ipCrear" type="button">Crear informe</button></div>
       </div>
@@ -2197,62 +2199,6 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       </div>
     </div>
     <div id="ipVista"></div>
-    <div class="panel no-imprimir">
-      <h2 class="section-title" style="margin-top:0;">Constructor de informes</h2>
-      <p class="hint" style="margin-top:-6px;">Elige los apartados que quieras, ponlos en el orden que
-        prefieras y exportalo como PDF. Puedes mezclar liga, equipos, jugadoras y partidos en un mismo documento.</p>
-
-      <div class="inf-cab" style="margin-top:14px;">
-        <div class="inf-campo" style="flex:2;">
-          <label for="infTitulo">Titulo del informe</label>
-          <input id="infTitulo" type="text" placeholder="Informe de scouting - Jornada 5">
-        </div>
-        <div class="inf-campo" style="flex:2;">
-          <label for="infSubtitulo">Subtitulo</label>
-          <input id="infSubtitulo" type="text" placeholder="Analisis previo del rival">
-        </div>
-        <div class="inf-campo">
-          <label for="infAutor">Autor</label>
-          <input id="infAutor" type="text" placeholder="Tu nombre">
-        </div>
-      </div>
-
-      <h4 style="margin:20px 0 8px;">Añadir un apartado</h4>
-      <div class="inf-cab">
-        <div class="inf-campo" style="flex:2;">
-          <label for="infTipo">Apartado</label>
-          <select id="infTipo"></select>
-        </div>
-        <div class="inf-campo" style="flex:2;" id="infCampoValor">
-          <label for="infValor">Elige</label>
-          <select id="infValor"></select>
-        </div>
-        <div class="inf-campo" style="flex:0 0 auto;min-width:0;">
-          <label>&nbsp;</label>
-          <button class="inf-btn principal" id="infAnadir" type="button">+ Añadir</button>
-        </div>
-      </div>
-      <div class="inf-campo" id="infCampoTexto" style="margin-top:10px;display:none;">
-        <label for="infTexto">Tu texto</label>
-        <textarea id="infTexto" rows="4" placeholder="Escribe aqui tus conclusiones, el plan de partido, lo que quieras."></textarea>
-      </div>
-
-      <h4 style="margin:22px 0 0;">Apartados del informe</h4>
-      <ul class="inf-lista" id="infLista"></ul>
-      <div class="inf-vacio" id="infVacio">Todavia no has añadido nada. Elige un apartado arriba y pulsa Añadir.</div>
-
-      <div class="inf-botones">
-        <button class="inf-btn principal" id="infGenerar" type="button">Generar vista previa</button>
-        <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" class="chk-plan-pdf"> Incluir plan de intervención en el PDF</label>
-        <button class="inf-btn" id="infPdf" type="button">Exportar PDF</button>
-        <button class="inf-btn" id="infGuardar" type="button">Guardar plantilla</button>
-        <button class="inf-btn" id="infCargar" type="button">Cargar plantilla</button>
-        <button class="inf-btn" id="infVaciar" type="button">Vaciar</button>
-      </div>
-      <p class="hint" id="infEstado" style="margin-top:10px;"></p>
-    </div>
-
-    <div id="infMontado"></div>
   </section>
 
   <section id="view-records" class="view" style="display:none;">
@@ -14585,6 +14531,107 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
   }
   const secEscrita = (txt) => `<div class="ip-lineas"><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="ip-hint">${esc(txt)}</p>`;
 
+
+  /* ---------- Liga: tablas y gráficos ---------- */
+  function secClasif(resalta) {
+    if (!clasificacion || !clasificacion.rows || !clasificacion.rows.length) return vacio("La clasificación estará disponible cuando se juegue la primera jornada.");
+    const cols = columnasUtilesClasificacion(clasificacion.cols, clasificacion.rows).filter(x => x.label !== "Grupo");
+    const tieneGrupo = clasificacion.cols.some(x => x.label === "Grupo");
+    const objetivo = resalta ? normalizarEquipo(equipoOficial(resalta)) : "";
+    const grupos = tieneGrupo ? [...new Set(clasificacion.rows.map(r => cellText(r, "Grupo")))].filter(g => !grupoActivo || g === grupoActivo) : [""];
+    const tablaGrupo = (rows) => {
+      let rs = [...rows];
+      if (cols.find(x => x.label === "Po")) rs.sort((a, b) => ((a["Po"] && a["Po"].numeric) ?? 0) - ((b["Po"] && b["Po"].numeric) ?? 0));
+      return tabla(cols.map(x => x.label), rs.map(r => ({ cls: objetivo && normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === objetivo ? "mio" : "", c: cols.map(x => x.label === "Equipo" ? `<b>${esc(cellText(r, "Equipo"))}</b>` : esc(cellText(r, x.label))) })), { compacta: true });
+    };
+    let grupos2 = grupos;
+    if (resalta && tieneGrupo) { const mine = clasificacion.rows.find(r => normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === objetivo); if (mine) grupos2 = [cellText(mine, "Grupo")]; }
+    return grupos2.map(g => (g ? `<h4 class="ip-sub">Grupo ${esc(g)}</h4>` : "") + tablaGrupo(tieneGrupo ? clasificacion.rows.filter(r => cellText(r, "Grupo") === g) : clasificacion.rows)).join("");
+  }
+  function equiposLiga() {
+    if (!avanzadasCalculo || !avanzadasCalculo.equipos) return [];
+    return [...avanzadasCalculo.equipos.entries()].filter(([eq]) => !grupoActivo || grupoDeEquipo(eq) === grupoActivo)
+      .map(([eq, acc]) => ({ eq, m: metricasEquipo(acc) })).filter(x => x.m);
+  }
+  function secMediasEquipos() {
+    const data = (datosLiga && datosLiga.equipos) ? datosLiga.equipos : equipos;
+    if (!data || !data.rows || !data.rows.length) return vacio("Las medias aparecerán cuando se juegue la primera jornada.");
+    const { order, baseType } = groupTotalMediaCols(equipoStatCols());
+    const bases = order.filter(b => b !== "Part").slice(0, 14);
+    let rows = data.rows.filter(r => !grupoActivo || grupoDeEquipo(cellText(r, "Equipo")) === grupoActivo);
+    const ptBase = bases.includes("PT") ? "PT" : bases[0];
+    rows = [...rows].sort((a, b) => (mediaPorPartido(b, ptBase, baseType) ?? -1) - (mediaPorPartido(a, ptBase, baseType) ?? -1));
+    return hint("Medias por partido de cada equipo. Los porcentajes de tiro son de la temporada.") +
+      tabla(["Equipo", "PJ"].concat(bases.map(b => etiquetaEstadistica(b).corta)), rows.map(r => ({ c: [`<b>${esc(cellText(r, "Equipo"))}</b>`, esc(cellText(r, "Part"))].concat(bases.map(b => { const v = mediaPorPartido(r, b, baseType); return v === null || v === undefined ? "–" : num(v) + (baseType[b] === "shot" ? "%" : ""); })) })), { compacta: true });
+  }
+  function secAvanzadasLiga() {
+    const l = equiposLiga();
+    if (!l.length) return vacio("Hacen falta los cuadros de cada partido para calcular las métricas avanzadas.");
+    const ord = [...l].sort((a, b) => (b.m.net ?? -99) - (a.m.net ?? -99));
+    const mio = miEquipo ? normalizarEquipo(equipoOficial(miEquipo)) : "";
+    const filas = ord.map((x, i) => ({ cls: mio && normalizarEquipo(equipoOficial(x.eq)) === mio ? "mio" : "", c: [`${i + 1}. <b>${esc(x.eq)}</b>`, `${x.m.v}-${x.m.d}`, num(x.m.ortg), num(x.m.drtg), `<b>${sg(x.m.net)}</b>`, num(x.m.ritmo), num(x.m.efg), num(x.m.ts), num(x.m.tovPct), num(x.m.pctRo), num(x.m.pctRd)] }));
+    return hint("Ordenados por Net Rating (puntos anotados menos recibidos por 100 posesiones). Estimaciones calculadas con el cuadro de cada partido.") +
+      tabla(["Equipo", "V-D", "ORtg", "DRtg", "Net", "Ritmo", "eFG%", "TS%", "TOV%", "ORB%", "DRB%"], filas, { compacta: true });
+  }
+  function svgNetBarras() {
+    const l = equiposLiga().filter(x => x.m.net !== null).sort((a, b) => b.m.net - a.m.net);
+    if (!l.length) return "";
+    const W = 640, fila = 22, H = l.length * fila + 20, mx = Math.max(5, ...l.map(x => Math.abs(x.m.net))), cx = 300, esc2 = 190 / mx;
+    const mio = miEquipo ? normalizarEquipo(equipoOficial(miEquipo)) : "";
+    const barras = l.map((x, i) => {
+      const w = Math.abs(x.m.net) * esc2, y = 10 + i * fila, pos = x.m.net >= 0, esMio = mio && normalizarEquipo(equipoOficial(x.eq)) === mio;
+      return `<text x="${cx - 200}" y="${y + 14}" text-anchor="end" font-size="10.5" ${esMio ? 'font-weight="800" fill="#e0602a"' : 'fill="#334"'}>${esc(String(x.eq).slice(0, 30))}</text>
+        <rect x="${pos ? cx : cx - w}" y="${y + 3}" width="${Math.max(w, 1)}" height="${fila - 8}" rx="2" fill="${pos ? "#1f7a5a" : "#c4512a"}"/>
+        <text x="${pos ? cx + w + 4 : cx - w - 4}" y="${y + 14}" text-anchor="${pos ? "start" : "end"}" font-size="10" font-weight="700" fill="#334">${sg(x.m.net)}</text>`;
+    }).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" class="ip-svg"><line x1="${cx}" x2="${cx}" y1="4" y2="${H - 4}" stroke="#aab"/>${barras}</svg>`;
+  }
+  function svgAtaqueDefensa() {
+    const l = equiposLiga().filter(x => x.m.ortg !== null && x.m.drtg !== null);
+    if (l.length < 3) return "";
+    const W = 640, H = 380, m = { l: 46, r: 16, t: 16, b: 40 };
+    const xs = l.map(x => x.m.ortg), ys = l.map(x => x.m.drtg);
+    const x0 = Math.min(...xs) - 3, x1 = Math.max(...xs) + 3, y0 = Math.min(...ys) - 3, y1 = Math.max(...ys) + 3;
+    const px = (v) => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r), py = (v) => m.t + (v - y0) / (y1 - y0) * (H - m.t - m.b);  // DRtg bajo arriba
+    const mx = xs.reduce((a, b) => a + b, 0) / xs.length, my = ys.reduce((a, b) => a + b, 0) / ys.length;
+    const mio = miEquipo ? normalizarEquipo(equipoOficial(miEquipo)) : "";
+    const pts = l.map(x => { const esMio = mio && normalizarEquipo(equipoOficial(x.eq)) === mio; const cx = px(x.m.ortg), cy = py(x.m.drtg);
+      return `<circle cx="${cx}" cy="${cy}" r="${esMio ? 7 : 5}" fill="${esMio ? "#e0602a" : "#14181c"}" opacity=".88"/><text x="${cx + 8}" y="${cy + 3.5}" font-size="9.5" ${esMio ? 'font-weight="800" fill="#e0602a"' : 'fill="#445"'}>${esc(String(x.eq).replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ ]/g, "").trim().split(/\s+/).slice(0, 2).join(" ").slice(0, 16))}</text>`; }).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" class="ip-svg"><rect x="${px(mx)}" y="${m.t}" width="${W - m.r - px(mx)}" height="${py(my) - m.t}" fill="#e7f4ec"/>
+      <line x1="${px(mx)}" x2="${px(mx)}" y1="${m.t}" y2="${H - m.b}" stroke="#aab" stroke-dasharray="4 3"/><line x1="${m.l}" x2="${W - m.r}" y1="${py(my)}" y2="${py(my)}" stroke="#aab" stroke-dasharray="4 3"/>
+      <text x="${W - m.r - 4}" y="${m.t + 12}" text-anchor="end" font-size="10" font-weight="800" fill="#1f7a5a">MEJOR ATAQUE Y DEFENSA</text>
+      <text x="${(m.l + W - m.r) / 2}" y="${H - 8}" text-anchor="middle" font-size="10.5" fill="#667">Ataque: ORtg (más a la derecha, mejor)</text>
+      <text transform="translate(12 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle" font-size="10.5" fill="#667">Defensa: DRtg (más arriba, mejor)</text>${pts}</svg>`;
+  }
+  function secLideres() {
+    const defs = [["PT", "Puntos"], ["Rebotes_Totales", "Rebotes"], ["Asistencias", "Asistencias"], ["Robos", "Robos"], ["Valoracion", "Valoración"], ["Tapones_Favor", "Tapones"]];
+    const cajas = defs.map(([k, t]) => {
+      const fuente = k === "PT" ? ((datosLiga && datosLiga.jugadoras) || jugadoras) : (typeof rankingExtra !== "undefined" ? rankingExtra[k] : null);
+      if (!fuente || !fuente.rows) return "";
+      const top = fuente.rows.filter(r => !grupoActivo || grupoDeEquipo(cellText(r, "Equipo")) === grupoActivo)
+        .map(r => { const md = mediaOf(r); return { r, v: md ? md.numeric : null, t: md ? md.display : "" }; }).filter(x => x.v !== null).sort((a, b) => b.v - a.v).slice(0, 5);
+      if (!top.length) return "";
+      return caja(t + " por partido", tabla(["Jugadora", "Equipo", "Media"], top.map((x, i) => ({ c: [`${i + 1}. <b>${esc(nombreLegible(cellText(x.r, "Jugador")))}</b>`, esc(cellText(x.r, "Equipo")), `<b>${esc(x.t)}</b>`] })), { compacta: true }));
+    }).filter(Boolean);
+    if (!cajas.length) return vacio("Los líderes aparecerán cuando haya jugadoras con estadísticas.");
+    const filas = []; for (let i = 0; i < cajas.length; i += 2) filas.push(dos(cajas[i], cajas[i + 1] || "<div></div>"));
+    return filas.join("");
+  }
+  function secUltimosResultados() {
+    if (!resultados || !resultados.rows) return vacio("Sin resultados todavía.");
+    const jug = resultados.rows.filter(r => cellText(r, "Jugado") === "Si" && (!grupoActivo || cellText(r, "Grupo") === grupoActivo || !cellText(r, "Grupo")));
+    if (!jug.length) return vacio("Sin partidos jugados todavía.");
+    const rec = [...jug].sort((a, b) => fechaNum(cellText(b, "Fecha")) - fechaNum(cellText(a, "Fecha"))).slice(0, 12);
+    return tabla(["Jornada", "Fecha", "Local", "Resultado", "Visitante"], rec.map(r => ({ c: [esc(String(cellText(r, "Jornada")).replace(/\s*\(.*?\)\s*$/, "")), esc(cellText(r, "Fecha")), esc(cellText(r, "Local")), `<b>${esc(cellText(r, "Pts_Local"))} - ${esc(cellText(r, "Pts_Visitante"))}</b>`, esc(cellText(r, "Visitante"))] })), { compacta: true });
+  }
+  function secDestacadosLiga() {
+    const l = equiposLiga();
+    if (l.length < 3) return vacio("Sin datos suficientes.");
+    const top = (f, mejorAlto) => [...l].filter(x => f(x) !== null && f(x) !== undefined).sort((a, b) => mejorAlto ? f(b) - f(a) : f(a) - f(b))[0];
+    const it = [["Mejor ataque", top(x => x.m.ortg, true), x => `ORtg ${num(x.m.ortg)}`], ["Mejor defensa", top(x => x.m.drtg, false), x => `DRtg ${num(x.m.drtg)}`], ["Mejor Net Rating", top(x => x.m.net, true), x => sg(x.m.net)], ["Más rápido", top(x => x.m.ritmo, true), x => `${num(x.m.ritmo)} posesiones`], ["Más lento", top(x => x.m.ritmo, false), x => `${num(x.m.ritmo)} posesiones`], ["Mejor tiro (TS%)", top(x => x.m.ts, true), x => `${num(x.m.ts)}%`], ["Menos pérdidas", top(x => x.m.tovPct, false), x => `TOV% ${num(x.m.tovPct)}`], ["Mejor rebote defensivo", top(x => x.m.pctRd, true), x => `DRB% ${num(x.m.pctRd)}`]];
+    return `<div class="ip-kpis">${it.filter(x => x[1]).map(x => kpi(x[0], String(x[1].eq).slice(0, 26), x[2](x[1]))).join("")}</div>`;
+  }
+
   /* ---------- Jugadora ---------- */
   function ctxJugadora(nombre) {
     const row = jugadoras && jugadoras.rows.find(r => r["Jugador"] && r["Jugador"].display === nombre);
@@ -14631,21 +14678,36 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
     if (tipo === "rival") return [
       S("resumen", "Resumen ejecutivo", () => secResumen(c)),
       S("como", "Cómo jugarles", () => secComoJugarles(c)),
+      S("clasif", "Clasificación", () => secClasif(c.nombre)),
       S("identidad", "Identidad estadística", () => secIdentidad(c)),
       S("estilo", "Estilo de juego", () => secEstilo(c)),
       S("resultados", "Resultados y forma", () => secResultados(c, true)),
-      S("jugadoras", "Jugadoras clave", () => tablaPlantilla(c, 10) + fichasTop(c, 3, c.nombre)),
+      S("jugadoras", "Plantilla: estadísticas", () => tablaPlantilla(c, 20)),
+      S("fichas", "Jugadoras: fichas y mapas de tiro", () => fichasTop(c, 99, c.nombre) || vacio("Sin jugadoras en los rankings.")),
       S("mapa", "Mapa de tiro del equipo", () => secMapa(c)),
       S("scouting", "Scouting y notas", () => secScoutingNotas(c)),
       S("plan", "Plan de partido", () => secEscrita("Espacio para el plan de partido: defensa, ataque, situaciones especiales."), true, { escrita: true }),
     ];
+    if (tipo === "liga") return [
+      S("destacados", "Los mejores en cada faceta", () => secDestacadosLiga()),
+      S("clasif", "Clasificación", () => secClasif(miEquipo)),
+      S("net", "Net Rating de los equipos", () => (svgNetBarras() ? caja("Puntos de diferencia por 100 posesiones", svgNetBarras()) : vacio("Sin datos suficientes."))),
+      S("mapa", "Ataque frente a defensa", () => (svgAtaqueDefensa() ? caja("Cada punto es un equipo", svgAtaqueDefensa()) + hint("Los equipos de la zona verde superan la media de la liga en ataque y en defensa a la vez.") : vacio("Sin datos suficientes."))),
+      S("avanzadas", "Métricas avanzadas por equipo", () => secAvanzadasLiga()),
+      S("medias", "Medias por partido de cada equipo", () => secMediasEquipos()),
+      S("lideres", "Líderes individuales", () => secLideres()),
+      S("resultados", "Últimos resultados", () => secUltimosResultados()),
+      S("lectura", "Lectura y conclusiones", () => secEscrita("Lo más relevante de la jornada y qué implica para tu equipo."), true, { escrita: true }),
+    ];
     if (tipo === "equipo") return [
       S("resumen", "Resumen de temporada", () => secResumen(c)),
+      S("clasif", "Clasificación", () => secClasif(c.nombre)),
       S("identidad", "Identidad estadística", () => secIdentidad(c)),
       S("evolucion", "Evolución durante la temporada", () => secEvolucion(c)),
       S("estilo", "Estilo de juego", () => secEstilo(c)),
       S("produccion", "Rotación y producción", () => secProduccion(c)),
-      S("jugadoras", "Plantilla y jugadoras destacadas", () => tablaPlantilla(c, 14) + fichasTop(c, 3, c.nombre)),
+      S("jugadoras", "Plantilla: estadísticas", () => tablaPlantilla(c, 20)),
+      S("fichas", "Jugadoras: fichas y mapas de tiro", () => fichasTop(c, 99, c.nombre) || vacio("Sin jugadoras en los rankings.")),
       S("mapa", "Mapa de tiro", () => secMapa(c)),
       S("resultados", "Calendario y resultados", () => secResultados(c, false)),
       S("plan", "Plan de intervención", () => { try { const t = document.createElement("div"); t.innerHTML = bloquePlan(c.nombre, false); t.querySelectorAll("button,.no-imprimir,textarea,input,select").forEach(n => n.remove()); return `<div class="ip-legacy">${t.innerHTML}</div>`; } catch (e) { return vacio("No se pudo generar el plan."); } }, planEnPdf()),
@@ -14723,6 +14785,7 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
     if (t === "rival") { nombre = c.nombre; etiqueta = "Informe de scouting · rival"; logo = c.escudo; }
     else if (t === "equipo") { nombre = c.nombre; etiqueta = "Informe de equipo · temporada"; logo = c.escudo; }
     else if (t === "jugadora") { nombre = nombreLegible(c.nombre); etiqueta = "Informe de jugadora · " + (c.equipo || ""); logo = c.escudo; foto = c.st && c.st.foto; }
+    else if (t === "liga") { nombre = c.nombre; etiqueta = "Resumen estadístico"; }
     else if (t === "partido") {
       const r = c.res; nombre = c.vacio ? "Partido" : `${c.nL} – ${c.nV}`; etiqueta = "Informe post-partido";
       if (r) marcador = `${cellText(r, "Pts_Local")} – ${cellText(r, "Pts_Visitante")}`;
@@ -14783,7 +14846,8 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
       sel.innerHTML = ops.map(o => `<option value="${escapeAttr(o.v)}"${pref && normalizarEquipo(o.v) === normalizarEquipo(pref) ? " selected" : ""}>${esc(o.t)}</option>`).join("");
       return;
     }
-    if (t === "jugadora") { lab.textContent = "Jugadora"; ops = jugadorasParaInforme().map(j => ({ v: j.nombre, t: `${j.nombre} — ${j.equipo}` })); }
+    if (t === "liga") { lab.textContent = "Ámbito"; ops = [{ v: "liga", t: grupoActivo ? "Grupo " + grupoActivo : "Toda la liga" }]; }
+    else if (t === "jugadora") { lab.textContent = "Jugadora"; ops = jugadorasParaInforme().map(j => ({ v: j.nombre, t: `${j.nombre} — ${j.equipo}` })); }
     else { lab.textContent = "Partido"; ops = partidosParaInforme().map(p => ({ v: p.id, t: p.texto })); }
     sel.innerHTML = ops.map(o => `<option value="${escapeAttr(o.v)}">${esc(o.t)}</option>`).join("");
   }
@@ -14795,7 +14859,8 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
     $("ipCrear").disabled = true;
     try {
       let ctx;
-      if (tipo === "rival" || tipo === "equipo") { await asegurarDatos([valor]); ctx = ctxEquipo(valor); }
+      if (tipo === "liga") { await asegurarDatos([]); ctx = { nombre: (typeof LIGA_NOMBRE !== "undefined" && LIGA_NOMBRE ? LIGA_NOMBRE : "Liga") + (grupoActivo ? " · Grupo " + grupoActivo : "") }; }
+      else if (tipo === "rival" || tipo === "equipo") { await asegurarDatos([valor]); ctx = ctxEquipo(valor); }
       else if (tipo === "jugadora") {
         const row = jugadoras && jugadoras.rows.find(r => r["Jugador"] && r["Jugador"].display === valor);
         await asegurarDatos([row && row["Equipo"] ? row["Equipo"].display : ""]); ctx = ctxJugadora(valor);
@@ -14808,7 +14873,7 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
       EST.tipo = tipo; EST.valor = valor; EST.ctx = ctx; EST.notas = {};
       EST.secs = definir(tipo, valor, ctx);
       EST.secs.forEach(s => { if (s.escrita) return; let h = ""; try { h = s.fn(); } catch (e) { h = ""; } if (/^\s*<p class="ip-vacio">[^<]*<\/p>\s*$/.test(h)) { s.on = false; s.sinDatos = true; } });
-      const base = tipo === "rival" ? "Informe de scouting" : (tipo === "equipo" ? "Informe de temporada" : (tipo === "jugadora" ? "Informe de jugadora" : "Informe post-partido"));
+      const base = tipo === "liga" ? "Resumen estadístico de la jornada" : tipo === "rival" ? "Informe de scouting" : (tipo === "equipo" ? "Informe de temporada" : (tipo === "jugadora" ? "Informe de jugadora" : "Informe post-partido"));
       $("ipTitulo").value = tipo === "partido" && ctx.res ? `${cellText(ctx.res, "Local")} – ${cellText(ctx.res, "Visitante")}` : (tipo === "jugadora" ? nombreLegible(valor) : ctx.nombre);
       $("ipSub").value = tipo === "partido" && ctx.res ? [cellText(ctx.res, "Jornada"), cellText(ctx.res, "Fecha")].filter(Boolean).join(" · ") : (tipo === "jugadora" ? ctx.equipo : base);
       $("ipEditor").style.display = "block";
