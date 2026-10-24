@@ -1699,7 +1699,7 @@ function abrirPartido() {
   let m = $("partidoMarco");
   if (!m) { m = document.createElement("div"); m.id = "partidoMarco"; m.style.cssText = "position:fixed;inset:0;z-index:400;background:#10171f;"; m.innerHTML = '<iframe id="partidoIf" title="Modo partido" allowfullscreen allow="fullscreen; remote-playback" style="border:0;width:100%;height:100%;"></iframe>'; document.body.appendChild(m); window.addEventListener("message", (ev) => { if (ev.data && ev.data.partidoCerrar) cerrarPartido(); if (ev.data && ev.data.partidoCrono) { CRONO_P = ev.data.partidoCrono; pintarCronoP(); } }); }
   const ifr = $("partidoIf"), vivo = ifr.src && ifr.src.indexOf("pizarra.html") >= 0 && CRONO_P && (CRONO_P.run || CRONO_P.fired);
-  m.style.display = "block"; if (!vivo) ifr.src = "pizarra.html?partido=1&v=" + VERSION;
+  m.style.display = "block"; if (!vivo) { let q = ""; try { if (CAL.ev === null) CAL.ev = calLeer(); const h = new Date(), p2 = (x) => String(x).padStart(2, "0"), hoy = h.getFullYear() + "-" + p2(h.getMonth() + 1) + "-" + p2(h.getDate()); const s = calEventos().filter(x => x.tipo === "feb" && !x.feb.jugado && x.fecha >= hoy)[0]; if (s) q = "&pid=" + encodeURIComponent(s.feb.pid || "") + "&rival=" + encodeURIComponent(s.casa ? s.feb.visitante : s.feb.local); } catch (e) { /* nada */ } ifr.src = "pizarra.html?partido=1&v=" + VERSION + q; }
   else if (CRONO_P && CRONO_P.fired && !CRONO_P.run) { CRONO_P = Object.assign({}, CRONO_P, { fired: false }); try { ifr.contentWindow.postMessage({ cronoVisto: true }, "*"); } catch (e) { /* nada */ } }
   pintarCronoP();
 }
