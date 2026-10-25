@@ -8137,6 +8137,7 @@ function informeHtml(nombre) {
         <button class="btn-partido" id="btnMandarJugadoras" style="background:var(--verde,#1f7a5a);">Enviar a mis jugadoras</button>
         <button class="btn-partido" id="btnInformeVisual" style="background:#14181c;">Informe visual</button>
         <button class="btn-partido" id="btnResumenIA" style="background:#5b3fd1;">Copiar resumen para IA</button>
+        <button class="btn-partido" id="btnDescargarPdf" style="background:#b4470f;">Descargar PDF</button>
         <button class="btn-partido" id="btnImprimirInforme">Imprimir o guardar en PDF</button>
       </div>
     </div>
@@ -8403,6 +8404,63 @@ function htmlImpresionInforme(nombre) {
     </body></html>`;
 }
 
+function cargarLibJs(global, urls) {
+  return new Promise(async (ok, ko) => {
+    if (window[global]) return ok(window[global]);
+    for (const u of urls) {
+      try { await new Promise((a, b) => { const s = document.createElement("script"); s.src = u; s.onload = a; s.onerror = b; document.head.appendChild(s); }); } catch (e) { /* siguiente */ }
+      if (window[global]) return ok(window[global]);
+    }
+    ko(new Error("No se pudo cargar una librería (revisa la conexión)."));
+  });
+}
+/* PDF real: se dibuja el informe y se trocea en hojas A4. Funciona en la web y en la app de escritorio, sin pasar por el diálogo de imprimir. */
+async function descargarInformePdf(nombre, btn) {
+  const txt0 = btn ? btn.textContent : "";
+  const estado = (t) => { if (btn) { btn.textContent = t; btn.disabled = t !== txt0; } };
+  let marco = null;
+  try {
+    estado("Preparando PDF...");
+    await Promise.all([
+      cargarLibJs("html2canvas", ["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js", "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js", "https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"]),
+      cargarLibJs("jspdf", ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js", "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"]),
+    ]);
+    try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
+    const html = htmlImpresionInforme(nombre);
+    marco = document.createElement("iframe");
+    marco.style.cssText = "position:fixed;left:-12000px;top:0;width:794px;height:1200px;border:0;";
+    document.body.appendChild(marco);
+    const d = marco.contentDocument; d.open(); d.write(html); d.close();
+    d.body.style.cssText += ";width:794px;margin:0;padding:26px 30px;box-sizing:border-box;background:#fff;";
+    await Promise.all([...d.images].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; setTimeout(ok, 5000); })));
+    marco.style.height = d.documentElement.scrollHeight + "px";
+    await new Promise(ok => setTimeout(ok, 200));
+    estado("Dibujando informe...");
+    const esc = 2, anchoCss = 794, altoPag = Math.round(anchoCss * 297 / 210);
+    const lienzo = await window.html2canvas(d.body, { scale: esc, useCORS: true, backgroundColor: "#ffffff", width: anchoCss, windowWidth: anchoCss, logging: false });
+    const total = d.body.scrollHeight, topBody = d.body.getBoundingClientRect().top;
+    const cortes = [...d.querySelectorAll("body > *, .jug, tr, .jugada, .mp-bloque, h2, h3")].map(e => Math.round(e.getBoundingClientRect().top - topBody)).filter(y => y > 0).sort((a, b) => a - b);
+    const pag = []; let ini = 0;
+    while (ini < total - 4) {
+      let fin = ini + altoPag;
+      if (fin < total) { const buenos = cortes.filter(y => y <= fin && y > ini + altoPag * 0.45); if (buenos.length) fin = buenos[buenos.length - 1]; } else fin = total;
+      pag.push([ini, fin]); ini = fin;
+    }
+    estado("Creando PDF...");
+    const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    pag.forEach(([y0, y1], i) => {
+      const h = Math.max(1, Math.round((y1 - y0) * esc)), cv = document.createElement("canvas"); cv.width = lienzo.width; cv.height = h;
+      const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, h); cx.drawImage(lienzo, 0, Math.round(y0 * esc), lienzo.width, h, 0, 0, lienzo.width, h);
+      if (i) pdf.addPage();
+      pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 210 * h / lienzo.width);
+    });
+    pdf.save("Informe de scouting - " + String(nombre).replace(/[\\/:*?"<>|]/g, "") + ".pdf");
+    estado(txt0);
+  } catch (e) {
+    estado(txt0);
+    alert("No se pudo crear el PDF: " + (e && e.message ? e.message : e) + "\nPuedes probar con \"Imprimir o guardar en PDF\".");
+  } finally { if (marco) { try { marco.remove(); } catch (e) { /* nada */ } } }
+}
 async function imprimirInforme(nombre) {
   /* Se imprime desde un marco oculto de la misma pagina: asi no depende de ventanas emergentes
      (que la app de escritorio y algunos navegadores bloquean o dejan en blanco). */
@@ -8504,6 +8562,8 @@ function wireInforme(contenedor) {
 
   const btn = panel.querySelector("#btnImprimirInforme");
   if (btn) btn.addEventListener("click", () => imprimirInforme(nombre));
+  const btnPdf = panel.querySelector("#btnDescargarPdf");
+  if (btnPdf) btnPdf.addEventListener("click", () => descargarInformePdf(nombre, btnPdf));
 
   const btnIA = panel.querySelector("#btnResumenIA");
   if (btnIA) btnIA.addEventListener("click", async () => {
@@ -14679,7 +14739,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25q";
+const VERSION_APP = "2026-10-25r";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
