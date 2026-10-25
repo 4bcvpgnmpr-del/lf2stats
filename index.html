@@ -1439,6 +1439,19 @@
     padding:8px 12px;cursor:pointer;font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;}
   .anadir-fichaje:hover{border-color:var(--orange);background:var(--suave);}
   .tarjeta-fichaje select, .tarjeta-fichaje textarea{width:100%;font-size:13px;padding:7px 9px;border:1.5px solid var(--wood-line);border-radius:6px;margin-top:4px;}
+  .lr-franja{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px;}
+  .lr-k{border:1.5px solid var(--wood-line);border-radius:10px;padding:10px 8px;background:var(--white);text-align:center;}
+  .lr-k .v{font-family:'Archivo Black',sans-serif;font-size:26px;line-height:1;} .lr-k .l{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-top:4px;}
+  .lr-k .p{font-size:12px;font-weight:700;margin:4px 0;}
+  .lr-n{display:inline-block;font-style:normal;font-size:10.5px;font-weight:800;border-radius:6px;padding:2px 7px;letter-spacing:.03em;}
+  .n-el{background:#d9f2e1;color:#14733a;} .n-al{background:#e5f3d6;color:#4a7d12;} .n-me{background:#fdf1cc;color:#8a6a00;} .n-ba{background:#fde3cf;color:#b4540a;} .n-mb{background:#fbd9d9;color:#b02020;}
+  .lr-cajas{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
+  .lr-c{border:1.5px solid var(--wood-line);border-radius:10px;padding:10px 12px;background:var(--white);}
+  .lr-ok{border-top:4px solid #2f9e57;} .lr-mal{border-top:4px solid #d9480f;}
+  .lr-t{font-weight:800;font-size:13px;text-transform:uppercase;margin-bottom:6px;}
+  .lr-f{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #0001;font-size:13.5px;} .lr-f span{flex:1;} .lr-f b{font-variant-numeric:tabular-nums;}
+  .lr-frase{margin:10px 0 0;font-size:14px;}
+  @media print{.lr{break-inside:avoid;}}
   .perfiles-plantilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
   .tarjeta-perfil{border:1.5px solid var(--wood-line);border-radius:10px;padding:14px;background:var(--white);}
   .tarjeta-perfil .p-cab{display:flex;gap:12px;align-items:center;margin-bottom:10px;}
@@ -3924,6 +3937,49 @@ function showEquipoDetail(teamName) {
 /* ============================================================
    PERFIL DE JUGADORA
    ============================================================ */
+
+/* ---- Lectura rápida de la jugadora: nivel en la liga + fortalezas y debilidades ---- */
+const LR_NEG = { "Faltas_Cometidas": 1, "Tapones_Contra": 1 };            // en estas, menos es mejor
+const LR_FUERA = { "Minutos_Jugados": 1, "Mates": 1 };                      // no cuentan como fortaleza/debilidad
+function lrNivel(p) {
+  return p >= 90 ? ["ELITE", "n-el"] : p >= 70 ? ["ALTO", "n-al"] : p >= 40 ? ["MEDIO", "n-me"] : p >= 15 ? ["BAJO", "n-ba"] : ["MUY BAJO", "n-mb"];
+}
+function lrDatos(row) {
+  const puestos = puestosPorCategoria(), clave = claveJugadora(row), out = {};
+  Object.keys(puestos).forEach(k => {
+    const d = puestos[k].get(clave); if (!d) return;
+    let pct = d.total > 1 ? (d.total - d.pos) / (d.total - 1) * 100 : 50;
+    if (LR_NEG[k]) pct = 100 - pct;
+    out[k] = { pos: d.pos, total: d.total, valor: d.valor, pct: Math.round(pct) };
+  });
+  return out;
+}
+function lecturaRapidaHtml(row) {
+  const D = lrDatos(row), claves = Object.keys(D); if (claves.length < 3) return "";
+  const nombre = (k) => (RANKING_CORTO[k] ? RANKING_CORTO[k][1] : k.replace(/_/g, " ")) + (LR_NEG[k] ? " (menos es mejor)" : "");
+  const corto = (k) => (RANKING_CORTO[k] ? RANKING_CORTO[k][1] : k.replace(/_/g, " ")).toLowerCase();
+  const cand = claves.filter(k => !LR_FUERA[k]).map(k => Object.assign({ k }, D[k]));
+  const fuertes = cand.filter(x => x.pct >= 60).sort((a, b) => b.pct - a.pct).slice(0, 3);
+  const debiles = cand.filter(x => x.pct <= 40).sort((a, b) => a.pct - b.pct).slice(0, 3);
+  const fila = (x) => { const n = lrNivel(x.pct); return `<div class="lr-f"><span>${escapeHtml(nombre(x.k))}</span><b>${escapeHtml(String(x.valor))}</b><i class="lr-n ${n[1]}" title="Mejor que el ${x.pct}% de la liga">#${x.pos}</i></div>`; };
+  const caja = (tit, cls, lista, vacio) => `<div class="lr-c ${cls}"><div class="lr-t">${tit}</div>${lista.length ? lista.map(fila).join("") : `<p class="hint">${vacio}</p>`}</div>`;
+  const frase = (fuertes.length ? "Destaca en " + fuertes.map(x => corto(x.k)).join(", ") : "Sin puntos fuertes claros") + (debiles.length ? "; a mejorar: " + debiles.map(x => corto(x.k)).join(", ") + "." : ".");
+  const clv = [["Puntos", "Puntos"], ["Rebotes_Totales", "Rebotes"], ["Asistencias", "Asistencias"], ["Robos", "Robos"], ["Valoracion", "Valoración"], ["Minutos_Jugados", "Minutos"]].filter(([k]) => D[k]);
+  const franja = clv.map(([k, et]) => { const n = lrNivel(D[k].pct); return `<div class="lr-k"><div class="v">${escapeHtml(String(D[k].valor))}</div><div class="l">${et}</div><div class="p">#${D[k].pos} de ${D[k].total}</div><span class="lr-n ${n[1]}">${n[0]}</span></div>`; }).join("");
+  const ambito = grupoActivo ? "del Grupo " + escapeHtml(grupoActivo) : "de toda la liga";
+  return `<div class="section-block lr"><h3 class="section-title">Lectura rápida</h3>
+    <div class="lr-franja">${franja}</div>
+    <div class="lr-cajas">${caja("Fortalezas", "lr-ok", fuertes, "Aún no destaca en ninguna estadística.")}${caja("A mejorar", "lr-mal", debiles, "Sin debilidades claras.")}</div>
+    <p class="lr-frase"><b>${escapeHtml(frase)}</b> <span class="hint">Puesto y nivel comparados con las jugadoras ${ambito}.</span></p></div>`;
+}
+function porCuarentaHtml(row) {
+  const m = metricasJugadora(row); if (!m.MIN || m.MIN < 5) return "";
+  const f = (v) => v === null || v === undefined ? null : Math.round(v / m.MIN * 40 * 10) / 10;
+  const c = [["PTS", "Puntos"], ["REB", "Rebotes"], ["AST", "Asistencias"], ["ROB", "Robos"], ["TAP", "Tapones"], ["VAL", "Valoración"]]
+    .map(([k, et]) => { const v = f(m[k]); return v === null ? "" : `<div class="stat-big"><div class="v">${fmtNum(v)}</div><div class="l">${et} por 40'</div></div>`; }).join("");
+  if (!c) return "";
+  return `<div class="section-block"><h3 class="section-title">Por 40 minutos</h3><div class="stat-big-grid">${c}</div><p class="hint">Sus medias llevadas a 40 minutos, para compararla con jugadoras que juegan más o menos.</p></div>`;
+}
 function showJugadoraDetail(playerName) {
   JUG_VISTA = playerName;
   const row = jugadoras.rows.find(r => r["Jugador"] && r["Jugador"].display === playerName);
@@ -4010,6 +4066,7 @@ function showJugadoraDetail(playerName) {
     <div style="margin:0 0 10px;"><button class="btn-partido" id="btnInformeJug" style="background:#14181c;">Informe visual de la jugadora</button></div>
     <div id="vidsJug" style="margin:0 0 12px;"></div>
     ${cabeceraJugadoraHtml(playerName, row, url)}
+    ${(() => { try { return lecturaRapidaHtml(row); } catch (e) { return ""; } })()}
     <div class="stat-big-grid">
       ${bigStat(rob, "Robos por partido")}
       ${bigStat(tap, "Tapones por partido")}
@@ -4024,6 +4081,7 @@ function showJugadoraDetail(playerName) {
                caja(mm.eFG, "eFG") + caja(mm["eFG%"], "eFG %", "%");
       })()}
     </div>
+    ${(() => { try { return porCuarentaHtml(row); } catch (e) { return ""; } })()}
     <div class="section-block">
       <h3 class="section-title">Tiro</h3>
       <div class="panel">
