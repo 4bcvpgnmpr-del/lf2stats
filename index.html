@@ -7998,6 +7998,80 @@ function combinacionesEquipoHtml(nombre) {
   return tabla(quint, "Quintetos más usados", 5) + tabla([...trios.values()], "Tríos más usados", 6) + tabla([...parejas.values()], "Parejas más usadas", 8)
     + `<p class="hint">Solo salen combinaciones con 9 minutos o más; las más claras tienen menos de 20 y son poco fiables. +/- es la diferencia de puntos del equipo con ellas en pista.</p>`;
 }
+/* ---- Perfil del equipo frente a la liga, evolución por partido y dispersión ---- */
+const PERFIL_EQ = [
+  ["ortg", "Ataque (pts/100 pos.)", true], ["drtg", "Defensa (pts recibidos/100)", false], ["net", "Eficiencia neta", true], ["efg", "Tiro (eFG%)", true],
+  ["tovPct", "Pérdidas (% pos.)", false], ["pctRo", "Rebote ofensivo %", true], ["pctRd", "Rebote defensivo %", true], ["astto", "Asistencias por pérdida", true], ["libres", "Tiros libres (intentos/100 TC)", true],
+];
+function valoresEquipo(a) { const m = metricasEquipo(a); return Object.assign({}, m, { libres: a.tci ? Math.round(1000 * a.tli / a.tci) / 10 : null }); }
+function perfilEquipoHtml(nombre) {
+  if (!avanzadasCalculo || !avanzadasCalculo.equipos) return `<p class="hint">Todavía no hay estadísticas de equipos.</p>`;
+  const a = avanzadasCalculo.equipos.get(equipoOficial(nombre));
+  if (!a || !a.pj) return `<p class="hint">Este equipo todavía no tiene partidos calculados.</p>`;
+  const todos = [...avanzadasCalculo.equipos.values()].filter(x => x.pj).map(valoresEquipo), v = valoresEquipo(a);
+  const f1 = (x) => fmtNum(Math.round(x * 10) / 10);
+  const filas = PERFIL_EQ.filter(([k]) => v[k] !== null && v[k] !== undefined).map(([k, et, alto]) => {
+    const mejores = todos.filter(t => t[k] !== null && t[k] !== undefined && (alto ? t[k] > v[k] : t[k] < v[k])).length, n = todos.length;
+    const pct = n > 1 ? Math.round(100 * (n - 1 - mejores) / (n - 1)) : 50;
+    return { k, et, val: v[k], puesto: mejores + 1, n, pct };
+  });
+  const orden = [...filas].sort((x, y) => y.pct - x.pct);
+  const fort = orden.filter(x => x.pct >= 70).slice(0, 3).map(x => x.et.split(" (")[0].toLowerCase()), deb = orden.filter(x => x.pct <= 30).reverse().slice(0, 3).map(x => x.et.split(" (")[0].toLowerCase());
+  const lista = (l) => l.length > 1 ? l.slice(0, -1).join(", ") + " y " + l[l.length - 1] : l[0];
+  const resumen = (fort.length || deb.length) ? `${fort.length ? `Fuerte en ${lista(fort)}.` : ""} ${deb.length ? `Flojo en ${lista(deb)}.` : ""}` : "Equipo sin puntos muy fuertes ni muy débiles frente a la liga.";
+  return `<p class="resumen-jug">${escapeHtml(resumen)}</p>` + filas.map(x => {
+    const col = x.pct >= 80 ? "#1f7a5a" : (x.pct <= 20 ? "#c0392b" : "#8a8f98");
+    return `<div style="display:grid;grid-template-columns:minmax(120px,210px) 1fr 92px;gap:8px;align-items:center;margin:5px 0;font-size:13px;"><span>${escapeHtml(x.et)}</span>
+      <span style="background:rgba(128,128,128,.18);border-radius:6px;height:10px;overflow:hidden;"><i style="display:block;height:100%;width:${Math.max(3, x.pct)}%;background:${col};"></i></span><span style="text-align:right;"><b>${f1(x.val)}</b> <small>(${x.puesto}º/${x.n})</small></span></div>`;
+  }).join("") + `<p class="hint">La barra es el percentil en la liga (más larga = mejor). Verde: entre el 20 % mejor. Rojo: entre el 20 % peor. En defensa y pérdidas, menos es mejor y la barra ya lo tiene en cuenta.</p>`;
+}
+const DISP_EQ = [["Ataque · Defensa", "ortg", "drtg", "Puntos por 100 posesiones", "Puntos recibidos por 100 posesiones"], ["Ritmo · Acierto (TS%)", "ritmo", "ts", "Posesiones por partido", "TS%"],
+  ["Tiro · Pérdidas", "efg", "tovPct", "eFG%", "% de pérdidas"], ["Rebote ofensivo · Defensivo", "pctRo", "pctRd", "Rebote ofensivo %", "Rebote defensivo %"]];
+let grEvoEq = null, grDispEq = null;
+function equipoExtraHtml(nombre) {
+  return `<h3 class="section-title">Perfil frente a la liga</h3><div class="panel">${(() => { try { return perfilEquipoHtml(nombre); } catch (e) { return `<p class="hint">No se pudo calcular.</p>`; } })()}</div>
+    <h3 class="section-title">Evolución por partido</h3><div class="panel"><div style="position:relative;height:240px;"><canvas id="evoEquipoCv"></canvas></div><p class="hint" id="evoEquipoTxt"></p></div>
+    <h3 class="section-title">Comparado con la liga</h3><div class="panel"><div class="scout-chips" style="border:0;padding:0 0 10px;" id="dispEqBtns">${DISP_EQ.map((d, i) => `<button class="chip ${i === 0 ? "activa" : ""}" data-de="${i}">${d[0]}</button>`).join("")}</div>
+      <div style="position:relative;height:300px;"><canvas id="dispEqCv"></canvas></div><p class="hint" id="dispEqTxt"></p></div>`;
+}
+function dibujarEvolucionEquipo(nombre) {
+  const cv = document.getElementById("evoEquipoCv"); if (!cv || typeof Chart === "undefined") return;
+  const ps = partidosDeEquipo(nombre), txt = document.getElementById("evoEquipoTxt");
+  if (grEvoEq) { try { grEvoEq.destroy(); } catch (e) { /* nada */ } grEvoEq = null; }
+  if (ps.length < 2) { if (txt) txt.textContent = "Aún no hay partidos suficientes."; return; }
+  grEvoEq = new Chart(cv.getContext("2d"), { type: "bar", data: { labels: ps.map((x, i) => "J" + (i + 1)), datasets: [
+    { label: "Puntos anotados (azul: victoria · naranja: derrota)", data: ps.map(x => x.pt), backgroundColor: ps.map(x => x.gano === true ? "#2b6cb0" : (x.gano === false ? "#e0602a" : "#9aa0a6")), borderRadius: 3, order: 2 },
+    { label: "Puntos recibidos", data: ps.map(x => x.pc), type: "line", borderColor: "#444", backgroundColor: "#444", tension: .3, pointRadius: 3, order: 1 } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
+      tooltip: { callbacks: { title: (it) => { const x = ps[it[0].dataIndex]; return (x.fecha || "") + (x.gano === true ? " · Victoria" : (x.gano === false ? " · Derrota" : "")); } } } },
+      scales: { y: { grid: { color: "rgba(128,128,128,.18)" } }, x: { grid: { display: false } } } } });
+  const v = ps.filter(x => x.gano === true).length, d = ps.filter(x => x.gano === false).length;
+  if (txt) txt.textContent = `${ps.length} partidos: ${v} victorias y ${d} derrotas.`;
+}
+function dibujarDispersionEquipo(nombre, idx) {
+  const cv = document.getElementById("dispEqCv"); if (!cv || typeof Chart === "undefined") return;
+  const d = DISP_EQ[idx || 0], kx = d[1], ky = d[2], txt = document.getElementById("dispEqTxt");
+  if (grDispEq) { try { grDispEq.destroy(); } catch (e) { /* nada */ } grDispEq = null; }
+  if (!avanzadasCalculo || !avanzadasCalculo.equipos) { if (txt) txt.textContent = "Sin datos de equipos."; return; }
+  const ofi = equipoOficial(nombre), pts = [...avanzadasCalculo.equipos.entries()].filter(([, a]) => a.pj).map(([n, a]) => ({ n, v: valoresEquipo(a) })).filter(o => o.v[kx] != null && o.v[ky] != null);
+  const mio = pts.find(o => o.n === ofi), resto = pts.filter(o => o !== mio);
+  if (!mio || resto.length < 3) { if (txt) txt.textContent = "No hay datos suficientes para esta comparación."; return; }
+  const pt = (o) => ({ x: o.v[kx], y: o.v[ky], n: o.n });
+  grDispEq = new Chart(cv.getContext("2d"), { type: "scatter", data: { datasets: [
+    { label: "Liga", data: resto.map(pt), backgroundColor: "rgba(120,120,120,.4)", pointRadius: 4 },
+    { label: nombre, data: [pt(mio)], backgroundColor: "#e0602a", borderColor: "#b4470f", pointRadius: 9, pointHoverRadius: 10 } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: (c) => `${c.raw.n}: ${fmtNum(c.raw.x)} · ${fmtNum(c.raw.y)}` } } },
+      scales: { x: { title: { display: true, text: d[3] }, grid: { color: "rgba(128,128,128,.18)" } }, y: { title: { display: true, text: d[4] }, grid: { color: "rgba(128,128,128,.18)" } } } } });
+  if (txt) txt.textContent = `Cada punto es un equipo de la liga (${pts.length}). ${nombre} es el naranja.` + (ky === "drtg" ? " En defensa, más abajo es mejor." : "") + (ky === "tovPct" ? " En pérdidas, más abajo es mejor." : "");
+}
+function pintarEquipoExtra(nombre) {
+  document.querySelectorAll(".equipo-extra").forEach(el => {
+    if (el.dataset.eq !== nombre) return;
+    el.innerHTML = equipoExtraHtml(nombre);
+    try { dibujarEvolucionEquipo(nombre); dibujarDispersionEquipo(nombre, 0); } catch (e) { /* nada */ }
+    el.querySelectorAll("[data-de]").forEach(b => b.addEventListener("click", () => { el.querySelectorAll("[data-de]").forEach(x => x.classList.toggle("activa", x === b)); dibujarDispersionEquipo(nombre, Number(b.dataset.de)); }));
+  });
+}
 function dueloBloqueHtml(nombre) {
   let a = "", b = "";
   try { if (!avanzadasCalculo && partidosCache) avanzadasCalculo = calcularAvanzadas(); } catch (e) { /* nada */ }
@@ -8015,6 +8089,7 @@ function dueloBloqueHtml(nombre) {
   try { g = combinacionesEquipoHtml(nombre); } catch (x) { g = `<p class="hint">No se pudo calcular.</p>`; }
   if (quintetosCache === null) fetchSheetTab("Quintetos").then(dd => { quintetosCache = dd; }).catch(() => { quintetosCache = false; }).then(() => document.querySelectorAll(".duelo-bloque").forEach(el => { if (el.dataset.duelo === nombre) el.innerHTML = dueloBloqueHtml(nombre); }));
   if (cuartosCache === null) cargarCuartos().then(() => document.querySelectorAll(".duelo-bloque").forEach(el => { if (el.dataset.duelo === nombre) el.innerHTML = dueloBloqueHtml(nombre); }));
+  setTimeout(() => pintarEquipoExtra(nombre), 60);
   return `<h3 class="section-title">Claves del duelo</h3>${a}<h3 class="section-title">Cómo gana y cómo pierde ${escapeHtml(nombre)}</h3>${b}
     <h3 class="section-title">Forma reciente</h3>${c}<h3 class="section-title">Diferencia de puntos por cuarto</h3>${d}
     <h3 class="section-title">Rotación y cargas</h3>${e}<h3 class="section-title">Quintetos, tríos y parejas</h3>${g}`;
@@ -8049,6 +8124,7 @@ function informeHtml(nombre) {
     </div>
     <div class="pie-print">Informe generado con datos de la FEB · ${escapeHtml(nombre)}</div>
 
+    <div class="equipo-extra" data-eq="${escapeAttr(nombre)}"></div>
     <div class="duelo-bloque" data-duelo="${escapeAttr(nombre)}">${dueloBloqueHtml(nombre)}</div>
 
     <h3 class="section-title">Datos del equipo (automatico)</h3>
@@ -14566,7 +14642,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25n";
+const VERSION_APP = "2026-10-25o";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
