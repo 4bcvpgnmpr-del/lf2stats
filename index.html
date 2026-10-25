@@ -8464,42 +8464,81 @@ async function svgsAImagen(raiz) {
 }
 const PDF_BLOQUES = ".jug, .jugada, .mp-bloque, .mapa-eq, .texto, .datos, .panel, .chart-wrap, .carta-wrap, .adn, .jugadora-informe, .hero-jug, .kpi-jug, .stat-big-grid, .lr, .ip-sec, .xh + *";
 const PDF_CORTES = "tr, h2, h3, .section-block, .panel, .jug, .jugada, .mp-bloque, .jugadora-informe, .ip-sec";
+/* Zonas donde NO se puede cortar la hoja: líneas de texto, imágenes, gráficos y tarjetas con borde o fondo */
+function pdfZonasProhibidas(nodo, altoPag) {
+  const win = nodo.ownerDocument.defaultView, docN = nodo.ownerDocument;
+  const top0 = nodo.getBoundingClientRect().top, z = [];
+  const add = (a, b) => { if (b - a > 1.5) z.push([a, b]); };
+  const walker = docN.createTreeWalker(nodo, NodeFilter.SHOW_TEXT);
+  const rg = docN.createRange();
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.nodeValue || !n.nodeValue.trim()) continue;
+    const pe = n.parentElement; if (!pe || /^(SCRIPT|STYLE)$/.test(pe.tagName)) continue;
+    rg.selectNodeContents(n);
+    [...rg.getClientRects()].forEach(r => add(r.top - top0 + 1, r.bottom - top0 - 1));
+  }
+  nodo.querySelectorAll("*").forEach(e => {
+    const r = e.getBoundingClientRect(), h = r.height, t = e.tagName;
+    if (/^H[1-4]$/.test(t) || e.classList.contains("section-title")) {
+      // un título va siempre pegado a lo que viene debajo: si lo siguiente cabe en media hoja, se queda entero con él
+      if (h >= 6) { const sig = e.nextElementSibling, rs = sig ? sig.getBoundingClientRect() : null;
+        add(r.top - top0, (rs && rs.height > 0 && rs.height < altoPag * 0.55 ? rs.bottom : r.bottom + 150) - top0); }
+      return;
+    }
+    if (h < 6 || h > altoPag * 0.5) return;
+    if (t === "IMG" || t === "CANVAS" || t === "svg" || t === "VIDEO") { add(r.top - top0, r.bottom - top0); return; }
+    if (e.closest("svg") && t !== "svg") return;
+    const cs = win.getComputedStyle(e);
+    const bg = cs.backgroundColor, tieneBg = bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg), tieneImg = cs.backgroundImage && cs.backgroundImage !== "none";
+    const borde = parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== "none", sombra = cs.boxShadow && cs.boxShadow !== "none";
+    const esCelda = t === "TD" || t === "TH" || t === "TABLE" || t === "THEAD" || t === "TBODY";
+    if (!esCelda && (tieneBg || tieneImg || borde || sombra) && r.width < nodo.getBoundingClientRect().width * 0.995) add(r.top - top0 + 1, r.bottom - top0 - 1);
+  });
+  z.sort((x, y) => x[0] - y[0]);
+  const m = [];
+  z.forEach(([a, b]) => { if (m.length && a <= m[m.length - 1][1]) m[m.length - 1][1] = Math.max(m[m.length - 1][1], b); else m.push([a, b]); });
+  return m;
+}
 async function pdfPaginado(nodo, archivo, opc) {
   opc = opc || {};
   const w = Math.max(300, Math.round(opc.ancho || nodo.scrollWidth || nodo.getBoundingClientRect().width));
   const total = Math.round(nodo.scrollHeight || nodo.getBoundingClientRect().height), altoPag = Math.round(w * 297 / 210);
   const esc = Math.min(2, Math.max(0.8, 1700 / w));
-  let fondoNodo = ""; try { fondoNodo = getComputedStyle(nodo).backgroundColor; } catch (e) { /* nada */ }
+  let fondoNodo = ""; try { fondoNodo = nodo.ownerDocument.defaultView.getComputedStyle(nodo).backgroundColor; } catch (e) { /* nada */ }
   const fondo = (fondoNodo && !/rgba\(0, 0, 0, 0\)|transparent/.test(fondoNodo)) ? fondoNodo : "#ffffff";
+  let zonas = []; try { zonas = pdfZonasProhibidas(nodo, altoPag); } catch (e) { zonas = []; }
+  const dentro = (y) => zonas.some(([a, b]) => y > a && y < b);
   const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const estim = Math.max(1, Math.ceil(total / altoPag));
-  let y0 = 0, i = 0;
-  while (y0 < total - 4 && i < 60) {
-    if (opc.progreso) opc.progreso(i + 1, Math.max(estim, i + 1));
-    const h = Math.min(altoPag, total - y0);
-    const cv = await window.html2canvas(nodo, Object.assign({ scale: esc, useCORS: true, backgroundColor: fondo, x: 0, y: y0, width: w, height: h, scrollX: 0, scrollY: 0, logging: false }, opc.h2c || {}));
-    let corte = cv.height;
-    if (y0 + h < total) {
-      // el corte se busca en una franja libre (una fila de píxeles sin nada dibujado) para no partir textos, tarjetas ni gráficos
-      const cx = cv.getContext("2d", { willReadFrequently: true }), ancho = cv.width, minGap = Math.max(4, Math.round(6 * esc)), tope = Math.round(cv.height * 0.55);
-      let racha = 0, hallado = -1;
-      for (let r = cv.height - 1 - Math.round(8 * esc); r >= tope; r--) {
-        const d = cx.getImageData(0, r, ancho, 1).data; let limpia = true;
-        for (let x = 4; x < d.length; x += 16) { if (Math.abs(d[x] - d[0]) + Math.abs(d[x + 1] - d[1]) + Math.abs(d[x + 2] - d[2]) > 12) { limpia = false; break; } }
-        if (limpia) { racha++; if (racha >= minGap) { hallado = r + Math.round(racha / 2); break; } } else racha = 0;
-      }
-      if (hallado > 0) corte = Math.min(cv.height, hallado);
-    }
-    const util = document.createElement("canvas"); util.width = cv.width; util.height = corte;
-    const ux = util.getContext("2d"); ux.drawImage(cv, 0, 0, cv.width, corte, 0, 0, cv.width, corte);
-    const pix = ux.getImageData(Math.min(2, cv.width - 1), Math.max(0, corte - 1), 1, 1).data, colFondo = [pix[0], pix[1], pix[2]];
+  // la franja de cada hoja se decide antes de dibujarla: se corta en el punto libre más bajo que quepa
+  const hojas = []; let ini = 0;
+  while (ini < total - 4 && hojas.length < 80) {
+    let fin = ini + altoPag;
+    if (fin >= total) fin = total;
+    else { let y = fin; const minimo = ini + altoPag * 0.4; while (y > minimo && dentro(y)) y -= 2; fin = y > minimo ? y : fin; }
+    hojas.push([ini, fin]); ini = fin;
+  }
+  for (let i = 0; i < hojas.length; i++) {
+    const [y0, y1] = hojas[i];
+    if (opc.progreso) opc.progreso(i + 1, hojas.length || estim);
+    const cv = await window.html2canvas(nodo, Object.assign({ scale: esc, useCORS: true, backgroundColor: fondo, x: 0, y: y0, width: w, height: Math.max(2, Math.round(y1 - y0)), scrollX: 0, scrollY: 0, logging: false, onclone: pdfArreglaClon }, opc.h2c || {}));
+    const pix = cv.getContext("2d").getImageData(Math.min(2, cv.width - 1), Math.max(0, cv.height - 1), 1, 1).data;
     if (i) pdf.addPage();
-    pdf.setFillColor(colFondo[0], colFondo[1], colFondo[2]); pdf.rect(0, 0, 210, 297, "F");
-    pdf.addImage(util.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 210 * corte / cv.width);
-    y0 += Math.max(40, Math.round(corte / esc)); i++;
+    pdf.setFillColor(pix[0], pix[1], pix[2]); pdf.rect(0, 0, 210, 297, "F");
+    pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, Math.min(297, 210 * cv.height / cv.width));
     await new Promise(ok => setTimeout(ok, 0));
   }
   pdf.save(String(archivo).replace(/[\\/:*?"<>|]/g, "") + ".pdf");
+}
+/* html2canvas no sabe dibujar texto con degradado (background-clip:text): se pasa a color sólido */
+function pdfArreglaClon(doc) {
+  try {
+    const w = doc.defaultView;
+    doc.querySelectorAll("*").forEach(e => {
+      const cs = w.getComputedStyle(e), clip = cs.webkitBackgroundClip || cs.backgroundClip;
+      if (clip === "text") { e.style.setProperty("background", "none", "important"); e.style.setProperty("-webkit-background-clip", "border-box", "important"); e.style.setProperty("color", "#ffffff", "important"); e.style.setProperty("-webkit-text-fill-color", "#ffffff", "important"); }
+    });
+  } catch (e) { /* nada */ }
 }
 /* Un documento HTML completo (informes de impresión) -> PDF */
 async function pdfDeHtml(html, archivo, progreso) {
@@ -8540,9 +8579,13 @@ async function pdfDeNodoVivo(nodo, archivo, opc) {
   const tema = document.documentElement.getAttribute("data-tema"); if (tema === "oscuro") document.documentElement.setAttribute("data-tema", "claro");
   const zoomAntes = nodo.style.zoom; nodo.style.zoom = "";
   let volver = () => {};
+  const estiloTmp = document.createElement("style");
+  estiloTmp.textContent = ".table-scroll{overflow:visible!important}[data-iv] .carta-wrap{grid-template-columns:minmax(0,1fr)!important}[data-iv] .carta-wrap svg.carta{max-width:440px!important}";
+  document.head.appendChild(estiloTmp);
   try { volver = await svgsAImagen(nodo); await new Promise(ok => setTimeout(ok, 150)); await pdfPaginado(nodo, archivo, opc); }
   finally {
     try { volver(); } catch (e) { /* nada */ }
+    try { estiloTmp.remove(); } catch (e) { /* nada */ }
     nodo.style.zoom = zoomAntes;
     ocultos.forEach(([e, v]) => { e.style.display = v; }); dets.forEach(([d, o]) => { d.open = o; });
     if (tema === "oscuro") document.documentElement.setAttribute("data-tema", "oscuro");
@@ -14844,7 +14887,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25y";
+const VERSION_APP = "2026-10-26a";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
