@@ -510,7 +510,7 @@ const CONFIG = {
 };
 const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
 let temporadaElegida = "2026";
-const VERSION = "2026-10-02x";
+const VERSION = "2026-10-25e";
 
 /* ============================================================
    UTILIDADES
@@ -1086,12 +1086,20 @@ async function pintarEvolucion(destino, nombre, equipo) {
   }).map(f => {
     const m = meta[String(f.PartidoID).trim()] || {};
     const casa = m.Local ? limpiarNombre(m.Local) === limpiarNombre(f.Equipo || equipo) : null;
-    return { fecha: m.Fecha || "", jornada: m.Jornada || "", casa, rival: casa === null ? "" : (casa ? m.Visitante : m.Local),
+    const pl = numero(m.Pts_Local), pv = numero(m.Pts_Visitante);
+    const gano = (casa !== null && pl !== null && pv !== null && !(pl === 0 && pv === 0)) ? (casa ? pl > pv : pv > pl) : null;
+    return { fecha: m.Fecha || "", jornada: m.Jornada || "", casa, gano, rival: casa === null ? "" : (casa ? m.Visitante : m.Local),
       min: minutosDe(f.MIN), pt: num0(f.PT), va: num0(f.VA), reb: num0(f.REB_T), as: num0(f.AS), bp: num0(f.BP), mm: num0(f.MAS_MENOS),
       tc: parTiro(f.TC), t3: parTiro(f.T3), tl: parTiro(f.TL) };
   }).sort((a, b) => fechaOrd(a.fecha) - fechaOrd(b.fecha));
   if (!ps.length) return;
-
+  const psTodos = ps, FL = { casa: "", res: "" };
+  const chips = (vistos) => { const ch = (k, v, t) => `<button type="button" data-fl="${k}" data-v="${v}" style="border:1.5px solid var(--wood-line);border-radius:18px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer;background:${FL[k] === v ? "var(--naranja,#e0602a)" : "var(--suave)"};color:${FL[k] === v ? "#fff" : "inherit"};">${t}</button>`;
+    return `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">${ch("casa", "", "Todos")}${ch("casa", "casa", "En casa")}${ch("casa", "fuera", "Fuera")}<span style="width:10px;"></span>${ch("res", "", "Cualquier resultado")}${ch("res", "v", "Victorias")}${ch("res", "d", "Derrotas")}${vistos !== psTodos.length ? `<span class="expl" style="margin:0 0 0 4px;">${vistos} de ${psTodos.length} partidos</span>` : ""}</div>`; };
+  const render = () => {
+  const ps = psTodos.filter(x => (FL.casa === "" || (FL.casa === "casa" ? x.casa === true : x.casa === false)) && (FL.res === "" || (FL.res === "v" ? x.gano === true : x.gano === false)));
+  const cablear = () => destino.querySelectorAll("[data-fl]").forEach(b => b.addEventListener("click", () => { FL[b.dataset.fl] = b.dataset.v; render(); }));
+  if (!ps.length) { destino.innerHTML = `<div class="bloque"><h3>Tu evolución por jornada</h3>${chips(0)}<p class="expl">Con este filtro no hay partidos. Prueba con otro.</p></div>`; cablear(); return; }
   const med = (f) => ps.reduce((a, x) => a + f(x), 0) / ps.length;
   const ult = ps.slice(-5);
   const m5 = ult.reduce((a, x) => a + x.pt, 0) / ult.length, mPt = med(x => x.pt);
@@ -1114,7 +1122,12 @@ async function pintarEvolucion(destino, nombre, equipo) {
     <td>${conComa(x.min, 0)}</td><td><b>${conComa(x.pt, 0)}</b></td><td>${x.tc.a}/${x.tc.i}</td><td>${x.t3.a}/${x.t3.i}</td><td>${x.tl.a}/${x.tl.i}</td>
     <td>${conComa(x.reb, 0)}</td><td>${conComa(x.as, 0)}</td><td>${conComa(x.bp, 0)}</td>
     <td style="color:${x.mm > 0 ? "#1f7a5a" : x.mm < 0 ? "#c75028" : "inherit"};">${x.mm > 0 ? "+" : ""}${conComa(x.mm, 0)}</td><td>${conComa(x.va, 0)}</td></tr>`).join("");
+  const minT = ps.reduce((a, x) => a + x.min, 0), p40 = (f) => minT >= 60 ? conComa(ps.reduce((a, x) => a + f(x), 0) / minT * 40, 1) : null;
+  const por40 = minT >= 60 ? `<h4 style="margin:14px 0 6px;font-size:13px;text-transform:uppercase;">Tus números por 40 minutos</h4>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">${kpi("Puntos", p40(x => x.pt), "por 40'")}${kpi("Rebotes", p40(x => x.reb), "por 40'")}${kpi("Asistencias", p40(x => x.as), "por 40'")}${kpi("Valoración", p40(x => x.va), "por 40'")}</div>
+    <p class="expl" style="margin-top:4px;">Tus medias llevadas a 40 minutos, para compararte aunque juegues más o menos.</p>` : "";
   destino.innerHTML = `<div class="bloque"><h3>Tu evolución por jornada</h3>
+    ${chips(ps.length)}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
       ${kpi("Partidos", ps.length, conComa(med(x => x.min), 0) + " min de media")}
       ${kpi("Puntos", conComa(mPt, 1), "por partido")}
@@ -1124,7 +1137,10 @@ async function pintarEvolucion(destino, nombre, equipo) {
     <p class="expl" style="margin-top:4px;"><span style="color:#e0602a;font-weight:800;">■</span> Puntos · <span style="color:#1f7a5a;font-weight:800;">●</span> Valoración, partido a partido.
       ${mejor ? `Tu mejor partido: ${mejor.casa === null ? "" : (mejor.casa ? "vs " : "@ ")}${esc(mejor.rival || mejor.fecha)}, ${conComa(mejor.pt, 0)} puntos y ${conComa(mejor.va, 0)} de valoración.` : ""}</p>
     <div style="overflow-x:auto;margin-top:8px;"><table class="sj-zonas" style="min-width:420px;"><thead><tr><th style="text-align:left;">Rival</th><th>Min</th><th>PT</th><th>TC</th><th>T3</th><th>TL</th><th>REB</th><th>AS</th><th>BP</th><th>+/-</th><th>VAL</th></tr></thead><tbody>${filas}</tbody></table></div>
-    ${ps.length > 10 ? `<p class="expl">Se muestran los 10 más recientes de ${ps.length}.</p>` : ""}</div>`;
+    ${ps.length > 10 ? `<p class="expl">Se muestran los 10 más recientes de ${ps.length}.</p>` : ""}${por40}</div>`;
+  cablear();
+  };
+  render();
 }
 
 async function pintarAnalisis(caja, nombre, equipo, encontrado, tiros, extras) {
@@ -1147,6 +1163,36 @@ async function pintarAnalisis(caja, nombre, equipo, encontrado, tiros, extras) {
   try { await pintarEvolucion($("anEvo"), nombre, equipo); } catch (e) { /* nada */ }
 }
 
+
+/* Dónde te conviene tirar: sus zonas frente a la media de la liga (se pide la liga entera solo al pulsar) */
+let LIGA_ZONAS = null;
+async function pintarConviene(caja, tiros) {
+  caja.innerHTML = `<p class="expl">Cargando los tiros de toda la liga (la primera vez tarda un poco)...</p>`;
+  if (!LIGA_ZONAS) {
+    const d = await leerPestana("Tiros");
+    const t = d && d.filas ? d.filas.map(tiroMetros).filter(Boolean) : [];
+    if (t.length < 200) { caja.innerHTML = `<p class="expl">No se pudieron cargar los tiros de la liga. Prueba más tarde.</p>`; return; }
+    LIGA_ZONAS = { z: new Map(zonasDeTiros(t).map(z => [z.zona, z])), total: t.length };
+  }
+  if (tiros.length < 15) { caja.innerHTML = `<p class="expl">Aún tienes pocos tiros (${tiros.length}) para compararte. Hacen falta 15.</p>`; return; }
+  const tot = tiros.length, filas = zonasDeTiros(tiros).map(m => {
+    const l = LIGA_ZONAS.z.get(m.zona); if (!l) return null;
+    const share = m.i / tot * 100, shareL = l.i / LIGA_ZONAS.total * 100, dPps = m.pps - l.pps;
+    let v = ["Bien equilibrado", "#6b5f50"];
+    if (m.i < 5) v = ["Pocos tiros", "#9a8f80"];
+    else if (dPps >= 0.08 && share < shareL) v = ["Tira más desde aquí", "#1f7a5a"];
+    else if (dPps <= -0.08 && share > shareL) v = ["Tira menos desde aquí", "#c75028"];
+    else if (dPps >= 0.08) v = ["Aquí rindes muy bien", "#1f7a5a"];
+    else if (dPps <= -0.08) v = ["Para trabajar", "#c9a227"];
+    return { m, l, share, shareL, dPps, v };
+  }).filter(Boolean);
+  const mas = filas.filter(f => f.v[0] === "Tira más desde aquí").map(f => f.m.zona.toLowerCase()), menos = filas.filter(f => f.v[0] === "Tira menos desde aquí").map(f => f.m.zona.toLowerCase());
+  const fr = (mas.length ? "Busca más tiros desde: " + mas.join(", ") + ". " : "") + (menos.length ? "Piénsatelo más antes de tirar desde: " + menos.join(", ") + "." : "") || "Tu reparto de tiros está muy en línea con el de la liga.";
+  caja.innerHTML = `<div style="overflow-x:auto;"><table class="sj-zonas" style="min-width:420px;"><thead><tr><th style="text-align:left;">Zona</th><th>Tus tiros</th><th>Pts/tiro</th><th>Liga</th><th style="text-align:left;">Consejo</th></tr></thead><tbody>
+    ${filas.map(f => `<tr><td style="text-align:left;">${esc(f.m.zona)}</td><td>${f.m.a}/${f.m.i}</td><td><b>${conComa(f.m.pps, 2)}</b></td><td>${conComa(f.l.pps, 2)}</td><td style="text-align:left;font-weight:800;color:${f.v[1]};white-space:nowrap;">${f.v[0]}</td></tr>`).join("")}</tbody></table></div>
+    <p style="margin:10px 0 0;"><b>${esc(fr)}</b></p>
+    <p class="expl" style="margin-top:4px;">«Pts/tiro» son los puntos que sacas por cada tiro desde esa zona. Se compara con la media de la liga.</p>`;
+}
 async function pintarExtrasNumeros(caja, mia, equipo, encontrado) {
   try {
     const [extras, resumen] = await Promise.all([
@@ -1196,7 +1242,9 @@ async function pintarExtrasNumeros(caja, mia, equipo, encontrado) {
       <p class="expl">${tiros.length} tiros de campo · ${conComa(dentro / tiros.length * 100, 1)}% de acierto.
       Verde: buen porcentaje; naranja: medio; rojo: a mejorar. Los libres no tienen posición.</p>
       <div class="subnav" style="margin:0 0 10px;"><button class="active" data-m="zonas">Por zonas</button><button data-m="puntos">Tiro a tiro</button></div>
-      <div id="${id}">${pistaSvg(tiros, "zonas")}</div>${tablaZonasHtml(zonasDeTiros(tiros))}</div>`);
+      <div id="${id}">${pistaSvg(tiros, "zonas")}</div>${tablaZonasHtml(zonasDeTiros(tiros))}
+      <div style="margin-top:14px;"><button type="button" id="btnConviene" class="btn-partido" style="background:#14181c;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;">Dónde te conviene tirar</button><div id="cajaConviene" style="margin-top:10px;"></div></div></div>`);
+    { const bc = $("btnConviene"); if (bc) bc.addEventListener("click", () => pintarConviene($("cajaConviene"), tiros)); }
     const bl = caja.querySelectorAll(".bloque");
     const ult = bl[bl.length - 1];
     ult.querySelectorAll(".subnav button").forEach(b => b.addEventListener("click", () => {
@@ -1579,6 +1627,22 @@ async function cargarNumeros() {
   if (pj) {
     html += `<p class="expl" style="margin:-6px 0 14px;text-align:center;">
       Temporada ${esc(et)} &middot; medias por partido en ${conComa(pj, 0)} partidos${grupo ? " · grupo " + esc(grupo) : ""}.</p>`;
+  }
+
+  // Lectura rápida: lo que mejor haces y en lo que puedes crecer
+  if (jugadora.ver_percentiles !== false) {
+    const cl = encontrado.filter(d => d.percentil !== null && d.percentil !== undefined && d.corta !== "MIN");
+    if (cl.length >= 3) {
+      const fu = [...cl].sort((a, b) => b.percentil - a.percentil).filter(d => d.percentil >= 60).slice(0, 3);
+      const cr = [...cl].sort((a, b) => a.percentil - b.percentil).filter(d => d.percentil <= 40 && !fu.includes(d)).slice(0, 2);
+      const fila = (d, col) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--wood-line);"><span style="flex:1;">${esc(d.et)}</span><b>${conComa(d.valor, 1)}${d.pct ? "%" : ""}</b><span style="font-size:11.5px;font-weight:800;color:${col};">puesto ${d.puesto}</span></div>`;
+      const caja2 = (tit, col, l, vacio) => `<div style="flex:1;min-width:210px;border:1.5px solid var(--wood-line);border-top:4px solid ${col};border-radius:10px;padding:10px 12px;background:var(--suave);"><div style="font-weight:800;text-transform:uppercase;font-size:12.5px;margin-bottom:2px;">${tit}</div>${l.length ? l.map(d => fila(d, col)).join("") : `<p class="expl" style="margin:6px 0 0;">${vacio}</p>`}</div>`;
+      const fr = (fu.length ? "Lo que mejor haces: " + fu.map(d => d.et.toLowerCase()).join(", ") + "." : "Sigue sumando partidos y tus puntos fuertes irán saliendo.") + (cr.length ? " Para seguir creciendo, trabaja " + cr.map(d => d.et.toLowerCase()).join(" y ") + "." : "");
+      html += `<div class="bloque"><h3>Tu lectura rápida</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">${caja2("Tus puntos fuertes", "#1f7a5a", fu, "Aún no destacas en ninguna estadística.")}${caja2("Para seguir creciendo", "#c9a227", cr, "No tienes ninguna estadística floja. ¡Sigue así!")}</div>
+        <p style="margin:10px 0 0;"><b>${esc(fr)}</b></p>
+        <p class="expl" style="margin-top:4px;">Comparada con las demás jugadoras${grupo ? " de tu grupo" : ""}.</p></div>`;
+    }
   }
 
   // Barras de percentil (el entrenador puede apagarlas)
