@@ -8466,29 +8466,37 @@ const PDF_BLOQUES = ".jug, .jugada, .mp-bloque, .mapa-eq, .texto, .datos, .panel
 const PDF_CORTES = "tr, h2, h3, .section-block, .panel, .jug, .jugada, .mp-bloque, .jugadora-informe, .ip-sec";
 async function pdfPaginado(nodo, archivo, opc) {
   opc = opc || {};
-  const docN = nodo.ownerDocument, win = docN.defaultView;
   const w = Math.max(300, Math.round(opc.ancho || nodo.scrollWidth || nodo.getBoundingClientRect().width));
   const total = Math.round(nodo.scrollHeight || nodo.getBoundingClientRect().height), altoPag = Math.round(w * 297 / 210);
-  const topN = nodo.getBoundingClientRect().top;
-  const rel = (e) => { const q = e.getBoundingClientRect(); return [q.top - topN, q.bottom - topN]; };
-  const bloques = [...nodo.querySelectorAll(PDF_BLOQUES)].map(rel).filter(([a, b]) => b - a > 8 && b - a < altoPag * 0.7);
-  const titulos = [...nodo.querySelectorAll("h2, h3")].map(e => rel(e)[0]);
-  const cortes = [...new Set([...nodo.querySelectorAll(PDF_CORTES)].map(e => Math.round(rel(e)[0])))].filter(y => y > 0)
-    .filter(y => !bloques.some(([a, b]) => y > a + 2 && y < b - 2) && !titulos.some(t => y > t + 2 && y - t < 90)).sort((a, b) => a - b);
-  const pag = []; let ini = 0;
-  while (ini < total - 4) {
-    let fin = ini + altoPag;
-    if (fin < total) { const buenos = cortes.filter(y => y <= fin && y > ini + altoPag * 0.45); if (buenos.length) fin = buenos[buenos.length - 1]; } else fin = total;
-    pag.push([ini, fin]); ini = fin;
-  }
   const esc = Math.min(2, Math.max(0.8, 1700 / w));
+  let fondoNodo = ""; try { fondoNodo = getComputedStyle(nodo).backgroundColor; } catch (e) { /* nada */ }
+  const fondo = (fondoNodo && !/rgba\(0, 0, 0, 0\)|transparent/.test(fondoNodo)) ? fondoNodo : "#ffffff";
   const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  for (let i = 0; i < pag.length; i++) {
-    const [y0, y1] = pag[i];
-    if (opc.progreso) opc.progreso(i + 1, pag.length);
-    const cv = await window.html2canvas(nodo, Object.assign({ scale: esc, useCORS: true, backgroundColor: "#ffffff", x: 0, y: y0, width: w, height: y1 - y0, scrollX: 0, scrollY: 0, logging: false }, opc.h2c || {}));
+  const estim = Math.max(1, Math.ceil(total / altoPag));
+  let y0 = 0, i = 0;
+  while (y0 < total - 4 && i < 60) {
+    if (opc.progreso) opc.progreso(i + 1, Math.max(estim, i + 1));
+    const h = Math.min(altoPag, total - y0);
+    const cv = await window.html2canvas(nodo, Object.assign({ scale: esc, useCORS: true, backgroundColor: fondo, x: 0, y: y0, width: w, height: h, scrollX: 0, scrollY: 0, logging: false }, opc.h2c || {}));
+    let corte = cv.height;
+    if (y0 + h < total) {
+      // el corte se busca en una franja libre (una fila de píxeles sin nada dibujado) para no partir textos, tarjetas ni gráficos
+      const cx = cv.getContext("2d", { willReadFrequently: true }), ancho = cv.width, minGap = Math.max(4, Math.round(6 * esc)), tope = Math.round(cv.height * 0.55);
+      let racha = 0, hallado = -1;
+      for (let r = cv.height - 1 - Math.round(8 * esc); r >= tope; r--) {
+        const d = cx.getImageData(0, r, ancho, 1).data; let limpia = true;
+        for (let x = 4; x < d.length; x += 16) { if (Math.abs(d[x] - d[0]) + Math.abs(d[x + 1] - d[1]) + Math.abs(d[x + 2] - d[2]) > 12) { limpia = false; break; } }
+        if (limpia) { racha++; if (racha >= minGap) { hallado = r + Math.round(racha / 2); break; } } else racha = 0;
+      }
+      if (hallado > 0) corte = Math.min(cv.height, hallado);
+    }
+    const util = document.createElement("canvas"); util.width = cv.width; util.height = corte;
+    const ux = util.getContext("2d"); ux.drawImage(cv, 0, 0, cv.width, corte, 0, 0, cv.width, corte);
+    const pix = ux.getImageData(Math.min(2, cv.width - 1), Math.max(0, corte - 1), 1, 1).data, colFondo = [pix[0], pix[1], pix[2]];
     if (i) pdf.addPage();
-    pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 210 * cv.height / cv.width);
+    pdf.setFillColor(colFondo[0], colFondo[1], colFondo[2]); pdf.rect(0, 0, 210, 297, "F");
+    pdf.addImage(util.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 210 * corte / cv.width);
+    y0 += Math.max(40, Math.round(corte / esc)); i++;
     await new Promise(ok => setTimeout(ok, 0));
   }
   pdf.save(String(archivo).replace(/[\\/:*?"<>|]/g, "") + ".pdf");
@@ -14836,7 +14844,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25w";
+const VERSION_APP = "2026-10-25x";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
