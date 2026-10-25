@@ -1060,6 +1060,10 @@
     svg{max-width:100% !important;height:auto;}
     .caja-radar{max-width:90mm;margin:0 auto;}
     .caja-donut{max-width:55mm;}
+    .bloque-carta{break-inside:avoid !important;page-break-inside:avoid !important;break-before:auto;}
+    .bloque-carta .carta-wrap{display:block !important;}
+    .bloque-carta svg.carta{max-width:300px !important;max-height:150mm;width:100%;margin:0 auto;display:block;}
+    .bloque-carta .panel{padding:8px !important;}
 
     /* Fichas de jugadora mas compactas: asi caben tres por hoja en vez de dos
        y no queda media pagina en blanco. */
@@ -4248,16 +4252,16 @@ function showJugadoraDetail(playerName) {
       <h3 class="section-title">Claves de victoria</h3>
       <div class="panel" id="clavesJugadora"><p class="hint">Calculando...</p></div>
     </div>
-    <div class="section-block">
+    <div class="section-block bloque-carta">
       <h3 class="section-title">Carta de tiro</h3>
       <div class="panel" id="cartaJugadora"><p class="hint">Cargando...</p></div>
     </div>
-    <div class="section-block">
+    <div class="section-block no-imprimir">
       <h3 class="section-title">Selección de tiro frente a la liga</h3>
       <div class="panel" id="selTiroJug"><button class="btn-partido" id="btnSelTiro" style="background:#14181c;">Comparar con la liga</button>
         <p class="hint" style="margin-top:8px;">Dice en qué zonas debería tirar más o menos según lo que rinde. Carga los tiros de toda la liga.</p></div>
     </div>
-    <div class="section-block">
+    <div class="section-block no-imprimir">
       <h3 class="section-title">Scouting (tus notas y videos)</h3>
       <div class="panel" id="scoutJugadora">${scoutingPanelHtml("jugadoras", playerName)}</div>
     </div>
@@ -14399,7 +14403,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25j";
+const VERSION_APP = "2026-10-25k";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
