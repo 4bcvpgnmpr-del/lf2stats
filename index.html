@@ -2128,6 +2128,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
   </section>
 
   <section id="view-rankings" class="view" style="display:none;">
+    <div class="panel" id="rkEquipos"><p class="hint">Calculando...</p></div>
     <div class="panel">
       <h2 class="section-title" style="margin-top:0;">🏀 Puntos</h2>
       <div id="rankingPuntos" class="status">Cargando...</div>
@@ -3800,6 +3801,107 @@ function cmpPintar() {
   caja.querySelectorAll("[data-cmp-quitar]").forEach(b => b.addEventListener("click", () => { CMP.sel = CMP.sel.filter(n => n !== b.dataset.cmpQuitar); cmpPintar(); }));
   const an = document.getElementById("cmpAnadir"); if (an) an.addEventListener("change", () => { if (an.value) { CMP.sel.push(an.value); cmpPintar(); } });
   if (CMP.vista === "radar" && sel.length && M.length >= 3) cmpRadar(M, sel);
+}
+
+
+/* ============================================================
+   RANKING DE EQUIPOS: elige la métrica y filtra (casa/fuera, victorias/derrotas, últimos partidos)
+   ============================================================ */
+const RK = { cat: "tradicionales", metrica: "Puntos / partido", q: "", casa: "", res: "", ult: 0, abierto: false, cargando: false };
+function rkTodasMetricas() {
+  const m = new Map();
+  [["tradicionales", "Por partido"], ["avanzadas", "Avanzadas"], ["ofensivas", "Ofensivas"], ["defensivas", "Defensivas"], ["factores", "4 Factors"], ["organizacion", "Organización"], ["tiros", "Tiros"]].forEach(([k, t]) => {
+    CMP_METRICAS[k].forEach(([et, f, dir, dec]) => { if (!m.has(et)) m.set(et, { et, f, dir, dec, cat: k, catT: t }); });
+  });
+  return m;
+}
+function rkAcumulados() {
+  if (!partidosCache || !partidosCache.rows.length) return null;
+  const meta = new Map();
+  if (resultados) resultados.rows.forEach(rw => { const id = cellText(rw, "PartidoID"); if (id) meta.set(id, { fecha: cellText(rw, "Fecha"), local: cellText(rw, "Local") }); });
+  const porEq = new Map();
+  partidosAgrupados(partidosCache.rows).forEach((porEquipo, pid) => {
+    const eqs = [...porEquipo.keys()]; if (eqs.length !== 2) return;
+    const tots = eqs.map(e => porEquipo.get(e).find(rw => cellText(rw, "Jugador") === "TOTAL")); if (!tots[0] || !tots[1]) return;
+    const mt = meta.get(pid) || {}, fch = fechaNum(mt.fecha || "");
+    eqs.forEach((equipo, i) => {
+      const tot = tots[i], rv = tots[1 - i], pf = numDe(tot, "PT"), pc = numDe(rv, "PT"); if (!pf && !pc) return;
+      const oficial = equipoOficial(equipo), casa = mt.local ? normalizarEquipo(equipoOficial(mt.local)) === normalizarEquipo(oficial) : null;
+      const tc = paresTiro(tot, "TC"), t3 = paresTiro(tot, "T3"), tl = paresTiro(tot, "TL"), tcR = paresTiro(rv, "TC"), tlR = paresTiro(rv, "TL");
+      const reg = { fch, casa, gano: pf > pc, perdio: pf < pc, pf, pc, tca: tc.a, tci: tc.i, t3a: t3.a, t3i: t3.i, tla: tl.a, tli: tl.i, ro: numDe(tot, "REB_O"), rd: numDe(tot, "REB_D"), roRival: numDe(rv, "REB_O"), rdRival: numDe(rv, "REB_D"),
+        as: numDe(tot, "AS"), bp: numDe(tot, "BP"), br: numDe(tot, "BR") };
+      reg.pos = tc.i - reg.ro + reg.bp + 0.44 * tl.i; reg.posRival = tcR.i - reg.roRival + numDe(rv, "BP") + 0.44 * tlR.i;
+      if (!porEq.has(oficial)) porEq.set(oficial, []); porEq.get(oficial).push(reg);
+    });
+  });
+  return porEq;
+}
+function rkEquipos(porEq) {
+  const out = [];
+  porEq.forEach((regs, nombre) => {
+    if (grupoActivo && grupoDeEquipo(nombre) && grupoDeEquipo(nombre) !== grupoActivo) return;
+    let l = regs.slice().sort((a, b) => a.fch - b.fch);
+    if (RK.casa) l = l.filter(x => RK.casa === "casa" ? x.casa === true : x.casa === false);
+    if (RK.res) l = l.filter(x => RK.res === "v" ? x.gano : x.perdio);
+    if (RK.ult) l = l.slice(-RK.ult);
+    if (!l.length) return;
+    const a = nuevoAcumulado(); a.pj = l.length;
+    l.forEach(x => { if (x.gano) a.v++; else if (x.perdio) a.d++; ["pf", "pc", "tca", "tci", "t3a", "t3i", "tla", "tli", "ro", "rd", "roRival", "rdRival", "as", "bp", "br", "pos", "posRival"].forEach(k => { a[k] += x[k]; }); });
+    out.push([nombre, a]);
+  });
+  return out;
+}
+function rkPintar() {
+  const caja = document.getElementById("rkEquipos"); if (!caja) return;
+  if (!partidosCache) {
+    caja.innerHTML = `<p class="hint">Calculando con las estadísticas de cada partido...</p>`;
+    if (!RK.cargando) { RK.cargando = true; fetchSheetTab("Partidos_Estadisticas").then(d => { partidosCache = d; RK.cargando = false; rkPintar(); }).catch(() => { RK.cargando = false; caja.innerHTML = `<p class="hint">No se pudieron leer los partidos.</p>`; }); }
+    return;
+  }
+  const porEq = rkAcumulados(); if (!porEq || !porEq.size) { caja.innerHTML = `<p class="hint">Todavía no hay partidos.</p>`; return; }
+  const todas = rkTodasMetricas(), met = todas.get(RK.metrica) || todas.get("Puntos / partido");
+  const eq = rkEquipos(porEq);
+  const lista = eq.map(([n, a]) => ({ n, a, v: met.f(a) })).filter(o => o.v !== null && isFinite(o.v)).sort((x, y) => met.dir > 0 ? y.v - x.v : x.v - y.v);
+  const mejor = lista.length ? lista[0].v : 1, peor = lista.length ? lista[lista.length - 1].v : 0;
+  const chip = (k, v, t, act) => `<button class="chip ${act ? "activa" : ""}" data-rk="${k}" data-v="${v}">${t}</button>`;
+  const cats = [...new Set([...todas.values()].map(m => m.cat))].map(c => [c, [...todas.values()].find(m => m.cat === c).catT]);
+  const q = RK.q.trim().toLowerCase();
+  const visibles = [...todas.values()].filter(m => q ? m.et.toLowerCase().includes(q) : m.cat === RK.cat);
+  const barra = (v) => { const rango = Math.abs(mejor - peor) || 1, t = met.dir > 0 ? (v - peor) / rango : (peor - v) / rango; return Math.max(6, Math.round(6 + 94 * (isFinite(t) ? t : 1))); };
+  caja.innerHTML = `<h2 class="section-title" style="margin-top:0;">Ranking de equipos</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+      <button class="btn-partido" id="rkAbrir" style="background:#14181c;">Métrica: ${escapeHtml(met.et)} ▾</button>
+      <select data-rkf="casa"><option value="">Local y visitante</option><option value="casa" ${RK.casa === "casa" ? "selected" : ""}>Solo en casa</option><option value="fuera" ${RK.casa === "fuera" ? "selected" : ""}>Solo fuera</option></select>
+      <select data-rkf="res"><option value="">Todos los resultados</option><option value="v" ${RK.res === "v" ? "selected" : ""}>Solo victorias</option><option value="d" ${RK.res === "d" ? "selected" : ""}>Solo derrotas</option></select>
+      <select data-rkf="ult"><option value="0">Toda la temporada</option>${[3, 5, 10].map(n => `<option value="${n}" ${RK.ult === n ? "selected" : ""}>Últimos ${n} partidos</option>`).join("")}</select>
+      <button class="btn-partido" id="rkImg" style="background:#b4470f;">Descargar imagen</button>
+    </div>
+    ${RK.abierto ? `<div class="panel" style="margin:0 0 12px;background:var(--suave,#fdf6ee);"><input id="rkBuscar" type="search" placeholder="Busca una métrica..." value="${escapeAttr(RK.q)}" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;">
+      <div class="scout-chips" style="border:0;padding:0 0 8px;">${cats.map(([c, t]) => chip("cat", c, t, !q && RK.cat === c)).join("")}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">${visibles.map(m => `<button data-rk="metrica" data-v="${escapeAttr(m.et)}" style="text-align:left;border:1.5px solid ${m.et === met.et ? "#2b6cb0" : "#d9d2c8"};background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:700;font-size:13px;">${escapeHtml(m.et)}<div style="font-weight:400;font-size:11px;color:#777;">${escapeHtml(m.catT)}${m.dir < 0 ? " · menos es mejor" : ""}</div></button>`).join("") || `<p class="hint">Sin resultados.</p>`}</div></div>` : ""}
+    <div id="rkLienzo" style="background:#fff;border:1px solid #e3ddd2;border-radius:14px;padding:14px;">
+      <div style="text-align:center;margin-bottom:10px;"><div style="font-size:11px;letter-spacing:.14em;color:#b4470f;font-weight:700;">RANKING DE EQUIPOS${grupoActivo ? " · GRUPO " + escapeHtml(grupoActivo) : ""}</div><div style="font-size:20px;font-weight:800;color:#111;">${escapeHtml(met.et)}</div>
+      <div style="font-size:12px;color:#777;">${escapeHtml(LIGA_NOMBRE)}${RK.casa ? " · " + (RK.casa === "casa" ? "en casa" : "fuera") : ""}${RK.res ? " · " + (RK.res === "v" ? "victorias" : "derrotas") : ""}${RK.ult ? " · últimos " + RK.ult + " partidos" : ""}</div></div>
+      ${lista.length ? lista.map((o, i) => { const esMio = miEquipo && normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(o.n), esc = escudoUrlFor(o.n);
+        return `<div style="display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:7px 8px;margin:5px 0;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;">
+          <span style="text-align:center;font-weight:800;border-radius:8px;padding:4px 0;background:${i === 0 ? "#fbe7c9" : (i === 1 ? "#e8eaee" : (i === 2 ? "#f7dccf" : "#f3f4f6"))};">#${i + 1}</span>
+          ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
+          <div style="min-width:0;"><div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(o.n)}</div><div style="font-size:11px;color:#888;">${o.a.pj} partidos · ${o.a.v}-${o.a.d}</div></div>
+          <b style="text-align:right;">${cmpFmt(o.v, met.dec)}</b>
+          <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i style="display:block;height:100%;width:${barra(o.v)}%;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("") : `<p class="hint">Ningún equipo tiene partidos con estos filtros.</p>`}
+      <div style="text-align:center;font-size:10.5px;color:#999;margin-top:8px;">${met.dir < 0 ? "En esta métrica, menos es mejor. " : ""}Datos de la FEB · ScoutFlow</div></div>`;
+  caja.querySelector("#rkAbrir").addEventListener("click", () => { RK.abierto = !RK.abierto; rkPintar(); });
+  caja.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { if (b.dataset.rk === "metrica") { RK.metrica = b.dataset.v; RK.abierto = false; RK.q = ""; } else RK[b.dataset.rk] = b.dataset.v; if (b.dataset.rk === "cat") RK.q = ""; rkPintar(); }));
+  caja.querySelectorAll("[data-rkf]").forEach(s => s.addEventListener("change", () => { RK[s.dataset.rkf] = s.dataset.rkf === "ult" ? Number(s.value) : s.value; rkPintar(); }));
+  const bq = caja.querySelector("#rkBuscar"); if (bq) { bq.addEventListener("input", () => { RK.q = bq.value; const pos = bq.selectionStart; rkPintar(); const n = document.getElementById("rkBuscar"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* nada */ } } }); }
+  caja.querySelector("#rkImg").addEventListener("click", async (ev) => {
+    const b = ev.currentTarget, t0 = b.textContent; b.disabled = true; b.textContent = "Creando imagen...";
+    const nodo = document.getElementById("rkLienzo"); let volver = () => {};
+    try { await cargarLibsPdf(); volver = await svgsAImagen(nodo); const cv = await window.html2canvas(nodo, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+      const a = document.createElement("a"); a.href = cv.toDataURL("image/png"); a.download = "Ranking de equipos - " + met.et.replace(/[\\/:*?"<>|]/g, "") + ".png"; document.body.appendChild(a); a.click(); a.remove(); }
+    catch (e) { alert("No se pudo crear la imagen: " + (e && e.message ? e.message : e)); }
+    finally { try { volver(); } catch (e) { /* nada */ } b.disabled = false; b.textContent = t0; }
+  });
 }
 
 function fillComparadorPickers() {
@@ -7779,7 +7881,7 @@ function abrirInformeVisualVista(id) {
   b.addEventListener("click", () => abrirInformeVisualVista(vistaActual));
   document.body.appendChild(b);
   const base = showView;
-  showView = function (id, esVuelta) { const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
+  showView = function (id, esVuelta) { const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } if (id === "rankings") { try { rkPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
 })();
 
 function plantillaHtml(nombre) {
@@ -15023,7 +15125,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26b";
+const VERSION_APP = "2026-10-26c";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
