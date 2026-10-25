@@ -1455,6 +1455,8 @@
   .cs-t{font-weight:800;text-transform:uppercase;font-size:12.5px;} .cs-v{font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.1;margin:4px 0;}
   .cs-v.bueno{color:#14733a;} .cs-v.malo{color:#b02020;} .cs-l{font-size:11.5px;color:var(--ink-soft);font-weight:700;} .cs-m{font-size:12.5px;margin-top:4px;}
   @media (max-width:560px){.cs-grid{grid-template-columns:1fr;}}
+  .ve{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:2px 8px;white-space:nowrap;}
+  .ve-ok{background:#d9f2e1;color:#14733a;} .ve-al{background:#e5f3d6;color:#4a7d12;} .ve-me{background:#eceff1;color:#455a64;} .ve-ba{background:#fde3cf;color:#b4540a;} .ve-mal{background:#fbd9d9;color:#b02020;} .ve-na{background:#f1f3f5;color:#868e96;}
   .lr-frase{margin:10px 0 0;font-size:14px;}
   @media print{.lr{break-inside:avoid;}}
   .perfiles-plantilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
@@ -4186,6 +4188,11 @@ function showJugadoraDetail(playerName) {
       <div class="panel" id="cartaJugadora"><p class="hint">Cargando...</p></div>
     </div>
     <div class="section-block">
+      <h3 class="section-title">Selección de tiro frente a la liga</h3>
+      <div class="panel" id="selTiroJug"><button class="btn-partido" id="btnSelTiro" style="background:#14181c;">Comparar con la liga</button>
+        <p class="hint" style="margin-top:8px;">Dice en qué zonas debería tirar más o menos según lo que rinde. Carga los tiros de toda la liga.</p></div>
+    </div>
+    <div class="section-block">
       <h3 class="section-title">Scouting (tus notas y videos)</h3>
       <div class="panel" id="scoutJugadora">${scoutingPanelHtml("jugadoras", playerName)}</div>
     </div>
@@ -4216,6 +4223,7 @@ function showJugadoraDetail(playerName) {
   dibujarDonutConsumo(playerName, row["Equipo"] ? row["Equipo"].display : "");
   filtroCuartoCarta = "";
   pintarCartaTiro("cartaJugadora", row["Equipo"] ? row["Equipo"].display : "", playerName);
+  { const bs = document.getElementById("btnSelTiro"); if (bs) bs.addEventListener("click", () => pintarSeleccionTiro("selTiroJug", equipoJug, playerName)); }
   pintarClutchYcreacion(playerName, row["Equipo"] ? row["Equipo"].display : "");
   const btnFich = document.getElementById("btnFichaje");
   if (btnFich) {
@@ -11483,6 +11491,50 @@ function resumenCarta(tiros) {
 let filtroCuartoCarta = "";
 let modoCarta = "zonas";
 
+
+/* ---- Selección de tiro: sus zonas frente a la media de la liga ---- */
+let ligaZonasCache = null;
+async function zonasDeLaLiga() {
+  if (ligaZonasCache) return ligaZonasCache;
+  if (tirosTodos === null || tirosTodos === false) {
+    try { tirosTodos = await fetchSheetTab("Tiros", null, 90000); } catch (e) { tirosTodos = false; }
+  }
+  if (!tirosTodos || !tirosTodos.rows) return null;
+  const t = tirosTodos.rows.map(tiroEnMetros).filter(Boolean);
+  if (t.length < 200) return null;
+  ligaZonasCache = { zonas: datosZonas(t), total: t.length };
+  return ligaZonasCache;
+}
+async function pintarSeleccionTiro(cajaId, equipoNombre, jugadora) {
+  const caja = document.getElementById(cajaId); if (!caja) return;
+  caja.innerHTML = `<p class="hint">Cargando los tiros de toda la liga (la primera vez tarda un poco)...</p>`;
+  const [liga, datos] = await Promise.all([zonasDeLaLiga(), cargarTirosEquipo(equipoNombre)]);
+  if (!liga || !datos || !datos.rows) { caja.innerHTML = `<p class="hint">No se pudieron cargar los tiros de la liga. Prueba más tarde.</p>`; return; }
+  const clavesBusca = clavesNombre(jugadora, equipoNombre);
+  const suyos = datos.rows.filter(r => clavesNombre(cellText(r, "Jugadora"), cellText(r, "Equipo")).some(c => clavesBusca.includes(c))).map(tiroEnMetros).filter(Boolean);
+  if (suyos.length < 15) { caja.innerHTML = `<p class="hint">Tiene pocos tiros (${suyos.length}) para compararla con la liga. Hacen falta al menos 15.</p>`; return; }
+  const mias = datosZonas(suyos), porLiga = new Map(liga.zonas.map(z => [z.zona, z]));
+  const filas = ORDEN_ZONAS.map(z => mias.find(m => m.zona === z)).filter(Boolean).map(m => {
+    const l = porLiga.get(m.zona); if (!l) return null;
+    const dPps = Math.round((m.pps - l.pps) * 100) / 100, dShare = Math.round((m.share - l.share) * 10) / 10;
+    let v = ["Uso adecuado", "ve-me"];
+    if (m.i < 5) v = ["Pocos tiros", "ve-na"];
+    else if (dPps >= 0.08 && dShare < 0) v = ["Tirar más", "ve-ok"];
+    else if (dPps <= -0.08 && dShare > 0) v = ["Tirar menos", "ve-mal"];
+    else if (dPps <= -0.08) v = ["Rinde por debajo", "ve-ba"];
+    else if (dPps >= 0.08) v = ["Rinde por encima", "ve-al"];
+    return { m, l, dPps, dShare, v };
+  }).filter(Boolean);
+  const mas = filas.filter(f => f.v[0] === "Tirar más").map(f => f.m.zona.toLowerCase()), menos = filas.filter(f => f.v[0] === "Tirar menos").map(f => f.m.zona.toLowerCase());
+  const frase = (mas.length ? "Debería buscar más: " + mas.join(", ") + ". " : "") + (menos.length ? "Debería recortar: " + menos.join(", ") + "." : "") || "Su reparto de tiros está en línea con el de la liga.";
+  const sg = (v) => (v > 0 ? "+" : "") + fmtNum(v);
+  caja.innerHTML = `<div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Zona</th><th>Sus tiros</th><th>% de sus tiros</th><th>% liga</th><th>Pts/tiro</th><th>Liga</th><th>Dif.</th><th>Veredicto</th></tr></thead><tbody>
+    ${filas.map(f => `<tr><td class="equipo">${escapeHtml(f.m.zona)}</td><td>${f.m.a}/${f.m.i}</td><td>${fmtNum(f.m.share)}%</td><td>${fmtNum(f.l.share)}%</td>
+      <td><b>${fmtNum(f.m.pps)}</b></td><td>${fmtNum(f.l.pps)}</td><td class="${f.dPps > 0 ? "bueno" : (f.dPps < 0 ? "malo" : "")}">${sg(f.dPps)}</td><td><span class="ve ${f.v[1]}">${f.v[0]}</span></td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="lr-frase"><b>${escapeHtml(frase)}</b></p>
+    <p class="hint">Se compara con ${liga.total} tiros de campo de toda la liga. «Tirar más»: rinde claramente mejor que la media pero tira poco desde ahí. «Tirar menos»: rinde peor y tira más que la media. Se necesitan al menos 5 tiros por zona.</p>`;
+}
 async function pintarCartaTiro(cajaId, equipoNombre, filtroJugadora) {
   const caja = document.getElementById(cajaId);
   if (!caja) return;
@@ -14204,7 +14256,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25c";
+const VERSION_APP = "2026-10-25d";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
