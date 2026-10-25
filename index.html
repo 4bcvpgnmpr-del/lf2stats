@@ -7512,7 +7512,7 @@ function ivMostrar(html, nombre, render, conCompleto) {
       try {
         b.disabled = true; b.textContent = "Creando PDF...";
         const sc = document.querySelector("#ivCapa .iv-scroll"), zAntes = sc ? sc.style.zoom : ""; if (sc) sc.style.zoom = "";
-        try { await svgsAImagen(raiz); await pdfDeNodoVivo(raiz, "Informe visual - " + nombre, { progreso: (i, n) => { b.textContent = "Página " + i + " de " + n + "..."; } }); }
+        try { await pdfDeNodoVivo(raiz, "Informe visual - " + nombre, { progreso: (i, n) => { b.textContent = "Página " + i + " de " + n + "..."; } }); }
         finally { if (sc) sc.style.zoom = zAntes; }
         b.disabled = false; b.textContent = t0; return;
       } catch (e) { b.disabled = false; b.textContent = t0; }
@@ -8434,19 +8434,33 @@ async function cargarLibsPdf() {
   ]);
 }
 async function svgsAImagen(raiz) {
+  const origen = [];
+  const aData = async (u) => { const r = await fetch(u, { mode: "cors" }); if (!r.ok) throw new Error("x"); const bl = await r.blob(); return await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }); };
   await Promise.all([...raiz.querySelectorAll("img")].map(async im => {
-    if (!/^data:image\/svg/.test(im.src)) return;
+    const src0 = im.currentSrc || im.src;
+    if (!src0) return;
     try {
-      let t = decodeURIComponent(im.src.replace(/^data:image\/svg\+xml[^,]*,/, ""));
-      const vb = /viewBox="([\d.\s-]+)"/.exec(t); if (!vb) return;
-      const [, , vw, vh] = vb[1].trim().split(/\s+/).map(Number); if (!vw || !vh) return;
-      t = t.replace(/^<svg /, '<svg width="' + vw + '" height="' + vh + '" ').replace(/(<svg[^>]*?)\swidth="[^"]*"\s+height="[^"]*"(?=[^>]*?width=)/, "$1");
-      const i2 = new Image(); await new Promise((ok, ko) => { i2.onload = ok; i2.onerror = ko; i2.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); });
-      const k = Math.min(3, 1600 / Math.max(vw, vh)), c = document.createElement("canvas"); c.width = Math.round(vw * k); c.height = Math.round(vh * k);
-      c.getContext("2d").drawImage(i2, 0, 0, c.width, c.height);
-      await new Promise(ok => { im.onload = im.onerror = ok; im.src = c.toDataURL("image/png"); });
+      if (/^data:image\/svg/.test(src0)) {
+        let t = decodeURIComponent(src0.replace(/^data:image\/svg\+xml[^,]*,/, ""));
+        const vb = /viewBox="([\d.\s-]+)"/.exec(t); if (!vb) return;
+        const [, , vw, vh] = vb[1].trim().split(/\s+/).map(Number); if (!vw || !vh) return;
+        t = t.replace(/^<svg /, '<svg width="' + vw + '" height="' + vh + '" ').replace(/(<svg[^>]*?)\swidth="[^"]*"\s+height="[^"]*"(?=[^>]*?width=)/, "$1");
+        const i2 = new Image(); await new Promise((ok, ko) => { i2.onload = ok; i2.onerror = ko; i2.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); });
+        const k = Math.min(3, 1600 / Math.max(vw, vh)), c = document.createElement("canvas"); c.width = Math.round(vw * k); c.height = Math.round(vh * k);
+        c.getContext("2d").drawImage(i2, 0, 0, c.width, c.height);
+        origen.push([im, src0]);
+        await new Promise(ok => { im.onload = im.onerror = ok; im.src = c.toDataURL("image/png"); });
+        return;
+      }
+      if (/^data:/.test(src0) || !/^https?:/.test(src0)) return;
+      // fotos y escudos de otras webs: se copian a la propia imagen (si la web no deja, se piden por un servicio de imágenes que sí lo permite)
+      let dato = null;
+      try { dato = await aData(src0); }
+      catch (e) { try { dato = await aData("https://images.weserv.nl/?url=" + encodeURIComponent(src0.replace(/^https?:\/\//, "")) + "&w=700&output=png"); } catch (e2) { dato = null; } }
+      if (dato) { origen.push([im, im.getAttribute("src")]); await new Promise(ok => { im.onload = im.onerror = ok; im.removeAttribute("srcset"); im.src = dato; }); }
     } catch (e) { /* se queda como estaba */ }
   }));
+  return () => origen.forEach(([im, s]) => { try { im.src = s; } catch (e) { /* nada */ } });
 }
 const PDF_BLOQUES = ".jug, .jugada, .mp-bloque, .mapa-eq, .texto, .datos, .panel, .chart-wrap, .carta-wrap, .adn, .jugadora-informe, .hero-jug, .kpi-jug, .stat-big-grid, .lr, .ip-sec, .xh + *";
 const PDF_CORTES = "tr, h2, h3, .section-block, .panel, .jug, .jugada, .mp-bloque, .jugadora-informe, .ip-sec";
@@ -8517,8 +8531,10 @@ async function pdfDeNodoVivo(nodo, archivo, opc) {
   const dets = [...nodo.querySelectorAll("details")].map(d => [d, d.open]); dets.forEach(([d]) => { d.open = true; });
   const tema = document.documentElement.getAttribute("data-tema"); if (tema === "oscuro") document.documentElement.setAttribute("data-tema", "claro");
   const zoomAntes = nodo.style.zoom; nodo.style.zoom = "";
-  try { await new Promise(ok => setTimeout(ok, 150)); await pdfPaginado(nodo, archivo, opc); }
+  let volver = () => {};
+  try { volver = await svgsAImagen(nodo); await new Promise(ok => setTimeout(ok, 150)); await pdfPaginado(nodo, archivo, opc); }
   finally {
+    try { volver(); } catch (e) { /* nada */ }
     nodo.style.zoom = zoomAntes;
     ocultos.forEach(([e, v]) => { e.style.display = v; }); dets.forEach(([d, o]) => { d.open = o; });
     if (tema === "oscuro") document.documentElement.setAttribute("data-tema", "oscuro");
@@ -14184,7 +14200,7 @@ window.addEventListener("afterprint", () => { try { textosRestaurar(); } catch (
 
 async function exportarPdfPagina() {
   const btn = document.getElementById("btnPdfPagina"), t0 = btn ? btn.textContent : "";
-  const vista = document.querySelector(".view:not([style*='display: none'])");
+  const vista = [...document.querySelectorAll(".view")].find(v => getComputedStyle(v).display !== "none" && v.getBoundingClientRect().height > 20);
   if (!vista) { exportarPdfPaginaImprimir(); return; }
   const marca = document.createElement("div");
   marca.style.cssText = "padding:6px 4px 12px;margin-bottom:10px;border-bottom:3px solid #1b2430;display:flex;justify-content:space-between;align-items:baseline;font-family:inherit;";
@@ -14820,7 +14836,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25u";
+const VERSION_APP = "2026-10-25w";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
