@@ -4019,6 +4019,63 @@ function conSinEllaHtml(nombre, equipo) {
     ${frase ? `<p class="lr-frase"><b>${escapeHtml(frase)}</b></p>` : ""}
     <p class="hint">Sale de sumar los quintetos de su equipo en los que juega. ${C.min < 60 ? "<b>Ojo:</b> tiene pocos minutos, la muestra es pequeña. " : ""}Solo cuentan los partidos cuya reconstrucción se pudo validar.</p>`;
 }
+
+/* ---- Claves de victoria: qué cifras suyas coinciden con que el equipo gane ---- */
+function clavesVictoriaHtml(nombre, equipo) {
+  const ps = partidosDeJugadora(nombre, equipo).filter(x => x.gano !== null);
+  if (ps.length < 6) return `<p class="hint">Hacen falta al menos 6 partidos con resultado (hay ${ps.length}).</p>`;
+  const mets = [
+    ["Puntos", x => x.pt, "puntos", true], ["Rebotes", x => x.reb, "rebotes", true], ["Asistencias", x => x.as, "asistencias", true],
+    ["Pérdidas", x => x.bp, "pérdidas", false], ["Valoración", x => x.va, "de valoración", true], ["Minutos", x => x.min, "minutos", true],
+    ["Triples anotados", x => x.t3.a, "triples", true], ["Tiros de campo intentados", x => x.tc.i, "tiros de campo", true], ["Tiros libres intentados", x => x.tl.i, "tiros libres", true],
+  ];
+  const tasa = (l) => l.length ? l.filter(x => x.gano).length / l.length : null;
+  const res = [];
+  mets.forEach(([et, f, uni, masMejor]) => {
+    const vals = [...new Set(ps.map(f).map(v => Math.round(v)))].sort((a, b) => a - b);
+    let mejor = null;
+    vals.forEach(u => {
+      if (u === vals[0]) return;
+      const hi = ps.filter(x => Math.round(f(x)) >= u), lo = ps.filter(x => Math.round(f(x)) < u);
+      if (hi.length < 3 || lo.length < 3) return;
+      const dif = (tasa(hi) - tasa(lo)) * 100;
+      if (!mejor || Math.abs(dif) > Math.abs(mejor.dif)) mejor = { u, hi, lo, dif };
+    });
+    if (mejor && Math.abs(mejor.dif) >= 25) res.push({ et, uni, ...mejor });
+  });
+  if (!res.length) return `<p class="hint">Con ${ps.length} partidos no se ve ninguna cifra que marque claramente las victorias.</p>`;
+  res.sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif));
+  const rec = (l) => `${l.filter(x => x.gano).length}-${l.filter(x => !x.gano).length}`;
+  const filas = res.slice(0, 5).map(c => {
+    const alto = c.dif > 0;
+    return `<tr><td class="equipo">${alto ? "Cuando hace" : "Cuando hace"} <b>${c.u} o más</b> ${escapeHtml(c.uni)}</td>
+      <td class="${alto ? "bueno" : "malo"}"><b>${rec(c.hi)}</b></td><td>Con menos: <b>${rec(c.lo)}</b></td>
+      <td class="${c.dif > 0 ? "bueno" : "malo"}">${c.dif > 0 ? "+" : ""}${Math.round(c.dif)} pts</td></tr>`;
+  }).join("");
+  return `<div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Condición</th><th title="Victorias-derrotas del equipo cuando se cumple">Se cumple</th><th>No se cumple</th><th title="Diferencia en % de victorias">Dif.</th></tr></thead><tbody>${filas}</tbody></table></div>
+    <p class="hint">Resultado del equipo en sus ${ps.length} partidos con resultado. Solo salen condiciones con 3 o más partidos a cada lado y 25 puntos o más de diferencia en % de victorias. Con pocos partidos puede ser casualidad: úsalo como pista, no como regla.</p>`;
+}
+/* ---- Con quién rinde mejor: parejas a partir de la pestaña Quintetos ---- */
+function parejasJugadoraHtml(nombre, equipo) {
+  if (!quintetosCache || !quintetosCache.rows) return `<p class="hint">Todavía no hay datos de quintetos.</p>`;
+  const objetivo = normalizarEquipo(equipoOficial(equipo)), claves = clavesNombre(nombre, equipo);
+  const n = (r, c) => { const v = parseSpanishNumber(cellText(r, c)); return v === null ? 0 : v; };
+  const acc = new Map();
+  quintetosCache.rows.filter(r => normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === objetivo).forEach(r => {
+    const nom = cellText(r, "Quinteto").split("·").map(x => x.trim()).filter(Boolean);
+    const soyYo = (x) => clavesNombre(x, equipo).some(c => claves.includes(c));
+    if (!nom.some(soyYo)) return;
+    const m = n(r, "Minutos"), pf = n(r, "PF"), pc = n(r, "PC");
+    nom.filter(x => !soyYo(x)).forEach(x => { const d = acc.get(x) || { min: 0, pf: 0, pc: 0 }; d.min += m; d.pf += pf; d.pc += pc; acc.set(x, d); });
+  });
+  const l = [...acc.entries()].map(([nom, d]) => ({ nom, ...d, d40: d.min > 0 ? (d.pf - d.pc) / d.min * 40 : 0 })).filter(x => x.min >= 20).sort((a, b) => b.min - a.min).slice(0, 8);
+  if (!l.length) return `<p class="hint">Aún no hay compañeras con 20 minutos o más en pista con ella.</p>`;
+  const f1 = (v) => fmtNum(Math.round(v * 10) / 10);
+  return `<div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Compañera</th><th>Min juntas</th><th>Anotan por 40'</th><th>Reciben por 40'</th><th title="Diferencia de puntos por 40 minutos">+/- por 40'</th></tr></thead><tbody>
+    ${l.map(x => `<tr class="${x.min < 60 ? "poca-muestra" : ""}" style="${x.min < 60 ? "opacity:.6;" : ""}"><td class="equipo">${escapeHtml(x.nom)}</td><td>${f1(x.min)}</td><td>${f1(x.pf / x.min * 40)}</td><td>${f1(x.pc / x.min * 40)}</td>
+      <td class="${x.d40 > 0 ? "bueno" : (x.d40 < 0 ? "malo" : "")}"><b>${x.d40 > 0 ? "+" : ""}${f1(x.d40)}</b></td></tr>`).join("")}</tbody></table></div>
+    <p class="hint">Las 8 compañeras con más minutos en pista con ella. Las filas más claras tienen menos de 60 minutos juntas: la muestra es pequeña.</p>`;
+}
 function showJugadoraDetail(playerName) {
   if (JUG_VISTA !== playerName) JUGF = { casa: "", res: "" };
   JUG_VISTA = playerName;
@@ -4184,6 +4241,14 @@ function showJugadoraDetail(playerName) {
       <div class="panel" id="conSinJugadora"><p class="hint">Calculando...</p></div>
     </div>
     <div class="section-block">
+      <h3 class="section-title">Con quién rinde mejor</h3>
+      <div class="panel" id="parejasJugadora"><p class="hint">Calculando...</p></div>
+    </div>
+    <div class="section-block">
+      <h3 class="section-title">Claves de victoria</h3>
+      <div class="panel" id="clavesJugadora"><p class="hint">Calculando...</p></div>
+    </div>
+    <div class="section-block">
       <h3 class="section-title">Carta de tiro</h3>
       <div class="panel" id="cartaJugadora"><p class="hint">Cargando...</p></div>
     </div>
@@ -4209,6 +4274,7 @@ function showJugadoraDetail(playerName) {
     const caja = document.getElementById("evoJugadora");
     if (!caja) return;
     caja.innerHTML = bloqueEvolucionJugadora(playerName, equipoJug);
+    { const cv = document.getElementById("clavesJugadora"); if (cv) { try { cv.innerHTML = clavesVictoriaHtml(playerName, equipoJug); } catch (e) { cv.innerHTML = `<p class="hint">No se pudo calcular.</p>`; } } }
     dibujarEvolucionJugadora(playerName, equipoJug);
     caja.querySelectorAll("[data-jf]").forEach(b => b.addEventListener("click", () => { JUGF[b.dataset.jf] = b.dataset.v; pintarEvoJug(); }));
   };
@@ -4216,7 +4282,8 @@ function showJugadoraDetail(playerName) {
   else fetchSheetTab("Partidos_Estadisticas")
         .then(d => { partidosCache = d; pintarEvoJug(); })
         .catch(() => pintarEvoJug());
-  { const pintarCS = () => { const c = document.getElementById("conSinJugadora"); if (c) { try { c.innerHTML = conSinEllaHtml(playerName, equipoJug); } catch (e) { c.innerHTML = `<p class="hint">No se pudo calcular.</p>`; } } };
+  { const pintarCS = () => { const c = document.getElementById("conSinJugadora"); if (c) { try { c.innerHTML = conSinEllaHtml(playerName, equipoJug); } catch (e) { c.innerHTML = `<p class="hint">No se pudo calcular.</p>`; } }
+      const c2 = document.getElementById("parejasJugadora"); if (c2) { try { c2.innerHTML = parejasJugadoraHtml(playerName, equipoJug); } catch (e) { c2.innerHTML = `<p class="hint">No se pudo calcular.</p>`; } } };
     if (quintetosCache === null) fetchSheetTab("Quintetos").then(d => { quintetosCache = d; pintarCS(); }).catch(() => { quintetosCache = false; pintarCS(); });
     else pintarCS(); }
   dibujarRadarJugadora(playerName, row["Equipo"] ? row["Equipo"].display : "");
@@ -14256,7 +14323,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25d";
+const VERSION_APP = "2026-10-25f";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
