@@ -6812,7 +6812,7 @@ const IV_CSS = `
 .iv .ftr b{color:#fff;font-size:13px;letter-spacing:.12em}.iv .ftr i{color:var(--o);font-style:normal}
 @media print{@page{size:A4;margin:0}body.iv-print>*:not(#ivCapa){display:none!important}body.iv-print{background:#07090c!important}
  #ivCapa{position:static!important;background:none!important;padding:0!important;overflow:visible!important;display:block!important}#ivCapa .iv-barra{display:none!important}
- #ivCapa .iv-scroll{overflow:visible!important}[data-iv]{zoom:.74}}
+ #ivCapa .iv-scroll{overflow:visible!important}[data-iv]{zoom:.74}.xx .xmp{grid-template-columns:200px 1fr!important;gap:14px}.xx .xmp img{max-width:200px!important}}
 `;
 const IV_EJES = [
   { k: "PT", n: "PUNTOS", u: "", t: "Puntos" }, { k: "RT", n: "REBOTE", u: "", t: "Rebotes" },
@@ -7232,7 +7232,7 @@ const IV_CSS5 = `
 .xx .xa{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.xx .xa div{background:var(--xc);border:1px solid var(--xl);border-top:3px solid var(--xa);padding:10px 18px}.xx .xa b{display:block;font:900 italic 24px 'Inter Display',Inter,sans-serif}.xx .xa span{font-size:10px;letter-spacing:.18em;color:var(--xm);font-weight:700}
 .xx .xrs{display:grid;grid-template-columns:120px 40px 1fr 96px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--xl);font-size:14px}.xx .xrs small{font-size:11px;letter-spacing:.12em;color:var(--xm)}.xx .xrs b.m{font:900 italic 20px 'Inter Display',Inter,sans-serif;text-align:right}
 .xx .xrs i{font-style:normal;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;border-radius:5px;background:#1f9d5c;color:#fff}.xx .xrs i.L{background:#d64545}.xx .xrs i.N{background:var(--xc2);color:var(--xm)}
-.xx .xmp{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:20px;align-items:start}.xx .xmp img{width:100%;display:block;border-radius:6px;background:#f3e6d2}.xx .xmp small{display:block;margin-top:6px;font-size:11px;color:var(--xm);letter-spacing:.08em}
+.xx .xmp{display:grid;grid-template-columns:minmax(0,260px) 1fr;gap:20px;align-items:start}.xx .xmp img{width:100%;max-width:260px;display:block;border-radius:6px;background:#f3e6d2}.xx .xmp small{display:block;margin-top:6px;font-size:11px;color:var(--xm);letter-spacing:.08em}
 .xx table.xtb{width:100%;border-collapse:collapse;font-size:12.5px}.xx table.xtb th{font:800 10px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--xm)!important;text-align:center;padding:8px 6px;border-bottom:2px solid var(--xa);background:none!important}.xx table.xtb td{padding:8px 6px;text-align:center;border:0!important;border-bottom:1px solid var(--xl)!important;color:var(--xf)!important;background:none!important}.xx table.xtb th:first-child,.xx table.xtb td:first-child{text-align:left}.xx table.xtb td:first-child{font-weight:700;white-space:nowrap}.xx table.xtb tr{background:none!important}
 .xx .xtbw{overflow-x:auto}
 .xx .xfx{display:grid;grid-template-columns:270px 1fr;gap:4px 20px;background:var(--xc);border:1px solid var(--xl);border-bottom:3px solid var(--xa);margin-bottom:16px;position:relative;overflow:hidden;break-inside:avoid}
@@ -7261,7 +7261,7 @@ const IV_CSS5 = `
 #ivCapa.ancho .xx .xfg .xfx{margin-bottom:0;grid-template-columns:230px minmax(0,1fr);gap:4px 16px}
 #ivCapa.ancho .xx .xfg .xfv{min-height:330px;height:330px}
 #ivCapa.ancho .xx .xfg .xfm img{max-width:100%}
-#ivCapa.ancho .xx .xmp{grid-template-columns:1fr}
+#ivCapa.ancho .xx .xmp{grid-template-columns:minmax(0,240px) 1fr}
 #ivCapa.ancho .xx .xld{grid-template-columns:repeat(3,1fr)}
 }
 @media print{#ivCapa.ancho [data-iv]{width:100%!important}#ivCapa.ancho .xx{display:block!important}#ivCapa.ancho .xx .xfg{display:block!important}#ivCapa.ancho .xx .xfg .xfx{margin-bottom:16px!important}}
@@ -14399,7 +14399,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25i";
+const VERSION_APP = "2026-10-25j";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
