@@ -4025,17 +4025,12 @@ function conSinEllaHtml(nombre, equipo) {
 }
 
 /* ---- Claves de victoria: qué cifras suyas coinciden con que el equipo gane ---- */
-function clavesVictoriaHtml(nombre, equipo) {
-  const ps = partidosDeJugadora(nombre, equipo).filter(x => x.gano !== null);
+function clavesTablaHtml(ps, mets, quien) {
+  ps = ps.filter(x => x.gano !== null && x.gano !== undefined);
   if (ps.length < 6) return `<p class="hint">Hacen falta al menos 6 partidos con resultado (hay ${ps.length}).</p>`;
-  const mets = [
-    ["Puntos", x => x.pt, "puntos", true], ["Rebotes", x => x.reb, "rebotes", true], ["Asistencias", x => x.as, "asistencias", true],
-    ["Pérdidas", x => x.bp, "pérdidas", false], ["Valoración", x => x.va, "de valoración", true], ["Minutos", x => x.min, "minutos", true],
-    ["Triples anotados", x => x.t3.a, "triples", true], ["Tiros de campo intentados", x => x.tc.i, "tiros de campo", true], ["Tiros libres intentados", x => x.tl.i, "tiros libres", true],
-  ];
   const tasa = (l) => l.length ? l.filter(x => x.gano).length / l.length : null;
   const res = [];
-  mets.forEach(([et, f, uni, masMejor]) => {
+  mets.forEach(([et, f, uni]) => {
     const vals = [...new Set(ps.map(f).map(v => Math.round(v)))].sort((a, b) => a - b);
     let mejor = null;
     vals.forEach(u => {
@@ -4050,14 +4045,83 @@ function clavesVictoriaHtml(nombre, equipo) {
   if (!res.length) return `<p class="hint">Con ${ps.length} partidos no se ve ninguna cifra que marque claramente las victorias.</p>`;
   res.sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif));
   const rec = (l) => `${l.filter(x => x.gano).length}-${l.filter(x => !x.gano).length}`;
-  const filas = res.slice(0, 5).map(c => {
-    const alto = c.dif > 0;
-    return `<tr><td class="equipo">${alto ? "Cuando hace" : "Cuando hace"} <b>${c.u} o más</b> ${escapeHtml(c.uni)}</td>
-      <td class="${alto ? "bueno" : "malo"}"><b>${rec(c.hi)}</b></td><td>Con menos: <b>${rec(c.lo)}</b></td>
-      <td class="${c.dif > 0 ? "bueno" : "malo"}">${c.dif > 0 ? "+" : ""}${Math.round(c.dif)} pts</td></tr>`;
-  }).join("");
+  const filas = res.slice(0, 5).map(c => `<tr><td class="equipo">Cuando ${escapeHtml(quien)} <b>${c.u} o más</b> ${escapeHtml(c.uni)}</td>
+      <td class="${c.dif > 0 ? "bueno" : "malo"}"><b>${rec(c.hi)}</b></td><td>Con menos: <b>${rec(c.lo)}</b></td>
+      <td class="${c.dif > 0 ? "bueno" : "malo"}">${c.dif > 0 ? "+" : ""}${Math.round(c.dif)} pts</td></tr>`).join("");
   return `<div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Condición</th><th title="Victorias-derrotas del equipo cuando se cumple">Se cumple</th><th>No se cumple</th><th title="Diferencia en % de victorias">Dif.</th></tr></thead><tbody>${filas}</tbody></table></div>
-    <p class="hint">Resultado del equipo en sus ${ps.length} partidos con resultado. Solo salen condiciones con 3 o más partidos a cada lado y 25 puntos o más de diferencia en % de victorias. Con pocos partidos puede ser casualidad: úsalo como pista, no como regla.</p>`;
+    <p class="hint">Resultado en ${ps.length} partidos con resultado. Solo salen condiciones con 3 o más partidos a cada lado y 25 puntos o más de diferencia en % de victorias. Con pocos partidos puede ser casualidad: úsalo como pista, no como regla.</p>`;
+}
+function clavesVictoriaHtml(nombre, equipo) {
+  const ps = partidosDeJugadora(nombre, equipo);
+  return clavesTablaHtml(ps, [
+    ["Puntos", x => x.pt, "puntos"], ["Rebotes", x => x.reb, "rebotes"], ["Asistencias", x => x.as, "asistencias"],
+    ["Pérdidas", x => x.bp, "pérdidas"], ["Valoración", x => x.va, "de valoración"], ["Minutos", x => x.min, "minutos"],
+    ["Triples", x => x.t3.a, "triples"], ["TC", x => x.tc.i, "tiros de campo"], ["TL", x => x.tl.i, "tiros libres"],
+  ], "hace");
+}
+/* ---- Claves del duelo (mi equipo frente al rival) y claves de victoria del equipo ---- */
+function partidosDeEquipo(nombre) {
+  if (!partidosCache || !partidosCache.rows.length) return [];
+  const obj = normalizarEquipo(equipoOficial(nombre)), out = [];
+  partidosAgrupados(partidosCache.rows).forEach(porEquipo => {
+    const eqs = [...porEquipo.keys()];
+    if (eqs.length !== 2) return;
+    const i = eqs.findIndex(e => normalizarEquipo(equipoOficial(e)) === obj);
+    if (i < 0) return;
+    const tot = porEquipo.get(eqs[i]).find(r => cellText(r, "Jugador") === "TOTAL"), rv = porEquipo.get(eqs[1 - i]).find(r => cellText(r, "Jugador") === "TOTAL");
+    if (!tot || !rv) return;
+    const pf = numDe(tot, "PT"), pc = numDe(rv, "PT");
+    if (!pf && !pc) return;
+    const t3 = paresTiro(tot, "T3"), tl = paresTiro(tot, "TL"), tc = paresTiro(tot, "TC");
+    out.push({ gano: pf > pc ? true : (pf < pc ? false : null), pt: pf, pc, bp: numDe(tot, "BP"), as: numDe(tot, "AS"), br: numDe(tot, "BR"),
+      ro: numDe(tot, "REB_O"), rt: numDe(tot, "REB_T"), t3a: t3.a, t3i: t3.i, tli: tl.i, tla: tl.a, tci: tc.i });
+  });
+  return out;
+}
+function clavesEquipoHtml(nombre) {
+  const ps = partidosDeEquipo(nombre);
+  return clavesTablaHtml(ps, [
+    ["Puntos", x => x.pt, "puntos"], ["Pérdidas", x => x.bp, "pérdidas"], ["Robos", x => x.br, "robos"], ["Asistencias", x => x.as, "asistencias"],
+    ["Rebotes ofensivos", x => x.ro, "rebotes ofensivos"], ["Rebotes", x => x.rt, "rebotes"], ["Triples", x => x.t3a, "triples anotados"],
+    ["Tiros libres", x => x.tli, "tiros libres intentados"], ["Tiros de campo", x => x.tci, "tiros de campo intentados"],
+  ], "hace");
+}
+function dueloFilas(miNom, rivNom) {
+  if (!avanzadasCalculo || !avanzadasCalculo.equipos) return null;
+  const mapa = avanzadasCalculo.equipos, get = (n) => mapa.get(equipoOficial(n));
+  const a1 = get(miNom), a2 = get(rivNom);
+  if (!a1 || !a2 || !a1.pj || !a2.pj) return null;
+  const val = (a) => { const m = metricasEquipo(a); return { ataque: m.ortg, defensa: m.drtg, tiro: m.efg, rebo: m.pctRo, balon: m.tovPct, libres: a.tci ? Math.round(1000 * a.tli / a.tci) / 10 : null, ritmo: m.ritmo }; };
+  const todos = [...mapa.values()].filter(a => a.pj).map(val);
+  const defs = [["ataque", "Ataque", "Puntos por 100 posesiones", true], ["defensa", "Defensa", "Puntos recibidos por 100 posesiones", false], ["tiro", "Tiro", "eFG%", true],
+    ["rebo", "Rebote ofensivo", "% de rebotes ofensivos", true], ["balon", "Cuidado del balón", "% de posesiones perdidas", false], ["libres", "Tiros libres", "Intentos por cada 100 tiros de campo", true]];
+  const v1 = val(a1), v2 = val(a2);
+  const puesto = (k, v, alto) => 1 + todos.filter(t => t[k] !== null && (alto ? t[k] > v : t[k] < v)).length;
+  const filas = defs.map(([k, et, ayuda, alto]) => {
+    if (v1[k] === null || v2[k] === null) return null;
+    const p1 = puesto(k, v1[k], alto), p2 = puesto(k, v2[k], alto);
+    const dif = p2 - p1;   // positivo: mi equipo mejor clasificado
+    return { et, ayuda, v1: v1[k], v2: v2[k], p1, p2, gana: Math.abs(dif) >= 3 ? (dif > 0 ? 1 : 2) : 0 };
+  }).filter(Boolean);
+  return { filas, n: todos.length, ritmo: [v1.ritmo, v2.ritmo] };
+}
+function clavesDueloHtml(rivNom) {
+  if (!miEquipo) return `<p class="hint">Elige tu equipo en "Mi equipo" para ver el duelo.</p>`;
+  if (normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(equipoOficial(rivNom))) return `<p class="hint">Este es tu equipo: abre el informe de un rival para ver el duelo.</p>`;
+  const D = dueloFilas(miEquipo, rivNom);
+  if (!D) return `<p class="hint">Todavía no hay estadísticas suficientes de los dos equipos.</p>`;
+  const f = (v) => fmtNum(Math.round(v * 10) / 10);
+  const nuestras = D.filas.filter(x => x.gana === 1).map(x => x.et.toLowerCase()), suyas = D.filas.filter(x => x.gana === 2).map(x => x.et.toLowerCase());
+  const lista = (l) => l.length > 1 ? l.slice(0, -1).join(", ") + " y " + l[l.length - 1] : l[0];
+  const resumen = (nuestras.length || suyas.length)
+    ? `${nuestras.length ? `Tenéis ventaja en ${lista(nuestras)}.` : "No tenéis una ventaja clara en ningún apartado."} ${suyas.length ? `${escapeHtml(rivNom)} la tiene en ${lista(suyas)}: ahí hay que prepararse.` : "El rival no tiene una ventaja clara en ningún apartado."}`
+    : "Duelo muy igualado: ningún apartado se separa por 3 puestos o más.";
+  const fila = (x) => `<tr><td class="equipo" title="${escapeAttr(x.ayuda)}">${escapeHtml(x.et)}</td>
+    <td class="${x.gana === 1 ? "bueno" : ""}">${f(x.v1)} <small>(${x.p1}º)</small></td><td class="${x.gana === 2 ? "malo" : ""}">${f(x.v2)} <small>(${x.p2}º)</small></td>
+    <td>${x.gana === 1 ? "<b>" + escapeHtml(miEquipo) + "</b>" : (x.gana === 2 ? "<b>" + escapeHtml(rivNom) + "</b>" : "Igualado")}</td></tr>`;
+  return `<p class="resumen-jug">${resumen}</p><div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Dónde se decide</th><th>${escapeHtml(miEquipo)}</th><th>${escapeHtml(rivNom)}</th><th>Ventaja</th></tr></thead><tbody>${D.filas.map(fila).join("")}
+    <tr><td class="equipo">Ritmo</td><td>${f(D.ritmo[0])}</td><td>${f(D.ritmo[1])}</td><td>${D.ritmo[0] === D.ritmo[1] ? "Igual" : (D.ritmo[0] > D.ritmo[1] ? "Vosotras más rápidas" : "Rival más rápido")}</td></tr></tbody></table></div>
+    <p class="hint">Entre paréntesis, el puesto en la liga entre ${D.n} equipos. Solo se marca ventaja si la diferencia de puestos es de 3 o más. En defensa y pérdidas, menos es mejor.</p>`;
 }
 /* ---- Con quién rinde mejor: parejas a partir de la pestaña Quintetos ---- */
 function parejasJugadoraHtml(nombre, equipo) {
@@ -7858,6 +7922,17 @@ function asegurarPartidosParaInforme(alTerminar) {
   );
 }
 
+function dueloBloqueHtml(nombre) {
+  let a = "", b = "";
+  try { if (!avanzadasCalculo && partidosCache) avanzadasCalculo = calcularAvanzadas(); } catch (e) { /* nada */ }
+  if (!partidosCache) {
+    setTimeout(() => { fetchSheetTab("Partidos_Estadisticas").then(d => { partidosCache = d; document.querySelectorAll(".duelo-bloque").forEach(el => { if (el.dataset.duelo === nombre) el.innerHTML = dueloBloqueHtml(nombre); }); }).catch(() => { /* nada */ }); }, 0);
+    return `<h3 class="section-title">Claves del duelo</h3><p class="hint">Calculando...</p>`;
+  }
+  try { a = clavesDueloHtml(nombre); } catch (e) { a = `<p class="hint">No se pudo calcular.</p>`; }
+  try { b = clavesEquipoHtml(nombre); } catch (e) { b = `<p class="hint">No se pudo calcular.</p>`; }
+  return `<h3 class="section-title">Claves del duelo</h3>${a}<h3 class="section-title">Cómo gana y cómo pierde ${escapeHtml(nombre)}</h3>${b}`;
+}
 function informeHtml(nombre) {
   const inf = fichaInforme(nombre);
   const destacadas = jugadorasDestacadas(nombre, 8);
@@ -7887,6 +7962,8 @@ function informeHtml(nombre) {
       </div>
     </div>
     <div class="pie-print">Informe generado con datos de la FEB · ${escapeHtml(nombre)}</div>
+
+    <div class="duelo-bloque" data-duelo="${escapeAttr(nombre)}">${dueloBloqueHtml(nombre)}</div>
 
     <h3 class="section-title">Datos del equipo (automatico)</h3>
     ${estadisticasInformeHtml(nombre)}
@@ -14403,7 +14480,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25k";
+const VERSION_APP = "2026-10-25l";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
