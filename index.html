@@ -7997,7 +7997,8 @@ function combinacionesEquipoHtml(nombre) {
   const quint = [], trios = new Map(), parejas = new Map();
   const suma = (mapa, nombres, m, pf, pc) => { const k = nombres.slice().sort().join(" · "), d = mapa.get(k) || { k, min: 0, pf: 0, pc: 0 }; d.min += m; d.pf += pf; d.pc += pc; mapa.set(k, d); };
   filas.forEach(rw => {
-    const nom = cellText(rw, "Quinteto").split("·").map(x => x.trim()).filter(Boolean), m = n(rw, "Minutos"), pf = n(rw, "PF"), pc = n(rw, "PC");
+    const corto = (t) => { const [ap, no] = String(t).split(","); const ini = (no || "").trim().split(/\s+/)[0]; return ((ap || "").trim() + (ini ? ", " + ini.charAt(0) + "." : "")).replace(/\s+/g, " "); };
+    const nom = cellText(rw, "Quinteto").split("·").map(x => corto(x.trim())).filter(Boolean), m = n(rw, "Minutos"), pf = n(rw, "PF"), pc = n(rw, "PC");
     quint.push({ k: nom.join(" · "), min: m, pf, pc });
     for (let i = 0; i < nom.length; i++) for (let j = i + 1; j < nom.length; j++) { suma(parejas, [nom[i], nom[j]], m, pf, pc); for (let l = j + 1; l < nom.length; l++) suma(trios, [nom[i], nom[j], nom[l]], m, pf, pc); }
   });
@@ -8006,7 +8007,7 @@ function combinacionesEquipoHtml(nombre) {
     const l = lista.filter(x => x.min >= 9).sort((a, b) => b.min - a.min).slice(0, max);
     if (!l.length) return "";
     return `<h4 style="margin:14px 0 6px;">${tit}</h4><div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Combinación</th><th>Min</th><th>+/-</th><th>+/- por 40'</th></tr></thead><tbody>
-      ${l.map(x => { const d = x.pf - x.pc, d40 = x.min ? d / x.min * 40 : 0; return `<tr style="${x.min < 20 ? "opacity:.55;" : ""}"><td class="equipo">${escapeHtml(x.k)}</td><td>${f1(x.min)}</td><td class="${d > 0 ? "bueno" : (d < 0 ? "malo" : "")}">${d > 0 ? "+" : ""}${f1(d)}</td><td class="${d40 > 0 ? "bueno" : (d40 < 0 ? "malo" : "")}"><b>${d40 > 0 ? "+" : ""}${f1(d40)}</b></td></tr>`; }).join("")}</tbody></table></div>`;
+      ${l.map(x => { const d = x.pf - x.pc, d40 = x.min ? d / x.min * 40 : 0; return `<tr style="${x.min < 20 ? "opacity:.55;" : ""}"><td class="equipo" style="white-space:normal;min-width:200px;line-height:1.35;">${x.k.split(" · ").map(nc => escapeHtml(nc)).join('<br>')}</td><td>${f1(x.min)}</td><td class="${d > 0 ? "bueno" : (d < 0 ? "malo" : "")}">${d > 0 ? "+" : ""}${f1(d)}</td><td class="${d40 > 0 ? "bueno" : (d40 < 0 ? "malo" : "")}"><b>${d40 > 0 ? "+" : ""}${f1(d40)}</b></td></tr>`; }).join("")}</tbody></table></div>`;
   };
   return tabla(quint, "Quintetos más usados", 5) + tabla([...trios.values()], "Tríos más usados", 6) + tabla([...parejas.values()], "Parejas más usadas", 8)
     + `<p class="hint">Solo salen combinaciones con 9 minutos o más; las más claras tienen menos de 20 y son poco fiables. +/- es la diferencia de puntos del equipo con ellas en pista.</p>`;
@@ -14819,7 +14820,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25t";
+const VERSION_APP = "2026-10-25u";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
