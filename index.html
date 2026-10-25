@@ -2162,6 +2162,8 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <button data-subview="comp-jugadoras">Jugadoras</button>
     </div>
     <div id="comp-equipos" class="subview">
+      <div class="panel" id="cmpEquipos"><p class="hint">Calculando...</p></div>
+      <details class="glosario" style="margin:12px 0;"><summary>Comparación clásica: un equipo contra otro</summary>
       <div class="panel">
         <div class="vs-picker">
           <select id="vsEquipoA"></select>
@@ -2170,7 +2172,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
           <button id="vsEquipoBtn">Comparar</button>
         </div>
         <div id="vsEquipoChart" class="chart-wrap" style="display:none;"></div>
-      </div>
+      </div></details>
     </div>
     <div id="comp-jugadoras" class="subview" style="display:none;">
       <div class="panel">
@@ -3666,6 +3668,140 @@ function renderResultados(filterText) {
 /* ============================================================
    COMPARADOR (selectores VS)
    ============================================================ */
+
+/* ============================================================
+   COMPARAR EQUIPOS: percentiles (punto por equipo de la liga), radar y tabla
+   ============================================================ */
+const CMP_PCT = (a, b) => (b ? 100 * a / b : null);
+const CMP_METRICAS = {
+  tradicionales: [
+    ["Puntos / partido", a => a.pf / a.pj, 1, 1], ["Puntos recibidos / partido", a => a.pc / a.pj, -1, 1], ["Rebotes / partido", a => (a.ro + a.rd) / a.pj, 1, 1],
+    ["Asistencias / partido", a => a.as / a.pj, 1, 1], ["Robos / partido", a => a.br / a.pj, 1, 1], ["Pérdidas / partido", a => a.bp / a.pj, -1, 1],
+    ["Triples intentados / partido", a => a.t3i / a.pj, 1, 1], ["Tiros libres intentados / partido", a => a.tli / a.pj, 1, 1],
+  ],
+  avanzadas: [
+    ["Ataque (pts/100 pos.)", a => CMP_PCT(a.pf, a.pos), 1, 1], ["Defensa (pts recibidos/100)", a => CMP_PCT(a.pc, a.posRival), -1, 1],
+    ["Eficiencia neta", a => CMP_PCT(a.pf, a.pos) - CMP_PCT(a.pc, a.posRival), 1, 1], ["Ritmo (posesiones)", a => (a.pos + a.posRival) / 2 / a.pj, 1, 1],
+    ["TS% (acierto real)", a => CMP_PCT(a.pf, 2 * (a.tci + 0.44 * a.tli)), 1, 1], ["eFG%", a => CMP_PCT(a.tca + 0.5 * a.t3a, a.tci), 1, 1],
+    ["Asistencias por pérdida", a => a.as / a.bp, 1, 2],
+  ],
+  ofensivas: [
+    ["Ataque (pts/100 pos.)", a => CMP_PCT(a.pf, a.pos), 1, 1], ["TS% (acierto real)", a => CMP_PCT(a.pf, 2 * (a.tci + 0.44 * a.tli)), 1, 1],
+    ["Tiros libres por 100 tiros de campo", a => CMP_PCT(a.tli, a.tci), 1, 1], ["Rebote ofensivo %", a => CMP_PCT(a.ro, a.ro + a.rdRival), 1, 1],
+    ["Pérdidas (% de posesiones)", a => CMP_PCT(a.bp, a.pos), -1, 1], ["Asistencias por pérdida", a => a.as / a.bp, 1, 2],
+    ["Canastas asistidas (asist. por 100 canastas)", a => CMP_PCT(a.as, a.tca), 1, 1], ["Puntos / partido", a => a.pf / a.pj, 1, 1],
+  ],
+  defensivas: [
+    ["Defensa (pts recibidos/100)", a => CMP_PCT(a.pc, a.posRival), -1, 1], ["Puntos recibidos / partido", a => a.pc / a.pj, -1, 1],
+    ["Rebote defensivo %", a => CMP_PCT(a.rd, a.rd + a.roRival), 1, 1], ["Robos por 100 posesiones rivales", a => CMP_PCT(a.br, a.posRival), 1, 1],
+    ["Rebotes defensivos / partido", a => a.rd / a.pj, 1, 1], ["Robos / partido", a => a.br / a.pj, 1, 1],
+  ],
+  factores: [
+    ["eFG%", a => CMP_PCT(a.tca + 0.5 * a.t3a, a.tci), 1, 1], ["Pérdidas (% de posesiones)", a => CMP_PCT(a.bp, a.pos), -1, 1],
+    ["Rebote ofensivo %", a => CMP_PCT(a.ro, a.ro + a.rdRival), 1, 1], ["Tiros libres por 100 tiros de campo", a => CMP_PCT(a.tli, a.tci), 1, 1],
+    ["Rebote defensivo %", a => CMP_PCT(a.rd, a.rd + a.roRival), 1, 1],
+  ],
+  organizacion: [
+    ["Asistencias / partido", a => a.as / a.pj, 1, 1], ["Asistencias por pérdida", a => a.as / a.bp, 1, 2], ["Pérdidas (% de posesiones)", a => CMP_PCT(a.bp, a.pos), -1, 1],
+    ["Asist. por 100 canastas", a => CMP_PCT(a.as, a.tca), 1, 1], ["Pérdidas / partido", a => a.bp / a.pj, -1, 1], ["Robos / partido", a => a.br / a.pj, 1, 1],
+  ],
+  tiros: [
+    ["eFG%", a => CMP_PCT(a.tca + 0.5 * a.t3a, a.tci), 1, 1], ["% triples", a => CMP_PCT(a.t3a, a.t3i), 1, 1], ["% dobles", a => CMP_PCT(a.tca - a.t3a, a.tci - a.t3i), 1, 1],
+    ["% tiros libres", a => CMP_PCT(a.tla, a.tli), 1, 1], ["Triples intentados / partido", a => a.t3i / a.pj, 1, 1], ["Peso del triple (% de tiros)", a => CMP_PCT(a.t3i, a.tci), 1, 1],
+    ["Tiros libres intentados / partido", a => a.tli / a.pj, 1, 1],
+  ],
+};
+CMP_METRICAS.global = [CMP_METRICAS.avanzadas[0], CMP_METRICAS.avanzadas[1], CMP_METRICAS.avanzadas[2], CMP_METRICAS.avanzadas[4], CMP_METRICAS.avanzadas[5],
+  CMP_METRICAS.ofensivas[3], CMP_METRICAS.defensivas[2], CMP_METRICAS.ofensivas[4], CMP_METRICAS.avanzadas[6], CMP_METRICAS.tiros[1], CMP_METRICAS.tiros[3]];
+const CMP_CATS = [["global", "Visión global"], ["tradicionales", "Tradicionales"], ["avanzadas", "Avanzadas"], ["ofensivas", "Ofensivas"], ["defensivas", "Defensivas"], ["factores", "4 Factors"], ["organizacion", "Organización"], ["tiros", "Tiros"]];
+const CMP_COL = ["#e0602a", "#2b6cb0", "#1f7a5a", "#8e44ad", "#c0392b", "#16a085", "#7f8c8d", "#d4a017"];
+const CMP = { cat: "global", vista: "pct", modo: "valor", sel: null, graf: null };
+function cmpDatos() {
+  if (!avanzadasCalculo || !avanzadasCalculo.equipos) return null;
+  const eq = [...avanzadasCalculo.equipos.entries()].filter(([, a]) => a.pj >= 1);
+  return eq.length >= 3 ? eq : null;
+}
+function cmpCalcula(eq, cat) {
+  const mets = CMP_METRICAS[cat] || CMP_METRICAS.global;
+  return mets.map(([et, f, dir, dec]) => {
+    const vals = eq.map(([n, a]) => ({ n, v: f(a) })).filter(o => o.v !== null && isFinite(o.v));
+    if (vals.length < 3) return null;
+    const ord = vals.map(o => o.v).sort((x, y) => x - y), q = (t) => { const i = (ord.length - 1) * t, lo = Math.floor(i), hi = Math.ceil(i); return ord[lo] + (ord[hi] - ord[lo]) * (i - lo); };
+    const pc = new Map(), pu = new Map();
+    vals.forEach(o => { const peor = vals.filter(x => dir > 0 ? x.v < o.v : x.v > o.v).length, mejor = vals.filter(x => dir > 0 ? x.v > o.v : x.v < o.v).length; pc.set(o.n, Math.round(100 * peor / (vals.length - 1))); pu.set(o.n, mejor + 1); });
+    return { et, dir, dec, vals, min: ord[0], max: ord[ord.length - 1], p25: q(0.25), med: q(0.5), p75: q(0.75), pc, pu, n: vals.length };
+  }).filter(Boolean);
+}
+function cmpFmt(v, dec) { return fmtNum(Math.round(v * Math.pow(10, dec)) / Math.pow(10, dec)); }
+function cmpStrip(M, sel) {
+  const W = 860, ancho0 = 215, ancho1 = 800, fila = 52, H = M.length * fila + 40, pct = CMP.modo === "pct";
+  const xv = (m, v) => { let t = pct ? (m.pc.get(v.n) / 100) : (m.max === m.min ? .5 : (v.v - m.min) / (m.max - m.min)); if (!pct && m.dir < 0) t = 1 - t; return ancho0 + t * (ancho1 - ancho0); };
+  const xr = (m, val) => { let t = m.max === m.min ? .5 : (val - m.min) / (m.max - m.min); if (m.dir < 0) t = 1 - t; return ancho0 + t * (ancho1 - ancho0); };
+  let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;font-family:inherit;"><text x="${ancho0}" y="14" font-size="11" fill="#888">← PEOR</text><text x="${ancho1}" y="14" font-size="11" fill="#888" text-anchor="end">MEJOR →</text>`;
+  M.forEach((m, i) => {
+    const y = 40 + i * fila;
+    s += `<line x1="${ancho0}" x2="${ancho1}" y1="${y}" y2="${y}" stroke="#d8d8d8" stroke-width="1"/><text x="${ancho0 - 12}" y="${y + 4}" font-size="12.5" font-weight="700" text-anchor="end" fill="currentColor">${escapeHtml(m.et.length > 30 ? m.et.slice(0, 29) + "…" : m.et)}</text>`;
+    if (pct) s += `<rect x="${ancho0 + (ancho1 - ancho0) * .25}" y="${y - 11}" width="${(ancho1 - ancho0) * .5}" height="22" rx="4" fill="#9aa0a6" opacity=".18"/><line x1="${(ancho0 + ancho1) / 2}" x2="${(ancho0 + ancho1) / 2}" y1="${y - 13}" y2="${y + 13}" stroke="#777" stroke-dasharray="3 3"/>`;
+    else {
+      const a = xr(m, m.p25), b = xr(m, m.p75), md = xr(m, m.med);
+      s += `<rect x="${Math.min(a, b)}" y="${y - 11}" width="${Math.abs(b - a)}" height="22" rx="4" fill="#9aa0a6" opacity=".18"/><line x1="${md}" x2="${md}" y1="${y - 13}" y2="${y + 13}" stroke="#777" stroke-dasharray="3 3"/><text x="${md}" y="${y + 26}" font-size="10" fill="#888" text-anchor="middle">${cmpFmt(m.med, m.dec)}</text>`;
+      s += `<text x="${ancho0}" y="${y + 26}" font-size="10" fill="#aaa" text-anchor="middle">${cmpFmt(m.dir > 0 ? m.min : m.max, m.dec)}</text><text x="${ancho1}" y="${y + 26}" font-size="10" fill="#aaa" text-anchor="middle">${cmpFmt(m.dir > 0 ? m.max : m.min, m.dec)}</text>`;
+    }
+    m.vals.filter(v => !sel.includes(v.n)).forEach(v => { s += `<circle cx="${xv(m, v)}" cy="${y}" r="3.4" fill="#8a8f98" opacity=".6"><title>${escapeHtml(v.n)}: ${cmpFmt(v.v, m.dec)}</title></circle>`; });
+    sel.forEach(n => { const v = m.vals.find(o => o.n === n); if (!v) return; const c = CMP_COL[sel.indexOf(n) % CMP_COL.length];
+      s += `<circle cx="${xv(m, v)}" cy="${y}" r="7" fill="${c}" stroke="#fff" stroke-width="2"><title>${escapeHtml(n)}: ${cmpFmt(v.v, m.dec)} · puesto ${m.pu.get(n)}º de ${m.n}</title></circle>`; });
+    sel.forEach((n, k) => { const v = m.vals.find(o => o.n === n); if (!v) return; s += `<text x="${W - 8}" y="${y + 4 + (k - (sel.length - 1) / 2) * 12}" font-size="11" font-weight="700" text-anchor="end" fill="${CMP_COL[k % CMP_COL.length]}">${pct ? m.pc.get(n) + " pct." : cmpFmt(v.v, m.dec)}</text>`; });
+  });
+  return s + "</svg>";
+}
+function cmpTabla(M, sel) {
+  return `<div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Métrica</th>${sel.map((n, k) => `<th style="color:${CMP_COL[k % CMP_COL.length]}">${escapeHtml(n)}</th>`).join("")}<th>Mediana liga</th></tr></thead><tbody>
+    ${M.map(m => `<tr><td class="equipo">${escapeHtml(m.et)}</td>${sel.map(n => { const v = m.vals.find(o => o.n === n); if (!v) return "<td>–</td>"; const pc = m.pc.get(n); return `<td class="${pc >= 80 ? "bueno" : (pc <= 20 ? "malo" : "")}"><b>${cmpFmt(v.v, m.dec)}</b> <small>(${m.pu.get(n)}º/${m.n})</small></td>`; }).join("")}<td>${cmpFmt(m.med, m.dec)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="hint">Verde: entre el 20 % mejor de la liga. Rojo: entre el 20 % peor. En defensa y pérdidas, menos es mejor y los puestos ya lo tienen en cuenta.</p>`;
+}
+function cmpRadar(M, sel) {
+  const cv = document.getElementById("cmpRadarCv"); if (!cv || typeof Chart === "undefined") return;
+  if (CMP.graf) { try { CMP.graf.destroy(); } catch (e) { /* nada */ } CMP.graf = null; }
+  const ds = sel.map((n, k) => ({ label: n, data: M.map(m => m.pc.get(n) ?? 0), borderColor: CMP_COL[k % CMP_COL.length], backgroundColor: CMP_COL[k % CMP_COL.length] + "30", pointBackgroundColor: CMP_COL[k % CMP_COL.length], borderWidth: 2 }));
+  ds.push({ label: "Mediana de la liga", data: M.map(() => 50), borderColor: "#999", borderDash: [4, 4], pointRadius: 0, backgroundColor: "transparent", borderWidth: 1 });
+  CMP.graf = new Chart(cv.getContext("2d"), { type: "radar", data: { labels: M.map(m => m.et.replace(/ \(.*\)/, "")), datasets: ds },
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: 10 }, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: percentil ${c.parsed.r}` } } },
+      scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, pointLabels: { font: { size: 11 } } } } } });
+}
+function cmpPintar() {
+  const caja = document.getElementById("cmpEquipos"); if (!caja) return;
+  const eq = cmpDatos();
+  if (!eq) {
+    caja.innerHTML = `<p class="hint">${partidosCache ? "Todavía no hay partidos suficientes para comparar." : "Calculando con las estadísticas de cada partido..."}</p>`;
+    if (!partidosCache && !CMP.cargando) { CMP.cargando = true; fetchSheetTab("Partidos_Estadisticas").then(d => { partidosCache = d; avanzadasCalculo = calcularAvanzadas(); CMP.cargando = false; cmpPintar(); }).catch(() => { CMP.cargando = false; caja.innerHTML = `<p class="hint">No se pudieron leer los partidos.</p>`; }); }
+    else if (partidosCache && !avanzadasCalculo) { try { avanzadasCalculo = calcularAvanzadas(); cmpPintar(); } catch (e) { /* nada */ } }
+    return;
+  }
+  const nombres = eq.map(([n]) => n).sort((a, b) => a.localeCompare(b, "es"));
+  if (!CMP.sel) { const mio = miEquipo ? nombres.find(n => normalizarEquipo(n) === normalizarEquipo(equipoOficial(miEquipo))) : null; CMP.sel = mio ? [mio] : [nombres[0]]; }
+  CMP.sel = CMP.sel.filter(n => nombres.includes(n));
+  const M = cmpCalcula(eq, CMP.cat), sel = CMP.sel;
+  const chip = (k, v, t, act) => `<button class="chip ${act ? "activa" : ""}" data-cmp="${k}" data-v="${v}">${t}</button>`;
+  let cuerpo = "";
+  if (!sel.length) cuerpo = `<p class="hint">Elige al menos un equipo para compararlo con la liga.</p>`;
+  else if (!M.length) cuerpo = `<p class="hint">No hay datos para esta categoría.</p>`;
+  else if (CMP.vista === "pct") cuerpo = `<div class="scout-chips" style="border:0;padding:0 0 6px;justify-content:flex-end;">${chip("modo", "valor", "Valor", CMP.modo === "valor")}${chip("modo", "pct", "Percentil", CMP.modo === "pct")}</div>
+      <div style="overflow-x:auto"><div style="min-width:620px">${cmpStrip(M, sel)}</div></div><p class="hint">Cada punto gris es un equipo de la liga. La banda gris es el rango habitual (del 25 % al 75 % de los equipos) y la línea de puntos, la mediana. A la derecha siempre está lo mejor, incluso en métricas donde menos es mejor.</p>`;
+  else if (CMP.vista === "radar") cuerpo = M.length < 3 ? `<p class="hint">El radar necesita al menos 3 métricas.</p>` : `<div style="position:relative;height:440px;"><canvas id="cmpRadarCv"></canvas></div><p class="hint">Cada eje es el percentil dentro de la liga: 100 es el mejor equipo, 50 la mediana. Se ha girado donde menos es mejor.</p>`;
+  else cuerpo = cmpTabla(M, sel);
+  caja.innerHTML = `<h3 class="section-title" style="margin-top:0;">Comparar equipos con toda la liga</h3>
+    <div class="scout-chips" style="border:0;padding:0 0 8px;">${CMP_CATS.map(([k, t]) => chip("cat", k, t, CMP.cat === k)).join("")}</div>
+    <div class="scout-chips" style="border:0;padding:0 0 8px;">${chip("vista", "pct", "Percentiles", CMP.vista === "pct")}${chip("vista", "radar", "Radar", CMP.vista === "radar")}${chip("vista", "tabla", "Tabla", CMP.vista === "tabla")}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;">
+      ${sel.map((n, k) => `<span style="display:inline-flex;align-items:center;gap:6px;border:2px solid ${CMP_COL[k % CMP_COL.length]};border-radius:99px;padding:3px 6px 3px 12px;font-weight:700;font-size:13px;">${escapeHtml(n)}<button data-cmp-quitar="${escapeAttr(n)}" style="border:0;background:none;cursor:pointer;font-size:16px;line-height:1;">×</button></span>`).join("")}
+      ${sel.length < 6 ? `<select id="cmpAnadir"><option value="">+ Añadir equipo</option>${nombres.filter(n => !sel.includes(n)).map(n => `<option>${escapeHtml(n)}</option>`).join("")}</select>` : ""}
+    </div>${cuerpo}`;
+  caja.querySelectorAll("[data-cmp]").forEach(b => b.addEventListener("click", () => { CMP[b.dataset.cmp] = b.dataset.v; cmpPintar(); }));
+  caja.querySelectorAll("[data-cmp-quitar]").forEach(b => b.addEventListener("click", () => { CMP.sel = CMP.sel.filter(n => n !== b.dataset.cmpQuitar); cmpPintar(); }));
+  const an = document.getElementById("cmpAnadir"); if (an) an.addEventListener("change", () => { if (an.value) { CMP.sel.push(an.value); cmpPintar(); } });
+  if (CMP.vista === "radar" && sel.length && M.length >= 3) cmpRadar(M, sel);
+}
+
 function fillComparadorPickers() {
   {
     const a = document.getElementById("vsEquipoA"), b = document.getElementById("vsEquipoB");
@@ -7643,7 +7779,7 @@ function abrirInformeVisualVista(id) {
   b.addEventListener("click", () => abrirInformeVisualVista(vistaActual));
   document.body.appendChild(b);
   const base = showView;
-  showView = function (id, esVuelta) { const r = base(id, esVuelta); try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
+  showView = function (id, esVuelta) { const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
 })();
 
 function plantillaHtml(nombre) {
@@ -14887,7 +15023,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26a";
+const VERSION_APP = "2026-10-26b";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
