@@ -8534,7 +8534,7 @@ async function descargarInformePdf(nombre, btn) {
 /* Un trozo de la pantalla que ya está dibujado (vista activa, informe visual, informe de prensa) -> PDF */
 async function pdfDeNodoVivo(nodo, archivo, opc) {
   await cargarLibsPdf();
-  const ocultos = [...nodo.querySelectorAll(".no-imprimir, .chips-qp, .subnav")].map(e => [e, e.style.display]);
+  const ocultos = [...nodo.querySelectorAll(".no-imprimir, .chips-qp, .subnav, .back-btn, .informe-barra, .btn-partido, .btn-mini, select, input, textarea, button:not(.chip):not([data-jf]):not([data-de]):not([data-dp])")].map(e => [e, e.style.display]);
   ocultos.forEach(([e]) => { e.style.display = "none"; });
   const dets = [...nodo.querySelectorAll("details")].map(d => [d, d.open]); dets.forEach(([d]) => { d.open = true; });
   const tema = document.documentElement.getAttribute("data-tema"); if (tema === "oscuro") document.documentElement.setAttribute("data-tema", "claro");
@@ -14214,7 +14214,7 @@ async function exportarPdfPagina() {
   marca.style.cssText = "padding:6px 4px 12px;margin-bottom:10px;border-bottom:3px solid #1b2430;display:flex;justify-content:space-between;align-items:baseline;font-family:inherit;";
   const nomV = (NOMBRE_VISTA && NOMBRE_VISTA[vistaActual]) || LIGA_NOMBRE;
   const titInf = document.getElementById("infTitulo");
-  const tit = (vistaActual === "informes" && titInf && titInf.value.trim()) ? titInf.value.trim() : nomV;
+  const tit = (vistaActual === "informes" && titInf && titInf.value.trim()) ? titInf.value.trim() : ((vistaActual === "jugadora-detail" && JUG_VISTA) ? JUG_VISTA : nomV);
   marca.innerHTML = `<div><div style="font-size:11px;letter-spacing:.14em;color:#b4470f;font-weight:700;">SCOUTFLOW · ${escapeHtml(LIGA_NOMBRE)}${grupoActivo ? " · GRUPO " + escapeHtml(grupoActivo) : ""}</div><div style="font-size:24px;font-weight:800;color:#111;">${escapeHtml(tit)}</div></div><div style="font-size:12px;color:#555;">${escapeHtml(new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }))}</div>`;
   vista.insertBefore(marca, vista.firstChild);
   try {
@@ -14844,7 +14844,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25x";
+const VERSION_APP = "2026-10-25y";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
