@@ -7506,7 +7506,18 @@ function ivMostrar(html, nombre, render, conCompleto) {
   ivAjusta();
   const cerrar = () => { document.body.classList.remove("iv-print"); const c = document.getElementById("ivCapa"); if (c) c.remove(); };
   document.getElementById("ivCerrar").onclick = cerrar;
-  document.getElementById("ivPdf").onclick = () => { document.body.classList.add("iv-print"); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("iv-print"), 500); }, 100); };
+  document.getElementById("ivPdf").onclick = async (ev) => {
+    const b = ev.currentTarget, t0 = b.textContent, raiz = document.querySelector("#ivCapa [data-iv]");
+    if (raiz) {
+      try {
+        b.disabled = true; b.textContent = "Creando PDF...";
+        const sc = document.querySelector("#ivCapa .iv-scroll"), zAntes = sc ? sc.style.zoom : ""; if (sc) sc.style.zoom = "";
+        try { await svgsAImagen(raiz); await pdfDeNodoVivo(raiz, "Informe visual - " + nombre, { progreso: (i, n) => { b.textContent = "Página " + i + " de " + n + "..."; } }); }
+        finally { if (sc) sc.style.zoom = zAntes; }
+        b.disabled = false; b.textContent = t0; return;
+      } catch (e) { b.disabled = false; b.textContent = t0; }
+    }
+    document.body.classList.add("iv-print"); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("iv-print"), 500); }, 100); };
   const bPng = document.getElementById("ivPng"); if (bPng) bPng.onclick = async (ev) => {
     const b = ev.currentTarget; b.disabled = true; b.textContent = "Creando imagen...";
     const scEl = document.querySelector("#ivCapa .iv-scroll"), zoomAntes = scEl ? scEl.style.zoom : ""; if (scEl) scEl.style.zoom = "";
@@ -8137,8 +8148,7 @@ function informeHtml(nombre) {
         <button class="btn-partido" id="btnMandarJugadoras" style="background:var(--verde,#1f7a5a);">Enviar a mis jugadoras</button>
         <button class="btn-partido" id="btnInformeVisual" style="background:#14181c;">Informe visual</button>
         <button class="btn-partido" id="btnResumenIA" style="background:#5b3fd1;">Copiar resumen para IA</button>
-        <button class="btn-partido" id="btnDescargarPdf" style="background:#b4470f;">Descargar PDF</button>
-        <button class="btn-partido" id="btnImprimirInforme">Imprimir o guardar en PDF</button>
+        <button class="btn-partido" id="btnImprimirInforme" style="background:#b4470f;">Exportar PDF</button>
       </div>
     </div>
 
@@ -8414,52 +8424,104 @@ function cargarLibJs(global, urls) {
     ko(new Error("No se pudo cargar una librería (revisa la conexión)."));
   });
 }
-/* PDF real: se dibuja el informe y se trocea en hojas A4. Funciona en la web y en la app de escritorio, sin pasar por el diálogo de imprimir. */
-async function descargarInformePdf(nombre, btn) {
-  const txt0 = btn ? btn.textContent : "";
-  const estado = (t) => { if (btn) { btn.textContent = t; btn.disabled = t !== txt0; } };
+/* ---------- PDF real (sin diálogo de imprimir): se dibuja el contenido y se trocea en hojas A4 ----------
+   Funciona igual en la web, en el iPad y en la app de escritorio. */
+async function cargarLibsPdf() {
+  await Promise.all([
+    cargarLibJs("html2canvas", ["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js", "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js", "https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"]),
+    cargarLibJs("jspdf", ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js", "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"]),
+  ]);
+}
+async function svgsAImagen(raiz) {
+  await Promise.all([...raiz.querySelectorAll("img")].map(async im => {
+    if (!/^data:image\/svg/.test(im.src)) return;
+    try {
+      let t = decodeURIComponent(im.src.replace(/^data:image\/svg\+xml[^,]*,/, ""));
+      const vb = /viewBox="([\d.\s-]+)"/.exec(t); if (!vb) return;
+      const [, , vw, vh] = vb[1].trim().split(/\s+/).map(Number); if (!vw || !vh) return;
+      t = t.replace(/^<svg /, '<svg width="' + vw + '" height="' + vh + '" ').replace(/(<svg[^>]*?)\swidth="[^"]*"\s+height="[^"]*"(?=[^>]*?width=)/, "$1");
+      const i2 = new Image(); await new Promise((ok, ko) => { i2.onload = ok; i2.onerror = ko; i2.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); });
+      const k = Math.min(3, 1600 / Math.max(vw, vh)), c = document.createElement("canvas"); c.width = Math.round(vw * k); c.height = Math.round(vh * k);
+      c.getContext("2d").drawImage(i2, 0, 0, c.width, c.height);
+      await new Promise(ok => { im.onload = im.onerror = ok; im.src = c.toDataURL("image/png"); });
+    } catch (e) { /* se queda como estaba */ }
+  }));
+}
+const PDF_BLOQUES = ".jug, .jugada, .mp-bloque, .mapa-eq, .texto, .datos, .panel, .chart-wrap, .carta-wrap, .adn, .jugadora-informe, .hero-jug, .kpi-jug, .stat-big-grid, .lr, .ip-sec, .xh + *";
+const PDF_CORTES = "tr, h2, h3, .section-block, .panel, .jug, .jugada, .mp-bloque, .jugadora-informe, .ip-sec";
+async function pdfPaginado(nodo, archivo, opc) {
+  opc = opc || {};
+  const docN = nodo.ownerDocument, win = docN.defaultView;
+  const w = Math.max(300, Math.round(opc.ancho || nodo.scrollWidth || nodo.getBoundingClientRect().width));
+  const total = Math.round(nodo.scrollHeight || nodo.getBoundingClientRect().height), altoPag = Math.round(w * 297 / 210);
+  const topN = nodo.getBoundingClientRect().top;
+  const rel = (e) => { const q = e.getBoundingClientRect(); return [q.top - topN, q.bottom - topN]; };
+  const bloques = [...nodo.querySelectorAll(PDF_BLOQUES)].map(rel).filter(([a, b]) => b - a > 8 && b - a < altoPag * 0.7);
+  const titulos = [...nodo.querySelectorAll("h2, h3")].map(e => rel(e)[0]);
+  const cortes = [...new Set([...nodo.querySelectorAll(PDF_CORTES)].map(e => Math.round(rel(e)[0])))].filter(y => y > 0)
+    .filter(y => !bloques.some(([a, b]) => y > a + 2 && y < b - 2) && !titulos.some(t => y > t + 2 && y - t < 90)).sort((a, b) => a - b);
+  const pag = []; let ini = 0;
+  while (ini < total - 4) {
+    let fin = ini + altoPag;
+    if (fin < total) { const buenos = cortes.filter(y => y <= fin && y > ini + altoPag * 0.45); if (buenos.length) fin = buenos[buenos.length - 1]; } else fin = total;
+    pag.push([ini, fin]); ini = fin;
+  }
+  const esc = Math.min(2, Math.max(0.8, 1700 / w));
+  const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  for (let i = 0; i < pag.length; i++) {
+    const [y0, y1] = pag[i];
+    if (opc.progreso) opc.progreso(i + 1, pag.length);
+    const cv = await window.html2canvas(nodo, Object.assign({ scale: esc, useCORS: true, backgroundColor: "#ffffff", x: 0, y: y0, width: w, height: y1 - y0, scrollX: 0, scrollY: 0, logging: false }, opc.h2c || {}));
+    if (i) pdf.addPage();
+    pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 210 * cv.height / cv.width);
+    await new Promise(ok => setTimeout(ok, 0));
+  }
+  pdf.save(String(archivo).replace(/[\\/:*?"<>|]/g, "") + ".pdf");
+}
+/* Un documento HTML completo (informes de impresión) -> PDF */
+async function pdfDeHtml(html, archivo, progreso) {
   let marco = null;
   try {
-    estado("Preparando PDF...");
-    await Promise.all([
-      cargarLibJs("html2canvas", ["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js", "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js", "https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"]),
-      cargarLibJs("jspdf", ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js", "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"]),
-    ]);
-    try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
-    const html = htmlImpresionInforme(nombre);
+    await cargarLibsPdf();
     marco = document.createElement("iframe");
     marco.style.cssText = "position:fixed;left:-12000px;top:0;width:794px;height:1200px;border:0;";
     document.body.appendChild(marco);
     const d = marco.contentDocument; d.open(); d.write(html); d.close();
     d.body.style.cssText += ";width:794px;margin:0;padding:26px 30px;box-sizing:border-box;background:#fff;";
     await Promise.all([...d.images].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; setTimeout(ok, 5000); })));
+    await svgsAImagen(d.body);
     marco.style.height = d.documentElement.scrollHeight + "px";
     await new Promise(ok => setTimeout(ok, 200));
-    estado("Dibujando informe...");
-    const esc = 2, anchoCss = 794, altoPag = Math.round(anchoCss * 297 / 210);
-    const lienzo = await window.html2canvas(d.body, { scale: esc, useCORS: true, backgroundColor: "#ffffff", width: anchoCss, windowWidth: anchoCss, logging: false });
-    const total = d.body.scrollHeight, topBody = d.body.getBoundingClientRect().top;
-    const cortes = [...d.querySelectorAll("body > *, .jug, tr, .jugada, .mp-bloque, h2, h3")].map(e => Math.round(e.getBoundingClientRect().top - topBody)).filter(y => y > 0).sort((a, b) => a - b);
-    const pag = []; let ini = 0;
-    while (ini < total - 4) {
-      let fin = ini + altoPag;
-      if (fin < total) { const buenos = cortes.filter(y => y <= fin && y > ini + altoPag * 0.45); if (buenos.length) fin = buenos[buenos.length - 1]; } else fin = total;
-      pag.push([ini, fin]); ini = fin;
-    }
-    estado("Creando PDF...");
-    const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    pag.forEach(([y0, y1], i) => {
-      const h = Math.max(1, Math.round((y1 - y0) * esc)), cv = document.createElement("canvas"); cv.width = lienzo.width; cv.height = h;
-      const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, h); cx.drawImage(lienzo, 0, Math.round(y0 * esc), lienzo.width, h, 0, 0, lienzo.width, h);
-      if (i) pdf.addPage();
-      pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 210 * h / lienzo.width);
-    });
-    pdf.save("Informe de scouting - " + String(nombre).replace(/[\\/:*?"<>|]/g, "") + ".pdf");
+    await pdfPaginado(d.body, archivo, { ancho: 794, progreso, h2c: { windowWidth: 794 } });
+  } finally { if (marco) { try { marco.remove(); } catch (e) { /* nada */ } } }
+}
+async function descargarInformePdf(nombre, btn) {
+  const txt0 = btn ? btn.textContent : "";
+  const estado = (t) => { if (btn) { btn.textContent = t; btn.disabled = t !== txt0; } };
+  try {
+    estado("Preparando PDF...");
+    try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
+    await pdfDeHtml(htmlImpresionInforme(nombre), "Informe de scouting - " + nombre, (i, n) => estado("Página " + i + " de " + n + "..."));
     estado(txt0);
   } catch (e) {
     estado(txt0);
-    alert("No se pudo crear el PDF: " + (e && e.message ? e.message : e) + "\nPuedes probar con \"Imprimir o guardar en PDF\".");
-  } finally { if (marco) { try { marco.remove(); } catch (e) { /* nada */ } } }
+    if (confirm("No se pudo crear el PDF (" + (e && e.message ? e.message : e) + ").\n¿Quieres probar con el diálogo de imprimir?")) imprimirInforme(nombre);
+  }
+}
+/* Un trozo de la pantalla que ya está dibujado (vista activa, informe visual, informe de prensa) -> PDF */
+async function pdfDeNodoVivo(nodo, archivo, opc) {
+  await cargarLibsPdf();
+  const ocultos = [...nodo.querySelectorAll(".no-imprimir, .chips-qp, .subnav")].map(e => [e, e.style.display]);
+  ocultos.forEach(([e]) => { e.style.display = "none"; });
+  const dets = [...nodo.querySelectorAll("details")].map(d => [d, d.open]); dets.forEach(([d]) => { d.open = true; });
+  const tema = document.documentElement.getAttribute("data-tema"); if (tema === "oscuro") document.documentElement.setAttribute("data-tema", "claro");
+  const zoomAntes = nodo.style.zoom; nodo.style.zoom = "";
+  try { await new Promise(ok => setTimeout(ok, 150)); await pdfPaginado(nodo, archivo, opc); }
+  finally {
+    nodo.style.zoom = zoomAntes;
+    ocultos.forEach(([e, v]) => { e.style.display = v; }); dets.forEach(([d, o]) => { d.open = o; });
+    if (tema === "oscuro") document.documentElement.setAttribute("data-tema", "oscuro");
+  }
 }
 async function imprimirInforme(nombre) {
   /* Se imprime desde un marco oculto de la misma pagina: asi no depende de ventanas emergentes
@@ -8561,9 +8623,7 @@ function wireInforme(contenedor) {
   wireRankClicks(panel);
 
   const btn = panel.querySelector("#btnImprimirInforme");
-  if (btn) btn.addEventListener("click", () => imprimirInforme(nombre));
-  const btnPdf = panel.querySelector("#btnDescargarPdf");
-  if (btnPdf) btnPdf.addEventListener("click", () => descargarInformePdf(nombre, btnPdf));
+  if (btn) btn.addEventListener("click", () => descargarInformePdf(nombre, btn));
 
   const btnIA = panel.querySelector("#btnResumenIA");
   if (btnIA) btnIA.addEventListener("click", async () => {
@@ -10028,10 +10088,11 @@ function htmlInformeFichajes(items) {
 }
 function imprimirFichajes(items) {
   if (!items || !items.length) { alert("No hay fichajes que imprimir con los filtros actuales."); return; }
-  const v = window.open("", "_blank");
-  if (!v) { alert("El navegador ha bloqueado la ventana del informe. Permite las ventanas emergentes de esta pagina y vuelve a intentarlo."); return; }
-  v.document.open(); v.document.write(htmlInformeFichajes(items)); v.document.close();
-  setTimeout(() => { try { v.focus(); v.print(); } catch (e) { /* nada */ } }, 400);
+  const b = document.getElementById("btnPdfFich"), t0 = b ? b.textContent : "";
+  if (b) { b.disabled = true; b.textContent = "Creando PDF..."; }
+  pdfDeHtml(htmlInformeFichajes(items), "Informe de fichajes", (i, n) => { if (b) b.textContent = "Página " + i + " de " + n + "..."; })
+    .catch(e => alert("No se pudo crear el PDF: " + (e && e.message ? e.message : e)))
+    .then(() => { if (b) { b.disabled = false; b.textContent = t0; } });
 }
 
 /* Vídeos de Entrenador (Vídeos) en la ficha de cada candidata: los suyos salen solos y puedes añadir más */
@@ -14120,7 +14181,26 @@ function textosRestaurar() {
 window.addEventListener("beforeprint", () => { try { textosParaImprimir(); } catch (e) { /* nada */ } });
 window.addEventListener("afterprint", () => { try { textosRestaurar(); } catch (e) { /* nada */ } });
 
-function exportarPdfPagina() {
+async function exportarPdfPagina() {
+  const btn = document.getElementById("btnPdfPagina"), t0 = btn ? btn.textContent : "";
+  const vista = document.querySelector(".view:not([style*='display: none'])");
+  if (!vista) { exportarPdfPaginaImprimir(); return; }
+  const marca = document.createElement("div");
+  marca.style.cssText = "padding:6px 4px 12px;margin-bottom:10px;border-bottom:3px solid #1b2430;display:flex;justify-content:space-between;align-items:baseline;font-family:inherit;";
+  const nomV = (NOMBRE_VISTA && NOMBRE_VISTA[vistaActual]) || LIGA_NOMBRE;
+  const titInf = document.getElementById("infTitulo");
+  const tit = (vistaActual === "informes" && titInf && titInf.value.trim()) ? titInf.value.trim() : nomV;
+  marca.innerHTML = `<div><div style="font-size:11px;letter-spacing:.14em;color:#b4470f;font-weight:700;">SCOUTFLOW · ${escapeHtml(LIGA_NOMBRE)}${grupoActivo ? " · GRUPO " + escapeHtml(grupoActivo) : ""}</div><div style="font-size:24px;font-weight:800;color:#111;">${escapeHtml(tit)}</div></div><div style="font-size:12px;color:#555;">${escapeHtml(new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }))}</div>`;
+  vista.insertBefore(marca, vista.firstChild);
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = "Creando PDF..."; }
+    const arch = tit + (vistaActual === "informes" ? "" : " - " + LIGA_NOMBRE);
+    await pdfDeNodoVivo(vista, arch, { progreso: (i, n) => { if (btn) btn.textContent = "Página " + i + " de " + n + "..."; } });
+  } catch (e) {
+    if (confirm("No se pudo crear el PDF (" + (e && e.message ? e.message : e) + ").\n¿Quieres probar con el diálogo de imprimir?")) { marca.remove(); exportarPdfPaginaImprimir(); return; }
+  } finally { marca.remove(); if (btn) { btn.disabled = false; btn.textContent = t0; } }
+}
+function exportarPdfPaginaImprimir() {
   rellenarCabeceraImpresion();
   textosParaImprimir();
   // En papel siempre fondo claro, aunque la app este en modo oscuro
@@ -14739,7 +14819,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25r";
+const VERSION_APP = "2026-10-25t";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
@@ -15625,6 +15705,19 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
 
   function imprimir() {
     if (!EST.ctx) return;
+    const b = $("ipImprimir"), t0 = b.textContent;
+    const cont = document.createElement("div");
+    cont.style.cssText = "position:fixed;left:-12000px;top:0;width:820px;background:#fff;";
+    cont.innerHTML = informeHtml(); document.body.appendChild(cont);
+    b.disabled = true; b.textContent = "Creando PDF...";
+    const tit = ($("ipTitulo") && $("ipTitulo").value.trim()) || "Informe";
+    (async () => {
+      try { await Promise.all([...cont.querySelectorAll("img")].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; setTimeout(ok, 4000); }))); await svgsAImagen(cont); await cargarLibsPdf(); await pdfPaginado(cont, tit, { ancho: 820, progreso: (i, n) => { b.textContent = "Página " + i + " de " + n + "..."; } }); return true; }
+      catch (e) { return e; }
+      finally { cont.remove(); b.disabled = false; b.textContent = t0; }
+    })().then(res => { if (res !== true) imprimirIpClasico(); });
+  }
+  function imprimirIpClasico() {
     const capa = document.createElement("div");
     capa.id = "ipCapa"; capa.innerHTML = informeHtml();
     document.body.appendChild(capa);
