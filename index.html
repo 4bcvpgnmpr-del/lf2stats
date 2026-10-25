@@ -7383,7 +7383,7 @@ function informeVisualJugadoraHtml(nombre, row, vids) {
   let ps = []; try { ps = partidosDeJugadora(nombre, equipo); } catch (e) { /* sin partidos */ }
   if (ps.length) {
     const ult = ps.slice(-15), mx = Math.max(1, ...ult.map(x => x.pt || 0));
-    S.push(`${H("Puntos por partido")}<div class="xev">${ult.map(x => `<div><i style="height:${Math.max(3, (x.pt || 0) / mx * 100)}%"><b>${fmtNum(x.pt)}</b></i><span>${esc(String(x.rival || "").slice(0, 3).toUpperCase())}</span></div>`).join("")}</div>`);
+    S.push(`${H("Puntos por partido")}<div class="xev">${ult.map(x => `<div><i style="height:${Math.max(3, (x.pt || 0) / mx * 100)}%${x.gano === true ? ";background:#2b6cb0" : (x.gano === false ? ";background:#e0602a" : "")}"><b>${fmtNum(x.pt)}</b></i><span>${esc(String(x.rival || "").slice(0, 3).toUpperCase())}</span></div>`).join("")}</div>`);
     S.push(`${H("Últimos partidos")}<div class="xtbw"><table class="xtb"><thead><tr><th>Rival</th><th>MIN</th><th>PT</th><th>TC</th><th>T3</th><th>TL</th><th>REB</th><th>AST</th><th>PÉR</th><th>+/-</th><th>VAL</th></tr></thead><tbody>${[...ps].reverse().slice(0, 12).map(x => `<tr><td>${x.casa === null ? "" : (x.casa ? "vs " : "@ ")}${esc(x.rival || "")}</td><td>${fmtNum(x.min)}</td><td><b>${fmtNum(x.pt)}</b></td><td>${x.tc.a}/${x.tc.i}</td><td>${x.t3.a}/${x.t3.i}</td><td>${x.tl.a}/${x.tl.i}</td><td>${fmtNum(x.reb)}</td><td>${fmtNum(x.as)}</td><td>${fmtNum(x.bp)}</td><td>${x.mm > 0 ? "+" : ""}${fmtNum(x.mm)}</td><td>${fmtNum(x.va)}</td></tr>`).join("")}</tbody></table></div>`);
   }
   // notas y ficha de fichaje
@@ -7391,6 +7391,7 @@ function informeVisualJugadoraHtml(nombre, row, vids) {
   const datosFi = fi ? [["Prioridad", fi.prioridad], ["Puesto", fi.puesto], ["Nacionalidad", fi.pais], ["Liga", fi.liga]].filter(x => x[1]) : [];
   if (notas.length || (fi && (fi.nota || datosFi.length))) S.push(`${H("Notas del entrenador")}${fi && datosFi.length ? `<div class="xch" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${datosFi.map(x => `<span>${esc(x[0])}<b>${esc(x[1])}</b></span>`).join("")}</div>` : ""}${fi && fi.nota ? `<div class="xnb"><b class="t">Fichaje</b>${esc(fi.nota)}</div>` : ""}${notas.map(n => `<div class="xnb">${esc(String(n.texto).trim())}${(n.etiquetas || []).length ? `<div>${n.etiquetas.map(e => `<span class="et">${esc(e)}</span>`).join("")}</div>` : ""}</div>`).join("")}`);
   if ((vids || []).length) S.push(`${H("Vídeos · " + vids.length)}<div class="xvl">${vids.map(v => `<a href="${escapeAttr(v.url)}" target="_blank" rel="noopener">▶ ${esc([v.m.categoria, v.m.equipo].filter(Boolean).join(" · ") || v.nombre)}</a>`).join("")}</div>`);
+  S.push(`${H("Glosario")}<div style="font-size:11px;line-height:1.5;color:inherit;opacity:.85;columns:2;column-gap:18px">${GLOSARIO_JUG.map(([k, t]) => `<div style="break-inside:avoid;margin-bottom:4px"><b>${esc(k)}</b> · ${esc(t)}</div>`).join("")}</div>`);
   const tiles = [["PTS", m.PTS], ["REB", m.REB], ["AST", m.AST], ["VAL", st.VAL]].filter(x => x[1] !== null && x[1] !== undefined && x[1] !== "");
   const wm = escudo ? `<img class="wm" src="${escapeAttr(escudo)}" alt="">` : "";
   return `<div class="ivx cin" data-iv><div class="hero">${wm}${foto ? `<img class="jph" src="${escapeAttr(foto)}" alt="" onerror="this.remove()">` : ""}<div class="in"><small>SCOUTING · ${esc(String(equipo).toUpperCase())}${st.dorsal ? " · #" + esc(st.dorsal) : ""}</small><div class="nm">${esc(nombre)}</div>
@@ -9291,8 +9292,30 @@ function perfilAvanzadoHtml(playerName, equipoNombre) {
         <div style="position:relative;height:300px;"><canvas id="dispLiga"></canvas></div>
         <p class="hint" id="dispTxt"></p>
       </div>
+    </div>
+    <div class="section-block">
+      <details class="glosario" style="margin:10px 0;">
+        <summary>Glosario: qué significa cada cosa</summary>
+        ${GLOSARIO_JUG.map(([k, t]) => `<p><b>${escapeHtml(k)}</b> · ${escapeHtml(t)}</p>`).join("")}
+      </details>
     </div>`;
 }
+const GLOSARIO_JUG = [
+  ["PTS / REB / AST", "puntos, rebotes y asistencias por partido."],
+  ["VAL", "valoración FEB: suma lo positivo (puntos, rebotes, asistencias, robos, tapones, faltas recibidas) y resta lo negativo (fallos, pérdidas, faltas)."],
+  ["MIN", "minutos jugados por partido."],
+  ["TC / T3 / TL", "tiros de campo, triples y tiros libres: anotados/intentados."],
+  ["2P% / 3P% / TL%", "porcentaje de acierto en tiros de dos, triples y libres."],
+  ["TS%", "acierto real: mide la eficacia al tirar contando triples y libres."],
+  ["eFG%", "acierto de campo corregido: da más valor al triple."],
+  ["PÉR", "pérdidas de balón por partido."],
+  ["AST/TO", "asistencias por cada pérdida: cuanto más alto, mejor cuida el balón."],
+  ["USO%", "parte de las jugadas del equipo que acaban en sus manos mientras está en pista (estimado)."],
+  ["+/-", "diferencia de puntos del equipo mientras ella está en pista."],
+  ["Por 40'", "cifras proyectadas a 40 minutos para comparar con quien juega más o menos."],
+  ["Percentil", "dentro de la liga, a cuántas jugadoras supera. 80 significa que supera al 80 %."],
+  ["Pts/tiro", "puntos por tiro intentado en una zona de la cancha."],
+];
 const DISP_PARES = [
   ["Puntos · Asistencias", "PTS", "AST", "Puntos", "Asistencias"],
   ["Puntos · Rebotes", "PTS", "REB", "Puntos", "Rebotes"],
@@ -14376,7 +14399,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25h";
+const VERSION_APP = "2026-10-25i";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
