@@ -7959,6 +7959,45 @@ function cuartosEquipoHtml(nombre) {
     <div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Cuarto</th><th>Anota</th><th>Recibe</th><th title="Diferencia media por partido">Dif.</th></tr></thead><tbody>${filas}</tbody></table></div>
     <p class="hint">Medias por partido de toda la temporada, sin prórrogas.</p>`;
 }
+function rotacionEquipoHtml(nombre) {
+  if (!partidosCache || !partidosCache.rows.length) return `<p class="hint">Todavía no hay datos de partidos.</p>`;
+  const obj = normalizarEquipo(equipoOficial(nombre));
+  const jugs = [...new Set(partidosCache.rows.filter(rw => normalizarEquipo(equipoOficial(cellText(rw, "Equipo"))) === obj).map(rw => cellText(rw, "Jugador")).filter(n => n && n !== "TOTAL"))];
+  const med = (l) => l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0;
+  const filas = jugs.map(j => { const ps = partidosDeJugadora(j, nombre).filter(x => x.min > 0); if (ps.length < 3) return null;
+    const u3 = ps.slice(-3).map(x => x.min), tem = ps.map(x => x.min); return { j, pj: ps.length, tem: med(tem), u3: med(u3), ult: ps.slice(-5).map(x => x.min) }; }).filter(Boolean)
+    .sort((a, b) => b.tem - a.tem).slice(0, 10);
+  if (!filas.length) return `<p class="hint">Aún no hay suficientes partidos para ver la rotación.</p>`;
+  const f1 = (v) => fmtNum(Math.round(v * 10) / 10);
+  const est = (x) => { const d = x.u3 - x.tem; return d >= 4 ? ["Carga alta", "malo"] : (d <= -4 ? ["Carga baja", ""] : ["Normal", "bueno"]); };
+  return `<div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Jugadora</th><th>PJ</th><th>Min temporada</th><th>Min últimos 3</th><th>Últimos 5 partidos</th><th>Carga</th></tr></thead><tbody>
+    ${filas.map(x => { const e = est(x); return `<tr><td class="equipo">${escapeHtml(x.j)}</td><td>${x.pj}</td><td>${f1(x.tem)}</td><td><b>${f1(x.u3)}</b></td><td>${x.ult.map(m => Math.round(m)).join(" · ")}</td><td class="${e[1]}">${e[0]}</td></tr>`; }).join("")}</tbody></table></div>
+    <p class="hint">Minutos por partido de las 10 que más juegan. "Carga alta" o "baja" si en los últimos 3 partidos juega 4 minutos o más por encima o por debajo de su media.</p>`;
+}
+function combinacionesEquipoHtml(nombre) {
+  if (quintetosCache === false) return `<p class="hint">No se pudo leer la pestaña Quintetos.</p>`;
+  if (!quintetosCache || !quintetosCache.rows) return `<p class="hint">Calculando...</p>`;
+  const obj = normalizarEquipo(equipoOficial(nombre));
+  const n = (rw, c) => { const v = parseSpanishNumber(cellText(rw, c)); return v === null ? 0 : v; };
+  const filas = quintetosCache.rows.filter(rw => normalizarEquipo(equipoOficial(cellText(rw, "Equipo"))) === obj);
+  if (!filas.length) return `<p class="hint">Este equipo todavía no tiene quintetos calculados.</p>`;
+  const quint = [], trios = new Map(), parejas = new Map();
+  const suma = (mapa, nombres, m, pf, pc) => { const k = nombres.slice().sort().join(" · "), d = mapa.get(k) || { k, min: 0, pf: 0, pc: 0 }; d.min += m; d.pf += pf; d.pc += pc; mapa.set(k, d); };
+  filas.forEach(rw => {
+    const nom = cellText(rw, "Quinteto").split("·").map(x => x.trim()).filter(Boolean), m = n(rw, "Minutos"), pf = n(rw, "PF"), pc = n(rw, "PC");
+    quint.push({ k: nom.join(" · "), min: m, pf, pc });
+    for (let i = 0; i < nom.length; i++) for (let j = i + 1; j < nom.length; j++) { suma(parejas, [nom[i], nom[j]], m, pf, pc); for (let l = j + 1; l < nom.length; l++) suma(trios, [nom[i], nom[j], nom[l]], m, pf, pc); }
+  });
+  const f1 = (v) => fmtNum(Math.round(v * 10) / 10);
+  const tabla = (lista, tit, max) => {
+    const l = lista.filter(x => x.min >= 9).sort((a, b) => b.min - a.min).slice(0, max);
+    if (!l.length) return "";
+    return `<h4 style="margin:14px 0 6px;">${tit}</h4><div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Combinación</th><th>Min</th><th>+/-</th><th>+/- por 40'</th></tr></thead><tbody>
+      ${l.map(x => { const d = x.pf - x.pc, d40 = x.min ? d / x.min * 40 : 0; return `<tr style="${x.min < 20 ? "opacity:.55;" : ""}"><td class="equipo">${escapeHtml(x.k)}</td><td>${f1(x.min)}</td><td class="${d > 0 ? "bueno" : (d < 0 ? "malo" : "")}">${d > 0 ? "+" : ""}${f1(d)}</td><td class="${d40 > 0 ? "bueno" : (d40 < 0 ? "malo" : "")}"><b>${d40 > 0 ? "+" : ""}${f1(d40)}</b></td></tr>`; }).join("")}</tbody></table></div>`;
+  };
+  return tabla(quint, "Quintetos más usados", 5) + tabla([...trios.values()], "Tríos más usados", 6) + tabla([...parejas.values()], "Parejas más usadas", 8)
+    + `<p class="hint">Solo salen combinaciones con 9 minutos o más; las más claras tienen menos de 20 y son poco fiables. +/- es la diferencia de puntos del equipo con ellas en pista.</p>`;
+}
 function dueloBloqueHtml(nombre) {
   let a = "", b = "";
   try { if (!avanzadasCalculo && partidosCache) avanzadasCalculo = calcularAvanzadas(); } catch (e) { /* nada */ }
@@ -7971,9 +8010,14 @@ function dueloBloqueHtml(nombre) {
   let c = "", d = "";
   try { c = formaRecienteHtml(nombre); } catch (e) { c = `<p class="hint">No se pudo calcular.</p>`; }
   try { d = cuartosEquipoHtml(nombre); } catch (e) { d = `<p class="hint">No se pudo calcular.</p>`; }
+  let e = "", g = "";
+  try { e = rotacionEquipoHtml(nombre); } catch (x) { e = `<p class="hint">No se pudo calcular.</p>`; }
+  try { g = combinacionesEquipoHtml(nombre); } catch (x) { g = `<p class="hint">No se pudo calcular.</p>`; }
+  if (quintetosCache === null) fetchSheetTab("Quintetos").then(dd => { quintetosCache = dd; }).catch(() => { quintetosCache = false; }).then(() => document.querySelectorAll(".duelo-bloque").forEach(el => { if (el.dataset.duelo === nombre) el.innerHTML = dueloBloqueHtml(nombre); }));
   if (cuartosCache === null) cargarCuartos().then(() => document.querySelectorAll(".duelo-bloque").forEach(el => { if (el.dataset.duelo === nombre) el.innerHTML = dueloBloqueHtml(nombre); }));
   return `<h3 class="section-title">Claves del duelo</h3>${a}<h3 class="section-title">Cómo gana y cómo pierde ${escapeHtml(nombre)}</h3>${b}
-    <h3 class="section-title">Forma reciente</h3>${c}<h3 class="section-title">Diferencia de puntos por cuarto</h3>${d}`;
+    <h3 class="section-title">Forma reciente</h3>${c}<h3 class="section-title">Diferencia de puntos por cuarto</h3>${d}
+    <h3 class="section-title">Rotación y cargas</h3>${e}<h3 class="section-title">Quintetos, tríos y parejas</h3>${g}`;
 }
 function informeHtml(nombre) {
   const inf = fichaInforme(nombre);
@@ -14522,7 +14566,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25m";
+const VERSION_APP = "2026-10-25n";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
