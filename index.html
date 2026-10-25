@@ -4287,6 +4287,13 @@ function showJugadoraDetail(playerName) {
     if (quintetosCache === null) fetchSheetTab("Quintetos").then(d => { quintetosCache = d; pintarCS(); }).catch(() => { quintetosCache = false; pintarCS(); });
     else pintarCS(); }
   dibujarRadarJugadora(playerName, row["Equipo"] ? row["Equipo"].display : "");
+  try {
+    dibujarDispersionLiga(playerName, equipoJug, 0);
+    document.querySelectorAll("#dispBtns [data-dp]").forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll("#dispBtns [data-dp]").forEach(x => x.classList.toggle("activa", x === b));
+      dibujarDispersionLiga(playerName, equipoJug, Number(b.dataset.dp));
+    }));
+  } catch (e) { /* nada */ }
   dibujarDonutConsumo(playerName, row["Equipo"] ? row["Equipo"].display : "");
   filtroCuartoCarta = "";
   pintarCartaTiro("cartaJugadora", row["Equipo"] ? row["Equipo"].display : "", playerName);
@@ -9274,7 +9281,53 @@ function perfilAvanzadoHtml(playerName, equipoNombre) {
         </div>
         ${resumen ? `<p class="resumen-jug">${resumen}</p>` : ""}
       </div>
+    </div>
+    <div class="section-block">
+      <h3 class="section-title">Comparada con la liga</h3>
+      <div class="panel">
+        <div class="scout-chips" style="border:0;padding:0 0 10px;" id="dispBtns">
+          ${DISP_PARES.map((d, i) => `<button class="chip ${i === 0 ? "activa" : ""}" data-dp="${i}">${d[0]}</button>`).join("")}
+        </div>
+        <div style="position:relative;height:300px;"><canvas id="dispLiga"></canvas></div>
+        <p class="hint" id="dispTxt"></p>
+      </div>
     </div>`;
+}
+const DISP_PARES = [
+  ["Puntos · Asistencias", "PTS", "AST", "Puntos", "Asistencias"],
+  ["Puntos · Rebotes", "PTS", "REB", "Puntos", "Rebotes"],
+  ["Puntos · Acierto (TS%)", "PTS", "TS%", "Puntos", "TS% (acierto real)"],
+  ["Asistencias · Pérdidas", "AST", "PER", "Asistencias", "Pérdidas"],
+  ["Minutos · Valoración", "MIN", "VAL", "Minutos", "Valoración"],
+];
+let graficoDisp = null;
+function dibujarDispersionLiga(playerName, equipoNombre, idx) {
+  const canvas = document.getElementById("dispLiga");
+  if (!canvas || typeof Chart === "undefined") return;
+  const d = DISP_PARES[idx || 0], kx = d[1], ky = d[2];
+  const liga = ligaComparable();
+  const mia = liga.find(x => x.nombre === playerName && normalizarEquipo(equipoOficial(x.equipo)) === normalizarEquipo(equipoOficial(equipoNombre)));
+  const ok = (x) => x.m[kx] !== null && x.m[kx] !== undefined && x.m[ky] !== null && x.m[ky] !== undefined;
+  const resto = liga.filter(x => x !== mia && ok(x));
+  const txt = document.getElementById("dispTxt");
+  if (graficoDisp) { try { graficoDisp.destroy(); } catch (e) { /* nada */ } graficoDisp = null; }
+  if (!mia || !ok(mia) || resto.length < 3) { if (txt) txt.textContent = "No hay datos suficientes para esta comparación."; return; }
+  const pt = (x) => ({ x: x.m[kx], y: x.m[ky], n: x.nombre });
+  graficoDisp = new Chart(canvas.getContext("2d"), {
+    type: "scatter",
+    data: { datasets: [
+      { label: "Liga", data: resto.map(pt), backgroundColor: "rgba(120,120,120,.35)", pointRadius: 3 },
+      { label: playerName, data: [pt(mia)], backgroundColor: "#e0602a", borderColor: "#b4470f", pointRadius: 8, pointHoverRadius: 9 },
+    ] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: (c) => `${c.raw.n}: ${fmtNum(c.raw.x)} · ${fmtNum(c.raw.y)}` } } },
+      scales: { x: { title: { display: true, text: d[3] }, grid: { color: "rgba(128,128,128,.18)" } },
+                y: { title: { display: true, text: d[4] }, grid: { color: "rgba(128,128,128,.18)" } } },
+    },
+  });
+  if (txt) txt.textContent = `Cada punto es una jugadora de la liga con partidos suficientes (${resto.length + 1}). ${playerName} es el punto naranja.` + (ky === "PER" ? " En pérdidas, más abajo es mejor." : "");
 }
 
 // Cabecera del perfil: foto, datos, valoracion general y franja de medias
@@ -14323,7 +14376,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25g";
+const VERSION_APP = "2026-10-25h";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
