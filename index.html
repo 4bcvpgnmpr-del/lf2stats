@@ -4060,7 +4060,7 @@ function clavesVictoriaHtml(nombre, equipo) {
   ], "hace");
 }
 /* ---- Claves del duelo (mi equipo frente al rival) y claves de victoria del equipo ---- */
-function partidosDeEquipo(nombre) {
+function partidosGlobalesEquipo(nombre) {
   if (!partidosCache || !partidosCache.rows.length) return [];
   const obj = normalizarEquipo(equipoOficial(nombre)), out = [], meta = new Map();
   if (resultados) resultados.rows.forEach(rw => { const id = cellText(rw, "PartidoID"); if (id) meta.set(id, { fecha: cellText(rw, "Fecha"), local: cellText(rw, "Local"), visitante: cellText(rw, "Visitante") }); });
@@ -4083,7 +4083,7 @@ function partidosDeEquipo(nombre) {
   return out.sort((a, b) => fechaNum(a.fecha) - fechaNum(b.fecha));
 }
 function clavesEquipoHtml(nombre) {
-  const ps = partidosDeEquipo(nombre);
+  const ps = partidosGlobalesEquipo(nombre);
   return clavesTablaHtml(ps, [
     ["Puntos", x => x.pt, "puntos"], ["Pérdidas", x => x.bp, "pérdidas"], ["Robos", x => x.br, "robos"], ["Asistencias", x => x.as, "asistencias"],
     ["Rebotes ofensivos", x => x.ro, "rebotes ofensivos"], ["Rebotes", x => x.rt, "rebotes"], ["Triples", x => x.t3a, "triples anotados"],
@@ -7927,7 +7927,7 @@ function asegurarPartidosParaInforme(alTerminar) {
 }
 
 function formaRecienteHtml(nombre) {
-  const ps = partidosDeEquipo(nombre).filter(x => x.gano !== null);
+  const ps = partidosGlobalesEquipo(nombre).filter(x => x.gano !== null);
   if (ps.length < 6) return `<p class="hint">Hacen falta al menos 6 partidos para comparar la forma reciente.</p>`;
   const ult = ps.slice(-5), media = (l, f) => l.reduce((s, x) => s + f(x), 0) / l.length;
   const f1 = (v) => fmtNum(Math.round(v * 10) / 10);
@@ -8028,7 +8028,7 @@ function perfilEquipoHtml(nombre) {
   }).join("") + `<p class="hint">La barra es el percentil en la liga (más larga = mejor). Verde: entre el 20 % mejor. Rojo: entre el 20 % peor. En defensa y pérdidas, menos es mejor y la barra ya lo tiene en cuenta.</p>`;
 }
 function listadoPartidosEquipoHtml(nombre) {
-  const ps = partidosDeEquipo(nombre);
+  const ps = partidosGlobalesEquipo(nombre);
   if (!ps.length) return `<p class="hint">Todavía no hay partidos.</p>`;
   const f1 = (v) => fmtNum(Math.round(v * 10) / 10);
   const conRes = ps.filter(x => x.gano !== null);
@@ -8068,7 +8068,7 @@ function equipoExtraHtml(nombre) {
 }
 function dibujarEvolucionEquipo(nombre) {
   const cv = document.getElementById("evoEquipoCv"); if (!cv || typeof Chart === "undefined") return;
-  const ps = partidosDeEquipo(nombre), txt = document.getElementById("evoEquipoTxt");
+  const ps = partidosGlobalesEquipo(nombre), txt = document.getElementById("evoEquipoTxt");
   if (grEvoEq) { try { grEvoEq.destroy(); } catch (e) { /* nada */ } grEvoEq = null; }
   if (ps.length < 2) { if (txt) txt.textContent = "Aún no hay partidos suficientes."; return; }
   grEvoEq = new Chart(cv.getContext("2d"), { type: "bar", data: { labels: ps.map((x, i) => "J" + (i + 1)), datasets: [
@@ -8404,29 +8404,34 @@ function htmlImpresionInforme(nombre) {
 }
 
 async function imprimirInforme(nombre) {
-  const ventana = window.open("", "_blank");
-  if (!ventana) {
-    alert("El navegador ha bloqueado la ventana del informe. Permite las ventanas emergentes de esta pagina y vuelve a intentarlo.");
-    return;
-  }
-  ventana.document.write("<p style='font-family:sans-serif;padding:20px;'>Preparando el informe...</p>");
+  /* Se imprime desde un marco oculto de la misma pagina: asi no depende de ventanas emergentes
+     (que la app de escritorio y algunos navegadores bloquean o dejan en blanco). */
   try { await cargarTirosEquipo(nombre); } catch (e) { /* sin mapas */ }
-  ventana.document.open();
-  ventana.document.write(htmlImpresionInforme(nombre));
-  ventana.document.close();
-
-  // Se espera a que carguen escudos y fotos antes de abrir el dialogo
-  const lanzar = () => { ventana.focus(); ventana.print(); };
-  const imgs = [...ventana.document.images];
-  let pendientes = imgs.filter(i => !i.complete).length;
-  if (!pendientes) { setTimeout(lanzar, 300); return; }
+  let html;
+  try { html = htmlImpresionInforme(nombre); }
+  catch (e) { alert("No se pudo preparar el informe: " + (e && e.message ? e.message : e)); return; }
+  const viejo = document.getElementById("marcoImpresion"); if (viejo) viejo.remove();
+  const f = document.createElement("iframe");
+  f.id = "marcoImpresion";
+  f.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(f);
+  const d = f.contentDocument || f.contentWindow.document;
+  d.open(); d.write(html); d.close();
+  const lanzar = () => {
+    try { f.contentWindow.focus(); f.contentWindow.print(); }
+    catch (e) { alert("No se pudo abrir la impresión: " + (e && e.message ? e.message : e)); }
+    setTimeout(() => { try { f.remove(); } catch (e) { /* nada */ } }, 120000);
+  };
+  const imgs = [...d.images];
+  let pendientes = imgs.filter(i => !i.complete).length, hecho = false;
+  const una = () => { if (hecho) return; hecho = true; lanzar(); };
+  if (!pendientes) { setTimeout(una, 400); return; }
   imgs.forEach(i => {
     if (i.complete) return;
-    const fin = () => { if (--pendientes <= 0) setTimeout(lanzar, 200); };
-    i.addEventListener("load", fin);
-    i.addEventListener("error", fin);
+    const fin = () => { if (--pendientes <= 0) setTimeout(una, 200); };
+    i.addEventListener("load", fin); i.addEventListener("error", fin);
   });
-  setTimeout(lanzar, 4000);   // por si alguna imagen no responde
+  setTimeout(una, 4000);   // por si alguna imagen no responde
 }
 
 function wireInforme(contenedor) {
@@ -14674,7 +14679,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25p";
+const VERSION_APP = "2026-10-25q";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
