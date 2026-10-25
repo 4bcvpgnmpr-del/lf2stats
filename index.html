@@ -1450,6 +1450,11 @@
   .lr-ok{border-top:4px solid #2f9e57;} .lr-mal{border-top:4px solid #d9480f;}
   .lr-t{font-weight:800;font-size:13px;text-transform:uppercase;margin-bottom:6px;}
   .lr-f{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #0001;font-size:13.5px;} .lr-f span{flex:1;} .lr-f b{font-variant-numeric:tabular-nums;}
+  .cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .cs-c{border:1.5px solid var(--wood-line);border-radius:10px;padding:12px;text-align:center;background:var(--white);} .cs-c.con{border-top:4px solid #2f9e57;} .cs-c.sin{border-top:4px solid #868e96;}
+  .cs-t{font-weight:800;text-transform:uppercase;font-size:12.5px;} .cs-v{font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.1;margin:4px 0;}
+  .cs-v.bueno{color:#14733a;} .cs-v.malo{color:#b02020;} .cs-l{font-size:11.5px;color:var(--ink-soft);font-weight:700;} .cs-m{font-size:12.5px;margin-top:4px;}
+  @media (max-width:560px){.cs-grid{grid-template-columns:1fr;}}
   .lr-frase{margin:10px 0 0;font-size:14px;}
   @media print{.lr{break-inside:avoid;}}
   .perfiles-plantilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
@@ -3980,6 +3985,38 @@ function porCuarentaHtml(row) {
   if (!c) return "";
   return `<div class="section-block"><h3 class="section-title">Por 40 minutos</h3><div class="stat-big-grid">${c}</div><p class="hint">Sus medias llevadas a 40 minutos, para compararla con jugadoras que juegan más o menos.</p></div>`;
 }
+
+/* ---- Con y sin ella en pista (a partir de la pestaña Quintetos) ---- */
+function conSinEllaHtml(nombre, equipo) {
+  if (!quintetosCache || !quintetosCache.rows) return `<p class="hint">Todavía no hay datos de quintetos (pestaña Quintetos del Sheet).</p>`;
+  const objetivo = normalizarEquipo(equipoOficial(equipo)), claves = clavesNombre(nombre, equipo);
+  const n = (r, c) => { const v = parseSpanishNumber(cellText(r, c)); return v === null ? 0 : v; };
+  const filas = quintetosCache.rows.filter(r => normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === objetivo);
+  if (!filas.length) return `<p class="hint">Este equipo todavía no tiene quintetos calculados.</p>`;
+  const T = { min: 0, pf: 0, pc: 0 }, C = { min: 0, pf: 0, pc: 0 };
+  filas.forEach(r => {
+    const m = n(r, "Minutos"), pf = n(r, "PF"), pc = n(r, "PC");
+    T.min += m; T.pf += pf; T.pc += pc;
+    const esta = cellText(r, "Quinteto").split("·").map(x => x.trim()).filter(Boolean)
+      .some(x => clavesNombre(x, equipo).some(c => claves.includes(c)));
+    if (esta) { C.min += m; C.pf += pf; C.pc += pc; }
+  });
+  const S = { min: T.min - C.min, pf: T.pf - C.pf, pc: T.pc - C.pc };
+  if (C.min < 1) return `<p class="hint">No aparece en ningún quinteto con minutos suficientes.</p>`;
+  const por40 = (v, m) => m > 0 ? Math.round(v / m * 40 * 10) / 10 : null;
+  const sg = (v) => v === null ? "N/D" : (v > 0 ? "+" : "") + fmtNum(v);
+  const dC = por40(C.pf - C.pc, C.min), dS = por40(S.pf - S.pc, S.min);
+  const col = (tit, d, cls) => `<div class="cs-c ${cls}"><div class="cs-t">${tit}</div>
+    <div class="cs-v ${d !== null && d > 0 ? "bueno" : (d !== null && d < 0 ? "malo" : "")}">${sg(d)}</div><div class="cs-l">puntos de diferencia por 40'</div>
+    <div class="cs-m">${fmtNum(Math.round(d === null ? 0 : (cls === "con" ? C.min : S.min)))} min en pista</div>
+    <div class="cs-m">Anota ${fmtNum(por40(cls === "con" ? C.pf : S.pf, cls === "con" ? C.min : S.min))} · recibe ${fmtNum(por40(cls === "con" ? C.pc : S.pc, cls === "con" ? C.min : S.min))} por 40'</div></div>`;
+  const dif = (dC !== null && dS !== null) ? Math.round((dC - dS) * 10) / 10 : null;
+  const frase = dif === null ? "" : (dif > 1 ? `El equipo rinde ${fmtNum(dif)} puntos mejor por 40' con ella en pista.`
+    : (dif < -1 ? `El equipo rinde ${fmtNum(Math.abs(dif))} puntos peor por 40' con ella en pista.` : "El equipo rinde parecido con ella y sin ella."));
+  return `<div class="cs-grid">${col("Con ella", dC, "con")}${col("Sin ella", dS, "sin")}</div>
+    ${frase ? `<p class="lr-frase"><b>${escapeHtml(frase)}</b></p>` : ""}
+    <p class="hint">Sale de sumar los quintetos de su equipo en los que juega. ${C.min < 60 ? "<b>Ojo:</b> tiene pocos minutos, la muestra es pequeña. " : ""}Solo cuentan los partidos cuya reconstrucción se pudo validar.</p>`;
+}
 function showJugadoraDetail(playerName) {
   if (JUG_VISTA !== playerName) JUGF = { casa: "", res: "" };
   JUG_VISTA = playerName;
@@ -4141,6 +4178,10 @@ function showJugadoraDetail(playerName) {
       <div class="panel" id="clutchJugadora"><p class="hint">Cargando...</p></div>
     </div>
     <div class="section-block">
+      <h3 class="section-title">Con y sin ella en pista</h3>
+      <div class="panel" id="conSinJugadora"><p class="hint">Calculando...</p></div>
+    </div>
+    <div class="section-block">
       <h3 class="section-title">Carta de tiro</h3>
       <div class="panel" id="cartaJugadora"><p class="hint">Cargando...</p></div>
     </div>
@@ -4168,6 +4209,9 @@ function showJugadoraDetail(playerName) {
   else fetchSheetTab("Partidos_Estadisticas")
         .then(d => { partidosCache = d; pintarEvoJug(); })
         .catch(() => pintarEvoJug());
+  { const pintarCS = () => { const c = document.getElementById("conSinJugadora"); if (c) { try { c.innerHTML = conSinEllaHtml(playerName, equipoJug); } catch (e) { c.innerHTML = `<p class="hint">No se pudo calcular.</p>`; } } };
+    if (quintetosCache === null) fetchSheetTab("Quintetos").then(d => { quintetosCache = d; pintarCS(); }).catch(() => { quintetosCache = false; pintarCS(); });
+    else pintarCS(); }
   dibujarRadarJugadora(playerName, row["Equipo"] ? row["Equipo"].display : "");
   dibujarDonutConsumo(playerName, row["Equipo"] ? row["Equipo"].display : "");
   filtroCuartoCarta = "";
@@ -14160,7 +14204,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-25b";
+const VERSION_APP = "2026-10-25c";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
