@@ -3981,6 +3981,7 @@ function porCuarentaHtml(row) {
   return `<div class="section-block"><h3 class="section-title">Por 40 minutos</h3><div class="stat-big-grid">${c}</div><p class="hint">Sus medias llevadas a 40 minutos, para compararla con jugadoras que juegan más o menos.</p></div>`;
 }
 function showJugadoraDetail(playerName) {
+  if (JUG_VISTA !== playerName) JUGF = { casa: "", res: "" };
   JUG_VISTA = playerName;
   const row = jugadoras.rows.find(r => r["Jugador"] && r["Jugador"].display === playerName);
   if (!row) { if (grupoActivo) { setGrupo(""); showJugadoraDetail(playerName); } return; }
@@ -4161,6 +4162,7 @@ function showJugadoraDetail(playerName) {
     if (!caja) return;
     caja.innerHTML = bloqueEvolucionJugadora(playerName, equipoJug);
     dibujarEvolucionJugadora(playerName, equipoJug);
+    caja.querySelectorAll("[data-jf]").forEach(b => b.addEventListener("click", () => { JUGF[b.dataset.jf] = b.dataset.v; pintarEvoJug(); }));
   };
   if (partidosCache) pintarEvoJug();
   else fetchSheetTab("Partidos_Estadisticas")
@@ -11797,7 +11799,8 @@ function partidosDeJugadora(nombre, equipo) {
     resultados.rows.forEach(r => {
       const pid = cellText(r, "PartidoID");
       if (pid) meta.set(pid, { fecha: cellText(r, "Fecha"), jornada: cellText(r, "Jornada"),
-                               local: cellText(r, "Local"), visitante: cellText(r, "Visitante") });
+                               local: cellText(r, "Local"), visitante: cellText(r, "Visitante"),
+                               pl: parseSpanishNumber(cellText(r, "Pts_Local")), pv: parseSpanishNumber(cellText(r, "Pts_Visitante")) });
     });
   }
   // Primero se busca el nombre exacto; solo si no aparece se recurre al
@@ -11836,8 +11839,10 @@ function partidosDeJugadora(nombre, equipo) {
       const t = /^(\d+):([0-5]\d)/.exec(cellText(r, "MIN"));
       return t ? Number(t[1]) + Number(t[2]) / 60 : parseSpanishNumber(cellText(r, "MIN"));
     })();
+    const gano = (casa !== null && m.pl !== null && m.pl !== undefined && m.pv !== null && m.pv !== undefined && !(m.pl === 0 && m.pv === 0))
+      ? (casa ? m.pl > m.pv : m.pv > m.pl) : null;
     return {
-      pid, fecha: m.fecha || "", casa,
+      pid, fecha: m.fecha || "", casa, gano,
       rival: casa === null ? "" : (casa ? m.visitante : m.local),
       min: seg === null ? 0 : Math.round(seg * 10) / 10,
       pt: numDe(r, "PT"), va: numDe(r, "VA"), reb: numDe(r, "REB_T"),
@@ -11847,8 +11852,27 @@ function partidosDeJugadora(nombre, equipo) {
   }).sort((a, b) => fechaNum(a.fecha) - fechaNum(b.fecha));
 }
 
+/* filtros del perfil de jugadora: local/visitante y victoria/derrota */
+let JUGF = { casa: "", res: "" };
+function psFiltrados(nombre, equipo) {
+  return partidosDeJugadora(nombre, equipo).filter(x =>
+    (JUGF.casa === "" || (JUGF.casa === "casa" ? x.casa === true : x.casa === false)) &&
+    (JUGF.res === "" || (JUGF.res === "v" ? x.gano === true : x.gano === false)));
+}
+function filtrosJugadoraHtml(total, vistos) {
+  const chip = (k, v, t) => `<button class="chip ${JUGF[k] === v ? "activa" : ""}" data-jf="${k}" data-v="${v}">${t}</button>`;
+  return `<div class="scout-chips" style="border:0;padding:0 0 10px;">
+    ${chip("casa", "", "Todos")}${chip("casa", "casa", "En casa")}${chip("casa", "fuera", "Fuera")}
+    <span style="width:14px"></span>
+    ${chip("res", "", "Cualquier resultado")}${chip("res", "v", "Victorias")}${chip("res", "d", "Derrotas")}
+    ${vistos !== total ? `<span class="hint" style="align-self:center;">${vistos} de ${total} partidos</span>` : ""}
+  </div>`;
+}
 function bloqueEvolucionJugadora(nombre, equipo) {
-  const ps = partidosDeJugadora(nombre, equipo);
+  const todosPs = partidosDeJugadora(nombre, equipo), ps = psFiltrados(nombre, equipo);
+  if (todosPs.length && !ps.length) {
+    return filtrosJugadoraHtml(todosPs.length, 0) + `<p class="hint">Con este filtro no hay partidos. Prueba con otro.</p>`;
+  }
   if (!ps.length) {
     return `<p class="hint">Todavia no hay cuadros de partido de esta jugadora.
       Entra una vez en el menu Estadisticas para que se carguen.</p>`;
@@ -11871,6 +11895,7 @@ function bloqueEvolucionJugadora(nombre, equipo) {
     <td>${fmtNum(x.va)}</td></tr>`).join("");
 
   return `<div class="evoj">
+    ${filtrosJugadoraHtml(todosPs.length, ps.length)}
     <div class="diag-kpis">
       ${tarjetaDiagHtml("Partidos", String(ps.length), `${fmtNum(mediaMin)} minutos de media`, "")}
       ${tarjetaDiagHtml("Puntos", fmtNum(mediaPt), "media por partido", "")}
@@ -11895,7 +11920,7 @@ let graficoEvoJugadora = null;
 function dibujarEvolucionJugadora(nombre, equipo) {
   const canvas = document.getElementById("chartEvoJugadora");
   if (!canvas || typeof Chart === "undefined") return;
-  const ps = partidosDeJugadora(nombre, equipo);
+  const ps = psFiltrados(nombre, equipo);
   if (!ps.length) return;
   if (graficoEvoJugadora) { try { graficoEvoJugadora.destroy(); } catch (e) { /* nada */ } }
   graficoEvoJugadora = new Chart(canvas.getContext("2d"), {
@@ -14135,7 +14160,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-12t";
+const VERSION_APP = "2026-10-25b";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
