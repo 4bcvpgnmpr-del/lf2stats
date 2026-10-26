@@ -4004,6 +4004,7 @@ function tvCss() {
   #tvModo .tv-btns button{background:#1d3248;color:#fff;border:0;border-radius:12px;padding:8px 11px;font:700 14px Inter,sans-serif;margin-left:6px;cursor:pointer;white-space:nowrap;} #tvModo .tv-btns button:hover{background:#2b4764;}
   #tvModo #tvMapStats .tv-num{font-size:clamp(26px,3.8vw,64px);} #tvModo #tvMapStats .tv-card{padding:1.2vw 1.4vw;}
   #tvModo table.tv-t tr:hover,#tvModo table.tv-t tr:hover td{background:transparent !important;color:inherit !important;}
+  #tvVidInfo{transition:opacity .4s;} #tvModo:not(.tv-ver) #tvVidInfo{opacity:0;}
   #tvModo .tv-grid{display:grid;gap:2vw;} #tvModo .tv-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:1.4vw;padding:1.6vw 2vw;}
   #tvModo .tv-num{font-size:clamp(34px,6vw,110px);font-weight:900;line-height:1;white-space:nowrap;} #tvModo .tv-lab{color:#9fb2c6;font-size:clamp(12px,1.3vw,22px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:.4em;}
   #tvModo .tv-bar{background:rgba(255,255,255,.1);border-radius:99px;height:1.1vw;min-height:10px;overflow:hidden;} #tvModo .tv-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#f2803f,#ffb36b);transition:width 1.4s cubic-bezier(.2,.8,.2,1);}
@@ -4555,6 +4556,7 @@ function corto3(n, max) { const t = String(n || "").trim(), m = max || 18; retur
 function tvRender() {
   const raiz = document.getElementById("tvModo"); if (!raiz || TV.menu) return;
   const ind = raiz.querySelector("#tvIndice"); if (ind) ind.remove();
+  if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } if (TV.vidBlur) { window.removeEventListener("blur", TV.vidBlur); TV.vidBlur = null; } TV.ctrl = null;
   const sl = TV.slides[TV.i], caja = raiz.querySelector(".tv-slide"), prog = raiz.querySelector(".tv-prog");
   clearInterval(TV.anim); clearTimeout(TV.anim);
   caja.classList.remove("in"); caja.innerHTML = sl ? sl.html : "";
@@ -4569,7 +4571,7 @@ function tvRender() {
 }
 function tvIr(d) { if (!TV.slides.length) return; TV.i = (TV.i + d + TV.slides.length) % TV.slides.length; tvRender(); }
 function tvMostrarControles() { const r = document.getElementById("tvModo"); if (!r) return; r.classList.add("tv-ver"); clearTimeout(TV.ocultar); TV.ocultar = setTimeout(() => r.classList.remove("tv-ver"), 3000); }
-function tvTecla(e) { if (!TV.abierto) return; const vg = document.getElementById("tvVideoGrande"); if (vg) { if (e.key === "Escape") vg.remove(); return; } const mg = document.getElementById("tvMapaGrande"); if (mg) { if (e.key === "Escape") mg.remove(); return; } if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return; if (document.getElementById("tvObj")) { if (e.key === "Escape") { const ok = document.getElementById("tvObjOk"); if (ok) ok.click(); } return; } if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === "i" || e.key === "I") { tvToggleIndice(); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
+function tvTecla(e) { if (!TV.abierto) return; const slx = TV.slides[TV.i]; if (slx && slx.tecla && !TV.menu && !(e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) && !document.getElementById("tvVideoGrande") && !document.getElementById("tvMapaGrande") && !document.getElementById("tvObj") && slx.tecla(e)) { e.preventDefault(); return; } const vg = document.getElementById("tvVideoGrande"); if (vg) { if (e.key === "Escape") vg.remove(); return; } const mg = document.getElementById("tvMapaGrande"); if (mg) { if (e.key === "Escape") mg.remove(); return; } if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return; if (document.getElementById("tvObj")) { if (e.key === "Escape") { const ok = document.getElementById("tvObjOk"); if (ok) ok.click(); } return; } if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === "i" || e.key === "I") { tvToggleIndice(); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
 function cerrarTV() {
   TV.abierto = false; clearTimeout(TV.timer); clearTimeout(TV.ocultar); clearInterval(TV.anim); clearTimeout(TV.anim); document.removeEventListener("keydown", tvTecla);
   const r = document.getElementById("tvModo"); if (r) r.remove();
@@ -4776,21 +4778,69 @@ function tvMapaGrande(tiros, modo, nombre, alCambiar) {
     d.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); modo = b.dataset.g; if (alCambiar) alCambiar(modo); pintar(); })); };
   d.addEventListener("click", () => d.remove()); raiz.appendChild(d); pintar();
 }
+function tvPlayerHtml(v) {
+  const seg = v.segundos || 0, vst = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;border:0;";
+  if (v.origen === "local") return `<video data-local="${escapeAttr(v.id)}" data-desde="${escapeAttr(String(seg))}" controls autoplay playsinline style="${vst}"></video>`;
+  const emb = videoIncrustado(v.url, seg);
+  if (emb.tipo === "iframe" && !(emb.youtube && SIN_SERVIDOR)) { let src = emb.src;
+    if (emb.youtube) src += "&enablejsapi=1&autoplay=1&playsinline=1";
+    else if (/vimeo\.com/.test(src)) { const [b, h] = src.split("#"); src = b + (b.includes("?") ? "&" : "?") + "api=1&autoplay=1" + (h ? "#" + h : ""); }
+    return `<iframe src="${escapeAttr(src)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="${vst}"></iframe>`; }
+  if (emb.tipo === "video") return `<video src="${escapeAttr(emb.src)}" controls autoplay playsinline style="${vst}"></video>`;
+  return `<div style="position:absolute;inset:0;overflow:auto;padding:14vh 8vw;">${reproductorHtml(v, seg)}</div>`;
+}
 function tvVideoSlideHtml(eq, nombre, sel, k, n) {
-  const vs = tvVideosJugadora(eq, nombre), v = vs.find(x => x.id === sel) || vs[0], H = window.innerHeight, w = Math.round(H * 0.66 * 16 / 9);
-  return `<div class="tv-kick">Vídeo · ${escapeHtml(equipoOficial(eq))} · ${k} de ${n}</div>
-    <div style="display:flex;align-items:center;gap:1.2vw;flex-wrap:wrap;margin:.3vh 0 1vh;"><h2 style="margin:0;font-size:clamp(18px,2.4vw,40px);">${escapeHtml(nombre)}</h2>${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:5px 12px;border-radius:99px;font:700 clamp(11px,1.2vw,19px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 30))}</span>`).join("")}
-      <details ${v ? "" : "open"} style="position:relative;"><summary style="cursor:pointer;color:#9fb2c6;font:700 clamp(11px,1.2vw,19px) Inter,sans-serif;">+ Añadir vídeo</summary>
-        <div class="tv-card" style="position:absolute;z-index:4;top:2.2em;left:0;width:min(340px,80vw);padding:.8vw;background:#12263a;"><input id="tvVidT" placeholder="Título" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;"><input id="tvVidU" placeholder="Enlace (YouTube, Drive, mp4)" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;">
-          <input id="tvVidF" type="file" accept="video/*" style="display:block;margin:2px 0 6px;max-width:100%;font-size:12px;color:#9fb2c6;"><button id="tvVidAdd" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:800;cursor:pointer;">Guardar</button></div></details></div>
-    ${v ? `<div id="tvVidPlayer" style="width:min(92vw,${w}px);margin:0 auto;">${reproductorHtml(v, v.segundos || 0)}</div>${v.nota ? `<div class="tv-sub" style="text-align:center;margin-top:.8vh;font-size:clamp(11px,1.3vw,22px);">${escapeHtml(v.nota)}</div>` : ""}` : `<div class="tv-card" style="text-align:center;padding:10vh 2vw;"><div class="tv-sub">Aún no hay vídeo de ${escapeHtml(nombre)}. Añade un enlace o sube un archivo.</div></div>`}`;
+  const vs = tvVideosJugadora(eq, nombre), v = vs.find(x => x.id === sel) || vs[0];
+  const form = `<details ${v ? "" : "open"} style="position:relative;display:inline-block;"><summary style="cursor:pointer;color:#cfe0f2;font:700 clamp(11px,1.1vw,18px) Inter,sans-serif;">+ Añadir vídeo</summary>
+    <div class="tv-card" style="position:absolute;z-index:5;top:2em;left:0;width:min(340px,80vw);padding:.8vw;background:#12263a;"><input id="tvVidT" placeholder="Título" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;"><input id="tvVidU" placeholder="Enlace (YouTube, Drive, mp4)" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;">
+      <input id="tvVidF" type="file" accept="video/*" style="display:block;margin:2px 0 6px;max-width:100%;font-size:12px;color:#9fb2c6;"><button id="tvVidAdd" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:800;cursor:pointer;">Guardar</button></div></details>`;
+  const info = `<div id="tvVidInfo" style="position:absolute;left:1.6vw;top:1.6vh;right:1.6vw;z-index:4;display:flex;gap:1vw;align-items:center;flex-wrap:wrap;background:rgba(5,12,20,.72);border-radius:12px;padding:.8vh 1.2vw;font:800 clamp(12px,1.4vw,22px) Inter,sans-serif;color:#fff;">
+    <span>${escapeHtml(nombre)}</span><span style="color:#f2803f;">${k} de ${n}</span>${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:3px 10px;border-radius:99px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 24))}</span>`).join("")}${form}
+    <span style="margin-left:auto;color:#9fb2c6;font:600 clamp(10px,1vw,16px) Inter,sans-serif;">Espacio: pausa · ← →: ±5 s · Enter: siguiente · Retroceso: volver</span></div>`;
+  if (!v) return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#07101a;display:flex;align-items:center;justify-content:center;"><div class="tv-sub" style="text-align:center;">Aún no hay vídeo de ${escapeHtml(nombre)}.<br>Añade un enlace o sube un archivo arriba. <small style="display:block;margin-top:1vh;">Enter: siguiente jugadora</small></div>${info}</div>`;
+  const nota = v.nota ? `<div style="position:absolute;left:2vw;bottom:9vh;z-index:3;max-width:60vw;background:rgba(5,12,20,.7);padding:.6vh 1vw;border-radius:10px;font:600 clamp(11px,1.3vw,22px) Inter,sans-serif;color:#fff;">${escapeHtml(v.nota)}</div>` : "";
+  return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#000;"><div id="tvVidPlayer" style="position:absolute;inset:0;">${tvPlayerHtml(v)}</div>
+    <div id="tvVidTapa" style="position:absolute;left:0;right:0;top:0;bottom:14%;z-index:1;"></div>${nota}${info}</div>`;
+}
+function tvCtrlVideo(caja) {
+  const vid = caja.querySelector("video"), fr = caja.querySelector("iframe");
+  if (vid) return { toggle: () => { if (vid.paused) vid.play(); else vid.pause(); }, seek: (d) => { try { vid.currentTime = Math.max(0, vid.currentTime + d); } catch (e) { /* nada */ } } };
+  if (!fr) return null;
+  const yt = /youtube/.test(fr.src), vm = /vimeo/.test(fr.src); if (!yt && !vm) return null;
+  const st = { t: 0, play: true }, send = (o) => { try { fr.contentWindow.postMessage(JSON.stringify(o), "*"); } catch (e) { /* nada */ } };
+  const onMsg = (ev) => { if (ev.source !== fr.contentWindow) return; let d = ev.data; if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { return; } } if (!d) return;
+    if (yt && d.event === "infoDelivery" && d.info) { if (typeof d.info.currentTime === "number") st.t = d.info.currentTime; if (typeof d.info.playerState === "number") st.play = d.info.playerState === 1; }
+    if (vm) { if (d.event === "timeupdate" && d.data) st.t = d.data.seconds || 0; if (d.event === "play") st.play = true; if (d.event === "pause") st.play = false; } };
+  window.addEventListener("message", onMsg); TV.vidMsg = onMsg;
+  const hola = () => { if (yt) send({ event: "listening", id: 1, channel: "widget" }); if (vm) ["timeupdate", "play", "pause"].forEach(x => send({ method: "addEventListener", value: x })); };
+  fr.addEventListener("load", hola); setTimeout(hola, 1200);
+  return { toggle: () => { if (yt) send({ event: "command", func: st.play ? "pauseVideo" : "playVideo", args: [] }); else send({ method: st.play ? "pause" : "play" }); st.play = !st.play; },
+    seek: (d) => { st.t = Math.max(0, st.t + d); if (yt) send({ event: "command", func: "seekTo", args: [st.t, true] }); else send({ method: "setCurrentTime", value: st.t }); } };
 }
 function tvSlideVideoJug(eq, nombre, k, n) {
-  return { id: "rjv:" + nombre, tit: "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n),
-    post: (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ } TV.auto = false; clearTimeout(TV.timer);
-      const prog = document.querySelector("#tvModo .tv-prog"); if (prog) { prog.style.transition = "none"; prog.style.width = "0"; } const bt = document.getElementById("tvAuto"); if (bt) bt.textContent = "▶ Seguir";
-      const rep = (sel) => { caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n); try { montarVideosLocales(caja); } catch (e) { /* nada */ } tvBindVideos(caja, rep, eq, nombre, false); };
-      tvBindVideos(caja, rep, eq, nombre, false); } };
+  const est = { sel: null };
+  const sl = { id: "rjv:" + nombre, tit: "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n) };
+  const montar = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ }
+    if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } TV.ctrl = tvCtrlVideo(caja);
+    const rep = (sel) => { est.sel = sel; caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n); montar(caja); };
+    tvBindVideos(caja, rep, eq, nombre, false); tvMostrarControles(); };
+  sl.post = (caja) => { TV.auto = false; clearTimeout(TV.timer);
+    const prog = document.querySelector("#tvModo .tv-prog"); if (prog) { prog.style.transition = "none"; prog.style.width = "0"; } const bt = document.getElementById("tvAuto"); if (bt) bt.textContent = "▶ Seguir";
+    try { const r = document.getElementById("tvModo"); if (r && !document.fullscreenElement) r.requestFullscreen().catch(() => {}); } catch (e) { /* nada */ }
+    const refoco = () => setTimeout(() => { const a = document.activeElement; if (a && a.tagName === "IFRAME") a.blur(); }, 80); window.addEventListener("blur", refoco); TV.vidBlur = refoco;
+    montar(caja); };
+  sl.tecla = (e) => { const c = TV.ctrl, vs = tvVideosJugadora(eq, nombre);
+    if (e.key === " ") { if (c) c.toggle(); return true; }
+    if (e.key === "ArrowRight") { if (c) c.seek(5); return true; }
+    if (e.key === "ArrowLeft") { if (c) c.seek(-5); return true; }
+    if (e.key === "Backspace") { tvIr(-1); return true; }
+    if (e.key === "Enter") { const i = vs.findIndex(x => x.id === (est.sel || (vs[0] && vs[0].id)));
+      if (vs.length && i >= 0 && i + 1 < vs.length) { const caja = document.querySelector("#tvModo .tv-slide"); est.sel = vs[i + 1].id; if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } caja.innerHTML = tvVideoSlideHtml(eq, nombre, est.sel, k, n); sl.post2(caja); } else tvIr(1); return true; }
+    return false; };
+  sl.post2 = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ } TV.ctrl = tvCtrlVideo(caja);
+    const rep = (sel) => { est.sel = sel; caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n); sl.post2(caja); };
+    tvBindVideos(caja, rep, eq, nombre, false); tvMostrarControles(); };
+  return sl;
 }
 function tvSlidesJugRival(R) {
   const L = tvJugRival(R, 1).sort((a, b) => b.pt - a.pt), S = [];
@@ -16298,7 +16348,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27c";
+const VERSION_APP = "2026-10-27d";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
