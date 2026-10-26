@@ -4186,10 +4186,15 @@ function tvSlideCuartos(eq, propio) {
     <div class="tv-sub" style="margin-top:3vh;text-align:center;">${propio ? "Nuestro" : "Su"} mejor cuarto: <b style="color:${colB};">${mejorQ + 1}º</b> · ${propio ? "Nuestro" : "Su"} peor cuarto: <b style="color:${colM};">${peorQ + 1}º</b></div>` };
 }
 
+function tvFilasTirosJug(eq, nombre) {
+  const datos = tirosPorEquipo[equipoOficial(eq)]; if (!datos || !datos.rows) return [];
+  const busca = clavesNombre(nombre, eq), nn = tvNorm(nombre);
+  return datos.rows.filter(r => { const t = cellText(r, "Jugadora") || cellText(r, "Jugador"); if (tvNorm(t) === nn) return true; return clavesNombre(t, eq).some(c => busca.includes(c)); });
+}
 function tvSlideMapaJug(eq, nombre) {
   const datos = tirosPorEquipo[equipoOficial(eq)], nn = tvNorm(nombre), H = window.innerHeight;
-  const tiros = datos && datos.rows ? datos.rows.filter(r => tvNorm(cellText(r, "Jugadora") || cellText(r, "Jugador")) === nn).map(tiroEnMetros).filter(Boolean) : [];
-  if (tiros.length < 15) return null;
+  const tiros = tvFilasTirosJug(eq, nombre).map(tiroEnMetros).filter(Boolean);
+  if (tiros.length < 10) return null;
   const dentro = tiros.filter(t => t.anotado).length, tr = tiros.filter(t => zonaDelTiro(t).startsWith("Triple")), tr3 = tr.filter(t => t.anotado).length, dos = tiros.filter(t => !zonaDelTiro(t).startsWith("Triple")), d2 = dos.filter(t => t.anotado).length, alto = Math.round(H * 0.66);
   return { id: "jug-mapa", dur: 15, html: `<div class="tv-kick">Mapa de tiro · ${escapeHtml(nombre)}</div><h2>Sus ${tiros.length} tiros</h2>
     <div style="display:flex;gap:4vw;align-items:center;"><div id="tvMapaCaja">${cartaSvg(tiros, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:none;border-radius:1vw;" `)}</div>
@@ -4202,8 +4207,8 @@ function tvSlideMapaJug(eq, nombre) {
 }
 function tvSlideZonas(eq, propio, jugadora) {
   const datos = tirosPorEquipo[equipoOficial(eq)]; if (!datos || !datos.rows) return null;
-  const nn = jugadora ? tvNorm(jugadora) : "", filas = jugadora ? datos.rows.filter(r => tvNorm(cellText(r, "Jugadora") || cellText(r, "Jugador")) === nn) : datos.rows;
-  const tiros = filas.map(tiroEnMetros).filter(Boolean); if (tiros.length < (jugadora ? 20 : 40)) return null;
+  const filas = jugadora ? tvFilasTirosJug(eq, jugadora) : datos.rows;
+  const tiros = filas.map(tiroEnMetros).filter(Boolean); if (tiros.length < (jugadora ? 15 : 40)) return null;
   const minZ = jugadora ? 4 : 8;
   const liga = ligaZonasCache, lz = {}; if (liga) liga.zonas.forEach(z => { lz[z.zona] = z; });
   const zonas = datosZonas(tiros).sort((a, b) => ORDEN_ZONAS.indexOf(a.zona) - ORDEN_ZONAS.indexOf(b.zona)), f1 = (v) => fmtNum(Math.round(v * 10) / 10), f2 = (v) => fmtNum(Math.round(v * 100) / 100);
@@ -16173,7 +16178,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26v";
+const VERSION_APP = "2026-10-26w";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
