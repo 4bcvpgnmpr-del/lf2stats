@@ -4012,7 +4012,7 @@ function tvCss() {
   #tvModo .tv-ok{color:#4fd69c;} #tvModo .tv-mal{color:#ff7b6b;}
   #tvModo .tv-fila{display:grid;align-items:center;gap:1.4vw;padding:1vh 1.2vw;border-radius:1vw;background:rgba(255,255,255,.06);margin:.7vh 0;font-size:clamp(14px,1.9vw,32px);font-weight:800;}
   #tvModo .tv-fila.mio{background:rgba(242,128,63,.22);border:2px solid #f2803f;}
-  #tvModo table.tv-t{border-collapse:collapse;width:100%;font-size:clamp(13px,1.6vw,28px);font-weight:800;} #tvModo table.tv-t thead,#tvModo table.tv-t th{background:transparent !important;} #tvModo table.tv-t td:first-child{white-space:nowrap;} #tvModo table.tv-t th{color:#9fb2c6;font-size:.55em;letter-spacing:.1em;text-transform:uppercase;padding:.4em .6em;} #tvModo table.tv-t td{padding:.5em .6em;text-align:center;border-top:1px solid rgba(255,255,255,.1);} #tvModo table.tv-t td:first-child{text-align:left;}`;
+  #tvModo table.tv-t{border-collapse:collapse;width:100%;font-size:clamp(13px,1.6vw,28px);font-weight:800;} #tvModo table.tv-t thead,#tvModo table.tv-t th{background:transparent !important;} #tvModo table.tv-t td:first-child{white-space:nowrap;} #tvModo table.tv-t.tv-comp td{padding:.28em .6em;} #tvModo table.tv-t th{color:#9fb2c6;font-size:.55em;letter-spacing:.1em;text-transform:uppercase;padding:.4em .6em;} #tvModo table.tv-t td{padding:.5em .6em;text-align:center;border-top:1px solid rgba(255,255,255,.1);} #tvModo table.tv-t td:first-child{text-align:left;}`;
   document.head.appendChild(s);
 }
 
@@ -4191,6 +4191,23 @@ function tvAbrirObjetivos() {
   pintar();
 }
 
+function tvMiGrupo() {
+  try { const cl = clasificacion ? clasificacion.rows.find(x => normalizarEquipo(cellText(x, "Equipo")) === normalizarEquipo(equipoOficial(miEquipo))) : null;
+    return (cl && cellText(cl, "Grupo")) || grupoDeEquipo(miEquipo) || ""; } catch (e) { return ""; }
+}
+function tvSlideClasificacion(ctx) {
+  if (!clasificacion || !clasificacion.rows.length) return null;
+  const g = tvMiGrupo(), tieneG = clasificacion.cols.some(c => c.label === "Grupo");
+  let rows = clasificacion.rows.filter(x => !tieneG || !g || cellText(x, "Grupo") === g);
+  rows = rows.slice().sort((a, b) => ((a["Po"] && a["Po"].numeric) ?? 99) - ((b["Po"] && b["Po"].numeric) ?? 99));
+  const iMio = rows.findIndex(x => normalizarEquipo(cellText(x, "Equipo")) === ctx.obj); if (iMio < 0 || rows.length < 3) return null;
+  let ini = 0, fin = rows.length; if (rows.length > 12) { ini = Math.max(0, Math.min(iMio - 5, rows.length - 11)); fin = Math.min(rows.length, ini + 11); }
+  const cols = columnasUtilesClasificacion(clasificacion.cols, rows).filter(c => !["Grupo", "R", "Equipo", "Po"].includes(c.label)).slice(0, 7);
+  return { id: "clasificacion", dur: 14, html: `<div class="tv-kick">Clasificación${g ? " · Grupo " + escapeHtml(g) : ""}</div><h2>Vamos ${iMio + 1}º${g ? " del grupo " + escapeHtml(g) : ""}</h2>
+    <div class="tv-card" style="padding:.8vw 1.6vw;"><table class="tv-t tv-comp" style="font-size:clamp(11px,1.25vw,21px);"><thead><tr><th>#</th><th style="text-align:left;">Equipo</th>${cols.map(c => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead><tbody>
+      ${rows.slice(ini, fin).map((x, k) => { const mio = ini + k === iMio; return `<tr style="${mio ? "background:rgba(242,128,63,.25);" : ""}"><td style="text-align:center;color:#f2803f;">${escapeHtml(cellText(x, "Po") || String(ini + k + 1))}</td><td style="text-align:left;"><span style="display:inline-flex;align-items:center;gap:.8vw;">${tvEscudo(cellText(x, "Equipo"), Math.round(window.innerHeight * 0.037))}${escapeHtml(cellText(x, "Equipo"))}</span></td>${cols.map(c => `<td>${escapeHtml(cellText(x, c.label))}</td>`).join("")}</tr>`; }).join("")}</tbody></table></div>` };
+}
+
 function tvSlides(ctx) {
   const S = [];
   const nombre = equipoOficial(miEquipo), jug = ctx.jugados, ultimo = jug[jug.length - 1];
@@ -4202,10 +4219,11 @@ function tvSlides(ctx) {
     S.push({ dur: 9, html: `<div style="display:flex;align-items:center;gap:3vw;">${tvEscudo(nombre, Math.round(window.innerHeight * 0.28))}<div><div class="tv-kick">${escapeHtml(LIGA_NOMBRE)}</div><h1>${escapeHtml(nombre)}</h1><div class="tv-sub">Así va la temporada</div></div></div>
       <div class="tv-grid" style="grid-template-columns:repeat(4,1fr);margin-top:5vh;">
         <div class="tv-card"><div class="tv-num">${v}-${d}</div><div class="tv-lab">Balance</div></div>
-        <div class="tv-card"><div class="tv-num">${cl && cellText(cl, "Po") ? "#" + escapeHtml(cellText(cl, "Po")) : "—"}</div><div class="tv-lab">Clasificación</div></div>
+        <div class="tv-card"><div class="tv-num">${cl && cellText(cl, "Po") ? "#" + escapeHtml(cellText(cl, "Po")) : "—"}</div><div class="tv-lab">Clasificación${tvMiGrupo() ? " · Grupo " + escapeHtml(tvMiGrupo()) : ""}</div></div>
         <div class="tv-card"><div class="tv-num">${pf === null ? "—" : tvF1(pf)}</div><div class="tv-lab">Puntos por partido</div></div>
         <div class="tv-card"><div class="tv-num">${pc === null ? "—" : tvF1(pc)}</div><div class="tv-lab">Puntos recibidos</div></div></div>
       ${sig ? `<div class="tv-sub" style="margin-top:4vh;">Próximo partido: <b style="color:#fff">${escapeHtml(sig.rival)}</b>${sig.fecha ? " · " + escapeHtml(sig.fecha) : ""}${sig.esLocal ? " · en casa" : " · fuera"}</div>` : ""}` }); }
+  try { const sc = tvSlideClasificacion(ctx); if (sc) S.push(sc); } catch (e) { console.warn('Modo TV:', e); }
   // 2. Último partido
   if (ultimo) { const dp = ctx.dePartido(ultimo.pid);
     if (dp && dp.totMio && dp.totRiv) {
@@ -4254,16 +4272,16 @@ function tvSlides(ctx) {
   { let k = null; try { k = tablaKpis(miEquipo); } catch (e) { k = null; }
     if (k) { const it = Object.entries(k).filter(([c, x]) => x && c !== "Pace" && x.total >= 4).map(([c, x]) => ({ c, x, f: x.puesto / x.total }));
       const fuertes = it.slice().sort((a, b) => a.f - b.f).slice(0, 4), flojas = it.slice().sort((a, b) => b.f - a.f).slice(0, 2);
-      const card = (o, mal) => `<div class="tv-card" style="${mal ? "border-color:#ff7b6b66;" : ""}"><div class="tv-lab" style="margin:0 0 .5vh;">${escapeHtml(TV_ETQ[o.c] || o.c)}</div><div class="tv-num ${mal ? "tv-mal" : "tv-ok"}">#${o.x.puesto}<span style="font-size:.4em;color:#9fb2c6;"> de ${o.x.total}</span></div><div class="tv-sub">${fmtNum(o.x.valor)} · media ${fmtNum(o.x.media)}</div></div>`;
+      const card = (o, mal) => `<div class="tv-card" style="${mal ? "border-color:#ff7b6b66;" : ""}"><div class="tv-lab" style="margin:0 0 .5vh;">${escapeHtml(TV_ETQ[o.c] || o.c)}</div><div class="tv-num ${mal ? "tv-mal" : "tv-ok"}">#${o.x.puesto}<span style="font-size:.4em;color:#9fb2c6;"> de ${o.x.total}</span></div><div class="tv-sub">${fmtNum(o.x.valor)} · media ${fmtNum(o.x.media)}</div>${o.x.puestoG ? `<div style="margin-top:.8vh;font-weight:800;font-size:clamp(12px,1.4vw,24px);color:${mal ? "#ff9a8d" : "#4fd69c"};">Grupo ${escapeHtml(o.x.grupo)}: #${o.x.puestoG} de ${o.x.totalG}</div>` : ""}</div>`;
       if (fuertes.length) S.push({ dur: 14, html: `<div class="tv-kick">Frente a la liga</div><h2>Dónde somos fuertes</h2><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);">${fuertes.map(o => card(o, false)).join("")}</div>
         ${flojas.length ? `<div class="tv-kick" style="margin-top:4vh;color:#ff9a8d;">A seguir trabajando</div><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);margin-top:1.4vh;">${flojas.map(o => card(o, true)).join("")}</div>` : ""}` }); } }
   // 6. Ranking de la liga
   { let porEq = null; try { porEq = rkAcumulados(); } catch (e) { porEq = null; }
-    if (porEq && porEq.size) { const todas = rkTodasMetricas(), eq = rkEquipos(porEq);
+    if (porEq && porEq.size) { const miG = tvMiGrupo(), todas = rkTodasMetricas(), eq = rkEquipos(porEq).filter(([n]) => !miG || !grupoDeEquipo(n) || grupoDeEquipo(n) === miG);
       const lista = (et) => { const m = todas.get(et); return eq.map(([n, a]) => ({ n, v: m.f(a) })).filter(o => o.v !== null && isFinite(o.v)).sort((a, b) => m.dir > 0 ? b.v - a.v : a.v - b.v).map((o, i) => Object.assign(o, { pos: i + 1, dec: m.dec })); };
       const col = (tit, et) => { const l = lista(et), top = l.slice(0, 5), yo = l.find(o => normalizarEquipo(equipoOficial(o.n)) === ctx.obj), fila = (o) => `<div class="tv-fila ${yo && o.n === yo.n ? "mio" : ""}" style="grid-template-columns:3.2vw ${Math.round(window.innerHeight * 0.06)}px 1fr auto;"><span style="color:#f2803f;">#${o.pos}</span>${tvEscudo(o.n, Math.round(window.innerHeight * 0.06))}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(o.n)}</span><b>${cmpFmt(o.v, o.dec)}</b></div>`;
         return `<div><div class="tv-lab" style="margin:0 0 1vh;font-size:clamp(14px,1.8vw,30px);color:#fff;">${tit}</div>${top.map(fila).join("")}${yo && yo.pos > 5 ? `<div style="text-align:center;color:#9fb2c6;line-height:.6;">···</div>${fila(yo)}` : ""}</div>`; };
-      S.push({ dur: 14, html: `<div class="tv-kick">Ranking de la liga${grupoActivo ? " · Grupo " + escapeHtml(grupoActivo) : ""}</div><h2>Quién manda en la liga</h2><div class="tv-grid" style="grid-template-columns:1fr 1fr;">${col("Mejor ataque · puntos por partido", "Puntos / partido")}${col("Mejor defensa · puntos recibidos", "Puntos recibidos / partido")}</div>` }); } }
+      S.push({ dur: 14, html: `<div class="tv-kick">Ranking${miG ? " · Grupo " + escapeHtml(miG) : " de la liga"}</div><h2>Quién manda en ${miG ? "el grupo " + escapeHtml(miG) : "la liga"}</h2><div class="tv-grid" style="grid-template-columns:1fr 1fr;">${col("Mejor ataque · puntos por partido", "Puntos / partido")}${col("Mejor defensa · puntos recibidos", "Puntos recibidos / partido")}</div>` }); } }
   try { const sr = tvSlideRival(ctx); if (sr) S.push(sr); } catch (e) { console.warn("Modo TV:", e); }
   return S;
 }
@@ -15731,7 +15749,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26m";
+const VERSION_APP = "2026-10-26n";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
