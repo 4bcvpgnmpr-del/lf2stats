@@ -3937,12 +3937,12 @@ function rkAnimar(porEq, met, caja) {
   const lista = caja.querySelector("#rkLista");
   lista.style.position = "relative"; lista.style.height = (nombres.length * ALTO) + "px";
   lista.innerHTML = `<div id="rkRonda" style="position:absolute;left:0;right:0;top:-2px;"></div>` + nombres.map(n => { const esMio = miEquipo && normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(n), esc = escudoUrlFor(n);
-    return `<div class="rk-fila" data-n="${escapeAttr(n)}" style="position:absolute;left:0;right:0;height:${ALTO - 6}px;top:0;transition:top .6s ease;display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:0 8px;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;box-sizing:border-box;">
+    return `<div class="rk-fila" data-n="${escapeAttr(n)}" style="position:absolute;left:0;right:0;height:${ALTO - 6}px;top:0;transition:top 1.4s ease;display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:0 8px;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;box-sizing:border-box;">
       <span class="rk-pos" style="text-align:center;font-weight:800;border-radius:8px;padding:4px 0;background:#f3f4f6;"></span>
       ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
       <div style="min-width:0;"><div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(n)}</div><div class="rk-sub" style="font-size:11px;color:#888;"></div></div>
       <b class="rk-val" style="text-align:right;"></b>
-      <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i class="rk-bar" style="display:block;height:100%;width:6%;transition:width .6s ease;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("");
+      <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i class="rk-bar" style="display:block;height:100%;width:6%;transition:width 1.4s ease;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("");
   const titulo = caja.querySelector("#rkLienzo > div"), sub = titulo ? titulo.lastElementChild : null, subOrig = sub ? sub.textContent : "";
   const btn = caja.querySelector("#rkPlay"); btn.textContent = "■ Parar";
   const col = ["#fbe7c9", "#e8eaee", "#f7dccf"];
@@ -3959,7 +3959,7 @@ function rkAnimar(porEq, met, caja) {
     k++;
     if (k >= frames.length) { clearInterval(rkTimer); rkTimer = null; btn.textContent = "▶ Repetir"; if (sub) sub.textContent = subOrig + " · final"; }
   };
-  paso(); if (frames.length > 1) rkTimer = setInterval(paso, 1100); else btn.textContent = "▶ Animar";
+  paso(); if (frames.length > 1) rkTimer = setInterval(paso, 2600); else btn.textContent = "▶ Animar";
 }
 
 function fillComparadorPickers() {
@@ -15183,7 +15183,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26e";
+const VERSION_APP = "2026-10-26f";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
