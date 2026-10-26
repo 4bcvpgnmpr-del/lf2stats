@@ -4802,26 +4802,31 @@ function tvVideoSlideHtml(eq, nombre, sel, k, n) {
   return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#000;"><div id="tvVidPlayer" style="position:absolute;inset:0;">${tvPlayerHtml(v)}</div>
     <div id="tvVidTapa" style="position:absolute;left:0;right:0;top:0;bottom:14%;z-index:1;"></div>${nota}${info}</div>`;
 }
-function tvCtrlVideo(caja) {
-  const vid = caja.querySelector("video"), fr = caja.querySelector("iframe");
+function tvCtrlVideo(caja, alTerminar) {
+  const vid = caja.querySelector("video"), fr = caja.querySelector("iframe"); let fin = false; const termino = () => { if (fin || !alTerminar) return; fin = true; setTimeout(alTerminar, 1200); };
+  if (vid) vid.addEventListener("ended", termino);
   if (vid) return { toggle: () => { if (vid.paused) vid.play(); else vid.pause(); }, seek: (d) => { try { vid.currentTime = Math.max(0, vid.currentTime + d); } catch (e) { /* nada */ } } };
   if (!fr) return null;
   const yt = /youtube/.test(fr.src), vm = /vimeo/.test(fr.src); if (!yt && !vm) return null;
   const st = { t: 0, play: true }, send = (o) => { try { fr.contentWindow.postMessage(JSON.stringify(o), "*"); } catch (e) { /* nada */ } };
   const onMsg = (ev) => { if (ev.source !== fr.contentWindow) return; let d = ev.data; if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { return; } } if (!d) return;
-    if (yt && d.event === "infoDelivery" && d.info) { if (typeof d.info.currentTime === "number") st.t = d.info.currentTime; if (typeof d.info.playerState === "number") st.play = d.info.playerState === 1; }
+    if (yt && d.event === "infoDelivery" && d.info) { if (typeof d.info.currentTime === "number") st.t = d.info.currentTime; if (typeof d.info.playerState === "number") { st.play = d.info.playerState === 1; if (d.info.playerState === 0) termino(); } }
+    if (yt && d.event === "onStateChange" && d.info === 0) termino();
+    if (vm && d.event === "finish") termino();
     if (vm) { if (d.event === "timeupdate" && d.data) st.t = d.data.seconds || 0; if (d.event === "play") st.play = true; if (d.event === "pause") st.play = false; } };
   window.addEventListener("message", onMsg); TV.vidMsg = onMsg;
-  const hola = () => { if (yt) send({ event: "listening", id: 1, channel: "widget" }); if (vm) ["timeupdate", "play", "pause"].forEach(x => send({ method: "addEventListener", value: x })); };
+  const hola = () => { if (yt) send({ event: "listening", id: 1, channel: "widget" }); if (vm) ["timeupdate", "play", "pause", "finish"].forEach(x => send({ method: "addEventListener", value: x })); };
   fr.addEventListener("load", hola); setTimeout(hola, 1200);
   return { toggle: () => { if (yt) send({ event: "command", func: st.play ? "pauseVideo" : "playVideo", args: [] }); else send({ method: st.play ? "pause" : "play" }); st.play = !st.play; },
     seek: (d) => { st.t = Math.max(0, st.t + d); if (yt) send({ event: "command", func: "seekTo", args: [st.t, true] }); else send({ method: "setCurrentTime", value: st.t }); } };
 }
 function tvSlideVideoJug(eq, nombre, k, n) {
-  const est = { sel: null };
-  const sl = { id: "rjv:" + nombre, tit: "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n) };
+  const est = { sel: null }; let sl = null;
+  const avanzar = () => { if (!sl || TV.slides[TV.i] !== sl) return; const vs = tvVideosJugadora(eq, nombre), i = vs.findIndex(x => x.id === (est.sel || (vs[0] && vs[0].id)));
+    if (vs.length && i >= 0 && i + 1 < vs.length) { const caja = document.querySelector("#tvModo .tv-slide"); est.sel = vs[i + 1].id; if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } caja.innerHTML = tvVideoSlideHtml(eq, nombre, est.sel, k, n); sl.post2(caja); } else tvIr(1); };
+  sl = { id: "rjv:" + nombre, tit: "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n) };
   const montar = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ }
-    if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } TV.ctrl = tvCtrlVideo(caja);
+    if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } TV.ctrl = tvCtrlVideo(caja, avanzar);
     const rep = (sel) => { est.sel = sel; caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n); montar(caja); };
     tvBindVideos(caja, rep, eq, nombre, false); tvMostrarControles(); };
   sl.post = (caja) => { TV.auto = false; clearTimeout(TV.timer);
@@ -4834,10 +4839,9 @@ function tvSlideVideoJug(eq, nombre, k, n) {
     if (e.key === "ArrowRight") { if (c) c.seek(5); return true; }
     if (e.key === "ArrowLeft") { if (c) c.seek(-5); return true; }
     if (e.key === "Backspace") { tvIr(-1); return true; }
-    if (e.key === "Enter") { const i = vs.findIndex(x => x.id === (est.sel || (vs[0] && vs[0].id)));
-      if (vs.length && i >= 0 && i + 1 < vs.length) { const caja = document.querySelector("#tvModo .tv-slide"); est.sel = vs[i + 1].id; if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } caja.innerHTML = tvVideoSlideHtml(eq, nombre, est.sel, k, n); sl.post2(caja); } else tvIr(1); return true; }
+    if (e.key === "Enter") { avanzar(); return true; }
     return false; };
-  sl.post2 = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ } TV.ctrl = tvCtrlVideo(caja);
+  sl.post2 = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ } TV.ctrl = tvCtrlVideo(caja, avanzar);
     const rep = (sel) => { est.sel = sel; caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n); sl.post2(caja); };
     tvBindVideos(caja, rep, eq, nombre, false); tvMostrarControles(); };
   return sl;
@@ -16348,7 +16352,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27e";
+const VERSION_APP = "2026-10-27f";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
