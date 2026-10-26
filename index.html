@@ -2036,6 +2036,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
   <button data-view="jugadoras"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="tx">Jugadoras</span></button>
   <h4>Datos</h4>
   <button data-view="rankings-eq"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10M12 21V4M19 21v-7"/></svg></span><span class="tx">Ranking de equipos</span></button>
+  <button data-view="tv"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><span class="tx">Modo TV</span></button>
   <button data-view="rankings"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10M12 21V4M19 21v-7"/></svg></span><span class="tx">Ranking de jugadoras</span></button>
   <button data-view="estadisticas"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16M8 16l4-5 3 3 5-7"/></svg></span><span class="tx">Estadísticas</span></button>
   <button data-view="quintetos"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="10" r="2"/><circle cx="19" cy="10" r="2"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg></span><span class="tx">Quintetos</span></button>
@@ -3973,6 +3974,206 @@ function rkAnimar(porEq, met, caja) {
     if (k >= frames.length) { clearInterval(rkTimer); rkTimer = null; btn.textContent = "▶ Repetir"; if (sub) sub.textContent = subOrig + " · final"; }
   };
   paso(); if (frames.length > 1) rkTimer = setInterval(paso, 2600); else btn.textContent = "▶ Animar";
+}
+
+/* ============================================================
+   MODO TV: presentación a pantalla completa para enseñar a las jugadoras
+   Diapositivas automáticas con el último partido, la forma, el progreso de
+   cada jugadora, dónde somos fuertes y el ranking de la liga.
+   ============================================================ */
+const TV = { abierto: false, i: 0, auto: true, slides: [], timer: null, ocultar: null, ctx: null };
+const TV_ETQ = { "ORtg": "Ataque", "DRtg": "Defensa", "Net": "Diferencial", "Pace": "Ritmo", "eFG%": "Acierto de tiro", "TS%": "Eficiencia de tiro", "TOV%": "Pérdidas", "OREB%": "Rebote ofensivo", "DREB%": "Rebote defensivo",
+  "Pts/P": "Puntos por partido", "2P%": "Tiros de 2", "3P%": "Triples", "FT%": "Tiros libres", "AST/P": "Asistencias", "TO/P": "Pérdidas por partido", "AST/TO": "Asistencias por pérdida",
+  "RebTot/P": "Rebotes", "RebDef/P": "Rebotes defensivos", "RebOf/P": "Rebotes ofensivos", "Robos/P": "Robos", "Tapones/P": "Tapones", "Val/P": "Valoración" };
+
+function tvCss() {
+  if (document.getElementById("tvCss")) return;
+  const s = document.createElement("style"); s.id = "tvCss";
+  s.textContent = `#tvModo{position:fixed;inset:0;z-index:100000;background:radial-gradient(1200px 700px at 80% -10%,#16314a 0%,#0b1623 60%);color:#fff;font-family:Inter,Archivo,sans-serif;display:flex;flex-direction:column;overflow:hidden;}
+  #tvModo .tv-prog{position:absolute;left:0;top:0;height:5px;background:#f2803f;width:0;z-index:3;}
+  #tvModo .tv-slide{flex:1;padding:3vh 5vw 8vh;display:flex;flex-direction:column;justify-content:center;opacity:0;transform:translateY(14px);transition:opacity .6s,transform .6s;min-height:0;}
+  #tvModo .tv-slide.in{opacity:1;transform:none;}
+  #tvModo .tv-kick{color:#f2803f;font-weight:800;letter-spacing:.2em;font-size:clamp(12px,1.2vw,20px);text-transform:uppercase;}
+  #tvModo h1{margin:.2em 0 .1em;font-size:clamp(30px,5vw,84px);line-height:1.05;font-weight:900;}
+  #tvModo h2{margin:.1em 0 .5em;font-size:clamp(24px,3.6vw,60px);line-height:1.1;font-weight:900;}
+  #tvModo .tv-sub{color:#9fb2c6;font-size:clamp(14px,1.7vw,28px);}
+  #tvModo .tv-barra-ctrl{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;padding:1.6vh 2.5vw;z-index:3;opacity:0;transition:opacity .4s;}
+  #tvModo.tv-ver .tv-barra-ctrl{opacity:1;}
+  #tvModo.tv-ver{cursor:default;} #tvModo{cursor:none;} #tvModo.tv-ver{cursor:default;}
+  #tvModo .tv-dots{display:flex;gap:10px;} #tvModo .tv-dots i{width:12px;height:12px;border-radius:99px;background:#33475c;display:block;cursor:pointer;} #tvModo .tv-dots i.on{background:#f2803f;width:34px;}
+  #tvModo .tv-btns button{background:#1d3248;color:#fff;border:0;border-radius:12px;padding:10px 18px;font:700 16px Inter,sans-serif;margin-left:8px;cursor:pointer;} #tvModo .tv-btns button:hover{background:#2b4764;}
+  #tvModo .tv-grid{display:grid;gap:2vw;} #tvModo .tv-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:1.4vw;padding:1.6vw 2vw;}
+  #tvModo .tv-num{font-size:clamp(34px,6vw,110px);font-weight:900;line-height:1;white-space:nowrap;} #tvModo .tv-lab{color:#9fb2c6;font-size:clamp(12px,1.3vw,22px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:.4em;}
+  #tvModo .tv-bar{background:rgba(255,255,255,.1);border-radius:99px;height:1.1vw;min-height:10px;overflow:hidden;} #tvModo .tv-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#f2803f,#ffb36b);transition:width 1.4s cubic-bezier(.2,.8,.2,1);}
+  #tvModo .tv-vs{display:grid;grid-template-columns:1fr 18vw 1fr;align-items:center;gap:1.5vw;margin:.6vh 0;font-size:clamp(14px,1.6vw,28px);font-weight:800;}
+  #tvModo .tv-vs .l{display:flex;justify-content:flex-end;align-items:center;gap:1vw;} #tvModo .tv-vs .r{display:flex;justify-content:flex-start;align-items:center;gap:1vw;}
+  #tvModo .tv-vs .bar{height:1.3vw;min-height:12px;border-radius:99px;transition:width 1.4s cubic-bezier(.2,.8,.2,1);width:0;} #tvModo .tv-vs .nm{text-align:center;color:#c8d6e5;font-size:clamp(11px,1.4vw,24px);font-weight:700;}
+  #tvModo .tv-av{border-radius:50%;object-fit:cover;background:#1d3248;display:flex;align-items:center;justify-content:center;font-weight:900;color:#9fb2c6;flex:none;overflow:hidden;}
+  #tvModo .tv-ok{color:#4fd69c;} #tvModo .tv-mal{color:#ff7b6b;}
+  #tvModo .tv-fila{display:grid;align-items:center;gap:1.4vw;padding:1vh 1.2vw;border-radius:1vw;background:rgba(255,255,255,.06);margin:.7vh 0;font-size:clamp(14px,1.9vw,32px);font-weight:800;}
+  #tvModo .tv-fila.mio{background:rgba(242,128,63,.22);border:2px solid #f2803f;}
+  #tvModo table.tv-t{border-collapse:collapse;width:100%;font-size:clamp(13px,1.6vw,28px);font-weight:800;} #tvModo table.tv-t thead,#tvModo table.tv-t th{background:transparent !important;} #tvModo table.tv-t td:first-child{white-space:nowrap;} #tvModo table.tv-t th{color:#9fb2c6;font-size:.55em;letter-spacing:.1em;text-transform:uppercase;padding:.4em .6em;} #tvModo table.tv-t td{padding:.5em .6em;text-align:center;border-top:1px solid rgba(255,255,255,.1);} #tvModo table.tv-t td:first-child{text-align:left;}`;
+  document.head.appendChild(s);
+}
+
+function tvIni(n) { return String(n || "").replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ ]/g, "").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase(); }
+function tvEscudo(nombre, px) {
+  const u = escudoUrlFor(nombre);
+  return u ? `<img src="${escapeAttr(u)}" alt="" style="width:${px}px;height:${px}px;object-fit:contain;flex:none;" onerror="this.style.visibility='hidden'">`
+    : `<div class="tv-av" style="width:${px}px;height:${px}px;font-size:${px / 2.4}px;">${escapeHtml(tvIni(nombre))}</div>`;
+}
+function tvFoto(nombre, px) {
+  let u = ""; try { const f = filaJugadoraEn(jugadoras, nombre, miEquipo); u = fotoJugadora(nombre, miEquipo, f && f["FotoURL"] ? f["FotoURL"].display : "") || ""; } catch (e) { u = ""; }
+  return u ? `<img class="tv-av" src="${escapeAttr(u)}" alt="" style="width:${px}px;height:${px}px;" onerror="this.style.visibility='hidden'">`
+    : `<div class="tv-av" style="width:${px}px;height:${px}px;font-size:${px / 2.4}px;">${escapeHtml(tvIni(nombre))}</div>`;
+}
+const tvF1 = (v) => fmtNum(Math.round(v * 10) / 10);
+const tvSg = (v) => (v > 0 ? "+" : "") + tvF1(v);
+
+async function tvCargar() {
+  if (!partidosCache) { try { partidosCache = await fetchSheetTab("Partidos_Estadisticas"); } catch (e) { /* nada */ } }
+  if (quintetosCache === null) { try { quintetosCache = await fetchSheetTab("Quintetos"); } catch (e) { quintetosCache = false; } }
+  try { await cargarCuartos(); } catch (e) { /* nada */ }
+  if (partidosCache && !avanzadasCalculo) { try { avanzadasCalculo = calcularAvanzadas(); } catch (e) { /* nada */ } }
+}
+
+function tvContexto() {
+  const obj = normalizarEquipo(equipoOficial(miEquipo));
+  const jugados = partidosDeEquipo(miEquipo).filter(p => p.jugado && p.pid);
+  const grp = partidosCache && partidosCache.rows ? partidosAgrupados(partidosCache.rows) : new Map();
+  const dePartido = (pid) => {
+    const m = grp.get(pid); if (!m) return null;
+    const claves = [...m.keys()], mia = claves.find(k => normalizarEquipo(equipoOficial(k)) === obj), riv = claves.find(k => k !== mia);
+    if (!mia) return null;
+    const tot = (k) => (m.get(k) || []).find(r => cellText(r, "Jugador") === "TOTAL");
+    return { filasMias: (m.get(mia) || []).filter(r => cellText(r, "Jugador") !== "TOTAL"), totMio: tot(mia), totRiv: riv ? tot(riv) : null };
+  };
+  return { obj, jugados, dePartido };
+}
+
+function tvVs(etq, a, b, txtA, txtB, menosMejor) {
+  const tot = (a + b) || 1, wa = Math.max(6, a / tot * 100), wb = Math.max(6, b / tot * 100);
+  const gana = a === b ? 0 : ((menosMejor ? a < b : a > b) ? 1 : -1);
+  return `<div class="tv-vs"><div class="l"><span class="${gana > 0 ? "tv-ok" : ""}">${txtA}</span><div class="bar" data-w="${wa}" style="background:${gana > 0 ? "#f2803f" : "#5a6f86"}"></div></div>
+    <div class="nm">${escapeHtml(etq)}</div><div class="r"><div class="bar" data-w="${wb}" style="background:${gana < 0 ? "#1aa7a0" : "#5a6f86"}"></div><span class="${gana < 0 ? "tv-ok" : ""}">${txtB}</span></div></div>`;
+}
+
+function tvSlides(ctx) {
+  const S = [];
+  const nombre = equipoOficial(miEquipo), jug = ctx.jugados, ultimo = jug[jug.length - 1];
+  const v = jug.filter(p => p.gano).length, d = jug.filter(p => p.gano === false).length;
+  // 1. Portada
+  { const cl = clasificacion ? clasificacion.rows.find(r => normalizarEquipo(cellText(r, "Equipo")) === ctx.obj) : null;
+    const pf = jug.length ? jug.reduce((s, p) => s + (p.pf || 0), 0) / jug.length : null, pc = jug.length ? jug.reduce((s, p) => s + (p.pc || 0), 0) / jug.length : null;
+    const sig = partidosDeEquipo(miEquipo).find(p => !p.jugado);
+    S.push({ dur: 9, html: `<div style="display:flex;align-items:center;gap:3vw;">${tvEscudo(nombre, Math.round(window.innerHeight * 0.28))}<div><div class="tv-kick">${escapeHtml(LIGA_NOMBRE)}</div><h1>${escapeHtml(nombre)}</h1><div class="tv-sub">Así va la temporada</div></div></div>
+      <div class="tv-grid" style="grid-template-columns:repeat(4,1fr);margin-top:5vh;">
+        <div class="tv-card"><div class="tv-num">${v}-${d}</div><div class="tv-lab">Balance</div></div>
+        <div class="tv-card"><div class="tv-num">${cl && cellText(cl, "Po") ? "#" + escapeHtml(cellText(cl, "Po")) : "—"}</div><div class="tv-lab">Clasificación</div></div>
+        <div class="tv-card"><div class="tv-num">${pf === null ? "—" : tvF1(pf)}</div><div class="tv-lab">Puntos por partido</div></div>
+        <div class="tv-card"><div class="tv-num">${pc === null ? "—" : tvF1(pc)}</div><div class="tv-lab">Puntos recibidos</div></div></div>
+      ${sig ? `<div class="tv-sub" style="margin-top:4vh;">Próximo partido: <b style="color:#fff">${escapeHtml(sig.rival)}</b>${sig.fecha ? " · " + escapeHtml(sig.fecha) : ""}${sig.esLocal ? " · en casa" : " · fuera"}</div>` : ""}` }); }
+  // 2. Último partido
+  if (ultimo) { const dp = ctx.dePartido(ultimo.pid);
+    if (dp && dp.totMio && dp.totRiv) {
+      const A = dp.totMio, B = dp.totRiv, par = (r, k) => paresTiro(r, k), pct = (x) => x.i ? Math.round(x.a / x.i * 100) : 0;
+      const tcA = par(A, "TC"), tcB = par(B, "TC"), t3A = par(A, "T3"), t3B = par(B, "T3"), tlA = par(A, "TL"), tlB = par(B, "TL");
+      const reb = (r) => numDe(r, "REB_T") || (numDe(r, "REB_O") + numDe(r, "REB_D"));
+      const claves = [["Tiros de campo", pct(tcA), pct(tcB), pct(tcA) + "%", pct(tcB) + "%", false], ["Triples", pct(t3A), pct(t3B), pct(t3A) + "%", pct(t3B) + "%", false], ["Tiros libres", pct(tlA), pct(tlB), pct(tlA) + "%", pct(tlB) + "%", false],
+        ["Rebotes", reb(A), reb(B), reb(A), reb(B), false], ["Asistencias", numDe(A, "AS"), numDe(B, "AS"), numDe(A, "AS"), numDe(B, "AS"), false], ["Pérdidas", numDe(A, "BP"), numDe(B, "BP"), numDe(A, "BP"), numDe(B, "BP"), true]];
+      const mejor = (k) => dp.filasMias.slice().sort((x, y) => numDe(y, k) - numDe(x, k))[0];
+      const lid = [["Puntos", "PT"], ["Rebotes", "REB_T"], ["Asistencias", "AS"], ["Valoración", "VA"]].map(([t, k]) => { const r = mejor(k); return r && numDe(r, k) > 0 ? { t, n: cellText(r, "Jugador"), v: numDe(r, k) } : null; }).filter(Boolean);
+      const cu = cuartosCache && cuartosCache.rows ? cuartosCache.rows.filter(r => cellText(r, "PartidoID") === ultimo.pid) : [];
+      const delEq = (esMio) => cu.filter(r => (normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === ctx.obj) === esMio).sort((x, y) => numDe(x, "Cuarto") - numDe(y, "Cuarto"));
+      const cm = delEq(true), cr = delEq(false);
+      const tabla = cm.length && cr.length ? `<table class="tv-t"><thead><tr><th></th>${cm.map(r => `<th>${numDe(r, "Cuarto") > 4 ? "PR" : "Q" + numDe(r, "Cuarto")}</th>`).join("")}<th>Total</th></tr></thead><tbody>
+        <tr><td>${escapeHtml(corto3(nombre, 13))}</td>${cm.map((r, i) => `<td class="${numDe(r, "PT") > numDe(cr[i] || r, "PT") ? "tv-ok" : ""}">${numDe(r, "PT")}</td>`).join("")}<td>${ultimo.pf}</td></tr>
+        <tr><td>${escapeHtml(corto3(ultimo.rival, 13))}</td>${cr.map(r => `<td>${numDe(r, "PT")}</td>`).join("")}<td>${ultimo.pc}</td></tr></tbody></table>` : "";
+      S.push({ dur: 16, html: `<div class="tv-kick">Último partido${ultimo.jornada ? " · Jornada " + escapeHtml(ultimo.jornada) : ""}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:3vw;margin:.4vh 0 .8vh;"><div style="text-align:right;">${tvEscudo(nombre, Math.round(window.innerHeight * 0.11))}</div>
+          <div class="tv-num" style="font-size:clamp(36px,6vw,104px);">${ultimo.pf} <span style="color:#9fb2c6">-</span> ${ultimo.pc}</div>${tvEscudo(ultimo.rival, Math.round(window.innerHeight * 0.11))}</div>
+        <div class="tv-sub" style="text-align:center;margin-bottom:1.4vh;"><b class="${ultimo.gano ? "tv-ok" : "tv-mal"}">${ultimo.gano ? "VICTORIA" : "DERROTA"}</b> ${ultimo.esLocal ? "ante" : "en la pista de"} ${escapeHtml(ultimo.rival)}</div>
+        <div class="tv-grid" style="grid-template-columns:1.25fr 1fr;align-items:start;"><div class="tv-card" style="padding:1vw 1.6vw;">${claves.map(c => tvVs(c[0], c[1], c[2], c[3], c[4], c[5])).join("")}</div>
+          <div>${tabla ? `<div class="tv-card" style="margin-bottom:1.4vh;padding:.8vw 1.4vw;">${tabla}</div>` : ""}${lid.length ? `<div class="tv-card" style="padding:.8vw 1.4vw;">${lid.map(x => `<div style="display:flex;align-items:center;gap:1.2vw;margin:.8vh 0;">${tvFoto(x.n, Math.round(window.innerHeight * 0.06))}<div style="flex:1;font-weight:800;font-size:clamp(13px,1.6vw,27px);">${escapeHtml(x.n)}</div><div style="text-align:right;"><b style="font-size:clamp(18px,2.4vw,40px);color:#f2803f;">${x.v}</b><div class="tv-lab" style="margin:0;">${x.t}</div></div></div>`).join("")}</div>` : ""}</div></div>` }); } }
+  // 3. Forma
+  if (jug.length >= 2) { const ult = jug.slice(-6);
+    S.push({ dur: 10, html: `<div class="tv-kick">Forma reciente</div><h2>Últimos ${ult.length} partidos</h2>
+      <div class="tv-grid" style="grid-template-columns:repeat(${ult.length},1fr);">${ult.map(p => `<div class="tv-card" style="text-align:center;border-color:${p.gano ? "#4fd69c" : "#ff7b6b"};">
+        <div style="display:flex;justify-content:center;">${tvEscudo(p.rival, Math.round(window.innerHeight * 0.12))}</div>
+        <div class="tv-num" style="font-size:clamp(20px,2.5vw,46px);margin-top:1vh;">${p.pf}-${p.pc}</div><div class="${p.gano ? "tv-ok" : "tv-mal"}" style="font-weight:900;font-size:clamp(16px,2vw,34px);">${p.gano ? "V" : "D"}</div>
+        <div class="tv-lab">${escapeHtml(corto3(p.rival))}${p.esLocal ? "" : " (f)"}</div></div>`).join("")}</div>` }); }
+  // 4. Progreso de jugadoras (últimos 3 partidos frente a los anteriores)
+  { const por = new Map();
+    jug.forEach(p => { const dp = ctx.dePartido(p.pid); if (!dp) return;
+      dp.filasMias.forEach(r => { const mn = cellText(r, "MIN"); if (!mn || /^0*:?0*$/.test(mn.trim())) return; const n = cellText(r, "Jugador"); if (!por.has(n)) por.set(n, []);
+        por.get(n).push({ pt: numDe(r, "PT"), reb: numDe(r, "REB_T") || (numDe(r, "REB_O") + numDe(r, "REB_D")), as: numDe(r, "AS"), va: numDe(r, "VA") }); }); });
+    const med = (l, k) => l.length ? l.reduce((s, x) => s + x[k], 0) / l.length : 0;
+    const lista = [...por.entries()].filter(([, l]) => l.length >= 5).map(([n, l]) => { const rec = l.slice(-3), ant = l.slice(0, -3);
+      return { n, rec: { pt: med(rec, "pt"), reb: med(rec, "reb"), as: med(rec, "as"), va: med(rec, "va") }, ant: { pt: med(ant, "pt"), reb: med(ant, "reb"), as: med(ant, "as"), va: med(ant, "va") } }; })
+      .map(x => Object.assign(x, { dva: x.rec.va - x.ant.va })).sort((a, b) => b.dva - a.dva);
+    const top = lista.filter(x => x.dva > 0).slice(0, 6);
+    if (top.length) S.push({ dur: 16, html: `<div class="tv-kick">Progreso</div><h2>Quién está mejorando</h2><div class="tv-sub" style="margin-top:-.4em;margin-bottom:2vh;">Últimos 3 partidos frente a los anteriores de la temporada</div>
+      ${top.map(x => `<div class="tv-fila" style="grid-template-columns:${Math.round(window.innerHeight * 0.075)}px 1.3fr 1fr 1fr 1fr 1fr;">${tvFoto(x.n, Math.round(window.innerHeight * 0.075))}<div>${escapeHtml(x.n)}</div>
+        ${[["PT", "pt"], ["REB", "reb"], ["AS", "as"], ["VAL", "va"]].map(([t, k]) => { const dd = x.rec[k] - x.ant[k]; return `<div style="text-align:center;"><div style="font-size:.62em;color:#9fb2c6;font-weight:700;">${t}</div>${tvF1(x.rec[k])} <small class="${dd >= 0 ? "tv-ok" : "tv-mal"}" style="font-size:.6em;">${dd >= 0 ? "▲" : "▼"} ${tvF1(Math.abs(dd))}</small></div>`; }).join("")}</div>`).join("")}` }); }
+  // 5. Dónde somos fuertes
+  { let k = null; try { k = tablaKpis(miEquipo); } catch (e) { k = null; }
+    if (k) { const it = Object.entries(k).filter(([c, x]) => x && c !== "Pace" && x.total >= 4).map(([c, x]) => ({ c, x, f: x.puesto / x.total }));
+      const fuertes = it.slice().sort((a, b) => a.f - b.f).slice(0, 4), flojas = it.slice().sort((a, b) => b.f - a.f).slice(0, 2);
+      const card = (o, mal) => `<div class="tv-card" style="${mal ? "border-color:#ff7b6b66;" : ""}"><div class="tv-lab" style="margin:0 0 .5vh;">${escapeHtml(TV_ETQ[o.c] || o.c)}</div><div class="tv-num ${mal ? "tv-mal" : "tv-ok"}">#${o.x.puesto}<span style="font-size:.4em;color:#9fb2c6;"> de ${o.x.total}</span></div><div class="tv-sub">${fmtNum(o.x.valor)} · media ${fmtNum(o.x.media)}</div></div>`;
+      if (fuertes.length) S.push({ dur: 14, html: `<div class="tv-kick">Frente a la liga</div><h2>Dónde somos fuertes</h2><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);">${fuertes.map(o => card(o, false)).join("")}</div>
+        ${flojas.length ? `<div class="tv-kick" style="margin-top:4vh;color:#ff9a8d;">A seguir trabajando</div><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);margin-top:1.4vh;">${flojas.map(o => card(o, true)).join("")}</div>` : ""}` }); } }
+  // 6. Ranking de la liga
+  { let porEq = null; try { porEq = rkAcumulados(); } catch (e) { porEq = null; }
+    if (porEq && porEq.size) { const todas = rkTodasMetricas(), eq = rkEquipos(porEq);
+      const lista = (et) => { const m = todas.get(et); return eq.map(([n, a]) => ({ n, v: m.f(a) })).filter(o => o.v !== null && isFinite(o.v)).sort((a, b) => m.dir > 0 ? b.v - a.v : a.v - b.v).map((o, i) => Object.assign(o, { pos: i + 1, dec: m.dec })); };
+      const col = (tit, et) => { const l = lista(et), top = l.slice(0, 5), yo = l.find(o => normalizarEquipo(equipoOficial(o.n)) === ctx.obj), fila = (o) => `<div class="tv-fila ${yo && o.n === yo.n ? "mio" : ""}" style="grid-template-columns:3.2vw ${Math.round(window.innerHeight * 0.06)}px 1fr auto;"><span style="color:#f2803f;">#${o.pos}</span>${tvEscudo(o.n, Math.round(window.innerHeight * 0.06))}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(o.n)}</span><b>${cmpFmt(o.v, o.dec)}</b></div>`;
+        return `<div><div class="tv-lab" style="margin:0 0 1vh;font-size:clamp(14px,1.8vw,30px);color:#fff;">${tit}</div>${top.map(fila).join("")}${yo && yo.pos > 5 ? `<div style="text-align:center;color:#9fb2c6;line-height:.6;">···</div>${fila(yo)}` : ""}</div>`; };
+      S.push({ dur: 14, html: `<div class="tv-kick">Ranking de la liga${grupoActivo ? " · Grupo " + escapeHtml(grupoActivo) : ""}</div><h2>Quién manda en la liga</h2><div class="tv-grid" style="grid-template-columns:1fr 1fr;">${col("Mejor ataque · puntos por partido", "Puntos / partido")}${col("Mejor defensa · puntos recibidos", "Puntos recibidos / partido")}</div>` }); } }
+  return S;
+}
+function corto3(n, max) { const t = String(n || "").trim(), m = max || 18; return t.length > m ? t.slice(0, m - 1) + "…" : t; }
+
+function tvRender() {
+  const raiz = document.getElementById("tvModo"); if (!raiz) return;
+  const sl = TV.slides[TV.i], caja = raiz.querySelector(".tv-slide"), prog = raiz.querySelector(".tv-prog");
+  caja.classList.remove("in"); caja.innerHTML = sl ? sl.html : "";
+  raiz.querySelector(".tv-dots").innerHTML = TV.slides.map((_, k) => `<i class="${k === TV.i ? "on" : ""}" data-k="${k}"></i>`).join("");
+  raiz.querySelectorAll(".tv-dots i").forEach(i => i.addEventListener("click", () => { TV.i = Number(i.dataset.k); tvRender(); }));
+  raiz.querySelector("#tvAuto").textContent = TV.auto ? "❚❚ Pausa" : "▶ Seguir";
+  requestAnimationFrame(() => { caja.classList.add("in"); setTimeout(() => { caja.querySelectorAll(".tv-bar i").forEach(b => { b.style.width = (b.dataset.w || 0) + "%"; }); caja.querySelectorAll(".tv-vs .bar").forEach(b => { b.style.width = (Number(b.dataset.w || 0) * 0.9) + "%"; }); }, 120); });
+  prog.style.transition = "none"; prog.style.width = "0";
+  clearTimeout(TV.timer);
+  if (TV.auto && sl) { requestAnimationFrame(() => requestAnimationFrame(() => { prog.style.transition = `width ${sl.dur}s linear`; prog.style.width = "100%"; })); TV.timer = setTimeout(() => tvIr(1), sl.dur * 1000); }
+}
+function tvIr(d) { if (!TV.slides.length) return; TV.i = (TV.i + d + TV.slides.length) % TV.slides.length; tvRender(); }
+function tvMostrarControles() { const r = document.getElementById("tvModo"); if (!r) return; r.classList.add("tv-ver"); clearTimeout(TV.ocultar); TV.ocultar = setTimeout(() => r.classList.remove("tv-ver"), 3000); }
+function tvTecla(e) { if (!TV.abierto) return; if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
+function cerrarTV() {
+  TV.abierto = false; clearTimeout(TV.timer); clearTimeout(TV.ocultar); document.removeEventListener("keydown", tvTecla);
+  const r = document.getElementById("tvModo"); if (r) r.remove();
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ }
+}
+async function abrirTV() {
+  if (TV.abierto) return;
+  tvCss();
+  if (!miEquipo) { alert("Primero elige tu equipo en «Mi equipo» para preparar la presentación."); return; }
+  TV.abierto = true; TV.i = 0; TV.auto = true; TV.slides = [];
+  const r = document.createElement("div"); r.id = "tvModo";
+  r.innerHTML = `<div class="tv-prog"></div><div class="tv-slide"><div class="tv-sub" style="text-align:center;">Preparando la presentación...</div></div>
+    <div class="tv-barra-ctrl"><div class="tv-dots"></div><div class="tv-btns"><button id="tvPrev">◀</button><button id="tvAuto">❚❚ Pausa</button><button id="tvNext">▶</button><button id="tvFull">⛶ Pantalla completa</button><button id="tvSalir">✕ Salir</button></div></div>`;
+  document.body.appendChild(r);
+  r.addEventListener("mousemove", tvMostrarControles); r.addEventListener("click", tvMostrarControles);
+  r.querySelector("#tvPrev").addEventListener("click", (e) => { e.stopPropagation(); tvIr(-1); });
+  r.querySelector("#tvNext").addEventListener("click", (e) => { e.stopPropagation(); tvIr(1); });
+  r.querySelector("#tvAuto").addEventListener("click", (e) => { e.stopPropagation(); TV.auto = !TV.auto; tvRender(); });
+  r.querySelector("#tvSalir").addEventListener("click", (e) => { e.stopPropagation(); cerrarTV(); });
+  r.querySelector("#tvFull").addEventListener("click", (e) => { e.stopPropagation(); try { if (document.fullscreenElement) document.exitFullscreen(); else r.requestFullscreen(); } catch (er) { /* nada */ } });
+  document.addEventListener("keydown", tvTecla);
+  tvMostrarControles();
+  try { await tvCargar(); TV.ctx = tvContexto(); TV.slides = tvSlides(TV.ctx); } catch (e) { console.warn("Modo TV:", e); TV.slides = []; }
+  if (!TV.abierto) return;
+  if (!TV.slides.length) { r.querySelector(".tv-slide").classList.add("in"); r.querySelector(".tv-slide").innerHTML = `<div class="tv-sub" style="text-align:center;">Todavía no hay datos suficientes para la presentación. Entra una vez en Estadísticas y vuelve a intentarlo.</div>`; return; }
+  tvRender();
 }
 
 function fillComparadorPickers() {
@@ -7959,7 +8160,7 @@ function abrirInformeVisualVista(id) {
   b.addEventListener("click", () => abrirInformeVisualVista(vistaActual));
   document.body.appendChild(b);
   const base = showView;
-  showView = function (id, esVuelta) { const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } if (id === "rankings-eq") { try { rkPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
+  showView = function (id, esVuelta) { if (id === "tv") { try { abrirTV(); } catch (e) { console.warn(e); } return; } const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } if (id === "rankings-eq") { try { rkPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
 })();
 
 function plantillaHtml(nombre) {
@@ -9083,7 +9284,7 @@ function mostrarPuerta(msg, tipo) {
   document.documentElement.classList.add("sin-acceso");
 }
 
-const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "rankings-eq", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "rankings-eq", "tv", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
@@ -15390,7 +15591,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26k";
+const VERSION_APP = "2026-10-26l";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
