@@ -4004,7 +4004,10 @@ function tvCss() {
   #tvModo .tv-btns button{background:#1d3248;color:#fff;border:0;border-radius:12px;padding:8px 11px;font:700 14px Inter,sans-serif;margin-left:6px;cursor:pointer;white-space:nowrap;} #tvModo .tv-btns button:hover{background:#2b4764;}
   #tvModo #tvMapStats .tv-num{font-size:clamp(26px,3.8vw,64px);} #tvModo #tvMapStats .tv-card{padding:1.2vw 1.4vw;}
   #tvModo table.tv-t tr:hover,#tvModo table.tv-t tr:hover td{background:transparent !important;color:inherit !important;}
-  #tvVidInfo{transition:opacity .4s;} #tvModo:not(.tv-ver) #tvVidInfo{opacity:0;}
+  #tvVidInfo,#tvVidMarcas{transition:opacity .4s;} #tvModo:not(.tv-ver) #tvVidInfo,#tvModo:not(.tv-ver) #tvVidMarcas{opacity:0;}
+  #tvDibujo{position:absolute;inset:0;z-index:6;cursor:crosshair;} #tvDibujo canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
+  #tvDibBar{position:absolute;left:50%;top:1.6vh;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:rgba(5,12,20,.9);border:1px solid #2b4764;border-radius:99px;padding:6px 14px;z-index:7;cursor:default;}
+  #tvDibBar button{background:#1d3248;color:#fff;border:0;border-radius:99px;padding:6px 12px;font:700 13px Inter,sans-serif;cursor:pointer;} #tvDibBar i{width:24px;height:24px;border-radius:50%;border:3px solid transparent;cursor:pointer;display:block;} #tvDibBar i.on{border-color:#fff;}
   #tvModo .tv-grid{display:grid;gap:2vw;} #tvModo .tv-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:1.4vw;padding:1.6vw 2vw;}
   #tvModo .tv-num{font-size:clamp(34px,6vw,110px);font-weight:900;line-height:1;white-space:nowrap;} #tvModo .tv-lab{color:#9fb2c6;font-size:clamp(12px,1.3vw,22px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:.4em;}
   #tvModo .tv-bar{background:rgba(255,255,255,.1);border-radius:99px;height:1.1vw;min-height:10px;overflow:hidden;} #tvModo .tv-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#f2803f,#ffb36b);transition:width 1.4s cubic-bezier(.2,.8,.2,1);}
@@ -4455,14 +4458,38 @@ function tvSlideClasificacion(ctx) {
       ${rows.slice(ini, fin).map((x, k) => { const mio = ini + k === iMio; return `<tr style="${mio ? "background:rgba(242,128,63,.25);" : ""}"><td style="text-align:center;color:#f2803f;">${escapeHtml(cellText(x, "Po") || String(ini + k + 1))}</td><td style="text-align:left;"><span style="display:inline-flex;align-items:center;gap:.8vw;">${tvEscudo(cellText(x, "Equipo"), Math.round(window.innerHeight * 0.037))}${escapeHtml(cellText(x, "Equipo"))}</span></td>${cols.map(c => `<td>${escapeHtml(cellText(x, c.label))}</td>`).join("")}</tr>`; }).join("")}</tbody></table></div>` };
 }
 
-const TV_TIT = { portada: "Portada", clasificacion: "Clasificación del grupo", ultimo: "Último partido", forma: "Forma reciente", progreso: "Quién está mejorando", premio: "Jugadora del partido (MVP)", numeros: "Nuestro equipo en cifras", plantilla: "Toda la plantilla", lideres: "Líderes de la temporada", cuartos: "Cuartos", quintetos: "Quintetos", honor: "Cuadro de honor", objetivos: "Objetivos del equipo", "metas-jug": "Metas por jugadora", mapa: "Mapa de tiro", zonas: "Tiro por zonas", vueltas: "Evolución del equipo", "claves-victoria": "Cuándo ganamos y perdemos", indicadores: "Todos los indicadores", fortalezas: "Dónde somos fuertes", ranking: "Ranking del grupo",
+const TV_TIT = { calendario: "Calendario y resultados", "rival-calendario": "Calendario del rival", "cmp-stats": "Comparar jugadoras", "cmp-mapas": "Mapas de tiro comparados", portada: "Portada", clasificacion: "Clasificación del grupo", ultimo: "Último partido", forma: "Forma reciente", progreso: "Quién está mejorando", premio: "Jugadora del partido (MVP)", numeros: "Nuestro equipo en cifras", plantilla: "Toda la plantilla", lideres: "Líderes de la temporada", cuartos: "Cuartos", quintetos: "Quintetos", honor: "Cuadro de honor", objetivos: "Objetivos del equipo", "metas-jug": "Metas por jugadora", mapa: "Mapa de tiro", zonas: "Tiro por zonas", vueltas: "Evolución del equipo", "claves-victoria": "Cuándo ganamos y perdemos", indicadores: "Todos los indicadores", fortalezas: "Dónde somos fuertes", ranking: "Ranking del grupo",
   rival: "Portada del rival", "rival-forma": "Su forma", "rival-cara": "Cara a cara", "rival-numeros": "Sus números", "rival-kpi": "Fuertes y débiles", "rival-indicadores": "Sus indicadores", "rival-jug": "Jugadoras a vigilar", "rival-plantilla": "Toda su plantilla", "rival-lideres": "Sus líderes", "mapa-rival": "Su mapa de tiro", "rival-zonas": "Sus zonas de tiro", "rival-cuartos": "Sus cuartos", "rival-quintetos": "Sus quintetos", "rival-claves": "Claves del partido", "rival-duelo": "Último duelo", "rival-video": "Vídeo de scouting",
   "jug-ficha": "Ficha", "jug-metas": "Sus metas", "jug-numeros": "Todos sus números", "jug-partidos": "Partido a partido", "jug-evolucion": "Cómo ha cambiado", "jug-resumen": "Frente a su plantilla", "jug-grupo": "Frente al grupo", "jug-grupo-resumen": "Destaca y a mejorar", "jug-mapa": "Mapa de tiro", "jug-zonas": "Tiro por zonas", "jug-video": "Vídeos" };
 function tvTitulo(sl) { return sl.tit || TV_TIT[sl.id] || String(sl.id || "").replace(/^jug-mapa:/, "Mapa de tiro · ") || "Diapositiva"; }
 function tvOcultasLeer() { try { return new Set(JSON.parse(localStorage.getItem("tv_ocultas") || "[]")); } catch (e) { return new Set(); } }
 function tvOcultasGuardar(set) { try { localStorage.setItem("tv_ocultas", JSON.stringify([...set])); } catch (e) { /* nada */ } }
+function tvOrdenLeer() { try { return JSON.parse(localStorage.getItem("tv_orden") || "[]"); } catch (e) { return []; } }
+function tvOrdenGuardar(a) { try { localStorage.setItem("tv_orden", JSON.stringify(a || [])); } catch (e) { /* nada */ } }
+function tvAplicarOrden(S) {
+  const ord = tvOrdenLeer(); if (!ord.length) return S; const pos = new Map(ord.map((id, i) => [id, i])), idx = [];
+  S.forEach((x, i) => { if (x.id && pos.has(x.id)) idx.push(i); });
+  const conocidas = idx.map(i => S[i]).sort((a, b) => pos.get(a.id) - pos.get(b.id)), out = S.slice(); idx.forEach((i, k) => { out[i] = conocidas[k]; }); return out;
+}
+function tvInsertar(arr, id, sl) { if (!sl) return arr; const i = arr.findIndex(x => x.id === id), out = arr.slice(); out.splice(i >= 0 ? i + 1 : out.length, 0, sl); return out; }
+function tvSlideCalendario(eq, propio) {
+  const pp = partidosDeEquipo(eq); if (!pp.length) return null; const H = window.innerHeight, px = Math.round(H * 0.055);
+  const jug = pp.filter(p => p.jugado && p.pf !== null && p.pc !== null), prox = pp.filter(p => !p.jugado); if (!jug.length && !prox.length) return null;
+  const ult = jug.slice(-6).reverse(), sig = prox.slice(0, 5), V = jug.filter(p => p.gano).length, D = jug.length - V;
+  let racha = 0; for (let i = jug.length - 1; i >= 0 && jug.length && jug[i].gano === jug[jug.length - 1].gano; i--) racha++;
+  const rachaTxt = jug.length && racha >= 2 ? `${racha} ${jug[jug.length - 1].gano ? "victorias" : "derrotas"} seguidas` : "";
+  const fecha = (p) => escapeHtml(String(p.fecha || "").slice(0, 5));
+  const base = "display:flex;align-items:center;gap:1vw;padding:.7vh 0;border-bottom:1px solid rgba(255,255,255,.08);font-weight:800;font-size:clamp(12px,1.55vw,26px);";
+  const nom = (p) => `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.rival)}</span>`;
+  const f1 = (p) => `<div style="${base}"><span style="width:5vw;color:#9fb2c6;font-weight:700;">${fecha(p)}</span>${tvEscudo(p.rival, px)}${nom(p)}<span style="color:#9fb2c6;font-size:.7em;">${p.esLocal ? "casa" : "fuera"}</span><b>${p.pf}-${p.pc}</b><span class="${p.gano ? "tv-ok" : "tv-mal"}" style="width:1.6em;text-align:center;">${p.gano ? "V" : "D"}</span></div>`;
+  const f2 = (p) => { const ps = tvPosEq(p.rival); return `<div style="${base}"><span style="width:5vw;color:#9fb2c6;font-weight:700;">${fecha(p)}${p.hora ? `<br><small>${escapeHtml(p.hora)}</small>` : ""}</span>${tvEscudo(p.rival, px)}${nom(p)}${ps ? `<span style="color:#9fb2c6;font-size:.7em;">#${escapeHtml(ps.po)}</span>` : ""}<span style="color:#f2803f;font-size:.7em;">${p.esLocal ? "casa" : "fuera"}</span></div>`; };
+  return { id: propio ? "calendario" : "rival-calendario", dur: 16, html: `<div class="tv-kick">${propio ? "Nuestra temporada" : escapeHtml(eq)}</div><h2>Calendario y resultados</h2>
+    <div class="tv-sub" style="margin:-.3em 0 1.2vh;">Balance <b style="color:#fff;">${V}-${D}</b>${rachaTxt ? ` · <b class="${jug[jug.length - 1].gano ? "tv-ok" : "tv-mal"}">${rachaTxt}</b>` : ""}</div>
+    <div class="tv-grid" style="grid-template-columns:1fr 1fr;gap:2.4vw;"><div class="tv-card"><div class="tv-lab" style="margin:0 0 .6vh;">Últimos resultados</div>${ult.length ? ult.map(f1).join("") : `<div class="tv-sub">Aún sin partidos jugados</div>`}</div>
+    <div class="tv-card"><div class="tv-lab" style="margin:0 0 .6vh;">Próximos partidos</div>${sig.length ? sig.map(f2).join("") : `<div class="tv-sub">No hay más partidos programados</div>`}</div></div>` };
+}
 function tvSlides(ctx, todas) {
-  const S = tvSlidesBase(ctx); if (todas) return S;
+  const S = tvAplicarOrden(tvSlidesBase(ctx)); if (todas) return S;
   const oc = tvOcultasLeer(), F = S.filter(x => !x.id || !oc.has(x.id)); return F.length ? F : S;
 }
 function tvSlidesBase(ctx) {
@@ -4470,8 +4497,9 @@ function tvSlidesBase(ctx) {
   let S = [];
   if (modo === "jugrival") { const rv = TV.rival || tvRivalSiguiente(); return rv ? tvSlidesJugRival(rv) : []; }
   if (modo === "jugadora" && TV.jugEq && TV.jug) { try { return tvSlidesJugadora(ctx, TV.jugEq, TV.jug); } catch (e) { console.warn("Modo TV:", e); return []; } }
-  if (modo !== "rival") S = S.concat(tvSlidesNuestros(ctx));
-  if (modo !== "nuestro" && rival) { try { S = S.concat(tvSlidesRival(ctx, rival)); } catch (e) { console.warn("Modo TV:", e); } }
+  if (modo === "comparar") { try { return tvSlidesComparar(); } catch (e) { console.warn("Modo TV:", e); return []; } }
+  if (modo !== "rival") { let N = tvSlidesNuestros(ctx); try { N = tvInsertar(N, "forma", tvSlideCalendario(miEquipo, true)); } catch (e) { console.warn("Modo TV:", e); } S = S.concat(N); }
+  if (modo !== "nuestro" && rival) { try { let Rr = tvSlidesRival(ctx, rival); try { Rr = tvInsertar(Rr, "rival-forma", tvSlideCalendario(rival, false)); } catch (e) { console.warn("Modo TV:", e); } S = S.concat(Rr); } catch (e) { console.warn("Modo TV:", e); } }
   return S;
 }
 function tvSlidesNuestros(ctx) {
@@ -4554,7 +4582,7 @@ function corto3(n, max) { const t = String(n || "").trim(), m = max || 18; retur
 
 function tvRender() {
   const raiz = document.getElementById("tvModo"); if (!raiz || TV.menu) return;
-  const ind = raiz.querySelector("#tvIndice"); if (ind) ind.remove();
+  const ind = raiz.querySelector("#tvIndice"); if (ind) ind.remove(); const dib = raiz.querySelector("#tvDibujo"); if (dib) dib.remove();
   if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } if (TV.vidBlur) { window.removeEventListener("blur", TV.vidBlur); TV.vidBlur = null; } TV.ctrl = null;
   const sl = TV.slides[TV.i], caja = raiz.querySelector(".tv-slide"), prog = raiz.querySelector(".tv-prog");
   clearInterval(TV.anim); clearTimeout(TV.anim);
@@ -4570,7 +4598,9 @@ function tvRender() {
 }
 function tvIr(d) { if (!TV.slides.length) return; TV.i = (TV.i + d + TV.slides.length) % TV.slides.length; tvRender(); }
 function tvMostrarControles() { const r = document.getElementById("tvModo"); if (!r) return; r.classList.add("tv-ver"); clearTimeout(TV.ocultar); TV.ocultar = setTimeout(() => r.classList.remove("tv-ver"), 3000); }
-function tvTecla(e) { if (!TV.abierto) return; const slx = TV.slides[TV.i]; if (slx && slx.tecla && !TV.menu && !(e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) && !document.getElementById("tvVideoGrande") && !document.getElementById("tvMapaGrande") && !document.getElementById("tvObj") && slx.tecla(e)) { e.preventDefault(); return; } const vg = document.getElementById("tvVideoGrande"); if (vg) { if (e.key === "Escape") vg.remove(); return; } const mg = document.getElementById("tvMapaGrande"); if (mg) { if (e.key === "Escape") mg.remove(); return; } if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return; if (document.getElementById("tvObj")) { if (e.key === "Escape") { const ok = document.getElementById("tvObjOk"); if (ok) ok.click(); } return; } if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === "i" || e.key === "I") { tvToggleIndice(); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
+function tvTecla(e) { if (!TV.abierto) return; const dibj = document.getElementById("tvDibujo"), enCampo = e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
+  if (!enCampo && !TV.menu) { if (e.key === "d" || e.key === "D") { e.preventDefault(); tvDibujoToggle(); return; } if (dibj) { if (e.key === "Escape") { dibj.remove(); return; } if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && dibj._undo) { e.preventDefault(); dibj._undo(); return; } } }
+  const slx = TV.slides[TV.i]; if (slx && slx.tecla && !TV.menu && !(e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) && !document.getElementById("tvVideoGrande") && !document.getElementById("tvMapaGrande") && !document.getElementById("tvObj") && slx.tecla(e)) { e.preventDefault(); return; } const vg = document.getElementById("tvVideoGrande"); if (vg) { if (e.key === "Escape") vg.remove(); return; } const mg = document.getElementById("tvMapaGrande"); if (mg) { if (e.key === "Escape") mg.remove(); return; } if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return; if (document.getElementById("tvObj")) { if (e.key === "Escape") { const ok = document.getElementById("tvObjOk"); if (ok) ok.click(); } return; } if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === "i" || e.key === "I") { tvToggleIndice(); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
 function cerrarTV() {
   TV.abierto = false; clearTimeout(TV.timer); clearTimeout(TV.ocultar); clearInterval(TV.anim); clearTimeout(TV.anim); document.removeEventListener("keydown", tvTecla);
   const r = document.getElementById("tvModo"); if (r) r.remove();
@@ -4735,6 +4765,15 @@ function tvVideoGrande(eq, nombre, equipo, sel) {
 function tvBindVideos(caja, repintar, eq, nombre, equipo) {
   caja.querySelectorAll("[data-ampliar]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); tvVideoGrande(eq, nombre, equipo, b.dataset.ampliar); }));
   caja.querySelectorAll("[data-vid]").forEach(el => el.addEventListener("click", (e) => { e.stopPropagation(); repintar(el.dataset.vid); }));
+  const mbox = caja.querySelector("#tvVidMarcas");
+  if (mbox && !mbox._b) { mbox._b = 1;
+    mbox.addEventListener("click", (e) => { e.stopPropagation(); const d = e.target.closest("[data-mkdel]"), a = e.target.closest("[data-mk]"), v = tvVidOrig(eq, nombre, equipo, mbox.dataset.v); if (!v) return;
+      if (d) { (v.marcas || []).splice(Number(d.dataset.mkdel), 1); scoutGuardar(); mbox.querySelector("#tvMarcasLista").innerHTML = tvMarcasChips(v); }
+      else if (a) { if (TV.ctrl && TV.ctrl.goto) TV.ctrl.goto(Number(a.dataset.mk)); }
+      else if (e.target.closest("#tvMarcaAdd")) tvMarcaAnadir(eq, nombre, equipo, mbox); });
+    mbox.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "tvMarcaNota") { e.preventDefault(); e.stopPropagation(); tvMarcaAnadir(eq, nombre, equipo, mbox); } }); }
+  const dl = caja.querySelector("#tvVidDl");
+  if (dl && !dl._b) { dl._b = 1; dl.addEventListener("click", async (e) => { e.stopPropagation(); dl.textContent = "…"; const ok = await videoDescargar(dl.dataset.dl); dl.textContent = ok ? "✓ Descargado" : "No encontrado"; setTimeout(() => { if (dl.isConnected) dl.textContent = "⬇ Copia"; }, 2500); }); }
   const del = caja.querySelector("#tvVidDel");
   if (del && !del._b) { del._b = 1; del.addEventListener("click", (e) => { e.stopPropagation();
     if (!del.dataset.sure) { del.dataset.sure = "1"; del.textContent = "¿Seguro? Pulsa otra vez"; del.style.background = "#c0392b"; setTimeout(() => { if (del.isConnected) { delete del.dataset.sure; del.textContent = "🗑 Quitar vídeo"; del.style.background = "#5a2b2b"; } }, 4000); return; }
@@ -4810,23 +4849,65 @@ function tvPlayerHtml(v) {
   if (emb.tipo === "video") return `<video src="${escapeAttr(emb.src)}" controls autoplay playsinline style="${vst}"></video>`;
   return `<div style="position:absolute;inset:0;overflow:auto;padding:14vh 8vw;">${reproductorHtml(v, seg)}</div>`;
 }
+function tvFmtT(s) { s = Math.max(0, Math.round(Number(s) || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function tvVidOrig(eq, nombre, equipo, id) {
+  const busca = (f) => f && f.videos ? f.videos.find(x => x.id === id) : null;
+  try { return busca(scouting.jugadoras && scouting.jugadoras[scoutClave("jugadoras", nombre)]) || busca(scouting.equipos && scouting.equipos[scoutClave("equipos", eq)]); } catch (e) { return null; }
+}
+function tvMarcasChips(v) {
+  return ((v && v.marcas) || []).map((m, i) => `<span style="display:inline-flex;gap:2px;align-items:center;background:#1d3248;border-radius:99px;padding:2px 4px 2px 10px;"><span data-mk="${Number(m.t) || 0}" style="cursor:pointer;">▶ ${tvFmtT(m.t)}${m.nota ? " · " + escapeHtml(corto3(m.nota, 28)) : ""}</span><b data-mkdel="${i}" style="cursor:pointer;color:#ff9a8d;padding:0 7px;">✕</b></span>`).join("");
+}
+function tvMarcasBarra(v) {
+  if (!v) return "";
+  return `<div id="tvVidMarcas" data-v="${escapeAttr(v.id || "")}" style="position:absolute;left:1.6vw;right:1.6vw;bottom:9vh;z-index:4;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(5,12,20,.82);border-radius:12px;padding:.7vh 1vw;font:700 clamp(10px,1.05vw,17px) Inter,sans-serif;color:#fff;">
+    <button id="tvMarcaAdd" style="background:#f2803f;color:#fff;border:0;border-radius:99px;padding:4px 12px;font:800 inherit;cursor:pointer;">📍 Marcar aquí (M)</button><input id="tvMarcaNota" placeholder="Nota de la marca (opcional)" style="width:min(240px,26vw);padding:5px 10px;border-radius:99px;border:0;font-size:13px;">
+    <span id="tvMarcasLista" style="display:contents;">${tvMarcasChips(v)}</span></div>`;
+}
+function tvMarcaAnadir(eq, nombre, equipo, box) {
+  if (!box) return false; const v = tvVidOrig(eq, nombre, equipo, box.dataset.v); if (!v || !TV.ctrl || !TV.ctrl.time) return false;
+  const inp = box.querySelector("#tvMarcaNota"), t = Math.max(0, Math.floor(TV.ctrl.time()));
+  if (!v.marcas) v.marcas = []; v.marcas.push({ t, nota: inp ? inp.value.trim() : "" }); v.marcas.sort((a, b) => a.t - b.t); if (inp) inp.value = "";
+  scoutGuardar(); box.querySelector("#tvMarcasLista").innerHTML = tvMarcasChips(v); tvMostrarControles(); return true;
+}
+async function videoDescargar(id) {
+  const blob = await videoArchivoLeer(id); if (!blob) return false;
+  let nom = id; const busca = (f) => (f && f.videos || []).forEach(v => { if (v.id === id && v.archivoNombre) nom = v.archivoNombre; });
+  try { Object.values(scouting.jugadoras || {}).forEach(busca); Object.values(scouting.equipos || {}).forEach(busca); } catch (e) { /* nada */ }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "scoutflow-video-" + id + "__" + nom; document.body.appendChild(a); a.click();
+  setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (e) { /* nada */ } a.remove(); }, 5000); return true;
+}
+function videosLocalesIds() {
+  const ids = []; const busca = (f) => (f && f.videos || []).forEach(v => { if (v.origen === "local" && v.id && !ids.includes(v.id)) ids.push(v.id); });
+  try { Object.values(scouting.jugadoras || {}).forEach(busca); Object.values(scouting.equipos || {}).forEach(busca); } catch (e) { /* nada */ }
+  return ids;
+}
+async function videosDescargarTodos(aviso) {
+  const ids = videosLocalesIds(); let n = 0;
+  for (const id of ids) { if (aviso) aviso(`Descargando ${n + 1} de ${ids.length}…`); if (await videoDescargar(id)) n++; await new Promise(r => setTimeout(r, 900)); }
+  return { total: ids.length, hechos: n };
+}
+async function videosRestaurar(files) {
+  let n = 0, mal = 0;
+  for (const f of Array.from(files || [])) { const m = /^scoutflow-video-(v\d+)__/.exec(f.name || ""); if (!m) { mal++; continue; } try { await videoArchivoGuardar(m[1], f); n++; } catch (e) { mal++; } }
+  return { hechos: n, ignorados: mal };
+}
 function tvVideoSlideHtml(eq, nombre, sel, k, n, equipo) {
   const vs = tvVidLista(eq, nombre, equipo), v = vs.find(x => x.id === sel) || vs[0];
   const form = `<details ${v ? "" : "open"} style="position:relative;display:inline-block;"><summary style="cursor:pointer;color:#cfe0f2;font:700 clamp(11px,1.1vw,18px) Inter,sans-serif;">+ Añadir vídeo</summary>
     <div class="tv-card" style="position:absolute;z-index:5;top:2em;left:0;width:min(340px,80vw);padding:.8vw;background:#12263a;"><input id="tvVidT" placeholder="Título" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;"><input id="tvVidU" placeholder="Enlace (YouTube, Drive, mp4)" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;">
       <input id="tvVidF" type="file" accept="video/*" style="display:block;margin:2px 0 6px;max-width:100%;font-size:12px;color:#9fb2c6;"><button id="tvVidAdd" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:800;cursor:pointer;">Guardar</button></div></details>`;
   const info = `<div id="tvVidInfo" style="position:absolute;left:1.6vw;top:1.6vh;right:1.6vw;z-index:4;display:flex;gap:1vw;align-items:center;flex-wrap:wrap;background:rgba(5,12,20,.72);border-radius:12px;padding:.8vh 1.2vw;font:800 clamp(12px,1.4vw,22px) Inter,sans-serif;color:#fff;">
-    <span>${escapeHtml(nombre)}</span><span style="color:#f2803f;">${k ? k + " de " + n : (equipo ? "Vídeo de scouting" : "Vídeos")}</span>${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:3px 10px;border-radius:99px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 24))}</span>`).join("")}${form}${v ? `<button id="tvVidDel" data-del="${escapeAttr(v.id || "")}" style="background:#5a2b2b;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">🗑 Quitar vídeo</button>` : ""}
-    <span style="margin-left:auto;color:#9fb2c6;font:600 clamp(10px,1vw,16px) Inter,sans-serif;">Espacio: pausa · ← →: ±5 s · Enter: siguiente · Retroceso: volver</span></div>`;
+    <span>${escapeHtml(nombre)}</span><span style="color:#f2803f;">${k ? k + " de " + n : (equipo ? "Vídeo de scouting" : "Vídeos")}</span>${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:3px 10px;border-radius:99px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 24))}</span>`).join("")}${form}${v && v.origen === "local" ? `<button id="tvVidDl" data-dl="${escapeAttr(v.id || "")}" style="background:#1d3248;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">⬇ Copia</button>` : ""}${v ? `<button id="tvVidDel" data-del="${escapeAttr(v.id || "")}" style="background:#5a2b2b;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">🗑 Quitar vídeo</button>` : ""}
+    <span style="margin-left:auto;color:#9fb2c6;font:600 clamp(10px,1vw,16px) Inter,sans-serif;">Espacio: pausa · ← →: ±5 s · M: marca · ↑ ↓: marcas · Enter: siguiente · Retroceso: volver · D: dibujar</span></div>`;
   if (!v) return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#07101a;display:flex;align-items:center;justify-content:center;"><div class="tv-sub" style="text-align:center;">Aún no hay vídeo de ${escapeHtml(nombre)}.<br>Añade un enlace o sube un archivo arriba. <small style="display:block;margin-top:1vh;">Enter: siguiente jugadora</small></div>${info}</div>`;
-  const nota = v.nota ? `<div style="position:absolute;left:2vw;bottom:9vh;z-index:3;max-width:60vw;background:rgba(5,12,20,.7);padding:.6vh 1vw;border-radius:10px;font:600 clamp(11px,1.3vw,22px) Inter,sans-serif;color:#fff;">${escapeHtml(v.nota)}</div>` : "";
+  const nota = v.nota ? `<div style="position:absolute;left:2vw;bottom:19vh;z-index:3;max-width:60vw;background:rgba(5,12,20,.7);padding:.6vh 1vw;border-radius:10px;font:600 clamp(11px,1.3vw,22px) Inter,sans-serif;color:#fff;">${escapeHtml(v.nota)}</div>` : "";
   return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#000;"><div id="tvVidPlayer" style="position:absolute;inset:0;">${tvPlayerHtml(v)}</div>
-    <div id="tvVidTapa" style="position:absolute;left:0;right:0;top:0;bottom:14%;z-index:1;"></div>${nota}${info}</div>`;
+    <div id="tvVidTapa" style="position:absolute;left:0;right:0;top:0;bottom:14%;z-index:1;"></div>${nota}${info}${tvMarcasBarra(v)}</div>`;
 }
 function tvCtrlVideo(caja, alTerminar) {
   const vid = caja.querySelector("video"), fr = caja.querySelector("iframe"); let fin = false; const termino = () => { if (fin || !alTerminar) return; fin = true; setTimeout(alTerminar, 1200); };
   if (vid) vid.addEventListener("ended", termino);
-  if (vid) return { toggle: () => { if (vid.paused) vid.play(); else vid.pause(); }, seek: (d) => { try { vid.currentTime = Math.max(0, vid.currentTime + d); } catch (e) { /* nada */ } } };
+  if (vid) return { time: () => vid.currentTime || 0, goto: (t) => { try { vid.currentTime = Math.max(0, t); vid.play(); } catch (e) { /* nada */ } }, toggle: () => { if (vid.paused) vid.play(); else vid.pause(); }, seek: (d) => { try { vid.currentTime = Math.max(0, vid.currentTime + d); } catch (e) { /* nada */ } } };
   if (!fr) return null;
   const yt = /youtube/.test(fr.src), vm = /vimeo/.test(fr.src); if (!yt && !vm) return null;
   const st = { t: 0, play: true }, send = (o) => { try { fr.contentWindow.postMessage(JSON.stringify(o), "*"); } catch (e) { /* nada */ } };
@@ -4838,14 +4919,14 @@ function tvCtrlVideo(caja, alTerminar) {
   window.addEventListener("message", onMsg); TV.vidMsg = onMsg;
   const hola = () => { if (yt) send({ event: "listening", id: 1, channel: "widget" }); if (vm) ["timeupdate", "play", "pause", "finish"].forEach(x => send({ method: "addEventListener", value: x })); };
   fr.addEventListener("load", hola); setTimeout(hola, 1200);
-  return { toggle: () => { if (yt) send({ event: "command", func: st.play ? "pauseVideo" : "playVideo", args: [] }); else send({ method: st.play ? "pause" : "play" }); st.play = !st.play; },
+  return { time: () => st.t, goto: (t) => { st.t = Math.max(0, t); if (yt) send({ event: "command", func: "seekTo", args: [st.t, true] }); else send({ method: "setCurrentTime", value: st.t }); }, toggle: () => { if (yt) send({ event: "command", func: st.play ? "pauseVideo" : "playVideo", args: [] }); else send({ method: st.play ? "pause" : "play" }); st.play = !st.play; },
     seek: (d) => { st.t = Math.max(0, st.t + d); if (yt) send({ event: "command", func: "seekTo", args: [st.t, true] }); else send({ method: "setCurrentTime", value: st.t }); } };
 }
-function tvSlideVideoJug(eq, nombre, k, n, equipo) {
+function tvSlideVideoJug(eq, nombre, k, n, equipo, idx) {
   const est = { sel: null }; let sl = null;
   const avanzar = () => { if (!sl || TV.slides[TV.i] !== sl) return; if (TV.i >= TV.slides.length - 1) return; const vs = tvVidLista(eq, nombre, equipo), i = vs.findIndex(x => x.id === (est.sel || (vs[0] && vs[0].id)));
     if (vs.length && i >= 0 && i + 1 < vs.length) { const caja = document.querySelector("#tvModo .tv-slide"); est.sel = vs[i + 1].id; if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } caja.innerHTML = tvVideoSlideHtml(eq, nombre, est.sel, k, n, equipo); sl.post2(caja); } else tvIr(1); };
-  sl = { id: equipo ? "rival-video" : (k ? "rjv:" + nombre : "jug-video"), tit: equipo ? "Vídeo de scouting" : "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n, equipo) };
+  sl = { id: idx || (equipo ? "rival-video" : (k ? "rjv:" + nombre : "jug-video")), tit: equipo ? "Vídeo de scouting" : "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n, equipo) };
   const montar = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ }
     if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } TV.ctrl = tvCtrlVideo(caja, avanzar);
     const rep = (sel) => { est.sel = sel; caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n, equipo); montar(caja); };
@@ -4861,16 +4942,66 @@ function tvSlideVideoJug(eq, nombre, k, n, equipo) {
     if (e.key === "ArrowLeft") { if (c) c.seek(-5); return true; }
     if (e.key === "Backspace") { tvIr(-1); return true; }
     if (e.key === "Enter") { avanzar(); return true; }
+    if (e.key === "m" || e.key === "M") { tvMarcaAnadir(eq, nombre, !!equipo, document.getElementById("tvVidMarcas")); return true; }
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") { const box = document.getElementById("tvVidMarcas"), v = box ? tvVidOrig(eq, nombre, !!equipo, box.dataset.v) : null, ms = (v && v.marcas) || [];
+      if (!ms.length || !c || !c.time) return true; const now = c.time(); let t;
+      if (e.key === "ArrowDown") { const f = ms.find(m => m.t > now + 1); t = f ? f.t : ms[0].t; } else { const pr = ms.filter(m => m.t < now - 2); t = pr.length ? pr[pr.length - 1].t : 0; }
+      c.goto(t); tvMostrarControles(); return true; }
     return false; };
   sl.post2 = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ } TV.ctrl = tvCtrlVideo(caja, avanzar);
     const rep = (sel) => { est.sel = sel; caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n, equipo); sl.post2(caja); };
     tvBindVideos(caja, rep, eq, nombre, !!equipo); tvMostrarControles(); };
   return sl;
 }
+function tvSlideCompJug(A, B) {
+  const ga = tvJugPartidos(A.eq, A.n), gb = tvJugPartidos(B.eq, B.n); if (!ga.length || !gb.length) return null;
+  const H = window.innerHeight, sm = (gs, k) => gs.reduce((a, g) => a + (g[k] || 0), 0), med = (gs, k) => sm(gs, k) / gs.length, pc = (a, i) => i ? a / i * 100 : 0;
+  const t2 = (gs) => pc(sm(gs, "tca") - sm(gs, "t3a"), sm(gs, "tci") - sm(gs, "t3i"));
+  const F = [["Minutos", (g) => med(g, "min"), false, ""], ["Puntos", (g) => med(g, "pt"), false, ""], ["Rebotes", (g) => med(g, "reb"), false, ""], ["Rebotes ofensivos", (g) => med(g, "ro"), false, ""], ["Rebotes defensivos", (g) => med(g, "rd"), false, ""], ["Asistencias", (g) => med(g, "as"), false, ""],
+    ["Robos", (g) => med(g, "br"), false, ""], ["Pérdidas", (g) => med(g, "bp"), true, ""], ["Valoración", (g) => med(g, "va"), false, ""], ["Tiros de 2", t2, false, "%"], ["Triples", (g) => pc(sm(g, "t3a"), sm(g, "t3i")), false, "%"], ["Tiros libres", (g) => pc(sm(g, "tla"), sm(g, "tli")), false, "%"]];
+  const filas = F.map(x => [x[0], x[1](ga), x[1](gb), x[2], x[3]]), nA = filas.filter(x => x[3] ? x[1] < x[2] : x[1] > x[2]).length, nB = filas.filter(x => x[3] ? x[2] < x[1] : x[2] > x[1]).length;
+  const cab = (P, g, der) => { let d = ""; try { d = dorsalDe(P.n, P.eq) || ""; } catch (e) { d = ""; }
+    const bloque = `<div style="${der ? "text-align:left;" : "text-align:right;"}"><div style="font-weight:900;font-size:clamp(14px,2vw,34px);">${escapeHtml(corto3(P.n, 24))}</div><div class="tv-sub" style="font-size:clamp(11px,1.2vw,20px);">${d ? "#" + escapeHtml(d) + " · " : ""}${escapeHtml(corto3(equipoOficial(P.eq), 26))} · ${g.length} part.</div></div>`;
+    return `<div style="display:flex;align-items:center;gap:1.2vw;justify-content:${der ? "flex-start" : "flex-end"};">${der ? tvFoto(P.n, Math.round(H * 0.13), P.eq) + bloque : bloque + tvFoto(P.n, Math.round(H * 0.13), P.eq)}</div>`; };
+  return { id: "cmp-stats", tit: "Comparar · " + A.n + " / " + B.n, dur: 24, html: `<div class="tv-kick">Cara a cara de jugadoras</div>
+    <div style="display:grid;grid-template-columns:1fr 18vw 1fr;align-items:center;gap:1.5vw;margin:.6vh 0 1vh;">${cab(A, ga, false)}<div class="tv-sub" style="text-align:center;font-weight:900;">VS</div>${cab(B, gb, true)}</div>
+    <div class="tv-card" style="padding:.5vw 1.6vw;">${filas.map(x => tvVs(x[0], x[1], x[2], tvF1(x[1]) + x[4], tvF1(x[2]) + x[4], x[3])).join("")}</div>
+    <div class="tv-sub" style="text-align:center;margin-top:1.2vh;">Por apartados: <b style="color:#f2803f;">${escapeHtml(corto3(A.n, 20))} ${nA}</b> · <b style="color:#1aa7a0;">${escapeHtml(corto3(B.n, 20))} ${nB}</b> de ${filas.length}</div>` };
+}
+function tvSlideCompMapas(A, B) {
+  const H = window.innerHeight, alto = Math.round(H * 0.52), tr = (P) => tvFilasTirosJug(P.eq, P.n).map(tiroEnMetros).filter(Boolean), tA = tr(A), tB = tr(B);
+  if (tA.length < 10 && tB.length < 10) return null;
+  const col = (P, t) => { const ac = t.filter(x => x.anotado).length; return `<div style="flex:1;text-align:center;"><div style="font-weight:900;font-size:clamp(14px,1.9vw,32px);margin-bottom:.6vh;">${escapeHtml(corto3(P.n, 26))}</div>${t.length >= 10 ? cartaSvg(t, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:100%;border-radius:1vw;" `) : `<div class="tv-sub" style="padding:10vh 0;">Pocos tiros registrados</div>`}<div class="tv-sub" style="margin-top:.8vh;">${t.length ? `Acierto ${tvPct(ac, t.length)} (${ac}/${t.length})` : ""}</div></div>`; };
+  return { id: "cmp-mapas", dur: 18, html: `<div class="tv-kick">Mapas de tiro</div>
+    <div style="display:flex;gap:3vw;align-items:flex-start;margin-top:1vh;">${col(A, tA)}${col(B, tB)}</div>` };
+}
+function tvSlidesComparar() {
+  const A = TV.cmpA, B = TV.cmpB, S = []; if (!A || !B || !A.n || !B.n) return S;
+  const s1 = tvSlideCompJug(A, B); if (s1) S.push(s1);
+  try { const s2 = tvSlideCompMapas(A, B); if (s2) S.push(s2); } catch (e) { console.warn("Modo TV:", e); }
+  [[A, "cmp-video-a"], [B, "cmp-video-b"]].forEach(([P, id]) => { try { if (tvVideosJugadora(P.eq, P.n).length) S.push(tvSlideVideoJug(P.eq, P.n, 0, 0, false, id)); } catch (e) { console.warn("Modo TV:", e); } });
+  return S;
+}
 function tvSlidesJugRival(R) {
   const L = tvJugRival(R, 1).sort((a, b) => b.pt - a.pt), S = [];
   L.forEach((x, i) => { try { S.push(tvSlidePerfilRival(R, x, i + 1, L.length)); S.push(tvSlideVideoJug(R, x.n, i + 1, L.length)); } catch (e) { console.warn("Modo TV:", e); } });
   return S;
+}
+function tvDibujoToggle() {
+  const raiz = document.getElementById("tvModo"); if (!raiz || TV.menu) return; const ya = raiz.querySelector("#tvDibujo"); if (ya) { ya.remove(); return; }
+  const d = document.createElement("div"); d.id = "tvDibujo"; const cols = ["#ff3b30", "#ffd60a", "#ffffff", "#f2803f", "#34c759", "#0a84ff"]; let col = cols[0], gr = 5;
+  d.innerHTML = `<canvas></canvas><div id="tvDibBar">${cols.map((c, i) => `<i data-c="${c}" class="${i ? "" : "on"}" style="background:${c};"></i>`).join("")}<button data-g="5">Fino</button><button data-g="12">Grueso</button><button id="tvDibUndo">↶ Deshacer</button><button id="tvDibClr">🧹 Borrar</button><button id="tvDibX" style="background:#5a2b2b;">✕ Terminar (D)</button></div>`;
+  raiz.appendChild(d);
+  const cv = d.querySelector("canvas"), dpr = window.devicePixelRatio || 1; cv.width = Math.round(innerWidth * dpr); cv.height = Math.round(innerHeight * dpr); const cx = cv.getContext("2d"); cx.scale(dpr, dpr); cx.lineCap = "round"; cx.lineJoin = "round";
+  let trazos = [], act = null;
+  const pintar = () => { cx.clearRect(0, 0, innerWidth, innerHeight); trazos.forEach(t => { cx.strokeStyle = t.c; cx.lineWidth = t.w; cx.beginPath(); t.p.forEach((q, i) => { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); if (t.p.length === 1) cx.lineTo(t.p[0][0] + .1, t.p[0][1]); cx.stroke(); }); };
+  cv.addEventListener("pointerdown", (e) => { e.stopPropagation(); try { cv.setPointerCapture(e.pointerId); } catch (er) { /* nada */ } act = { c: col, w: gr, p: [[e.clientX, e.clientY]] }; trazos.push(act); pintar(); });
+  cv.addEventListener("pointermove", (e) => { if (!act) return; act.p.push([e.clientX, e.clientY]); pintar(); });
+  const fin = () => { act = null; }; cv.addEventListener("pointerup", fin); cv.addEventListener("pointercancel", fin);
+  d.querySelector("#tvDibBar").addEventListener("click", (e) => { e.stopPropagation(); const c = e.target.closest("[data-c]"), g = e.target.closest("[data-g]");
+    if (c) { col = c.dataset.c; d.querySelectorAll("[data-c]").forEach(x => x.classList.toggle("on", x === c)); } else if (g) gr = Number(g.dataset.g);
+    else if (e.target.closest("#tvDibUndo")) { trazos.pop(); pintar(); } else if (e.target.closest("#tvDibClr")) { trazos = []; pintar(); } else if (e.target.closest("#tvDibX")) d.remove(); });
+  d.addEventListener("click", (e) => e.stopPropagation()); d._undo = () => { trazos.pop(); pintar(); };
 }
 function tvToggleIndice() {
   const raiz = document.getElementById("tvModo"); if (!raiz) return; const ya = raiz.querySelector("#tvIndice"); if (ya) { ya.remove(); return; }
@@ -4891,33 +5022,57 @@ function tvMenu() {
   const eqJ = [equipoOficial(miEquipo)].concat(eqs); let jEq = TV.jugEq || eqJ[0], jNom = TV.jug || "", jugs = [];
   const selEst = "font-size:clamp(14px,1.6vw,26px);padding:.5vh 1vw;border-radius:12px;border:0;background:#1d3248;color:#fff;font-weight:800;max-width:36vw;";
   const cargaJugs = () => { try { jugs = tvJugRival(jEq, 1).map(x => x.n); } catch (e) { jugs = []; } if (!jugs.includes(jNom)) jNom = jugs[0] || ""; };
+  const topDe = (eq) => { try { const l = tvJugRival(eq, 1).sort((a, b) => b.pt - a.pt); return l[0] ? l[0].n : ""; } catch (e) { return ""; } };
+  const jugsDe = (eq) => { try { return tvJugRival(eq, 1).sort((a, b) => b.pt - a.pt).map(x => x.n); } catch (e) { return []; } };
+  let cA = TV.cmpA ? Object.assign({}, TV.cmpA) : { eq: eqJ[0], n: topDe(eqJ[0]) }, cB = TV.cmpB ? Object.assign({}, TV.cmpB) : { eq: sel || eqJ[1] || eqJ[0], n: topDe(sel || eqJ[1] || eqJ[0]) };
   const caja = raiz.querySelector(".tv-slide"); caja.classList.remove("in");
-  const op = [["nuestro", "🏀", "Nuestro equipo", "Progreso, objetivos, mapa de tiro, ranking…"], ["rival", "🔎", "Un rival", "Forma, jugadoras a vigilar, claves del partido…"], ["todo", "📺", "Todo", "Nuestro equipo y después el rival"], ["jugadora", "⭐", "Una jugadora", "Su ficha, su mapa de tiro y sus vídeos"], ["jugrival", "🗂️", "Jugadoras del rival", "Un perfil por jugadora: dorsal, tiros, stats y vídeo"]];
+  const op = [["nuestro", "🏀", "Nuestro equipo", "Progreso, objetivos, mapa de tiro, ranking…"], ["rival", "🔎", "Un rival", "Forma, jugadoras a vigilar, claves del partido…"], ["todo", "📺", "Todo", "Nuestro equipo y después el rival"], ["jugadora", "⭐", "Una jugadora", "Su ficha, su mapa de tiro y sus vídeos"], ["jugrival", "🗂️", "Jugadoras del rival", "Un perfil por jugadora: dorsal, tiros, stats y vídeo"], ["comparar", "⚔️", "Comparar dos jugadoras", "Cara a cara de cualquier par: nuestras o rivales"]];
   let abierta = false, lista = null, oc = tvOcultasLeer(); const btnMini = "background:#1d3248;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 12px Inter,sans-serif;cursor:pointer;";
-  const prepararSlides = async () => { TV.modo = modo; if (modo !== "nuestro" && modo !== "jugadora") TV.rival = sel; if (modo === "jugadora") { TV.jugEq = jEq; TV.jug = (caja.querySelector("#tvMenuJ") || {}).value || jNom; }
+  const prepararSlides = async () => { TV.modo = modo; if (modo !== "nuestro" && modo !== "jugadora" && modo !== "comparar") TV.rival = sel; if (modo === "comparar") { TV.cmpA = cA; TV.cmpB = cB; } if (modo === "jugadora") { TV.jugEq = jEq; TV.jug = (caja.querySelector("#tvMenuJ") || {}).value || jNom; }
     try { await zonasDeLaLiga(); } catch (er) { /* nada */ }
-    try { if (modo === "jugadora") await cargarTirosEquipo(TV.jugEq); else if (modo !== "nuestro" && TV.rival) await cargarTirosEquipo(TV.rival); } catch (er) { /* nada */ }
+    try { if (modo === "comparar") { await cargarTirosEquipo(cA.eq); await cargarTirosEquipo(cB.eq); } else if (modo === "jugadora") await cargarTirosEquipo(TV.jugEq); else if (modo !== "nuestro" && TV.rival) await cargarTirosEquipo(TV.rival); } catch (er) { /* nada */ }
     try { lista = tvSlides(TV.ctx, true).filter(x => x.id); } catch (er) { lista = []; } };
   const pintar = () => {
     if (modo === "jugadora") cargaJugs();
+    const filaCmp = (id, P) => { const js = jugsDe(P.eq); if (!js.includes(P.n)) P.n = js[0] || ""; return `<div style="display:flex;gap:.8vw;justify-content:center;flex-wrap:wrap;"><select id="tvCmp${id}Eq" style="${selEst}">${eqJ.map(n => `<option ${n === P.eq ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select><select id="tvCmp${id}" style="${selEst}">${js.map(n => `<option ${n === P.n ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select></div>`; };
+    const pres = (scouting.presentaciones || []);
     caja.innerHTML = `<div class="tv-kick">Modo TV</div><h2>¿Qué quieres mostrar?</h2>
-      <div class="tv-grid" style="grid-template-columns:repeat(5,1fr);gap:1.4vw;">${op.map(o => `<div class="tv-card" data-m="${o[0]}" style="cursor:pointer;text-align:center;${modo === o[0] ? "border-color:#f2803f;background:rgba(242,128,63,.2);" : ""}"><div style="font-size:clamp(30px,4vw,70px);">${o[1]}</div><div style="font-weight:900;font-size:clamp(16px,2.2vw,38px);margin:.4em 0;">${o[2]}</div><div class="tv-sub" style="font-size:clamp(12px,1.3vw,22px);">${o[3]}</div></div>`).join("")}</div>
+      <div class="tv-grid" style="grid-template-columns:repeat(${op.length},1fr);gap:1.2vw;">${op.map(o => `<div class="tv-card" data-m="${o[0]}" style="cursor:pointer;text-align:center;${modo === o[0] ? "border-color:#f2803f;background:rgba(242,128,63,.2);" : ""}"><div style="font-size:clamp(30px,4vw,70px);">${o[1]}</div><div style="font-weight:900;font-size:clamp(14px,1.7vw,30px);margin:.4em 0;">${o[2]}</div><div class="tv-sub" style="font-size:clamp(11px,1.1vw,19px);">${o[3]}</div></div>`).join("")}</div>
       ${modo === "jugadora" ? `<div style="margin-top:3.5vh;display:flex;align-items:center;gap:1.2vw;justify-content:center;flex-wrap:wrap;"><select id="tvMenuJEq" style="${selEst}">${eqJ.map(n => `<option ${n === jEq ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select><select id="tvMenuJ" style="${selEst}">${jugs.map(n => `<option ${n === jNom ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select></div>` : ""}
-      ${modo !== "nuestro" && modo !== "jugadora" ? `<div style="margin-top:3.5vh;display:flex;align-items:center;gap:1.6vw;justify-content:center;flex-wrap:wrap;"><span class="tv-sub">Rival:</span><select id="tvMenuRival" style="font-size:clamp(14px,1.7vw,28px);padding:.5vh 1vw;border-radius:12px;border:0;background:#1d3248;color:#fff;font-weight:800;max-width:40vw;">${eqs.map(n => `<option ${n === sel ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select>${sig ? `<span class="tv-sub">${sel === sig ? "(próximo rival)" : ""}</span>` : ""}</div>` : ""}
-      <div style="text-align:center;margin-top:2.6vh;"><button id="tvMenuSel" style="background:transparent;color:#9fb2c6;border:1px solid #33475c;border-radius:12px;padding:.8vh 1.6vw;font:700 clamp(12px,1.2vw,20px) Inter,sans-serif;cursor:pointer;">${abierta ? "▲ Ocultar la lista" : "☑ Elegir qué diapositivas mostrar"}</button></div>
-      ${abierta ? `<div id="tvMenuLista" style="margin:1.6vh auto 0;max-width:80vw;max-height:26vh;overflow:auto;background:rgba(255,255,255,.05);border-radius:12px;padding:1vh 1.4vw;">${lista === null ? `<div class="tv-sub" style="font-size:clamp(12px,1.2vw,20px);">Cargando…</div>` : `<div style="display:flex;gap:10px;margin-bottom:.8vh;"><button data-todas="1" style="${btnMini}">Marcar todas</button><button data-todas="0" style="${btnMini}">Quitar todas</button></div><div style="columns:3 220px;column-gap:1.6vw;">${lista.map(x => `<label style="display:block;break-inside:avoid;font:600 clamp(11px,1.15vw,19px) Inter,sans-serif;color:#d5e1ee;padding:.25vh 0;cursor:pointer;"><input type="checkbox" data-id="${escapeAttr(x.id)}" ${oc.has(x.id) ? "" : "checked"}> ${escapeHtml(tvTitulo(x))}</label>`).join("")}</div>`}</div>` : ""}
+      ${modo === "comparar" ? `<div style="margin-top:2.4vh;display:flex;flex-direction:column;gap:.8vh;">${filaCmp("A", cA)}<div class="tv-sub" style="text-align:center;font-size:clamp(12px,1.3vw,22px);">contra</div>${filaCmp("B", cB)}</div>` : ""}
+      ${modo !== "nuestro" && modo !== "jugadora" && modo !== "comparar" ? `<div style="margin-top:3.5vh;display:flex;align-items:center;gap:1.6vw;justify-content:center;flex-wrap:wrap;"><span class="tv-sub">Rival:</span><select id="tvMenuRival" style="font-size:clamp(14px,1.7vw,28px);padding:.5vh 1vw;border-radius:12px;border:0;background:#1d3248;color:#fff;font-weight:800;max-width:40vw;">${eqs.map(n => `<option ${n === sel ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select>${sig ? `<span class="tv-sub">${sel === sig ? "(próximo rival)" : ""}</span>` : ""}</div>` : ""}
+      <div style="text-align:center;margin-top:2vh;display:flex;gap:.7vw;align-items:center;justify-content:center;flex-wrap:wrap;"><span class="tv-sub" style="font-size:clamp(12px,1.2vw,20px);">Presentaciones:</span>
+        ${pres.length ? `<select id="tvPresSel" style="${selEst}font-size:clamp(12px,1.2vw,20px);">${pres.map(x => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.nombre)}</option>`).join("")}</select><button id="tvPresAbrir" style="${btnMini}background:#f2803f;">▶ Abrir</button><button id="tvPresDel" style="${btnMini}">🗑</button>` : ""}
+        <input id="tvPresNom" placeholder="Nombre para guardar la actual" style="padding:6px 10px;border-radius:8px;border:0;font-size:13px;width:min(230px,22vw);"><button id="tvPresGuardar" style="${btnMini}">💾 Guardar</button></div>
+      <div style="text-align:center;margin-top:1.4vh;"><button id="tvMenuSel" style="background:transparent;color:#9fb2c6;border:1px solid #33475c;border-radius:12px;padding:.8vh 1.6vw;font:700 clamp(12px,1.2vw,20px) Inter,sans-serif;cursor:pointer;">${abierta ? "▲ Ocultar la lista" : "☑ Elegir qué diapositivas mostrar"}</button></div>
+      ${abierta ? `<div id="tvMenuLista" style="margin:1.6vh auto 0;max-width:80vw;max-height:26vh;overflow:auto;background:rgba(255,255,255,.05);border-radius:12px;padding:1vh 1.4vw;">${lista === null ? `<div class="tv-sub" style="font-size:clamp(12px,1.2vw,20px);">Cargando…</div>` : `<div style="display:flex;gap:10px;margin-bottom:.8vh;"><button data-todas="1" style="${btnMini}">Marcar todas</button><button data-todas="0" style="${btnMini}">Quitar todas</button><button data-orden0="1" style="${btnMini}">Orden original</button><span class="tv-sub" style="font-size:12px;align-self:center;">▲▼ para cambiar el orden</span></div><div style="columns:3 220px;column-gap:1.6vw;">${lista.map((x, ix) => `<label style="display:block;break-inside:avoid;font:600 clamp(11px,1.15vw,19px) Inter,sans-serif;color:#d5e1ee;padding:.25vh 0;cursor:pointer;"><input type="checkbox" data-id="${escapeAttr(x.id)}" ${oc.has(x.id) ? "" : "checked"}> ${escapeHtml(tvTitulo(x))}<span style="float:right;white-space:nowrap;color:#9fb2c6;"><b data-mv="-1" data-ix="${ix}" style="cursor:pointer;padding:0 5px;">▲</b><b data-mv="1" data-ix="${ix}" style="cursor:pointer;padding:0 5px;">▼</b></span></label>`).join("")}</div>`}</div>` : ""}
       <div style="text-align:center;margin-top:2.4vh;"><button id="tvMenuGo" style="background:#f2803f;color:#fff;border:0;border-radius:16px;padding:1.4vh 3vw;font:900 clamp(16px,2vw,32px) Inter,sans-serif;cursor:pointer;">▶ Empezar</button></div>`;
     caja.querySelectorAll("[data-m]").forEach(c => c.addEventListener("click", (e) => { e.stopPropagation(); modo = c.dataset.m; abierta = false; lista = null; pintar(); }));
     const bs = caja.querySelector("#tvMenuSel"); if (bs) bs.addEventListener("click", async (e) => { e.stopPropagation(); abierta = !abierta; lista = null; pintar(); if (abierta) { await prepararSlides(); if (abierta) pintar(); } });
     caja.querySelectorAll("#tvMenuLista input[data-id]").forEach(c => c.addEventListener("change", () => { if (c.checked) oc.delete(c.dataset.id); else oc.add(c.dataset.id); tvOcultasGuardar(oc); }));
     caja.querySelectorAll("#tvMenuLista [data-todas]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); if (b.dataset.todas === "1") oc.clear(); else (lista || []).forEach(x => oc.add(x.id)); tvOcultasGuardar(oc); pintar(); }));
+    caja.querySelectorAll("#tvMenuLista [data-mv]").forEach(b => b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); const ix = Number(b.dataset.ix), j = ix + Number(b.dataset.mv); if (!lista || j < 0 || j >= lista.length) return;
+      const ids = lista.map(x => x.id); [ids[ix], ids[j]] = [ids[j], ids[ix]]; tvOrdenGuardar(ids.concat(tvOrdenLeer().filter(id => !ids.includes(id))));
+      const sc = (caja.querySelector("#tvMenuLista") || {}).scrollTop || 0; lista = tvSlides(TV.ctx, true).filter(x => x.id); pintar(); const l2 = caja.querySelector("#tvMenuLista"); if (l2) l2.scrollTop = sc; }));
+    caja.querySelectorAll("#tvMenuLista [data-orden0]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); tvOrdenGuardar([]); lista = tvSlides(TV.ctx, true).filter(x => x.id); pintar(); }));
+    ["A", "B"].forEach(id => { const se = caja.querySelector("#tvCmp" + id + "Eq"), sn = caja.querySelector("#tvCmp" + id);
+      if (se) se.addEventListener("change", () => { const o = { eq: se.value, n: topDe(se.value) }; if (id === "A") cA = o; else cB = o; abierta = false; lista = null; pintar(); });
+      if (sn) sn.addEventListener("change", () => { if (id === "A") cA.n = sn.value; else cB.n = sn.value; abierta = false; lista = null; pintar(); }); });
+    const pAb = caja.querySelector("#tvPresAbrir"); if (pAb) pAb.addEventListener("click", (e) => { e.stopPropagation(); const P = pres.find(x => x.id === caja.querySelector("#tvPresSel").value); if (!P) return;
+      modo = P.modo || "nuestro"; if (P.rival) sel = P.rival; if (P.jugEq) jEq = P.jugEq; if (P.jug) jNom = P.jug; if (P.cmpA) cA = Object.assign({}, P.cmpA); if (P.cmpB) cB = Object.assign({}, P.cmpB);
+      oc = new Set(P.ocultas || []); tvOcultasGuardar(oc); tvOrdenGuardar(P.orden || []); abierta = false; lista = null; pintar(); const go = caja.querySelector("#tvMenuGo"); if (go) go.click(); });
+    const pDe = caja.querySelector("#tvPresDel"); if (pDe) pDe.addEventListener("click", (e) => { e.stopPropagation(); const id = caja.querySelector("#tvPresSel").value; scouting.presentaciones = pres.filter(x => x.id !== id); scoutGuardar(); pintar(); });
+    const pGu = caja.querySelector("#tvPresGuardar"); if (pGu) pGu.addEventListener("click", (e) => { e.stopPropagation(); const nom = (caja.querySelector("#tvPresNom").value || "").trim() || ("Presentación " + (pres.length + 1)), ya = pres.find(x => x.nombre === nom);
+      const P = { id: ya ? ya.id : "pr" + Date.now(), nombre: nom, modo, rival: sel, jugEq: jEq, jug: (caja.querySelector("#tvMenuJ") || {}).value || jNom, cmpA: Object.assign({}, cA), cmpB: Object.assign({}, cB), ocultas: [...oc], orden: tvOrdenLeer() };
+      scouting.presentaciones = pres.filter(x => x !== ya).concat([P]); scoutGuardar(); pintar(); const sl2 = caja.querySelector("#tvPresSel"); if (sl2) sl2.value = P.id; });
     const je = caja.querySelector("#tvMenuJEq"); if (je) je.addEventListener("change", () => { jEq = je.value; jNom = ""; abierta = false; lista = null; pintar(); });
     const jn = caja.querySelector("#tvMenuJ"); if (jn) jn.addEventListener("change", () => { jNom = jn.value; abierta = false; lista = null; pintar(); });
     const s2 = caja.querySelector("#tvMenuRival"); if (s2) s2.addEventListener("change", () => { sel = s2.value; abierta = false; lista = null; pintar(); });
     caja.querySelector("#tvMenuGo").addEventListener("click", async (e) => {
-      e.stopPropagation(); TV.modo = modo; TV.rival = (modo === "nuestro" || modo === "jugadora") ? TV.rival : sel; if (modo === "jugadora") { TV.jugEq = jEq; TV.jug = (caja.querySelector("#tvMenuJ") || {}).value || jNom; } e.target.textContent = "Preparando…";
+      e.stopPropagation(); TV.modo = modo; TV.rival = (modo === "nuestro" || modo === "jugadora" || modo === "comparar") ? TV.rival : sel; if (modo === "comparar") { TV.cmpA = cA; TV.cmpB = cB; } if (modo === "jugadora") { TV.jugEq = jEq; TV.jug = (caja.querySelector("#tvMenuJ") || {}).value || jNom; } e.target.textContent = "Preparando…";
       try { await zonasDeLaLiga(); } catch (er) { /* nada */ }
-      if (modo === "jugadora") { try { await cargarTirosEquipo(TV.jugEq); } catch (er) { /* nada */ } }
+      if (modo === "comparar") { try { await cargarTirosEquipo(cA.eq); await cargarTirosEquipo(cB.eq); } catch (er) { /* nada */ } }
+      else if (modo === "jugadora") { try { await cargarTirosEquipo(TV.jugEq); } catch (er) { /* nada */ } }
       else if (modo !== "nuestro" && TV.rival) { try { await cargarTirosEquipo(TV.rival); } catch (er) { /* nada */ } }
       if (!TV.abierto) return;
       try { TV.slides = tvSlides(TV.ctx); } catch (er) { console.warn("Modo TV:", er); TV.slides = []; }
@@ -4936,7 +5091,7 @@ async function abrirTV() {
   TV.abierto = true; TV.i = 0; TV.auto = true; TV.slides = []; TV.menu = false;
   const r = document.createElement("div"); r.id = "tvModo";
   r.innerHTML = `<div class="tv-prog"></div><div class="tv-slide"><div class="tv-sub" style="text-align:center;">Preparando la presentación...</div></div>
-    <div class="tv-barra-ctrl"><div class="tv-dots"></div><div class="tv-btns"><button id="tvPrev">◀</button><button id="tvAuto">❚❚ Pausa</button><button id="tvNext">▶</button><button id="tvIndB">☰ Índice</button><button id="tvMenuB">☰ Menú</button><button id="tvMetasB">⭐ Metas jugadoras</button><button id="tvObjB">🎯 Objetivos</button><button id="tvFull" title="Pantalla completa">⛶ Pantalla</button><button id="tvSalir">✕ Salir</button></div></div>`;
+    <div class="tv-barra-ctrl"><div class="tv-dots"></div><div class="tv-btns"><button id="tvPrev">◀</button><button id="tvAuto">❚❚ Pausa</button><button id="tvNext">▶</button><button id="tvIndB">☰ Índice</button><button id="tvMenuB">☰ Menú</button><button id="tvMetasB">⭐ Metas jugadoras</button><button id="tvObjB">🎯 Objetivos</button><button id="tvDibB">✏️ Dibujar</button><button id="tvFull" title="Pantalla completa">⛶ Pantalla</button><button id="tvSalir">✕ Salir</button></div></div>`;
   document.body.appendChild(r);
   r.addEventListener("mousemove", tvMostrarControles); r.addEventListener("click", tvMostrarControles);
   r.querySelector("#tvPrev").addEventListener("click", (e) => { e.stopPropagation(); tvIr(-1); });
@@ -4947,6 +5102,7 @@ async function abrirTV() {
   r.querySelector("#tvMenuB").addEventListener("click", (e) => { e.stopPropagation(); if (TV.ctx) tvMenu(); });
   r.querySelector("#tvMetasB").addEventListener("click", (e) => { e.stopPropagation(); tvAbrirMetasJug(); });
   r.querySelector("#tvObjB").addEventListener("click", (e) => { e.stopPropagation(); tvAbrirObjetivos(); });
+  r.querySelector("#tvDibB").addEventListener("click", (e) => { e.stopPropagation(); tvDibujoToggle(); });
   r.querySelector("#tvFull").addEventListener("click", (e) => { e.stopPropagation(); try { if (document.fullscreenElement) document.exitFullscreen(); else r.requestFullscreen(); } catch (er) { /* nada */ } });
   document.addEventListener("keydown", tvTecla);
   tvMostrarControles();
@@ -11947,12 +12103,15 @@ function renderScouting() {
         <div>
           <b>Copia de seguridad</b>
           <p class="hint" style="margin:4px 0 0;">Tus notas, videos y jugadas viven en este navegador. Si lo borras o cambias de ordenador, se pierden. Descarga el archivo de vez en cuando.
-          La copia guarda los textos y los enlaces, pero <b>no</b> los archivos de video que subes desde el ordenador: esos son demasiado grandes y los tienes ya en tu disco.</p>
+          La copia guarda los textos y los enlaces, pero <b>no</b> los archivos de video que subes desde el ordenador: esos se guardan aparte con «Descargar vídeos subidos» (un archivo por vídeo) y se devuelven con «Restaurar vídeos».</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-partido" id="btnDescargarScout">Descargar copia</button>
           <button class="btn-partido" id="btnImportarScout" style="background:var(--ink);">Cargar copia</button>
           <input type="file" id="ficheroScout" accept="application/json" style="display:none;">
+          <button class="btn-partido" id="btnVidDescargar" style="background:#1d3248;">Descargar vídeos subidos</button>
+          <button class="btn-partido" id="btnVidRestaurar" style="background:#1d3248;">Restaurar vídeos</button>
+          <input type="file" id="ficheroVid" accept="video/*" multiple style="display:none;"><span id="vidCopiaEstado" class="hint" style="align-self:center;"></span>
         </div>
       </div>
     </div>`;
@@ -11970,6 +12129,9 @@ function renderScouting() {
   if (perfil) perfil.addEventListener("click", () => showEquipoDetail(nombre));
   const btnDesc = document.getElementById("btnDescargarScout");
   if (btnDesc) btnDesc.addEventListener("click", descargarScouting);
+  const bvd = document.getElementById("btnVidDescargar"), bvr = document.getElementById("btnVidRestaurar"), fvid = document.getElementById("ficheroVid"), vest = document.getElementById("vidCopiaEstado");
+  if (bvd) bvd.addEventListener("click", async () => { bvd.disabled = true; const r = await videosDescargarTodos((t) => { vest.textContent = t; }); vest.textContent = r.total ? `Listo: ${r.hechos} de ${r.total} vídeos descargados` : "No hay vídeos subidos en este navegador."; bvd.disabled = false; });
+  if (bvr && fvid) { bvr.addEventListener("click", () => fvid.click()); fvid.addEventListener("change", async () => { const r = await videosRestaurar(fvid.files); vest.textContent = `Restaurados ${r.hechos}` + (r.ignorados ? ` · ${r.ignorados} ignorados (el nombre debe empezar por scoutflow-video-)` : ""); fvid.value = ""; }); }
   const btnImp = document.getElementById("btnImportarScout");
   const fich = document.getElementById("ficheroScout");
   if (btnImp && fich) {
@@ -16373,7 +16535,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27k";
+const VERSION_APP = "2026-10-27l";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
