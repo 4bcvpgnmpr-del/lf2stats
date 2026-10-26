@@ -3874,6 +3874,7 @@ function rkPintar() {
       <select data-rkf="casa"><option value="">Local y visitante</option><option value="casa" ${RK.casa === "casa" ? "selected" : ""}>Solo en casa</option><option value="fuera" ${RK.casa === "fuera" ? "selected" : ""}>Solo fuera</option></select>
       <select data-rkf="res"><option value="">Todos los resultados</option><option value="v" ${RK.res === "v" ? "selected" : ""}>Solo victorias</option><option value="d" ${RK.res === "d" ? "selected" : ""}>Solo derrotas</option></select>
       <select data-rkf="ult"><option value="0">Toda la temporada</option>${[3, 5, 10].map(n => `<option value="${n}" ${RK.ult === n ? "selected" : ""}>Últimos ${n} partidos</option>`).join("")}</select>
+      <button class="btn-partido" id="rkPlay" style="background:#1a7f5a;">▶ Animar</button>
       <button class="btn-partido" id="rkImg" style="background:#b4470f;">Descargar imagen</button>
     </div>
     ${RK.abierto ? `<div class="panel" style="margin:0 0 12px;background:var(--suave,#fdf6ee);"><input id="rkBuscar" type="search" placeholder="Busca una métrica..." value="${escapeAttr(RK.q)}" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;">
@@ -3882,17 +3883,18 @@ function rkPintar() {
     <div id="rkLienzo" style="background:#fff;border:1px solid #e3ddd2;border-radius:14px;padding:14px;">
       <div style="text-align:center;margin-bottom:10px;"><div style="font-size:11px;letter-spacing:.14em;color:#b4470f;font-weight:700;">RANKING DE EQUIPOS${grupoActivo ? " · GRUPO " + escapeHtml(grupoActivo) : ""}</div><div style="font-size:20px;font-weight:800;color:#111;">${escapeHtml(met.et)}</div>
       <div style="font-size:12px;color:#777;">${escapeHtml(LIGA_NOMBRE)}${RK.casa ? " · " + (RK.casa === "casa" ? "en casa" : "fuera") : ""}${RK.res ? " · " + (RK.res === "v" ? "victorias" : "derrotas") : ""}${RK.ult ? " · últimos " + RK.ult + " partidos" : ""}</div></div>
-      ${lista.length ? lista.map((o, i) => { const esMio = miEquipo && normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(o.n), esc = escudoUrlFor(o.n);
+      <div id="rkLista">${lista.length ? lista.map((o, i) => { const esMio = miEquipo && normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(o.n), esc = escudoUrlFor(o.n);
         return `<div style="display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:7px 8px;margin:5px 0;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;">
           <span style="text-align:center;font-weight:800;border-radius:8px;padding:4px 0;background:${i === 0 ? "#fbe7c9" : (i === 1 ? "#e8eaee" : (i === 2 ? "#f7dccf" : "#f3f4f6"))};">#${i + 1}</span>
           ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
           <div style="min-width:0;"><div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(o.n)}</div><div style="font-size:11px;color:#888;">${o.a.pj} partidos · ${o.a.v}-${o.a.d}</div></div>
           <b style="text-align:right;">${cmpFmt(o.v, met.dec)}</b>
-          <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i style="display:block;height:100%;width:${barra(o.v)}%;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("") : `<p class="hint">Ningún equipo tiene partidos con estos filtros.</p>`}
+          <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i style="display:block;height:100%;width:${barra(o.v)}%;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("") : `<p class="hint">Ningún equipo tiene partidos con estos filtros.</p>`}</div>
       <div style="text-align:center;font-size:10.5px;color:#999;margin-top:8px;">${met.dir < 0 ? "En esta métrica, menos es mejor. " : ""}Datos de la FEB · ScoutFlow</div></div>`;
   caja.querySelector("#rkAbrir").addEventListener("click", () => { RK.abierto = !RK.abierto; rkPintar(); });
   caja.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { if (b.dataset.rk === "metrica") { RK.metrica = b.dataset.v; RK.abierto = false; RK.q = ""; } else RK[b.dataset.rk] = b.dataset.v; if (b.dataset.rk === "cat") RK.q = ""; rkPintar(); }));
   caja.querySelectorAll("[data-rkf]").forEach(s => s.addEventListener("change", () => { RK[s.dataset.rkf] = s.dataset.rkf === "ult" ? Number(s.value) : s.value; rkPintar(); }));
+  caja.querySelector("#rkPlay").addEventListener("click", () => rkAnimar(porEq, met, caja));
   const bq = caja.querySelector("#rkBuscar"); if (bq) { bq.addEventListener("input", () => { RK.q = bq.value; const pos = bq.selectionStart; rkPintar(); const n = document.getElementById("rkBuscar"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* nada */ } } }); }
   caja.querySelector("#rkImg").addEventListener("click", async (ev) => {
     const b = ev.currentTarget, t0 = b.textContent; b.disabled = true; b.textContent = "Creando imagen...";
@@ -3902,6 +3904,58 @@ function rkPintar() {
     catch (e) { alert("No se pudo crear la imagen: " + (e && e.message ? e.message : e)); }
     finally { try { volver(); } catch (e) { /* nada */ } b.disabled = false; b.textContent = t0; }
   });
+}
+
+/* Animación tipo "carrera": el ranking se va reordenando partido a partido */
+let rkTimer = null;
+function rkAnimar(porEq, met, caja) {
+  if (rkTimer) { clearInterval(rkTimer); rkTimer = null; rkPintar(); return; }
+  const base = [];
+  porEq.forEach((regs, nombre) => {
+    if (grupoActivo && grupoDeEquipo(nombre) && grupoDeEquipo(nombre) !== grupoActivo) return;
+    let l = regs.slice().sort((a, b) => a.fch - b.fch);
+    if (RK.casa) l = l.filter(x => RK.casa === "casa" ? x.casa === true : x.casa === false);
+    if (RK.res) l = l.filter(x => RK.res === "v" ? x.gano : x.perdio);
+    if (RK.ult) l = l.slice(-RK.ult);
+    if (l.length) base.push([nombre, l]);
+  });
+  const maxK = Math.max(0, ...base.map(b => b[1].length)); if (!maxK) return;
+  const frames = [];
+  for (let k = 1; k <= maxK; k++) {
+    const fr = [];
+    base.forEach(([n, l]) => { const a = nuevoAcumulado(), s = l.slice(0, k); a.pj = s.length;
+      s.forEach(x => { if (x.gano) a.v++; else if (x.perdio) a.d++; ["pf", "pc", "tca", "tci", "t3a", "t3i", "tla", "tli", "ro", "rd", "roRival", "rdRival", "as", "bp", "br", "pos", "posRival"].forEach(q => { a[q] += x[q]; }); });
+      const v = met.f(a); if (v !== null && isFinite(v)) fr.push({ n, a, v }); });
+    fr.sort((x, y) => met.dir > 0 ? y.v - x.v : x.v - y.v); frames.push(fr);
+  }
+  const todos = frames.flat().map(o => o.v), gmin = Math.min(...todos), gmax = Math.max(...todos), rango = (gmax - gmin) || 1;
+  const nombres = [...new Set(frames.flat().map(o => o.n))], ALTO = 54;
+  const lista = caja.querySelector("#rkLista");
+  lista.style.position = "relative"; lista.style.height = (nombres.length * ALTO) + "px";
+  lista.innerHTML = `<div id="rkRonda" style="position:absolute;left:0;right:0;top:-2px;"></div>` + nombres.map(n => { const esMio = miEquipo && normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(n), esc = escudoUrlFor(n);
+    return `<div class="rk-fila" data-n="${escapeAttr(n)}" style="position:absolute;left:0;right:0;height:${ALTO - 6}px;top:0;transition:top .6s ease;display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:0 8px;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;box-sizing:border-box;">
+      <span class="rk-pos" style="text-align:center;font-weight:800;border-radius:8px;padding:4px 0;background:#f3f4f6;"></span>
+      ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
+      <div style="min-width:0;"><div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(n)}</div><div class="rk-sub" style="font-size:11px;color:#888;"></div></div>
+      <b class="rk-val" style="text-align:right;"></b>
+      <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i class="rk-bar" style="display:block;height:100%;width:6%;transition:width .6s ease;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("");
+  const titulo = caja.querySelector("#rkLienzo > div"), sub = titulo ? titulo.lastElementChild : null, subOrig = sub ? sub.textContent : "";
+  const btn = caja.querySelector("#rkPlay"); btn.textContent = "■ Parar";
+  const col = ["#fbe7c9", "#e8eaee", "#f7dccf"];
+  let k = 0;
+  const paso = () => {
+    const fr = frames[k];
+    fr.forEach((o, i) => { const f = lista.querySelector(`.rk-fila[data-n="${CSS.escape(o.n)}"]`); if (!f) return;
+      f.style.top = (i * ALTO) + "px"; f.style.display = "grid";
+      const ps = f.querySelector(".rk-pos"); ps.textContent = "#" + (i + 1); ps.style.background = i < 3 ? col[i] : "#f3f4f6";
+      f.querySelector(".rk-sub").textContent = o.a.pj + " partidos · " + o.a.v + "-" + o.a.d; f.querySelector(".rk-val").textContent = cmpFmt(o.v, met.dec);
+      const t = met.dir > 0 ? (o.v - gmin) / rango : (gmax - o.v) / rango; f.querySelector(".rk-bar").style.width = Math.max(6, Math.round(6 + 94 * t)) + "%"; });
+    lista.querySelectorAll(".rk-fila").forEach(f => { if (!fr.some(o => o.n === f.dataset.n)) f.style.display = "none"; });
+    if (sub) sub.textContent = "Tras " + (k + 1) + " de " + maxK + " partidos";
+    k++;
+    if (k >= frames.length) { clearInterval(rkTimer); rkTimer = null; btn.textContent = "▶ Repetir"; if (sub) sub.textContent = subOrig + " · final"; }
+  };
+  paso(); if (frames.length > 1) rkTimer = setInterval(paso, 1100); else btn.textContent = "▶ Animar";
 }
 
 function fillComparadorPickers() {
@@ -15125,7 +15179,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26c";
+const VERSION_APP = "2026-10-26d";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
