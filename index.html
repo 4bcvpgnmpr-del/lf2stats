@@ -4395,7 +4395,6 @@ function tvSlidesRival(ctx, rival) {
   // 5. Mapa de tiro del rival
   try { const m = tvSlideMapa(ctx, R); if (m) S.push(m); } catch (e) { console.warn("Modo TV:", e); }
   try { const z = tvSlideZonas(R, false); if (z) S.push(z); } catch (e) { console.warn("Modo TV:", e); }
-  tvJugRival(R, 2).slice(0, 3).forEach(x => { try { const m = tvSlideMapaJug(R, x.n); if (m) S.push(m); } catch (e) { console.warn("Modo TV:", e); } });
   try { const x = tvSlideCuartos(R, false); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); }
   { const cr = tvContexto(R); try { const x = tvSlideQuintetos(cr, R); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); } }
   // 7. Claves del partido
@@ -16352,7 +16351,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27g";
+const VERSION_APP = "2026-10-27h";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
