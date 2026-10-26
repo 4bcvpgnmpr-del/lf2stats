@@ -2471,6 +2471,48 @@ def tiros_de_partido(datos: dict, partido_id: str) -> tuple:
     return filas, informe
 
 
+def reloj_posesion(eventos: list, equipos: list) -> dict:
+    """Reparto de los tiros de campo segun los segundos transcurridos desde que
+    empezo la posesion (canasta rival, rebote, perdida o rebote ofensivo).
+    Devuelve {(equipo, cuarto): {"1": [tiros, puntos, puntos de libres], "2": [...], "3": [...]}}
+    con tres tramos: primeros 8 s, de 8 a 16 s y mas de 16 s. Los libres se
+    cuentan en el tramo en que se señalo la falta (solo suman puntos)."""
+    salida = {}
+    cuarto_actual = None
+    inicio = 0
+    ultimo_tl = None   # (seg, tramo) del viaje a la linea de libres en curso
+    for ev in eventos:
+        e = ev["equipo"]
+        if ev["cuarto"] != cuarto_actual:
+            cuarto_actual = ev["cuarto"]
+            largo = SEGUNDOS_CUARTO if cuarto_actual <= 4 else SEGUNDOS_PRORROGA
+            inicio = _segundos_absolutos(cuarto_actual, largo)
+        if e not in equipos:
+            continue
+        rival = equipos[1] if e == equipos[0] else equipos[0]
+        seg = ev["seg"]
+        if ev.get("tc"):
+            dur = seg - inicio
+            if 0 <= dur <= 30:
+                tramo = "1" if dur < 8 else ("2" if dur < 16 else "3")
+                d = salida.setdefault((e, cuarto_actual), {"1": [0, 0, 0], "2": [0, 0, 0], "3": [0, 0, 0]})
+                d[tramo][0] += 1
+                d[tramo][1] += ev["puntos"]
+            if ev["puntos"]:
+                inicio = seg
+        elif ev.get("tl"):
+            if ultimo_tl is None or ultimo_tl[0] != seg:
+                dur = max(0, min(seg - inicio, 30))
+                ultimo_tl = (seg, "1" if dur < 8 else ("2" if dur < 16 else "3"))
+            if ev["puntos"]:
+                d = salida.setdefault((e, cuarto_actual), {"1": [0, 0, 0], "2": [0, 0, 0], "3": [0, 0, 0]})
+                d[ultimo_tl[1]][2] += ev["puntos"]
+            inicio = seg
+        elif ev.get("ro") or ev.get("rd") or ev.get("bp"):
+            inicio = seg
+    return salida
+
+
 def cuartos_de_partido(datos: dict, partido_id: str) -> list:
     """Puntos, tiros y posesiones de cada equipo en cada cuarto."""
     equipos, eventos = eventos_de_keyfacts(datos)
@@ -2507,9 +2549,11 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
                 else:
                     d["t2i"] += 1
 
+    reloj = reloj_posesion(eventos, equipos)
     filas = []
     for (equipo, cuarto), d in sorted(acumulado.items(), key=lambda x: (x[0][0], x[0][1])):
         rival = equipos[1] if equipo == equipos[0] else equipos[0]
+        rl = reloj.get((equipo, cuarto), {"1": [0, 0, 0], "2": [0, 0, 0], "3": [0, 0, 0]})
         pos = d["t2i"] + d["t3i"] - d["ro"] + d["bp"] + 0.44 * d["tli"]
         tc_a, tc_i = d["t2a"] + d["t3a"], d["t2i"] + d["t3i"]
         filas.append({
@@ -2520,6 +2564,9 @@ def cuartos_de_partido(datos: dict, partido_id: str) -> list:
             "POS": round(pos, 2),
             "OER": round(100 * d["pts"] / pos, 1) if pos > 0 else "",
             "eFG": round(100 * (tc_a + 0.5 * d["t3a"]) / tc_i, 1) if tc_i else "",
+            "R1_TI": rl["1"][0], "R1_PT": rl["1"][1], "R2_TI": rl["2"][0], "R2_PT": rl["2"][1],
+            "R3_TI": rl["3"][0], "R3_PT": rl["3"][1],
+            "R1_LP": rl["1"][2], "R2_LP": rl["2"][2], "R3_LP": rl["3"][2],
         })
     return filas
 
@@ -2754,6 +2801,12 @@ def fetch_quintetos(sh, resultados_df: pd.DataFrame, partidos_df: pd.DataFrame =
             return set(), pd.DataFrame()
 
     ya_cuartos, cuartos_viejos = _ids_de_pestana(TAB_CUARTOS)
+    # Reloj de posesion: los partidos guardados antes de añadirlo se rehacen una vez
+    if not cuartos_viejos.empty:
+        if "R1_LP" in cuartos_viejos.columns:
+            ya_cuartos = set(cuartos_viejos.loc[cuartos_viejos["R1_LP"].astype(str).str.strip() != "", "PartidoID"])
+        else:
+            ya_cuartos = set()
     ya_tiros, tiros_viejos = _ids_de_pestana(TAB_TIROS_MAPA)
     _, clutch_viejo = _ids_de_pestana(TAB_CLUTCH + "_Partido")
     _, rebotes_viejos = _ids_de_pestana(TAB_REBOTES)
