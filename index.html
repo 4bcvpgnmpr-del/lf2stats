@@ -15278,6 +15278,9 @@ function setGrupo(g) {
   recordsCalculo = null;
   produccionCalculo = null;
   if (vistaActual === "records") renderRecords();
+  if (rkTimer) { clearInterval(rkTimer); rkTimer = null; }
+  if (vistaActual === "rankings-eq") { try { rkPintar(); } catch (e) { /* nada */ } }
+  if (vistaActual === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } }
 }
 
 function prepararBarraGrupos() {
@@ -15316,7 +15319,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26g";
+const VERSION_APP = "2026-10-26h";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
