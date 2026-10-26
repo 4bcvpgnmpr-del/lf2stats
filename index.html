@@ -3814,7 +3814,7 @@ function cmpPintar() {
 /* ============================================================
    RANKING DE EQUIPOS: elige la métrica y filtra (casa/fuera, victorias/derrotas, últimos partidos)
    ============================================================ */
-const RK = { cat: "tradicionales", metrica: "Puntos / partido", q: "", casa: "", res: "", ult: 0, abierto: false, cargando: false };
+const RK = { ajustar: false, cat: "tradicionales", metrica: "Puntos / partido", q: "", casa: "", res: "", ult: 0, abierto: false, cargando: false };
 function rkTodasMetricas() {
   const m = new Map();
   [["tradicionales", "Por partido"], ["avanzadas", "Avanzadas"], ["ofensivas", "Ofensivas"], ["defensivas", "Defensivas"], ["factores", "4 Factors"], ["organizacion", "Organización"], ["tiros", "Tiros"]].forEach(([k, t]) => {
@@ -3858,6 +3858,11 @@ function rkEquipos(porEq) {
   });
   return out;
 }
+/* Medidas de cada fila para que quepan todos los equipos en pantalla sin hacer scroll */
+function rkDims(n) {
+  const h = Math.max(18, Math.min(52, Math.floor((window.innerHeight - 300) / Math.max(1, n)) - 6));
+  return { h, gap: 3, sub: h >= 40, fs: h >= 34 ? 13 : (h >= 26 ? 12 : 11), esc: Math.min(26, h - 6) };
+}
 function rkPintar() {
   const caja = document.getElementById("rkEquipos"); if (!caja) return;
   if (!partidosCache) {
@@ -3874,6 +3879,7 @@ function rkPintar() {
   const cats = [...new Set([...todas.values()].map(m => m.cat))].map(c => [c, [...todas.values()].find(m => m.cat === c).catT]);
   const q = RK.q.trim().toLowerCase();
   const visibles = [...todas.values()].filter(m => q ? m.et.toLowerCase().includes(q) : m.cat === RK.cat);
+  const D = RK.ajustar ? rkDims(lista.length) : null;
   const barra = (v) => { const rango = Math.abs(mejor - peor) || 1, t = met.dir > 0 ? (v - peor) / rango : (peor - v) / rango; return Math.max(6, Math.round(6 + 94 * (isFinite(t) ? t : 1))); };
   caja.innerHTML = `<h2 class="section-title" style="margin-top:0;">Ranking de equipos</h2>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
@@ -3881,6 +3887,7 @@ function rkPintar() {
       <select data-rkf="casa"><option value="">Local y visitante</option><option value="casa" ${RK.casa === "casa" ? "selected" : ""}>Solo en casa</option><option value="fuera" ${RK.casa === "fuera" ? "selected" : ""}>Solo fuera</option></select>
       <select data-rkf="res"><option value="">Todos los resultados</option><option value="v" ${RK.res === "v" ? "selected" : ""}>Solo victorias</option><option value="d" ${RK.res === "d" ? "selected" : ""}>Solo derrotas</option></select>
       <select data-rkf="ult"><option value="0">Toda la temporada</option>${[3, 5, 10].map(n => `<option value="${n}" ${RK.ult === n ? "selected" : ""}>Últimos ${n} partidos</option>`).join("")}</select>
+      <button class="btn-partido" id="rkAjustar" style="background:#4a5560;">${RK.ajustar ? "Tamaño normal" : "Ver todos"}</button>
       <button class="btn-partido" id="rkPlay" style="background:#1a7f5a;">▶ Animar</button>
       <button class="btn-partido" id="rkImg" style="background:#b4470f;">Descargar imagen</button>
     </div>
@@ -3891,16 +3898,17 @@ function rkPintar() {
       <div style="text-align:center;margin-bottom:10px;"><div style="font-size:11px;letter-spacing:.14em;color:#b4470f;font-weight:700;">RANKING DE EQUIPOS${grupoActivo ? " · GRUPO " + escapeHtml(grupoActivo) : ""}</div><div style="font-size:20px;font-weight:800;color:#111;">${escapeHtml(met.et)}</div>
       <div style="font-size:12px;color:#777;">${escapeHtml(LIGA_NOMBRE)}${RK.casa ? " · " + (RK.casa === "casa" ? "en casa" : "fuera") : ""}${RK.res ? " · " + (RK.res === "v" ? "victorias" : "derrotas") : ""}${RK.ult ? " · últimos " + RK.ult + " partidos" : ""}</div></div>
       <div id="rkLista">${lista.length ? lista.map((o, i) => { const esMio = miEquipo && normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(o.n), esc = escudoUrlFor(o.n);
-        return `<div style="display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:7px 8px;margin:5px 0;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;">
-          <span style="text-align:center;font-weight:800;border-radius:8px;padding:4px 0;background:${i === 0 ? "#fbe7c9" : (i === 1 ? "#e8eaee" : (i === 2 ? "#f7dccf" : "#f3f4f6"))};">#${i + 1}</span>
-          ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
-          <div style="min-width:0;"><div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(o.n)}</div><div style="font-size:11px;color:#888;">${o.a.pj} partidos · ${o.a.v}-${o.a.d}</div></div>
+        return `<div style="display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;${D ? `height:${D.h}px;padding:0 8px;margin:${D.gap}px 0;box-sizing:border-box;` : "padding:7px 8px;margin:5px 0;"}border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;">
+          <span style="text-align:center;font-weight:800;border-radius:8px;${D ? `padding:0;line-height:${D.h - 4}px;font-size:${Math.min(14, D.h - 6)}px;` : "padding:4px 0;"}background:${i === 0 ? "#fbe7c9" : (i === 1 ? "#e8eaee" : (i === 2 ? "#f7dccf" : "#f3f4f6"))};">#${i + 1}</span>
+          ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:${D ? D.esc : 26}px;height:${D ? D.esc : 26}px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
+          <div style="min-width:0;"><div style="font-weight:800;font-size:${D ? D.fs : 13}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(o.n)}</div><div style="font-size:11px;color:#888;${D && !D.sub ? "display:none;" : ""}">${o.a.pj} partidos · ${o.a.v}-${o.a.d}</div></div>
           <b style="text-align:right;">${cmpFmt(o.v, met.dec)}</b>
           <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i style="display:block;height:100%;width:${barra(o.v)}%;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("") : `<p class="hint">Ningún equipo tiene partidos con estos filtros.</p>`}</div>
       <div style="text-align:center;font-size:10.5px;color:#999;margin-top:8px;">${met.dir < 0 ? "En esta métrica, menos es mejor. " : ""}Datos de la FEB · ScoutFlow</div></div>`;
   caja.querySelector("#rkAbrir").addEventListener("click", () => { RK.abierto = !RK.abierto; rkPintar(); });
   caja.querySelectorAll("[data-rk]").forEach(b => b.addEventListener("click", () => { if (b.dataset.rk === "metrica") { RK.metrica = b.dataset.v; RK.abierto = false; RK.q = ""; } else RK[b.dataset.rk] = b.dataset.v; if (b.dataset.rk === "cat") RK.q = ""; rkPintar(); }));
   caja.querySelectorAll("[data-rkf]").forEach(s => s.addEventListener("change", () => { RK[s.dataset.rkf] = s.dataset.rkf === "ult" ? Number(s.value) : s.value; rkPintar(); }));
+  caja.querySelector("#rkAjustar").addEventListener("click", () => { if (rkTimer) { clearInterval(rkTimer); rkTimer = null; } RK.ajustar = !RK.ajustar; rkPintar(); const l = document.getElementById("rkLienzo"); if (l && RK.ajustar) l.scrollIntoView({ block: "start" }); });
   caja.querySelector("#rkPlay").addEventListener("click", () => rkAnimar(porEq, met, caja));
   const bq = caja.querySelector("#rkBuscar"); if (bq) { bq.addEventListener("input", () => { RK.q = bq.value; const pos = bq.selectionStart; rkPintar(); const n = document.getElementById("rkBuscar"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* nada */ } } }); }
   caja.querySelector("#rkImg").addEventListener("click", async (ev) => {
@@ -3936,18 +3944,20 @@ function rkAnimar(porEq, met, caja) {
     fr.sort((x, y) => met.dir > 0 ? y.v - x.v : x.v - y.v); frames.push(fr);
   }
   const todos = frames.flat().map(o => o.v), gmin = Math.min(...todos), gmax = Math.max(...todos), rango = (gmax - gmin) || 1;
-  const nombres = [...new Set(frames.flat().map(o => o.n))], ALTO = 54;
+  const nombres = [...new Set(frames.flat().map(o => o.n))];
+  const cabe = nombres.length * 54 <= window.innerHeight - 300, D = (RK.ajustar || !cabe) ? rkDims(nombres.length) : null, ALTO = D ? D.h + 2 * D.gap : 54;
   const lista = caja.querySelector("#rkLista");
   lista.style.position = "relative"; lista.style.height = (nombres.length * ALTO) + "px";
   lista.innerHTML = `<div id="rkRonda" style="position:absolute;left:0;right:0;top:-2px;"></div>` + nombres.map(n => { const esMio = miEquipo && normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(n), esc = escudoUrlFor(n);
-    return `<div class="rk-fila" data-n="${escapeAttr(n)}" style="position:absolute;left:0;right:0;height:${ALTO - 6}px;top:0;transition:top 1.4s ease;display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:0 8px;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;box-sizing:border-box;">
-      <span class="rk-pos" style="text-align:center;font-weight:800;border-radius:8px;padding:4px 0;background:#f3f4f6;"></span>
-      ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
-      <div style="min-width:0;"><div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(n)}</div><div class="rk-sub" style="font-size:11px;color:#888;"></div></div>
+    return `<div class="rk-fila" data-n="${escapeAttr(n)}" style="position:absolute;left:0;right:0;height:${D ? D.h : ALTO - 6}px;top:0;transition:top 1.4s ease;display:grid;grid-template-columns:44px 30px minmax(0,1fr) 70px minmax(60px,34%);gap:10px;align-items:center;padding:0 8px;border:1px solid ${esMio ? "#e0602a" : "#eee"};background:${esMio ? "#fff5ee" : "#fff"};border-radius:10px;box-sizing:border-box;">
+      <span class="rk-pos" style="text-align:center;font-weight:800;border-radius:8px;${D ? `padding:0;line-height:${D.h - 4}px;font-size:${Math.min(14, D.h - 6)}px;` : "padding:4px 0;"}background:#f3f4f6;"></span>
+      ${esc ? `<img src="${escapeAttr(esc)}" alt="" style="width:${D ? D.esc : 26}px;height:${D ? D.esc : 26}px;object-fit:contain;" onerror="this.style.visibility='hidden'">` : "<span></span>"}
+      <div style="min-width:0;"><div style="font-weight:800;font-size:${D ? D.fs : 13}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(n)}</div><div class="rk-sub" style="font-size:11px;color:#888;${D && !D.sub ? "display:none;" : ""}"></div></div>
       <b class="rk-val" style="text-align:right;"></b>
       <span style="background:#eef1f4;border-radius:99px;height:9px;overflow:hidden;"><i class="rk-bar" style="display:block;height:100%;width:6%;transition:width 1.4s ease;background:linear-gradient(90deg,#14405c,#1aa7a0);border-radius:99px;"></i></span></div>`; }).join("");
   const titulo = caja.querySelector("#rkLienzo > div"), sub = titulo ? titulo.lastElementChild : null, subOrig = sub ? sub.textContent : "";
   const btn = caja.querySelector("#rkPlay"); btn.textContent = "■ Parar";
+  const lienzoR = caja.querySelector("#rkLienzo"); if (lienzoR && D) lienzoR.scrollIntoView({ block: "start" });
   const col = ["#fbe7c9", "#e8eaee", "#f7dccf"];
   let k = 0;
   const paso = () => {
@@ -15380,7 +15390,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26j";
+const VERSION_APP = "2026-10-26k";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
