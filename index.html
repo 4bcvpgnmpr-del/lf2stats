@@ -422,6 +422,8 @@
   .carta-wrap{display:grid;grid-template-columns:1fr;gap:20px;align-items:start;}
   .carta-wrap > *{min-width:0;}
   .carta-wrap svg.carta{max-width:480px;}
+  .carta-wrap.liga{grid-template-columns:1fr;} .carta-wrap.liga svg.carta{max-width:560px;}
+  @media (min-width:1500px){ .carta-wrap.liga{grid-template-columns:minmax(300px,460px) 1fr;} }
   @media (min-width:1250px){ .carta-wrap{grid-template-columns:minmax(300px,440px) 1fr;} }
   svg.carta{width:100%;height:auto;border-radius:10px;shape-rendering:geometricPrecision;}
   svg.carta .madera{fill:var(--madera);}
@@ -699,6 +701,7 @@
   table.tabla-zonas .barra-zona.bajo span{background:var(--rojo);}
   table.tabla-zonas .z-share{font-size:11px;color:var(--ink-soft);margin-left:6px;}
   table.tabla-zonas td.z-pps{font-weight:800;}
+  table.tabla-zonas-liga{font-size:12px;} table.tabla-zonas-liga th,table.tabla-zonas-liga td{padding:7px 5px;white-space:nowrap;} table.tabla-zonas-liga th{font-size:10.5px;}
   .zonas-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-top:14px;}
   .zc{border-radius:11px;padding:12px 14px;border:1.5px solid var(--wood-line);}
   .zc.verde{background:var(--verde-suave);border-color:var(--verde-linea);}
@@ -12226,7 +12229,7 @@ function colorZona(pct) {
 }
 
 // Media pista con las medidas reales FIBA (15 m de ancho, 14 de fondo)
-function cartaSvg(tiros, modo) {
+function cartaSvg(tiros, modo, liga) {
   const ESC = 36;                                  // pixeles por metro
   const FONDO = 14;                                // metros de fondo que se dibujan
   const W = ANCHO_PISTA * ESC, H = FONDO * ESC;
@@ -12254,6 +12257,48 @@ function cartaSvg(tiros, modo) {
   if (modo === "puntos") {
     encima = tiros.map(t => `<circle cx="${X(t.my).toFixed(1)}" cy="${Y(t.mx).toFixed(1)}" r="7"
       class="${t.anotado ? "tiro-dentro" : "tiro-fuera"}"></circle>`).join("");
+  } else if (modo === "heat") {
+    encima = `<defs><filter id="calorBl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${(0.55 * ESC).toFixed(1)}"></feGaussianBlur></filter></defs>
+      <g filter="url(#calorBl)">${tiros.map(t => `<circle cx="${X(t.my).toFixed(1)}" cy="${Y(t.mx).toFixed(1)}" r="${(0.75 * ESC).toFixed(1)}" fill="rgba(226,84,36,0.15)"></circle>`).join("")}</g>`;
+  } else if (["fg", "ppt", "vol", "dfg", "dppt"].includes(modo)) {
+    const porZona = {};
+    tiros.forEach(t => { const z = zonaDelTiro(t); const d = porZona[z] || (porZona[z] = { a: 0, i: 0 }); d.i++; if (t.anotado) d.a++; });
+    const total = tiros.length || 1, maxI = Math.max(...Object.values(porZona).map(d => d.i), 1);
+    const lz = {}; if (liga && liga.zonas) liga.zonas.forEach(z => { lz[z.zona] = z; });
+    const DOM = { fg: [25, 60], ppt: [0.7, 1.3], dfg: [-10, 10], dppt: [-0.25, 0.25], vol: [0, 40] };
+    const [d0, d1] = DOM[modo];
+    const mezcla = (a, b, t) => a.map((v, k) => Math.round(v + (b[k] - v) * t));
+    const rojo = [192, 57, 43], amar = [242, 210, 122], verde = [46, 125, 79], naranja = [222, 110, 40], claro = [250, 232, 205];
+    const colorDe = (v) => {
+      const t = Math.max(0, Math.min(1, (v - d0) / (d1 - d0)));
+      const c = modo === "vol" ? mezcla(claro, naranja, t) : (t < 0.5 ? mezcla(rojo, amar, t * 2) : mezcla(amar, verde, (t - 0.5) * 2));
+      return { fill: `rgb(${c.join(",")})`, oscuro: (c[0] * 0.299 + c[1] * 0.587 + c[2] * 0.114) < 150, c };
+    };
+    const sgn = (v, dec) => (v > 0 ? "+" : "") + fmtNum(Math.round(v * Math.pow(10, dec)) / Math.pow(10, dec));
+    encima = Object.entries(porZona).map(([z, d]) => {
+      const pos = POS_ZONAS[z]; if (!pos) return "";
+      const pct = d.a / d.i * 100, pps = d.a * valorZona(z) / d.i, share = d.i / total * 100, l = lz[z];
+      let v, lab;
+      if (modo === "fg") { v = pct; lab = Math.round(pct) + "%"; }
+      else if (modo === "ppt") { v = pps; lab = fmtNum(Math.round(pps * 100) / 100); }
+      else if (modo === "vol") { v = share; lab = Math.round(share) + "%"; }
+      else if (modo === "dfg") { if (!l) return ""; v = pct - l.pct; lab = sgn(v, 1); }
+      else { if (!l) return ""; v = pps - l.pps; lab = sgn(v, 2); }
+      const col = colorDe(v), r = (0.55 + 0.55 * Math.sqrt(d.i / maxI)) * ESC, cx = X(pos.my), cy = Y(pos.mx), tx = col.oscuro ? "#fff" : "#20170e";
+      return `<g><circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${col.fill}" stroke="rgba(0,0,0,.35)" stroke-width="2"></circle>
+        <text x="${cx.toFixed(1)}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" style="font-family:Archivo,Arial,sans-serif;font-weight:800;font-size:19px;fill:${tx}">${lab}</text>
+        <text x="${cx.toFixed(1)}" y="${(cy + 15).toFixed(1)}" text-anchor="middle" style="font-family:Archivo,Arial,sans-serif;font-weight:700;font-size:12px;fill:${tx};opacity:.85">${d.a}/${d.i}</text></g>`;
+    }).join("");
+    const fmtD = (v) => modo === "fg" ? Math.round(v) + "%" : (modo === "vol" ? Math.round(v) + "%" : (modo === "ppt" ? fmtNum(v) : sgn(v, modo === "dfg" ? 0 : 2)));
+    const gid = "lg" + modo, lx = W - 208, ly = H - 50;
+    const stops = [0, 0.25, 0.5, 0.75, 1].map(t => `<stop offset="${t * 100}%" stop-color="${colorDe(d0 + (d1 - d0) * t).fill}"></stop>`).join("");
+    const etiq = { fg: "FG%", ppt: "Puntos por tiro", vol: "Volumen", dfg: "FG% vs liga", dppt: "PPT vs liga" }[modo];
+    encima += `<defs><linearGradient id="${gid}" x1="0" x2="1">${stops}</linearGradient></defs>
+      <rect x="${lx - 8}" y="${ly - 20}" width="196" height="56" rx="8" fill="rgba(255,255,255,.85)"></rect>
+      <text x="${lx + 90}" y="${ly - 6}" text-anchor="middle" style="font-family:Archivo,Arial,sans-serif;font-weight:800;font-size:11px;fill:#444">${etiq}</text>
+      <rect x="${lx}" y="${ly}" width="180" height="9" rx="4" fill="url(#${gid})"></rect>
+      <text x="${lx}" y="${ly + 24}" style="font-family:Archivo,Arial,sans-serif;font-weight:700;font-size:10px;fill:#555">${fmtD(d0)}</text>
+      <text x="${lx + 180}" y="${ly + 24}" text-anchor="end" style="font-family:Archivo,Arial,sans-serif;font-weight:700;font-size:10px;fill:#555">${fmtD(d1)}</text>`;
   } else {
     const porZona = {};
     tiros.forEach(t => {
@@ -12311,7 +12356,7 @@ function nivelPps(pps) {
   return "medio";
 }
 
-function tablaZonas(tiros) {
+function tablaZonas(tiros, liga) {
   const zonas = datosZonas(tiros);
   if (!zonas.length) return "";
   const total = tiros.length;
@@ -12357,11 +12402,12 @@ function tablaZonas(tiros) {
     consejo.push("El reparto de tiros esta razonablemente alineado con el valor de cada zona.");
   }
 
-  return `<div class="table-scroll"><table class="limpia tabla-zonas"><thead><tr>
+  const tablaViejo = `<div class="table-scroll"><table class="limpia tabla-zonas"><thead><tr>
       <th class="equipo">Zona</th><th>Volumen</th><th>Acierto</th><th>%</th>
       <th title="Puntos conseguidos por cada tiro intentado desde esa zona">Pts/tiro</th>
-      </tr></thead><tbody>${filas}</tbody></table></div>
+      </tr></thead><tbody>${filas}</tbody></table></div>`;
 
+  return (liga ? tablaZonasLiga(zonas, liga, total) : tablaViejo) + `
     <div class="zonas-cards">
       <div class="zc verde"><div class="zc-tit">Zona de mas valor</div>
         <div class="zc-num">${fmtNum(mejor.pps)}</div>
@@ -12396,13 +12442,87 @@ function resumenCarta(tiros) {
     </div>`;
 }
 
+/* Tabla de zonas frente a la media de la liga (acierto, puntos por tiro y frecuencia) */
+function tablaZonasLiga(zonas, liga, total) {
+  const lz = {}; liga.zonas.forEach(z => { lz[z.zona] = z; });
+  const f1 = (v) => fmtNum(Math.round(v * 10) / 10), f2 = (v) => fmtNum(Math.round(v * 100) / 100);
+  const col = (a, b, margen) => a - b > margen ? "color:#2e9e57;" : (b - a > margen ? "color:#d0443c;" : "");
+  const orden = zonas.slice().sort((a, b) => ORDEN_ZONAS.indexOf(a.zona) - ORDEN_ZONAS.indexOf(b.zona));
+  const filas = orden.map(z => { const l = lz[z.zona];
+    return `<tr><td class="equipo"><b>${escapeHtml(z.zona)}</b></td><td>${z.a}/${z.i}</td>
+      <td style="font-weight:800;${l ? col(z.pct, l.pct, 0.5) : ""}">${f1(z.pct)}%</td><td>${l ? f1(l.pct) + "%" : "—"}</td>
+      <td style="font-weight:800;${l ? col(z.pps, l.pps, 0.02) : ""}">${f2(z.pps)}</td>
+      <td style="font-weight:800;${l ? col(z.share, l.share, 0.5) : ""}">${f1(z.share)}%</td></tr>`; }).join("");
+  const a = zonas.reduce((s, z) => s + z.a, 0), pts = zonas.reduce((s, z) => s + z.a * valorZona(z.zona), 0);
+  const ligaTot = liga.zonas.reduce((s, z) => s + z.i, 0) || 1, ligaA = liga.zonas.reduce((s, z) => s + z.a, 0);
+  return `<div class="table-scroll"><table class="limpia tabla-zonas tabla-zonas-liga"><thead><tr><th class="equipo">Lugar</th><th>Tiros</th><th>Acierto</th><th>Media liga</th><th title="Puntos por tiro">PPT</th><th>Frecuencia</th></tr></thead>
+    <tbody>${filas}<tr style="border-top:2px solid #cfc7b8;"><td class="equipo"><b>Total</b></td><td><b>${a}/${total}</b></td><td><b>${f1(a / total * 100)}%</b></td><td>${f1(ligaA / ligaTot * 100)}%</td><td><b>${f2(pts / total)}</b></td><td><b>100%</b></td></tr></tbody></table></div>`;
+}
+
+/* Tarjetas de resumen con la referencia de la liga */
+function resumenCartaLiga(tiros, liga) {
+  const zonas = datosZonas(tiros), a = tiros.filter(t => t.anotado).length, n = tiros.length || 1;
+  const pts = zonas.reduce((s, z) => s + z.a * valorZona(z.zona), 0);
+  const lz = {}; liga.zonas.forEach(z => { lz[z.zona] = z; });
+  const ligaPts = liga.zonas.reduce((s, z) => s + z.a * valorZona(z.zona), 0), ligaN = liga.zonas.reduce((s, z) => s + z.i, 0) || 1;
+  const comp = zonas.filter(z => lz[z.zona]), pos = comp.filter(z => z.pct >= lz[z.zona].pct).length;
+  const f2 = (v) => fmtNum(Math.round(v * 100) / 100);
+  return `<div class="datos-carta">
+    <div class="dato-informe"><span class="l">Tiros</span><span class="v">${n}</span><span class="l">${a}/${n}</span></div>
+    <div class="dato-informe"><span class="l">FG%</span><span class="v">${fmtNum(Math.round(a / n * 1000) / 10)}%</span><span class="l">Acierto global</span></div>
+    <div class="dato-informe"><span class="l">Puntos por tiro</span><span class="v">${f2(pts / n)}</span><span class="l">Liga ${f2(ligaPts / ligaN)}</span></div>
+    <div class="dato-informe"><span class="l">Zonas positivas</span><span class="v">${pos}/${comp.length}</span><span class="l">vs liga</span></div></div>`;
+}
+
+/* Reloj de posesion: reparto de puntos y tiros segun los segundos de posesion (estimado del jugada a jugada) */
+let relojModo = "puntos";
+const RELOJ_TRAMOS = [["Primeros 8 s", "#8fb4ea"], ["Del 8 al 16", "#3f78d0"], ["Últimos 8 s", "#1d4175"]];
+function relojAgg(filas) {
+  const a = { pj: new Set(), t: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] };
+  filas.forEach(rw => { let hay = false;
+    for (let i = 0; i < 3; i++) { const ti = numDe(rw, `R${i + 1}_TI`); if (ti) hay = true; a.t[i][0] += ti; a.t[i][1] += numDe(rw, `R${i + 1}_PT`); a.t[i][2] += numDe(rw, `R${i + 1}_LP`); }
+    if (hay) a.pj.add(cellText(rw, "PartidoID")); });
+  return a;
+}
+function relojPosesionHtml(equipoNombre, cuarto) {
+  if (cuartosCache === false) return `<p class="hint">No se pudo leer la pestaña Partidos_Cuartos.</p>`;
+  if (!cuartosCache || !cuartosCache.rows) return `<p class="hint">Calculando el reloj de posesión...</p>`;
+  const obj = normalizarEquipo(equipoOficial(equipoNombre));
+  const todas = cuartosCache.rows.filter(rw => !cuarto || cellText(rw, "Cuarto") === cuarto);
+  const mias = todas.filter(rw => normalizarEquipo(equipoOficial(cellText(rw, "Equipo"))) === obj);
+  const A = relojAgg(mias), L = relojAgg(todas);
+  const totTI = (x) => x.t.reduce((s, q) => s + q[0], 0);
+  if (!cuartosCache.rows.some(rw => numDe(rw, "R1_TI") || numDe(rw, "R2_TI") || numDe(rw, "R3_TI")) || !totTI(A))
+    return `<p class="hint">Todavía no hay datos del reloj de posesión. Se calculan con el jugada a jugada: ejecuta el workflow de la FEB (rehace los partidos una vez) y vuelve aquí.</p>`;
+  const f1 = (v) => fmtNum(Math.round(v * 10) / 10);
+  const pts = (x) => x.t.map(q => q[1] + q[2]), ptsT = (x) => pts(x).reduce((s, v) => s + v, 0) || 1;
+  const reparto = (x) => relojModo === "puntos" ? pts(x).map(v => v / ptsT(x) * 100) : x.t.map(q => q[0] / (totTI(x) || 1) * 100);
+  const barra = (nombre, x) => { const rp = reparto(x);
+    return `<div style="display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;margin:8px 0;"><div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(nombre)}</div>
+      <div style="display:flex;gap:2px;height:32px;border-radius:8px;overflow:hidden;">${rp.map((v, i) => `<div style="width:${v}%;background:${RELOJ_TRAMOS[i][1]};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;min-width:0;">${v >= 6 ? Math.round(v) + "%" : ""}</div>`).join("")}</div></div>`; };
+  const efg = (q) => q[0] ? q[1] / (2 * q[0]) * 100 : null;
+  const pj = A.pj.size || 1, pa = pts(A), tiA = totTI(A) || 1;
+  const filas = RELOJ_TRAMOS.map(([nom, color], i) => { const e = efg(A.t[i]), el = efg(L.t[i]), d = e !== null && el !== null ? e - el : null;
+    return `<tr><td style="text-align:left;"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${color};margin-right:8px;"></i>${nom}</td><td>${f1(pa[i] / pj)}</td><td>${f1(pa[i] / ptsT(A) * 100)}%</td><td>${f1(A.t[i][0] / tiA * 100)}%</td>
+      <td>${e === null ? "—" : f1(e)}${d === null ? "" : ` <small style="font-weight:700;color:${d >= 0 ? "#2e7d32" : "#b3261e"};">${d >= 0 ? "▲" : "▼"} ${f1(Math.abs(d))}</small>`}</td><td>${el === null ? "—" : f1(el)}</td></tr>`; }).join("");
+  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+      <div><h3 style="margin:0 0 2px;">Reloj de posesión</h3><p class="hint" style="margin:0 0 8px;">Reparto de ${relojModo === "puntos" ? "los puntos" : "los tiros de campo"} según el momento de la posesión en que llegan.</p></div>
+      <div class="subnav" style="margin:0;"><button class="r-modo ${relojModo === "puntos" ? "active" : ""}" data-m="puntos">Puntos</button><button class="r-modo ${relojModo === "tiros" ? "active" : ""}" data-m="tiros">Tiros</button></div></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#666;margin-bottom:4px;">${RELOJ_TRAMOS.map(([n, c]) => `<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c};margin-right:6px;"></i>${n}</span>`).join("")}</div>
+    ${barra(equipoOficial(equipoNombre), A)}${barra("Media de la liga", L)}
+    <div class="table-scroll"><table class="limpia"><thead><tr><th style="text-align:left;">Tramo</th><th>Pts/partido</th><th>% de los puntos</th><th>% de los tiros</th><th>eFG%</th><th>eFG% liga</th></tr></thead><tbody>${filas}</tbody></table></div>
+    <p class="hint">Estimado a partir del jugada a jugada: los segundos se cuentan desde el inicio de la posesión (canasta rival, rebote, pérdida o rebote ofensivo). Los puntos incluyen los tiros libres, que se asignan al tramo en que se señaló la falta; los tiros y el eFG% son solo de tiros de campo.</p>`;
+}
+
 let filtroCuartoCarta = "";
-let modoCarta = "zonas";
+let modoCarta = "fg";
 
 
 /* ---- Selección de tiro: sus zonas frente a la media de la liga ---- */
 let ligaZonasCache = null;
-async function zonasDeLaLiga() {
+let ligaPromesa = null;
+function zonasDeLaLiga() { if (!ligaPromesa) ligaPromesa = zonasDeLaLigaCalc().finally(() => { ligaPromesa = null; }); return ligaPromesa; }
+async function zonasDeLaLigaCalc() {
   if (ligaZonasCache) return ligaZonasCache;
   if (tirosTodos === null || tirosTodos === false) {
     try { tirosTodos = await fetchSheetTab("Tiros", null, 90000); } catch (e) { tirosTodos = false; }
@@ -12470,15 +12590,20 @@ async function pintarCartaTiro(cajaId, equipoNombre, filtroJugadora) {
       ${cuartos.map(c => `<button class="chip ${filtroCuartoCarta === c ? "activa" : ""} c-cuarto" data-c="${escapeAttr(c)}">${c <= "4" ? "Cuarto " + c : "Prorroga"}</button>`).join("")}
     </div>`;
 
-  const botonesModo = `<div class="subnav" style="margin:0 0 10px;">
-      <button class="c-modo ${modoCarta === "zonas" ? "active" : ""}" data-m="zonas">Por zonas</button>
-      <button class="c-modo ${modoCarta === "puntos" ? "active" : ""}" data-m="puntos">Tiro a tiro</button>
+  const liga = ligaZonasCache;
+  if (!liga) zonasDeLaLiga().then(l => { if (l && document.getElementById(cajaId)) pintarCartaTiro(cajaId, equipoNombre, filtroJugadora); }).catch(() => {});
+  if (!liga && (modoCarta === "dfg" || modoCarta === "dppt")) modoCarta = "fg";
+  if (modoCarta === "zonas") modoCarta = "fg";
+  const MODOS = [["dfg", "ΔFG%", 1], ["dppt", "ΔPPT", 1], ["vol", "Vol", 0], ["fg", "FG%", 0], ["ppt", "PPT", 0], ["heat", "Calor", 0], ["puntos", "Tiro a tiro", 0]];
+  const botonesModo = `<div class="subnav" style="margin:0 0 10px;flex-wrap:wrap;">
+      ${MODOS.filter(m => !m[2] || liga).map(([k, t]) => `<button class="c-modo ${modoCarta === k ? "active" : ""}" data-m="${k}">${t}</button>`).join("")}
     </div>`;
 
   caja.innerHTML = suyos.length
-    ? botonesModo + chips + `<div class="carta-wrap">${cartaSvg(suyos, modoCarta)}<div>${resumenCarta(suyos)}${tablaZonas(suyos)}</div></div>
-       <p class="hint" style="margin-top:10px;">Verde, tiro anotado; rojo, fallado. Solo tiros de campo: los libres no tienen posicion.
-       Las zonas se calculan con la distancia al aro que da la FEB en su carta de tiro.</p>`
+    ? botonesModo + chips + `<div class="carta-wrap${liga ? " liga" : ""}">${cartaSvg(suyos, modoCarta, liga)}<div>${liga ? resumenCartaLiga(suyos, liga) : resumenCarta(suyos)}${tablaZonas(suyos, liga)}</div></div>
+       <p class="hint" style="margin-top:10px;">${modoCarta === "puntos" ? "Verde, tiro anotado; rojo, fallado. " : "El color y el número cambian según la variable elegida; el tamaño es el volumen de tiros. "}Solo tiros de campo: los libres no tienen posicion.
+       Las zonas se calculan con la distancia al aro que da la FEB en su carta de tiro${liga ? ", y la media de la liga sale de todos los tiros de la competición" : " (la comparación con la liga aparece cuando termina de cargar)"}.</p>
+       ${filtroJugadora ? "" : `<div class="panel" style="margin:14px 0 0;" id="${cajaId}_reloj"><p class="hint">Calculando el reloj de posesión...</p></div>`}`
     : botonesModo + chips + `<p class="hint">No hay tiros con este filtro.</p>
         ${filtroJugadora ? `<details class="glosario" style="margin-top:10px;">
           <summary>Por que no aparecen sus tiros</summary>
@@ -12489,6 +12614,14 @@ async function pintarCartaTiro(cajaId, equipoNombre, filtroJugadora) {
           <p>Si su nombre esta en esa lista pero no salen sus tiros, avisame: es un problema de como cruzo los nombres.</p>
         </details>` : ""}`;
 
+  const cajaReloj = document.getElementById(cajaId + "_reloj");
+  if (cajaReloj) {
+    const pintaReloj = () => {
+      cajaReloj.innerHTML = relojPosesionHtml(equipoNombre, filtroCuartoCarta);
+      cajaReloj.querySelectorAll(".r-modo").forEach(b => b.addEventListener("click", () => { relojModo = b.getAttribute("data-m"); pintaReloj(); }));
+    };
+    if (cuartosCache) pintaReloj(); else cargarCuartos().then(pintaReloj);
+  }
   caja.querySelectorAll(".c-cuarto").forEach(b => b.addEventListener("click", () => {
     filtroCuartoCarta = b.getAttribute("data-c");
     pintarCartaTiro(cajaId, equipoNombre, filtroJugadora);
@@ -15183,7 +15316,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26f";
+const VERSION_APP = "2026-10-26g";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
