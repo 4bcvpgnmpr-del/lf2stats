@@ -295,7 +295,7 @@
 
   .view{max-width:1400px;margin:0 auto;padding:0 24px 24px;}
   #view-inicio.view, #view-clasificacion.view, #view-equipo-detail.view, #view-jugadora-detail.view,
-  #view-rankings.view, #view-estadisticas.view, #view-comparador.view, #view-resultados.view, #view-records.view{
+  #view-rankings.view, #view-rankings-eq.view, #view-estadisticas.view, #view-comparador.view, #view-resultados.view, #view-records.view{
     padding-top:24px;
   }
   .section-title{font-family:'Archivo Black',sans-serif;font-size:19px;margin:0 0 12px;}
@@ -2032,7 +2032,8 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
   <button data-view="equipos"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 20a6 6 0 0 0-3-5"/></svg></span><span class="tx">Equipos</span></button>
   <button data-view="jugadoras"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="tx">Jugadoras</span></button>
   <h4>Datos</h4>
-  <button data-view="rankings"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10M12 21V4M19 21v-7"/></svg></span><span class="tx">Rankings</span></button>
+  <button data-view="rankings-eq"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10M12 21V4M19 21v-7"/></svg></span><span class="tx">Ranking de equipos</span></button>
+  <button data-view="rankings"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10M12 21V4M19 21v-7"/></svg></span><span class="tx">Ranking de jugadoras</span></button>
   <button data-view="estadisticas"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16M8 16l4-5 3 3 5-7"/></svg></span><span class="tx">Estadísticas</span></button>
   <button data-view="quintetos"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="10" r="2"/><circle cx="19" cy="10" r="2"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg></span><span class="tx">Quintetos</span></button>
   <button data-view="comparador"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></span><span class="tx">Comparador</span></button>
@@ -2127,8 +2128,11 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
     <div id="jugadoraDetailContent"></div>
   </section>
 
-  <section id="view-rankings" class="view" style="display:none;">
+  <section id="view-rankings-eq" class="view" style="display:none;">
     <div class="panel" id="rkEquipos"><p class="hint">Calculando...</p></div>
+  </section>
+
+  <section id="view-rankings" class="view" style="display:none;">
     <div class="panel">
       <h2 class="section-title" style="margin-top:0;">🏀 Puntos</h2>
       <div id="rankingPuntos" class="status">Cargando...</div>
@@ -3034,7 +3038,7 @@ document.getElementById("filterResultados").addEventListener("input", () => {
 /* ============================================================
    ROUTER
    ============================================================ */
-const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes", "mis-jugadoras", "pizarra"];
+const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "rankings-eq", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes", "mis-jugadoras", "pizarra"];
 
 // Historial de pantallas: al pulsar "Volver" se regresa a la anterior,
 // en el mismo sitio de la pagina donde estabas.
@@ -3092,7 +3096,7 @@ document.querySelectorAll(".back-btn").forEach(btn => {
 });
 
 const NOMBRE_VISTA = { inicio: "Inicio", clasificacion: "Clasificacion", equipos: "Equipos",
-  jugadoras: "Jugadoras", rankings: "Rankings", estadisticas: "Estadisticas",
+  jugadoras: "Jugadoras", rankings: "Ranking de jugadoras", "rankings-eq": "Ranking de equipos", estadisticas: "Estadisticas",
   comparador: "Comparador", resultados: "Resultados", records: "Records", quintetos: "Quintetos", "mi-equipo": "Mi equipo", "mis-jugadoras": "Panel", pizarra: "Entrenador", scouting: "Scouting", fichajes: "Fichajes",
   "equipo-detail": "el equipo", "jugadora-detail": "la jugadora", "partido-detail": "el partido" };
 
@@ -7935,7 +7939,7 @@ function abrirInformeVisualVista(id) {
   b.addEventListener("click", () => abrirInformeVisualVista(vistaActual));
   document.body.appendChild(b);
   const base = showView;
-  showView = function (id, esVuelta) { const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } if (id === "rankings") { try { rkPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
+  showView = function (id, esVuelta) { const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } if (id === "rankings-eq") { try { rkPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
 })();
 
 function plantillaHtml(nombre) {
@@ -9059,7 +9063,7 @@ function mostrarPuerta(msg, tipo) {
   document.documentElement.classList.add("sin-acceso");
 }
 
-const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "rankings-eq", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
@@ -15179,7 +15183,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26d";
+const VERSION_APP = "2026-10-26e";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
