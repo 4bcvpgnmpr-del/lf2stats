@@ -4041,9 +4041,9 @@ async function tvCargar() {
   if (partidosCache && !avanzadasCalculo) { try { avanzadasCalculo = calcularAvanzadas(); } catch (e) { /* nada */ } }
 }
 
-function tvContexto() {
-  const obj = normalizarEquipo(equipoOficial(miEquipo));
-  const jugados = partidosDeEquipo(miEquipo).filter(p => p.jugado && p.pid);
+function tvContexto(eq) {
+  const obj = normalizarEquipo(equipoOficial(eq || miEquipo));
+  const jugados = partidosDeEquipo(eq || miEquipo).filter(p => p.jugado && p.pid);
   const grp = partidosCache && partidosCache.rows ? partidosAgrupados(partidosCache.rows) : new Map();
   const dePartido = (pid) => {
     const m = grp.get(pid); if (!m) return null;
@@ -4185,44 +4185,70 @@ function tvSlideCuartos(eq, propio) {
       <div class="tv-sub" style="margin-top:1vh;">${tvF1(por[q].pf / por[q].n)} a favor · ${tvF1(por[q].pc / por[q].n)} en contra</div></div>`).join("")}</div>
     <div class="tv-sub" style="margin-top:3vh;text-align:center;">${propio ? "Nuestro" : "Su"} mejor cuarto: <b style="color:${colB};">${mejorQ + 1}º</b> · ${propio ? "Nuestro" : "Su"} peor cuarto: <b style="color:${colM};">${peorQ + 1}º</b></div>` };
 }
-function tvSlideNumeros(ctx) {
+
+function tvSlideMapaJug(eq, nombre) {
+  const datos = tirosPorEquipo[equipoOficial(eq)], nn = tvNorm(nombre), H = window.innerHeight;
+  const tiros = datos && datos.rows ? datos.rows.filter(r => tvNorm(cellText(r, "Jugadora") || cellText(r, "Jugador")) === nn).map(tiroEnMetros).filter(Boolean) : [];
+  if (tiros.length < 15) return null;
+  const dentro = tiros.filter(t => t.anotado).length, tr = tiros.filter(t => zonaDelTiro(t).startsWith("Triple")), tr3 = tr.filter(t => t.anotado).length, dos = tiros.filter(t => !zonaDelTiro(t).startsWith("Triple")), d2 = dos.filter(t => t.anotado).length, alto = Math.round(H * 0.66);
+  return { id: "jug-mapa", dur: 15, html: `<div class="tv-kick">Mapa de tiro · ${escapeHtml(nombre)}</div><h2>Sus ${tiros.length} tiros</h2>
+    <div style="display:flex;gap:4vw;align-items:center;"><div>${cartaSvg(tiros, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:none;border-radius:1vw;" `)}</div>
+    <div class="tv-grid" id="tvMapStats" style="grid-template-columns:1fr 1fr;flex:1;gap:1.2vw;"><div class="tv-card"><div class="tv-num tv-ok">${tvPct(dentro, tiros.length)}</div><div class="tv-lab">Acierto (${dentro}/${tiros.length})</div></div>
+      <div class="tv-card"><div class="tv-num">${tvPct(d2, dos.length)}</div><div class="tv-lab">De 2 (${d2}/${dos.length})</div></div>
+      <div class="tv-card"><div class="tv-num">${tvPct(tr3, tr.length)}</div><div class="tv-lab">Triples (${tr3}/${tr.length})</div></div></div></div>` };
+}
+function tvSlideZonas(eq, propio) {
+  const datos = tirosPorEquipo[equipoOficial(eq)]; if (!datos || !datos.rows) return null;
+  const tiros = datos.rows.map(tiroEnMetros).filter(Boolean); if (tiros.length < 40) return null;
+  const liga = ligaZonasCache, lz = {}; if (liga) liga.zonas.forEach(z => { lz[z.zona] = z; });
+  const zonas = datosZonas(tiros).sort((a, b) => ORDEN_ZONAS.indexOf(a.zona) - ORDEN_ZONAS.indexOf(b.zona)), f1 = (v) => fmtNum(Math.round(v * 10) / 10), f2 = (v) => fmtNum(Math.round(v * 100) / 100);
+  const cmp = zonas.filter(z => lz[z.zona] && z.i >= 8).map(z => ({ z, d: z.pct - lz[z.zona].pct })).sort((a, b) => b.d - a.d);
+  const bien = cmp.filter(x => x.d > 0).slice(0, 3), mal = cmp.filter(x => x.d < 0).reverse().slice(0, 3);
+  const cB = propio ? "#4fd69c" : "#ff7b6b", cM = propio ? "#ff7b6b" : "#4fd69c";
+  const lista = (arr, col, tit) => `<div class="tv-card" style="border-color:${col}66;padding:1vw 1.4vw;"><div class="tv-lab" style="color:${col};margin:0 0 .8vh;">${tit}</div>${arr.length ? arr.map(x => `<div style="display:flex;justify-content:space-between;gap:1vw;font-weight:800;font-size:clamp(12px,1.5vw,25px);margin:.5vh 0;"><span>${escapeHtml(x.z.zona)}</span><span style="color:${col};white-space:nowrap;">${f1(x.z.pct)}% <small style="color:#9fb2c6;">(liga ${f1(lz[x.z.zona].pct)}%)</small></span></div>`).join("") : `<div class="tv-sub">—</div>`}</div>`;
+  return { id: propio ? "zonas" : "rival-zonas", dur: 18, html: `<div class="tv-kick">${propio ? "Nuestros tiros" : escapeHtml(eq)} · por zonas</div><h2 style="margin-bottom:.3em;">${propio ? "Dónde estamos bien y dónde mejorar" : "Sus zonas fuertes y débiles"}</h2>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2vw;align-items:start;"><div class="tv-card" style="padding:.6vw 1.2vw;"><table class="tv-t tv-comp" style="font-size:clamp(10px,1.2vw,21px);"><thead><tr><th style="text-align:left;">Zona</th><th>Tiros</th><th>Acierto</th><th>Liga</th><th>PPT</th><th>Frec.</th></tr></thead><tbody>
+      ${zonas.map(z => { const l = lz[z.zona], dd = l ? z.pct - l.pct : 0, cl = !l ? "" : dd > 0.5 ? (propio ? "tv-ok" : "tv-mal") : dd < -0.5 ? (propio ? "tv-mal" : "tv-ok") : ""; return `<tr><td style="text-align:left;">${escapeHtml(z.zona)}</td><td>${z.a}/${z.i}</td><td class="${cl}">${f1(z.pct)}%</td><td style="color:#9fb2c6;">${l ? f1(l.pct) + "%" : "—"}</td><td>${f2(z.pps)}</td><td>${f1(z.share)}%</td></tr>`; }).join("")}</tbody></table></div>
+      <div style="display:grid;gap:1.4vh;">${lista(bien, cB, propio ? "Donde estamos bien" : "Donde son fuertes")}${lista(mal, cM, propio ? "Donde hay que mejorar" : "Donde les podemos hacer daño")}</div></div>` };
+}
+function tvSlideNumeros(ctx, rival) {
   const gs = tvJuegos(ctx); if (gs.length < 2) return null;
   const sum = (k) => gs.reduce((a, g) => a + (g[k] || 0), 0), m = (k) => sum(k) / gs.length, t2a = sum("tca") - sum("t3a"), t2i = sum("tci") - sum("t3i");
   const card = (t, v, sub) => `<div class="tv-card"><div class="tv-num" style="font-size:clamp(28px,4.2vw,76px);">${v}</div><div class="tv-lab">${t}</div>${sub ? `<div class="tv-sub" style="font-size:clamp(11px,1.2vw,20px);">${sub}</div>` : ""}</div>`;
   const dif = m("pf") - m("pc");
-  return { id: "numeros", dur: 16, html: `<div class="tv-kick">Nuestros números</div><h2>Nuestro equipo en cifras</h2>
+  return { id: rival ? "rival-numeros" : "numeros", dur: 16, html: `<div class="tv-kick">${rival ? escapeHtml(rival) : "Nuestros números"}</div><h2>${rival ? "Sus números en cifras" : "Nuestro equipo en cifras"}</h2>
     <div class="tv-grid" style="grid-template-columns:repeat(4,1fr);gap:1.4vw;">
       ${card("Puntos a favor", tvF1(m("pf")), "por partido")}${card("Puntos en contra", tvF1(m("pc")), "por partido")}${card("Diferencial", `<span class="${dif >= 0 ? "tv-ok" : "tv-mal"}">${tvSg(dif)}</span>`, "por partido")}${card("Tiros de campo", tvPct(sum("tca"), sum("tci")), tvF1(m("tca")) + "/" + tvF1(m("tci")) + " por partido")}
       ${card("Tiros de 2", tvPct(t2a, t2i), tvF1(t2a / gs.length) + "/" + tvF1(t2i / gs.length))}${card("Triples", tvPct(sum("t3a"), sum("t3i")), tvF1(m("t3a")) + "/" + tvF1(m("t3i")))}${card("Tiros libres", tvPct(sum("tla"), sum("tli")), tvF1(m("tla")) + "/" + tvF1(m("tli")))}${card("Rebotes", tvF1(m("rb")), "ofensivos " + tvF1(m("ro")))}
       ${card("Asistencias", tvF1(m("as")), "por partido")}${card("Pérdidas", tvF1(m("bp")), "por partido")}${card("Robos", tvF1(m("br")), "por partido")}${card("Partidos", gs.length, gs.filter(g => g.pf > g.pc).length + " victorias")}</div>` };
 }
-function tvSlideLideres(ctx) {
-  const js = tvJugRival(miEquipo, 2); if (js.length < 3) return null;
+function tvSlideLideres(ctx, rival) {
+  const eq = rival || miEquipo, js = tvJugRival(eq, 2); if (js.length < 3) return null;
   const top = (arr, f) => arr.slice().sort((a, b) => f(b) - f(a))[0];
   const L = [["Anotadora", top(js, x => x.pt), (x) => tvF1(x.pt) + " pts"], ["Reboteadora", top(js, x => x.reb), (x) => tvF1(x.reb) + " reb"], ["Asistente", top(js, x => x.as), (x) => tvF1(x.as) + " as"], ["Valoración", top(js, x => x.va), (x) => tvF1(x.va) + " val"]];
   const t3 = js.filter(x => x.t3i >= 15); if (t3.length) L.push(["Mejor triplista", top(t3, x => x.t3a / x.t3i), (x) => tvPct(x.t3a, x.t3i) + " · " + x.t3a + "/" + x.t3i]);
   const tl = js.filter(x => x.tli >= 15); if (tl.length) L.push(["Mejor en tiro libre", top(tl, x => x.tla / x.tli), (x) => tvPct(x.tla, x.tli) + " · " + x.tla + "/" + x.tli]);
   const t2 = js.filter(x => x.t2i >= 20); if (t2.length) L.push(["Mejor en tiros de 2", top(t2, x => x.t2a / x.t2i), (x) => tvPct(x.t2a, x.t2i) + " · " + x.t2a + "/" + x.t2i]);
-  return { id: "lideres", dur: 16, html: `<div class="tv-kick">Líderes de la temporada</div><h2>Quién manda en cada apartado</h2>
-    <div class="tv-grid" style="grid-template-columns:repeat(${L.length > 6 ? 4 : 3},1fr);gap:1.4vw;">${L.map(([t, x, f]) => `<div class="tv-card" style="display:flex;align-items:center;gap:1.2vw;">${tvFoto(x.n, Math.round(window.innerHeight * 0.1))}<div style="min-width:0;"><div class="tv-lab" style="margin:0;font-size:clamp(10px,1.1vw,18px);">${t}</div><div style="font-weight:900;font-size:clamp(14px,1.7vw,28px);">${escapeHtml(x.n)}</div><div style="color:#f2803f;font-weight:900;font-size:clamp(14px,1.8vw,30px);">${f(x)}</div></div></div>`).join("")}</div>` };
+  return { id: rival ? "rival-lideres" : "lideres", dur: 16, html: `<div class="tv-kick">${rival ? escapeHtml(rival) + " · " : ""}Líderes de la temporada</div><h2>Quién manda en cada apartado</h2>
+    <div class="tv-grid" style="grid-template-columns:repeat(${L.length > 6 ? 4 : 3},1fr);gap:1.4vw;">${L.map(([t, x, f]) => `<div class="tv-card" style="display:flex;align-items:center;gap:1.2vw;">${tvFoto(x.n, Math.round(window.innerHeight * 0.1), eq)}<div style="min-width:0;"><div class="tv-lab" style="margin:0;font-size:clamp(10px,1.1vw,18px);">${t}</div><div style="font-weight:900;font-size:clamp(14px,1.7vw,28px);">${escapeHtml(x.n)}</div><div style="color:#f2803f;font-weight:900;font-size:clamp(14px,1.8vw,30px);">${f(x)}</div></div></div>`).join("")}</div>` };
 }
-function tvSlideQuintetos(ctx) {
+function tvSlideQuintetos(ctx, rival) {
   if (!quintetosCache || !quintetosCache.rows) return null;
   const n = (rw, c) => { const v = parseSpanishNumber(cellText(rw, c)); return v === null ? 0 : v; };
-  const L = quintetosCache.rows.filter(rw => normalizarEquipo(equipoOficial(cellText(rw, "Equipo"))) === ctx.obj).map(rw => ({ q: cellText(rw, "Quinteto").split("·").map(x => x.trim()).filter(Boolean), min: n(rw, "Minutos"), pf: n(rw, "PF"), pc: n(rw, "PC") })).filter(x => x.min >= 15);
+  const L = quintetosCache.rows.filter(rw => normalizarEquipo(equipoOficial(cellText(rw, "Equipo"))) === (rival ? normalizarEquipo(equipoOficial(rival)) : ctx.obj)).map(rw => ({ q: cellText(rw, "Quinteto").split("·").map(x => x.trim()).filter(Boolean), min: n(rw, "Minutos"), pf: n(rw, "PF"), pc: n(rw, "PC") })).filter(x => x.min >= 15);
   if (L.length < 2) return null;
   const corto = (t) => { const [ap, no] = String(t).split(","); return (ap || "").trim() + (no && no.trim() ? ", " + no.trim().charAt(0) + "." : ""); };
   const top = L.map(x => Object.assign(x, { d40: (x.pf - x.pc) / x.min * 40 })).sort((a, b) => b.d40 - a.d40).slice(0, 3);
-  return { id: "quintetos", dur: 15, html: `<div class="tv-kick">Quintetos</div><h2>Los quintetos que mejor funcionan</h2><div class="tv-sub" style="margin-top:-.4em;margin-bottom:2vh;">Diferencia de puntos por cada 40 minutos (mínimo 15 min juntas)</div>
+  return { id: rival ? "rival-quintetos" : "quintetos", dur: 15, html: `<div class="tv-kick">${rival ? escapeHtml(rival) + " · " : ""}Quintetos</div><h2>Los quintetos que mejor funcionan</h2><div class="tv-sub" style="margin-top:-.4em;margin-bottom:2vh;">Diferencia de puntos por cada 40 minutos (mínimo 15 min juntas)</div>
     ${top.map((x, i) => `<div class="tv-fila" style="grid-template-columns:3vw 1fr auto auto;"><span style="color:#f2803f;">${i + 1}</span><div style="font-size:.8em;line-height:1.3;">${x.q.map(t => escapeHtml(corto(t))).join(" · ")}</div><div style="color:#9fb2c6;font-size:.7em;">${Math.round(x.min)} min</div><div class="${x.d40 >= 0 ? "tv-ok" : "tv-mal"}">${tvSg(x.d40)}</div></div>`).join("")}` };
 }
-function tvSlideIndicadores(ctx) {
-  let k = null; try { k = tablaKpis(miEquipo); } catch (e) { k = null; } if (!k) return null;
+function tvSlideIndicadores(ctx, rival) {
+  let k = null; try { k = tablaKpis(rival || miEquipo); } catch (e) { k = null; } if (!k) return null;
   const it = Object.entries(k).filter(([c, x]) => x && x.total >= 4).sort((a, b) => a[1].puesto / a[1].total - b[1].puesto / b[1].total).slice(0, 12); if (it.length < 4) return null;
   const hay = it.some(([, x]) => x.puestoG);
-  return { id: "indicadores", dur: 18, html: `<div class="tv-kick">Frente a la liga</div><h2 style="margin-bottom:.3em;">Todos los indicadores</h2>
-    <div class="tv-card" style="padding:.6vw 1.4vw;"><table class="tv-t tv-comp" style="font-size:clamp(10px,${it.length > 9 ? 1.2 : 1.45}vw,22px);"><thead><tr><th style="text-align:left;">Indicador</th><th>Nuestro</th><th>Media liga</th><th>Puesto liga</th>${hay ? "<th>Puesto grupo</th>" : ""}</tr></thead><tbody>
-    ${it.map(([c, x]) => { const bien = x.puesto / x.total <= 0.34, mal = x.puesto / x.total >= 0.67; return `<tr><td style="text-align:left;">${escapeHtml(TV_ETQ[c] || c)}</td><td>${fmtNum(x.valor)}</td><td style="color:#9fb2c6;">${fmtNum(x.media)}</td><td class="${bien ? "tv-ok" : mal ? "tv-mal" : ""}">#${x.puesto}<small style="color:#9fb2c6;"> /${x.total}</small></td>${hay ? `<td>${x.puestoG ? "#" + x.puestoG + `<small style="color:#9fb2c6;"> /${x.totalG}</small>` : "—"}</td>` : ""}</tr>`; }).join("")}</tbody></table></div>` };
+  return { id: rival ? "rival-indicadores" : "indicadores", dur: 18, html: `<div class="tv-kick">${rival ? escapeHtml(rival) + " · " : ""}Frente a la liga</div><h2 style="margin-bottom:.3em;">Todos los indicadores</h2>
+    <div class="tv-card" style="padding:.6vw 1.4vw;"><table class="tv-t tv-comp" style="font-size:clamp(10px,${it.length > 9 ? 1.2 : 1.45}vw,22px);"><thead><tr><th style="text-align:left;">Indicador</th><th>${rival ? "Suyo" : "Nuestro"}</th><th>Media liga</th><th>Puesto liga</th>${hay ? "<th>Puesto grupo</th>" : ""}</tr></thead><tbody>
+    ${it.map(([c, x]) => { const bien = x.puesto / x.total <= 0.34, mal = x.puesto / x.total >= 0.67; return `<tr><td style="text-align:left;">${escapeHtml(TV_ETQ[c] || c)}</td><td>${fmtNum(x.valor)}</td><td style="color:#9fb2c6;">${fmtNum(x.media)}</td><td class="${bien ? (rival ? "tv-mal" : "tv-ok") : mal ? (rival ? "tv-ok" : "tv-mal") : ""}">#${x.puesto}<small style="color:#9fb2c6;"> /${x.total}</small></td>${hay ? `<td>${x.puestoG ? "#" + x.puestoG + `<small style="color:#9fb2c6;"> /${x.totalG}</small>` : "—"}</td>` : ""}</tr>`; }).join("")}</tbody></table></div>` };
 }
 
 /* ---- Presentación del rival ---- */
@@ -4267,6 +4293,7 @@ function tvSlidesRival(ctx, rival) {
         <div style="display:flex;justify-content:center;">${tvEscudo(p.rival, Math.round(window.innerHeight * 0.12))}</div>
         <div class="tv-num" style="font-size:clamp(20px,2.5vw,46px);margin-top:1vh;">${p.pf}-${p.pc}</div><div class="${p.gano ? "tv-ok" : "tv-mal"}" style="font-weight:900;font-size:clamp(16px,2vw,34px);">${p.gano ? "V" : "D"}</div>
         <div class="tv-lab">${escapeHtml(corto3(p.rival))}${p.esLocal ? "" : " (f)"}</div></div>`).join("")}</div>` }); }
+  { const cr = tvContexto(R); try { const x = tvSlideNumeros(cr, R); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); } }
   // 3. Puntos fuertes y débiles frente a la liga
   { let k = null; try { k = tablaKpis(R); } catch (e) { k = null; }
     if (k) { const it = Object.entries(k).filter(([c, x]) => x && c !== "Pace" && x.total >= 4).map(([c, x]) => ({ c, x, f: x.puesto / x.total }));
@@ -4274,15 +4301,20 @@ function tvSlidesRival(ctx, rival) {
       const card = (o, mal) => `<div class="tv-card" style="${mal ? "border-color:#4fd69c66;" : "border-color:#ff7b6b66;"}"><div class="tv-lab" style="margin:0 0 .5vh;">${escapeHtml(TV_ETQ[o.c] || o.c)}</div><div class="tv-num ${mal ? "tv-ok" : "tv-mal"}">#${o.x.puesto}<span style="font-size:.4em;color:#9fb2c6;"> de ${o.x.total}</span></div><div class="tv-sub">${fmtNum(o.x.valor)} · media ${fmtNum(o.x.media)}</div>${o.x.puestoG ? `<div style="margin-top:.8vh;font-weight:800;font-size:clamp(12px,1.4vw,24px);color:${mal ? "#4fd69c" : "#ff9a8d"};">Grupo ${escapeHtml(o.x.grupo)}: #${o.x.puestoG} de ${o.x.totalG}</div>` : ""}</div>`;
       if (fu.length) S.push({ id: "rival-kpi", dur: 15, html: `<div class="tv-kick" style="color:#ff9a8d;">Lo que hay que frenar</div><h2>Dónde son fuertes</h2><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);">${fu.map(o => card(o, false)).join("")}</div>
         ${fl.length ? `<div class="tv-kick" style="margin-top:4vh;color:#4fd69c;">Dónde les podemos hacer daño</div><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);margin-top:1.4vh;">${fl.map(o => card(o, true)).join("")}</div>` : ""}` }); } }
+  try { const x = tvSlideIndicadores(null, R); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); }
   // 4. Jugadoras a vigilar
   { const js = tvJugRival(R).slice(0, 5);
     if (js.length) S.push({ id: "rival-jug", dur: 15, html: `<div class="tv-kick">${escapeHtml(R)}</div><h2>Jugadoras a vigilar</h2>
       ${js.map(x => `<div class="tv-fila" style="grid-template-columns:${Math.round(window.innerHeight * 0.085)}px 1.5fr 1fr 1fr 1fr 1fr;">${tvFoto(x.n, Math.round(window.innerHeight * 0.085), R)}<div>${escapeHtml(x.n)}<div style="font-size:.55em;color:#9fb2c6;font-weight:700;">${tvTiros3(x)}</div></div>
         ${[["PT", x.pt], ["REB", x.reb], ["AS", x.as], ["VAL", x.va]].map(([t, val]) => `<div style="text-align:center;"><div style="font-size:.6em;color:#9fb2c6;font-weight:700;">${t}</div>${tvF1(val)}</div>`).join("")}</div>`).join("")}` }); }
   try { const x = tvSlidePlantilla(R, R); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); }
+  { const cr = tvContexto(R); try { const x = tvSlideLideres(cr, R); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); } }
   // 5. Mapa de tiro del rival
   try { const m = tvSlideMapa(ctx, R); if (m) S.push(m); } catch (e) { console.warn("Modo TV:", e); }
+  try { const z = tvSlideZonas(R, false); if (z) S.push(z); } catch (e) { console.warn("Modo TV:", e); }
+  tvJugRival(R, 2).slice(0, 3).forEach(x => { try { const m = tvSlideMapaJug(R, x.n); if (m) S.push(m); } catch (e) { console.warn("Modo TV:", e); } });
   try { const x = tvSlideCuartos(R, false); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); }
+  { const cr = tvContexto(R); try { const x = tvSlideQuintetos(cr, R); if (x) S.push(x); } catch (e) { console.warn("Modo TV:", e); } }
   // 7. Claves del partido
   if (d) { const rob = RIVAL_DIAG || {}, cap = (t) => t ? t.charAt(0).toUpperCase() + t.slice(1) + "." : "";
     const frenar = d.mejor && rob[d.mejor.def.id] ? rob[d.mejor.def.id].frenar : null;
@@ -4407,7 +4439,7 @@ function tvSlidesNuestros(ctx) {
       ${top.map(x => `<div class="tv-fila" style="grid-template-columns:${Math.round(window.innerHeight * 0.075)}px 1.3fr 1fr 1fr 1fr 1fr;">${tvFoto(x.n, Math.round(window.innerHeight * 0.075))}<div>${escapeHtml(x.n)}</div>
         ${[["PT", "pt"], ["REB", "reb"], ["AS", "as"], ["VAL", "va"]].map(([t, k]) => { const dd = x.rec[k] - x.ant[k]; return `<div style="text-align:center;"><div style="font-size:.62em;color:#9fb2c6;font-weight:700;">${t}</div>${tvF1(x.rec[k])} <small class="${dd >= 0 ? "tv-ok" : "tv-mal"}" style="font-size:.6em;">${dd >= 0 ? "▲" : "▼"} ${tvF1(Math.abs(dd))}</small></div>`; }).join("")}</div>`).join("")}` }); }
   // 4b. Números, plantilla, líderes, cuartos, quintetos, honor, objetivos, mapa de tiro y evolución
-  [tvSlideNumeros, (c) => tvSlidePlantilla(miEquipo, equipoOficial(miEquipo), true), tvSlideLideres, (c) => tvSlideCuartos(miEquipo, true), tvSlideQuintetos, tvSlideHonor, tvSlideObjetivos, tvSlideMapa, tvSlideVueltas, tvSlideIndicadores].forEach(f => { try { const s = f(ctx); if (s) S.push(s); } catch (e) { console.warn("Modo TV:", e); } });
+  [tvSlideNumeros, (c) => tvSlidePlantilla(miEquipo, equipoOficial(miEquipo), true), tvSlideLideres, (c) => tvSlideCuartos(miEquipo, true), tvSlideQuintetos, tvSlideHonor, tvSlideObjetivos, tvSlideMapa, (c) => tvSlideZonas(miEquipo, true), tvSlideVueltas, tvSlideIndicadores].forEach(f => { try { const s = f(ctx); if (s) S.push(s); } catch (e) { console.warn("Modo TV:", e); } });
   // 5. Dónde somos fuertes
   { let k = null; try { k = tablaKpis(miEquipo); } catch (e) { k = null; }
     if (k) { const it = Object.entries(k).filter(([c, x]) => x && c !== "Pace" && x.total >= 4).map(([c, x]) => ({ c, x, f: x.puesto / x.total }));
@@ -4477,13 +4509,7 @@ function tvSlidesJugadora(ctx, eq, nombre) {
       <div style="display:flex;align-items:center;gap:3vw;">${tvFoto(nombre, Math.round(H * 0.3), eq)}<div style="flex:1;"><h1 style="margin:0;">${escapeHtml(nombre)}</h1><div class="tv-sub">${gs.length} partidos jugados${resumen && resumen.t3i >= 8 ? ` · Triples ${resumen.t3a}/${resumen.t3i} (${Math.round(resumen.t3a / resumen.t3i * 100)}%)` : ""}</div></div></div>
       <div class="tv-grid" style="grid-template-columns:repeat(4,1fr);margin-top:4vh;">${[["Puntos", med("pt")], ["Rebotes", med("reb")], ["Asistencias", med("as")], ["Valoración", med("va")]].map(([t, v]) => `<div class="tv-card"><div class="tv-num">${tvF1(v)}</div><div class="tv-lab">${t} por partido</div></div>`).join("")}</div>
       ${ult.length >= 2 ? `<div class="tv-lab" style="margin:3.5vh 0 1vh;">Puntos en sus últimos ${ult.length} partidos</div><div class="tv-grid" style="grid-template-columns:repeat(${ult.length},1fr);align-items:end;">${ult.map(g => `<div style="text-align:center;"><div style="font-weight:900;font-size:clamp(14px,1.8vw,30px);">${g.pt}</div><div class="tv-bar" style="height:${Math.max(8, g.pt / mx * H * 0.12)}px;min-height:8px;border-radius:8px;width:55%;margin:0 auto;"><i data-w="100" style="border-radius:8px;"></i></div><div class="tv-lab" style="font-size:clamp(10px,1vw,16px);">${escapeHtml(corto3(g.rival, 10))}</div></div>`).join("")}</div>` : ""}` }); }
-  // 2. Mapa de tiro propio
-  try { const datos = tirosPorEquipo[equipoOficial(eq)]; const nn = tvNorm(nombre);
-    const tiros = datos && datos.rows ? datos.rows.filter(r => tvNorm(cellText(r, "Jugadora") || cellText(r, "Jugador")) === nn).map(tiroEnMetros).filter(Boolean) : [];
-    if (tiros.length >= 15) { const dentro = tiros.filter(t => t.anotado).length, alto = Math.round(H * 0.66);
-      S.push({ id: "jug-mapa", dur: 15, html: `<div class="tv-kick">Mapa de tiro · ${escapeHtml(nombre)}</div><h2>Sus ${tiros.length} tiros</h2>
-        <div style="display:flex;gap:4vw;align-items:center;"><div>${cartaSvg(tiros, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:none;border-radius:1vw;" `)}</div>
-        <div class="tv-grid" style="grid-template-columns:1fr;flex:1;"><div class="tv-card"><div class="tv-num tv-ok">${Math.round(dentro / tiros.length * 100)}%</div><div class="tv-lab">Acierto (${dentro}/${tiros.length})</div></div></div></div>` }); } } catch (e) { console.warn("Modo TV:", e); }
+  try { const m = tvSlideMapaJug(eq, nombre); if (m) S.push(m); } catch (e) { console.warn("Modo TV:", e); }
   // 3. Vídeos
   S.push({ id: "jug-video", dur: 3600, html: tvHtmlVideos(eq, nombre, null), post: (caja) => tvPostVideos(caja, eq, nombre) });
   return S;
@@ -4536,6 +4562,7 @@ function tvMenu() {
     const s2 = caja.querySelector("#tvMenuRival"); if (s2) s2.addEventListener("change", () => { sel = s2.value; pintar(); });
     caja.querySelector("#tvMenuGo").addEventListener("click", async (e) => {
       e.stopPropagation(); TV.modo = modo; TV.rival = (modo === "nuestro" || modo === "jugadora") ? TV.rival : sel; if (modo === "jugadora") { TV.jugEq = jEq; TV.jug = (caja.querySelector("#tvMenuJ") || {}).value || jNom; } e.target.textContent = "Preparando…";
+      try { await zonasDeLaLiga(); } catch (er) { /* nada */ }
       if (modo === "jugadora") { try { await cargarTirosEquipo(TV.jugEq); } catch (er) { /* nada */ } }
       else if (modo !== "nuestro" && TV.rival) { try { await cargarTirosEquipo(TV.rival); } catch (er) { /* nada */ } }
       if (!TV.abierto) return;
@@ -15990,7 +16017,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26r";
+const VERSION_APP = "2026-10-26s";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
