@@ -4002,6 +4002,7 @@ function tvCss() {
   #tvModo.tv-ver{cursor:default;} #tvModo{cursor:none;} #tvModo.tv-ver{cursor:default;}
   #tvModo .tv-dots{display:flex;gap:10px;} #tvModo .tv-dots i{width:12px;height:12px;border-radius:99px;background:#33475c;display:block;cursor:pointer;} #tvModo .tv-dots i.on{background:#f2803f;width:34px;}
   #tvModo .tv-btns button{background:#1d3248;color:#fff;border:0;border-radius:12px;padding:10px 18px;font:700 16px Inter,sans-serif;margin-left:8px;cursor:pointer;} #tvModo .tv-btns button:hover{background:#2b4764;}
+  #tvModo #tvMapStats .tv-num{font-size:clamp(26px,3.8vw,64px);} #tvModo #tvMapStats .tv-card{padding:1.2vw 1.4vw;}
   #tvModo .tv-grid{display:grid;gap:2vw;} #tvModo .tv-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:1.4vw;padding:1.6vw 2vw;}
   #tvModo .tv-num{font-size:clamp(34px,6vw,110px);font-weight:900;line-height:1;white-space:nowrap;} #tvModo .tv-lab{color:#9fb2c6;font-size:clamp(12px,1.3vw,22px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:.4em;}
   #tvModo .tv-bar{background:rgba(255,255,255,.1);border-radius:99px;height:1.1vw;min-height:10px;overflow:hidden;} #tvModo .tv-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#f2803f,#ffb36b);transition:width 1.4s cubic-bezier(.2,.8,.2,1);}
@@ -4133,12 +4134,15 @@ function tvSlideMapa(ctx, eqRival) {
   const datos = tirosPorEquipo[equipoOficial(eqRival || miEquipo)]; if (!datos || !datos.rows) return null;
   const tiros = datos.rows.map(tiroEnMetros).filter(Boolean); if (tiros.length < 40) return null;
   const dentro = tiros.filter(t => t.anotado).length, tr = tiros.filter(t => zonaDelTiro(t).startsWith("Triple")), tr3 = tr.filter(t => t.anotado).length;
+  const dos = tiros.filter(t => !zonaDelTiro(t).startsWith("Triple")), dos2 = dos.filter(t => t.anotado).length, tlq = tvTlEquipo(eqRival || miEquipo);
   const alto = Math.round(window.innerHeight * 0.66);
   return { id: eqRival ? "mapa-rival" : "mapa", dur: 20, html: `<div class="tv-kick">Mapa de tiro${eqRival ? " · " + escapeHtml(eqRival) : ""}</div><h2 id="tvMapTit">${eqRival ? "Todos sus tiros" : "Todos nuestros tiros"}</h2>
     <div style="display:flex;gap:4vw;align-items:center;"><div id="tvMapaCaja" style="position:relative;">${cartaSvg(tiros, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:none;border-radius:1vw;" `)}</div>
-      <div class="tv-grid" style="grid-template-columns:1fr;flex:1;"><div class="tv-card"><div class="tv-num" id="tvMapN">0</div><div class="tv-lab">Tiros de campo</div></div>
+      <div class="tv-grid" id="tvMapStats" style="grid-template-columns:1fr 1fr;flex:1;gap:1.2vw;"><div class="tv-card"><div class="tv-num" id="tvMapN">0</div><div class="tv-lab">Tiros de campo</div></div>
         <div class="tv-card"><div class="tv-num tv-ok">${Math.round(dentro / tiros.length * 100)}%</div><div class="tv-lab">Acierto total (${dentro}/${tiros.length})</div></div>
-        <div class="tv-card"><div class="tv-num">${tr.length ? Math.round(tr3 / tr.length * 100) : 0}%</div><div class="tv-lab">Triples (${tr3}/${tr.length})</div></div></div></div>`,
+        <div class="tv-card"><div class="tv-num">${tr.length ? Math.round(tr3 / tr.length * 100) : 0}%</div><div class="tv-lab">Triples (${tr3}/${tr.length})</div></div>
+        <div class="tv-card"><div class="tv-num">${dos.length ? Math.round(dos2 / dos.length * 100) : 0}%</div><div class="tv-lab">Tiros de 2 (${dos2}/${dos.length})</div></div>
+        <div class="tv-card"><div class="tv-num">${tlq.i ? Math.round(tlq.a / tlq.i * 100) : 0}%</div><div class="tv-lab">Tiros libres (${tlq.a}/${tlq.i})</div></div></div></div>`,
     post: (caja) => {
       const pts = [...caja.querySelectorAll("circle.tiro-dentro, circle.tiro-fuera")], n = pts.length, lote = Math.max(1, Math.ceil(n / 120)), cnt = caja.querySelector("#tvMapN");
       pts.forEach(c => { c.style.opacity = "0"; c.style.transition = "opacity .35s"; });
@@ -4165,9 +4169,16 @@ function tvJugRival(rival, minPj) {
   const o = normalizarEquipo(equipoOficial(rival)), grp = partidosCache && partidosCache.rows ? partidosAgrupados(partidosCache.rows) : new Map(), por = new Map();
   grp.forEach(m => { const k = [...m.keys()].find(x => normalizarEquipo(equipoOficial(x)) === o); if (!k) return;
     m.get(k).forEach(r => { const n = cellText(r, "Jugador"); if (n === "TOTAL") return; const mn = cellText(r, "MIN"); if (!mn || /^0*:?0*$/.test(mn.trim())) return;
-      const a = por.get(n) || { n, pj: 0, pt: 0, reb: 0, as: 0, va: 0, t3a: 0, t3i: 0 }; const t3 = paresTiro(r, "T3");
+      const a = por.get(n) || { n, pj: 0, pt: 0, reb: 0, as: 0, va: 0, t3a: 0, t3i: 0, tca: 0, tci: 0, tla: 0, tli: 0 }; const t3 = paresTiro(r, "T3"), tc = paresTiro(r, "TC"), tl = paresTiro(r, "TL"); a.tca += tc.a; a.tci += tc.i; a.tla += tl.a; a.tli += tl.i;
       a.pj++; a.pt += numDe(r, "PT"); a.reb += numDe(r, "REB_T") || (numDe(r, "REB_O") + numDe(r, "REB_D")); a.as += numDe(r, "AS"); a.va += numDe(r, "VA"); a.t3a += t3.a; a.t3i += t3.i; por.set(n, a); }); });
-  return [...por.values()].filter(a => a.pj >= (minPj || 2)).map(a => ({ n: a.n, pj: a.pj, pt: a.pt / a.pj, reb: a.reb / a.pj, as: a.as / a.pj, va: a.va / a.pj, t3a: a.t3a, t3i: a.t3i })).sort((a, b) => b.va - a.va);
+  return [...por.values()].filter(a => a.pj >= (minPj || 2)).map(a => ({ n: a.n, pj: a.pj, pt: a.pt / a.pj, reb: a.reb / a.pj, as: a.as / a.pj, va: a.va / a.pj, t3a: a.t3a, t3i: a.t3i, t2a: a.tca - a.t3a, t2i: a.tci - a.t3i, tla: a.tla, tli: a.tli })).sort((a, b) => b.va - a.va);
+}
+const tvPct = (a, i) => i > 0 ? Math.round(a / i * 100) + "%" : "—";
+function tvTiros3(x) { return `<span style="white-space:nowrap;">2P <b>${tvPct(x.t2a, x.t2i)}</b></span> · <span style="white-space:nowrap;">3P <b>${tvPct(x.t3a, x.t3i)}</b></span> · <span style="white-space:nowrap;">TL <b>${tvPct(x.tla, x.tli)}</b></span>`; }
+function tvTlEquipo(eq) {
+  const o = normalizarEquipo(equipoOficial(eq)); let a = 0, i = 0;
+  try { (partidosCache.rows || []).forEach(r => { if (cellText(r, "Jugador") !== "TOTAL" || normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) !== o) return; const t = paresTiro(r, "TL"); a += t.a; i += t.i; }); } catch (e) { /* nada */ }
+  return { a, i };
 }
 function tvSlidesRival(ctx, rival) {
   const S = [], R = rival, obj = normalizarEquipo(equipoOficial(R)), jug = partidosDeEquipo(R).filter(p => p.jugado), sig = partidosDeEquipo(miEquipo).find(p => !p.jugado && normalizarEquipo(equipoOficial(p.rival)) === obj);
@@ -4194,14 +4205,21 @@ function tvSlidesRival(ctx, rival) {
   { let k = null; try { k = tablaKpis(R); } catch (e) { k = null; }
     if (k) { const it = Object.entries(k).filter(([c, x]) => x && c !== "Pace" && x.total >= 4).map(([c, x]) => ({ c, x, f: x.puesto / x.total }));
       const fu = it.slice().sort((a, b) => a.f - b.f).slice(0, 4), fl = it.slice().sort((a, b) => b.f - a.f).slice(0, 4);
-      const card = (o, mal) => `<div class="tv-card" style="${mal ? "border-color:#4fd69c66;" : "border-color:#ff7b6b66;"}"><div class="tv-lab" style="margin:0 0 .5vh;">${escapeHtml(TV_ETQ[o.c] || o.c)}</div><div class="tv-num ${mal ? "tv-ok" : "tv-mal"}">#${o.x.puesto}<span style="font-size:.4em;color:#9fb2c6;"> de ${o.x.total}</span></div><div class="tv-sub">${fmtNum(o.x.valor)} · media ${fmtNum(o.x.media)}</div></div>`;
+      const card = (o, mal) => `<div class="tv-card" style="${mal ? "border-color:#4fd69c66;" : "border-color:#ff7b6b66;"}"><div class="tv-lab" style="margin:0 0 .5vh;">${escapeHtml(TV_ETQ[o.c] || o.c)}</div><div class="tv-num ${mal ? "tv-ok" : "tv-mal"}">#${o.x.puesto}<span style="font-size:.4em;color:#9fb2c6;"> de ${o.x.total}</span></div><div class="tv-sub">${fmtNum(o.x.valor)} · media ${fmtNum(o.x.media)}</div>${o.x.puestoG ? `<div style="margin-top:.8vh;font-weight:800;font-size:clamp(12px,1.4vw,24px);color:${mal ? "#4fd69c" : "#ff9a8d"};">Grupo ${escapeHtml(o.x.grupo)}: #${o.x.puestoG} de ${o.x.totalG}</div>` : ""}</div>`;
       if (fu.length) S.push({ id: "rival-kpi", dur: 15, html: `<div class="tv-kick" style="color:#ff9a8d;">Lo que hay que frenar</div><h2>Dónde son fuertes</h2><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);">${fu.map(o => card(o, false)).join("")}</div>
         ${fl.length ? `<div class="tv-kick" style="margin-top:4vh;color:#4fd69c;">Dónde les podemos hacer daño</div><div class="tv-grid" style="grid-template-columns:repeat(4,1fr);margin-top:1.4vh;">${fl.map(o => card(o, true)).join("")}</div>` : ""}` }); } }
   // 4. Jugadoras a vigilar
   { const js = tvJugRival(R).slice(0, 5);
     if (js.length) S.push({ id: "rival-jug", dur: 15, html: `<div class="tv-kick">${escapeHtml(R)}</div><h2>Jugadoras a vigilar</h2>
-      ${js.map(x => `<div class="tv-fila" style="grid-template-columns:${Math.round(window.innerHeight * 0.085)}px 1.5fr 1fr 1fr 1fr 1fr;">${tvFoto(x.n, Math.round(window.innerHeight * 0.085), R)}<div>${escapeHtml(x.n)}${x.t3i >= 8 ? `<div style="font-size:.55em;color:#9fb2c6;font-weight:700;">Triples: ${x.t3a}/${x.t3i} (${Math.round(x.t3a / x.t3i * 100)}%)</div>` : ""}</div>
+      ${js.map(x => `<div class="tv-fila" style="grid-template-columns:${Math.round(window.innerHeight * 0.085)}px 1.5fr 1fr 1fr 1fr 1fr;">${tvFoto(x.n, Math.round(window.innerHeight * 0.085), R)}<div>${escapeHtml(x.n)}<div style="font-size:.55em;color:#9fb2c6;font-weight:700;">${tvTiros3(x)}</div></div>
         ${[["PT", x.pt], ["REB", x.reb], ["AS", x.as], ["VAL", x.va]].map(([t, val]) => `<div style="text-align:center;"><div style="font-size:.6em;color:#9fb2c6;font-weight:700;">${t}</div>${tvF1(val)}</div>`).join("")}</div>`).join("")}` }); }
+  // 4b. Plantilla completa
+  { const todas = tvJugRival(R, 1).sort((a, b) => b.pt - a.pt).slice(0, 12);
+    if (todas.length) { const hh = Math.round(window.innerHeight * 0.05);
+      S.push({ id: "rival-plantilla", dur: 18, html: `<div class="tv-kick">${escapeHtml(R)}</div><h2 style="margin-bottom:.3em;">Toda la plantilla</h2>
+        <div class="tv-card" style="padding:.6vw 1.4vw;"><table class="tv-t tv-comp" style="font-size:clamp(10px,${todas.length > 9 ? 1.15 : 1.4}vw,22px);"><thead><tr><th style="text-align:left;">Jugadora</th><th>PJ</th><th>PT</th><th>REB</th><th>AS</th><th>2P</th><th>3P</th><th>TL</th></tr></thead><tbody>
+        ${todas.map(x => `<tr><td style="text-align:left;"><span style="display:inline-flex;align-items:center;gap:.7vw;">${tvFoto(x.n, hh, R)}${escapeHtml(x.n)}</span></td><td>${x.pj}</td><td>${tvF1(x.pt)}</td><td>${tvF1(x.reb)}</td><td>${tvF1(x.as)}</td>
+          ${[[x.t2a, x.t2i], [x.t3a, x.t3i], [x.tla, x.tli]].map(([a, i]) => `<td>${tvPct(a, i)}<small style="color:#9fb2c6;font-weight:700;"> ${a}/${i}</small></td>`).join("")}</tr>`).join("")}</tbody></table></div>` }); } }
   // 5. Mapa de tiro del rival
   try { const m = tvSlideMapa(ctx, R); if (m) S.push(m); } catch (e) { console.warn("Modo TV:", e); }
   // 6. Cuartos
@@ -15923,7 +15941,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26p";
+const VERSION_APP = "2026-10-26q";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
