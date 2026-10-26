@@ -4170,7 +4170,7 @@ function showEquipoDetail(teamName) {
       <div class="panel" id="diagnosticoEquipo"><p class="hint">Calculando...</p></div>
     </div>
     <div class="section-block">
-      <h3 class="section-title">Plan de intervencion</h3>
+      <h3 class="section-title">${esEquipoRival(teamName) ? "Como jugarles" : "Plan de intervencion"}</h3>
       <label class="no-imprimir" style="display:flex;gap:8px;align-items:center;font-size:13px;margin:0 0 8px"><input type="checkbox" class="chk-plan-pdf"> Incluir este plan en los PDF</label>
       <div class="panel" id="planEquipo"><p class="hint">Calculando...</p></div>
     </div>
@@ -4273,13 +4273,14 @@ function lecturaRapidaHtml(row) {
   const debiles = cand.filter(x => x.pct <= 40).sort((a, b) => a.pct - b.pct).slice(0, 3);
   const fila = (x) => { const n = lrNivel(x.pct); return `<div class="lr-f"><span>${escapeHtml(nombre(x.k))}</span><b>${escapeHtml(String(x.valor))}</b><i class="lr-n ${n[1]}" title="Mejor que el ${x.pct}% de la liga">#${x.pos}</i></div>`; };
   const caja = (tit, cls, lista, vacio) => `<div class="lr-c ${cls}"><div class="lr-t">${tit}</div>${lista.length ? lista.map(fila).join("") : `<p class="hint">${vacio}</p>`}</div>`;
-  const frase = (fuertes.length ? "Destaca en " + fuertes.map(x => corto(x.k)).join(", ") : "Sin puntos fuertes claros") + (debiles.length ? "; a mejorar: " + debiles.map(x => corto(x.k)).join(", ") + "." : ".");
+  const rivalL = esEquipoRival(cellText(row, "Equipo"));
+  const frase = (fuertes.length ? "Destaca en " + fuertes.map(x => corto(x.k)).join(", ") : "Sin puntos fuertes claros") + (debiles.length ? (rivalL ? "; su punto flojo: " : "; a mejorar: ") + debiles.map(x => corto(x.k)).join(", ") + "." : ".");
   const clv = [["Puntos", "Puntos"], ["Rebotes_Totales", "Rebotes"], ["Asistencias", "Asistencias"], ["Robos", "Robos"], ["Valoracion", "Valoración"], ["Minutos_Jugados", "Minutos"]].filter(([k]) => D[k]);
   const franja = clv.map(([k, et]) => { const n = lrNivel(D[k].pct); return `<div class="lr-k"><div class="v">${escapeHtml(String(D[k].valor))}</div><div class="l">${et}</div><div class="p">#${D[k].pos} de ${D[k].total}</div><span class="lr-n ${n[1]}">${n[0]}</span></div>`; }).join("");
   const ambito = grupoActivo ? "del Grupo " + escapeHtml(grupoActivo) : "de toda la liga";
   return `<div class="section-block lr"><h3 class="section-title">Lectura rápida</h3>
     <div class="lr-franja">${franja}</div>
-    <div class="lr-cajas">${caja("Fortalezas", "lr-ok", fuertes, "Aún no destaca en ninguna estadística.")}${caja("A mejorar", "lr-mal", debiles, "Sin debilidades claras.")}</div>
+    <div class="lr-cajas">${caja(rivalL ? "A frenar" : "Fortalezas", "lr-ok", fuertes, "Aún no destaca en ninguna estadística.")}${caja(rivalL ? "Se le puede atacar" : "A mejorar", "lr-mal", debiles, "Sin debilidades claras.")}</div>
     <p class="lr-frase"><b>${escapeHtml(frase)}</b> <span class="hint">Puesto y nivel comparados con las jugadoras ${ambito}.</span></p></div>`;
 }
 function porCuarentaHtml(row) {
@@ -12362,7 +12363,7 @@ function nivelPps(pps) {
   return "medio";
 }
 
-function tablaZonas(tiros, liga) {
+function tablaZonas(tiros, liga, rival) {
   const zonas = datosZonas(tiros);
   if (!zonas.length) return "";
   const total = tiros.length;
@@ -12399,13 +12400,15 @@ function tablaZonas(tiros, liga) {
 
   const consejo = [];
   if (desperdicio && desperdicio !== mejor) {
-    consejo.push(`${desperdicio.zona} se lleva el ${fmtNum(desperdicio.share)}% de los tiros y solo produce ${fmtNum(desperdicio.pps)} puntos por intento: es la primera candidata a recortar.`);
+    consejo.push(rival ? `${desperdicio.zona} se lleva el ${fmtNum(desperdicio.share)}% de sus tiros y solo produce ${fmtNum(desperdicio.pps)} puntos por intento: dejarles tirar desde ahi nos favorece.`
+      : `${desperdicio.zona} se lleva el ${fmtNum(desperdicio.share)}% de los tiros y solo produce ${fmtNum(desperdicio.pps)} puntos por intento: es la primera candidata a recortar.`);
   }
   if (infrautilizada) {
-    consejo.push(`${infrautilizada.zona} rinde ${fmtNum(infrautilizada.pps)} puntos por tiro con solo el ${fmtNum(infrautilizada.share)}% del volumen: hay margen para buscarla mas.`);
+    consejo.push(rival ? `${infrautilizada.zona} les rinde ${fmtNum(infrautilizada.pps)} puntos por tiro aunque solo es el ${fmtNum(infrautilizada.share)}% de sus tiros: conviene vigilarla porque pueden buscarla mas.`
+      : `${infrautilizada.zona} rinde ${fmtNum(infrautilizada.pps)} puntos por tiro con solo el ${fmtNum(infrautilizada.share)}% del volumen: hay margen para buscarla mas.`);
   }
   if (!consejo.length) {
-    consejo.push("El reparto de tiros esta razonablemente alineado con el valor de cada zona.");
+    consejo.push(rival ? "Su reparto de tiros esta razonablemente alineado con el valor de cada zona: no hay una zona clara que regalarles." : "El reparto de tiros esta razonablemente alineado con el valor de cada zona.");
   }
 
   const tablaViejo = `<div class="table-scroll"><table class="limpia tabla-zonas"><thead><tr>
@@ -12427,7 +12430,7 @@ function tablaZonas(tiros, liga) {
     </div>
 
     <div class="diag-lectura" style="grid-template-columns:1fr;margin-top:14px;">
-      <div class="l-caja"><div class="l-tit">Decision de juego</div>
+      <div class="l-caja"><div class="l-tit">${rival ? "Como defenderles" : "Decision de juego"}</div>
         <div>${escapeHtml(consejo.join(" "))}</div></div>
     </div>
     <p class="hint" style="margin-top:10px;"><b>Puntos por tiro</b> es lo que produce cada intento desde esa zona
@@ -12560,7 +12563,10 @@ async function pintarSeleccionTiro(cajaId, equipoNombre, jugadora) {
     return { m, l, dPps, dShare, v };
   }).filter(Boolean);
   const mas = filas.filter(f => f.v[0] === "Tirar más").map(f => f.m.zona.toLowerCase()), menos = filas.filter(f => f.v[0] === "Tirar menos").map(f => f.m.zona.toLowerCase());
-  const frase = (mas.length ? "Debería buscar más: " + mas.join(", ") + ". " : "") + (menos.length ? "Debería recortar: " + menos.join(", ") + "." : "") || "Su reparto de tiros está en línea con el de la liga.";
+  const rivalJ = esEquipoRival(equipoNombre);
+  const frase = rivalJ
+    ? ((mas.length ? "Ojo, rinde bien aunque tira poco desde: " + mas.join(", ") + ". " : "") + (menos.length ? "Conviene dejarle tirar desde: " + menos.join(", ") + "." : "") || "Su reparto de tiros está en línea con el de la liga: no hay una zona clara que regalarle.")
+    : ((mas.length ? "Debería buscar más: " + mas.join(", ") + ". " : "") + (menos.length ? "Debería recortar: " + menos.join(", ") + "." : "") || "Su reparto de tiros está en línea con el de la liga.");
   const sg = (v) => (v > 0 ? "+" : "") + fmtNum(v);
   caja.innerHTML = `<div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Zona</th><th>Sus tiros</th><th>% de sus tiros</th><th>% liga</th><th>Pts/tiro</th><th>Liga</th><th>Dif.</th><th>Veredicto</th></tr></thead><tbody>
     ${filas.map(f => `<tr><td class="equipo">${escapeHtml(f.m.zona)}</td><td>${f.m.a}/${f.m.i}</td><td>${fmtNum(f.m.share)}%</td><td>${fmtNum(f.l.share)}%</td>
@@ -12606,7 +12612,7 @@ async function pintarCartaTiro(cajaId, equipoNombre, filtroJugadora) {
     </div>`;
 
   caja.innerHTML = suyos.length
-    ? botonesModo + chips + `<div class="carta-wrap${liga ? " liga" : ""}">${cartaSvg(suyos, modoCarta, liga)}<div>${liga ? resumenCartaLiga(suyos, liga) : resumenCarta(suyos)}${tablaZonas(suyos, liga)}</div></div>
+    ? botonesModo + chips + `<div class="carta-wrap${liga ? " liga" : ""}">${cartaSvg(suyos, modoCarta, liga)}<div>${liga ? resumenCartaLiga(suyos, liga) : resumenCarta(suyos)}${tablaZonas(suyos, liga, esEquipoRival(equipoNombre))}</div></div>
        <p class="hint" style="margin-top:10px;">${modoCarta === "puntos" ? "Verde, tiro anotado; rojo, fallado. " : "El color y el número cambian según la variable elegida; el tamaño es el volumen de tiros. "}Solo tiros de campo: los libres no tienen posicion.
        Las zonas se calculan con la distancia al aro que da la FEB en su carta de tiro${liga ? ", y la media de la liga sale de todos los tiros de la competición" : " (la comparación con la liga aparece cuando termina de cargar)"}.</p>
        ${filtroJugadora ? "" : `<div class="panel" style="margin:14px 0 0;" id="${cajaId}_reloj"><p class="hint">Calculando el reloj de posesión...</p></div>`}`
@@ -13545,6 +13551,21 @@ function dibujarUsoEficiencia(nombreEquipo) {
    media y percentil. Con eso se escribe un resumen en lenguaje
    de entrenador y se señalan la fortaleza y el riesgo.
    ============================================================ */
+/* ¿Estoy mirando a un rival? Entonces los textos aconsejan a mi equipo sobre ese rival, no a ese equipo */
+function esEquipoRival(nombre) {
+  try { return !!(miEquipo && nombre && normalizarEquipo(equipoOficial(nombre)) !== normalizarEquipo(equipoOficial(miEquipo))); }
+  catch (e) { return false; }
+}
+// Para cada métrica: qué frenar si es su fuerte y cómo aprovecharlo si es su punto débil
+const RIVAL_DIAG = {
+  ortg: { frenar: "frenar su producción ofensiva: cerrar la primera opción de cada sistema y no regalar canastas fáciles", aprovechar: "no regalarles nada fácil y obligarles a resolver en media pista" },
+  drtg: { frenar: "no precipitar el ataque: su defensa concede poco, hay que buscar la segunda opción con paciencia", aprovechar: "atacar rápido y con orden: concede tiros cómodos, sobre todo si llegamos antes de que se coloquen" },
+  ts: { frenar: "negarles los tiros de más valor: aro, línea de tiros libres y triple liberado", aprovechar: "dejarles tirar desde donde peor rinden y no darles tiros libres con faltas innecesarias" },
+  tovPct: { frenar: "no esperar regalos: cuidar el balón y ganar la posesión con defensa sin riesgo", aprovechar: "presionar al balón y forzar pérdidas para correr en transición" },
+  pctRd: { frenar: "no confiar en el rebote ofensivo: ellas cierran bien, mejor volver rápido a defender", aprovechar: "cargar el rebote ofensivo: les cuesta cerrar el rebote y conceden segundas oportunidades" },
+  ftr: { frenar: "defender sin cometer faltas: viven de la línea de tiros libres", aprovechar: "defender con contacto sin miedo a las faltas: casi no llegan a la línea" },
+};
+
 const METRICAS_DIAG = [
   { id: "ortg", etiqueta: "ORtg", nombre: "la produccion ofensiva",
     menosEsMejor: false, sufijo: "", decimales: 1,
@@ -13619,7 +13640,7 @@ function colorPercentil(p) {
   return p >= 66 ? "bien" : (p >= 34 ? "medio" : "mal");
 }
 
-function resumenDiagnostico(d) {
+function resumenDiagnostico(d, rival) {
   if (!d) return "";
   const n = (v, suf) => v === null || v === undefined ? "N/D" : fmtNum(v) + (suf || "");
   const frases = [];
@@ -13630,13 +13651,13 @@ function resumenDiagnostico(d) {
   }
   const malas = d.peores.filter(x => x.percentil < 50);
   if (malas.length) {
-    frases.push(`La principal fuga aparece en ${malas.map(x => `${x.def.nombre} (${n(x.valor, x.def.sufijo)}, puesto ${x.puesto} de ${x.total})`).join(" y en ")}.`);
+    frases.push(`${rival ? "Su principal fuga está en" : "La principal fuga aparece en"} ${malas.map(x => `${x.def.nombre} (${n(x.valor, x.def.sufijo)}, puesto ${x.puesto} de ${x.total})`).join(" y en ")}.`);
   }
   if (d.mejor && d.mejor.percentil >= 50) {
-    frases.push(`Lo que mejor sostiene al equipo es ${d.mejor.def.nombre}: ${n(d.mejor.valor, d.mejor.def.sufijo)}, puesto ${d.mejor.puesto} de ${d.mejor.total}.`);
+    frases.push(`${rival ? "Lo que mejor les sostiene es" : "Lo que mejor sostiene al equipo es"} ${d.mejor.def.nombre}: ${n(d.mejor.valor, d.mejor.def.sufijo)}, puesto ${d.mejor.puesto} de ${d.mejor.total}.`);
   }
   if (malas.length) {
-    frases.push(`El plan de mejora deberia priorizar ${malas[0].def.accion}.`);
+    frases.push(rival && RIVAL_DIAG[malas[0].def.id] ? `Para hacerles daño conviene ${RIVAL_DIAG[malas[0].def.id].aprovechar}.` : `El plan de mejora deberia priorizar ${malas[0].def.accion}.`);
   }
   return frases.join(" ");
 }
@@ -13689,23 +13710,26 @@ function bloqueDiagnostico(nombre) {
     </div>`;
   }).join("");
 
+  const rival = esEquipoRival(nombre);
   const fortaleza = d.mejor
-    ? `Donde mejor compite el equipo es en ${d.mejor.def.nombre}: ${fmtNum(d.mejor.valor)}${d.mejor.def.sufijo}, puesto ${d.mejor.puesto} de ${d.mejor.total} ${ambito}.`
+    ? (rival ? `Donde mejor compiten es en ${d.mejor.def.nombre}: ${fmtNum(d.mejor.valor)}${d.mejor.def.sufijo}, puesto ${d.mejor.puesto} de ${d.mejor.total} ${ambito}.${RIVAL_DIAG[d.mejor.def.id] ? " Para frenarlo: " + RIVAL_DIAG[d.mejor.def.id].frenar + "." : ""}`
+      : `Donde mejor compite el equipo es en ${d.mejor.def.nombre}: ${fmtNum(d.mejor.valor)}${d.mejor.def.sufijo}, puesto ${d.mejor.puesto} de ${d.mejor.total} ${ambito}.`)
     : "Todavia no hay muestra suficiente para señalar una fortaleza clara.";
   const riesgo = d.peores.length && d.peores[0].valor !== null
-    ? `El punto mas debil es ${d.peores[0].def.nombre}: ${fmtNum(d.peores[0].valor)}${d.peores[0].def.sufijo}, puesto ${d.peores[0].puesto} de ${d.peores[0].total}. Conviene ${d.peores[0].def.accion}.`
+    ? (rival ? `Su punto mas debil es ${d.peores[0].def.nombre}: ${fmtNum(d.peores[0].valor)}${d.peores[0].def.sufijo}, puesto ${d.peores[0].puesto} de ${d.peores[0].total}.${RIVAL_DIAG[d.peores[0].def.id] ? " Para aprovecharlo: " + RIVAL_DIAG[d.peores[0].def.id].aprovechar + "." : ""}`
+      : `El punto mas debil es ${d.peores[0].def.nombre}: ${fmtNum(d.peores[0].valor)}${d.peores[0].def.sufijo}, puesto ${d.peores[0].puesto} de ${d.peores[0].total}. Conviene ${d.peores[0].def.accion}.`)
     : "Todavia no hay muestra suficiente para señalar un riesgo claro.";
 
   return `<div class="diag">
-    <div class="diag-resumen">${escapeHtml(resumenDiagnostico(d))}</div>
+    <div class="diag-resumen">${escapeHtml(resumenDiagnostico(d, rival))}</div>
     <div class="diag-kpis">${kpis}</div>
     <h4 class="diag-sub">Identidad estadistica dentro ${escapeHtml(ambito)}</h4>
-    <p class="hint" style="margin-top:-4px;">El punto marca donde queda el equipo frente a los ${d.total} del grupo.
+    <p class="hint" style="margin-top:-4px;">El punto marca donde queda ${rival ? "este rival" : "el equipo"} frente a los ${d.total} del grupo.
       P100 es el mejor y P0 el ultimo. En las metricas donde menos es mejor, la escala ya va girada.</p>
     <div class="diag-barras">${barras}</div>
     <div class="diag-lectura">
-      <div class="l-caja"><div class="l-tit">Fortaleza relativa</div><div>${escapeHtml(fortaleza)}</div></div>
-      <div class="l-caja"><div class="l-tit">Riesgo principal</div><div>${escapeHtml(riesgo)}</div></div>
+      <div class="l-caja"><div class="l-tit">${rival ? "Lo que hay que frenar" : "Fortaleza relativa"}</div><div>${escapeHtml(fortaleza)}</div></div>
+      <div class="l-caja"><div class="l-tit">${rival ? "Donde se les puede hacer daño" : "Riesgo principal"}</div><div>${escapeHtml(riesgo)}</div></div>
     </div>
     <p class="diag-aviso"><b>Importante:</b> las posesiones y los ratings son estimaciones calculadas con el
       cuadro de cada partido (TCI − RO + BP + 0,44 × TLI). Sirven para comparar equipos entre si, no como dato oficial.</p>
@@ -13932,9 +13956,13 @@ function bloqueEstilo(nombre) {
     `cada posesion dura de media ${n(e.segPosesion)} segundos (ritmo ${n(e.posPartido)}, ` +
     `puesto ${e.puestoRitmo} de ${e.totalRitmo} del grupo). Reparte el tiro entre ${e.puntos.dos}% de puntos de dos, ` +
     `${e.puntos.tres}% de tres y ${e.puntos.tl}% de tiros libres. ` +
-    (lento ? "Un equipo asi vive de la ejecucion en media pista: cada posesion pesa mas, asi que la seleccion de tiro y evitar la perdida valen el doble."
+    (esEquipoRival(nombre)
+      ? (lento ? "Para jugarles: viven de la ejecucion en media pista, asi que hay que defender cada posesion sin relajarse y castigar sus perdidas, que son las que mas les duelen."
+               : (rapido ? "Para jugarles: buscan ventajas antes de que la defensa se coloque, asi que hay que volver rapido tras tiro y rebote y no precipitar nuestro ataque."
+                         : "Para jugarles: con un ritmo medio, el margen esta en imponer nuestro ritmo, acelerando o frenando el partido segun nos convenga."))
+      : (lento ? "Un equipo asi vive de la ejecucion en media pista: cada posesion pesa mas, asi que la seleccion de tiro y evitar la perdida valen el doble."
            : (rapido ? "Un equipo asi busca ventajas antes de que la defensa se coloque: el valor esta en correr tras rebote y en no precipitar el tiro facil."
-                     : "Con un ritmo medio el margen esta en elegir cuando correr y cuando parar el juego."));
+                     : "Con un ritmo medio el margen esta en elegir cuando correr y cuando parar el juego.")));
 
   return `<div class="estilo">
     <div class="diag-kpis">
@@ -14102,9 +14130,34 @@ function guardarPlan(nombre, prioridades) {
 }
 
 // Propuesta automatica a partir de las metricas peor situadas
+const PLAN_RIVAL = {
+  ortg: { titulo: "Mantener su ataque a raya", contexto: "Su ataque saca poco rendimiento por posesion: si no regalamos nada facil, dependen de resolver en media pista.",
+    intervenciones: ["Cerrar la primera opcion de cada sistema y obligarles a la segunda.", "No conceder canastas faciles en transicion: volver rapido tras tiro y rebote.", "Cuidar el balon: sus pocas ventajas llegan tras nuestras perdidas.", "Identificar a su jugadora de mas uso y negarle la primera opcion."] },
+  drtg: { titulo: "Atacar su defensa", contexto: "Conceden muchos puntos por posesion: hay tiros comodos si atacamos con orden.",
+    intervenciones: ["Atacar pronto en transicion, antes de que se coloquen.", "Buscar el bloqueo directo y las ayudas que llegan tarde.", "Pasar a la segunda opcion: el tiro comodo llega con el segundo pase.", "Cargar el rebote ofensivo y revisar en video sus cierres de linea de fondo."] },
+  ts: { titulo: "Dejarles tirar donde peor rinden", contexto: "Su eficiencia de tiro esta por debajo del grupo: tiran con poca calidad.",
+    intervenciones: ["Cerrar el aro y la linea de tiros libres; ceder el tiro exterior contestado.", "Revisar en video que tiros fuerzan y no ayudar de mas sobre ellos.", "Defender sin faltas innecesarias: no regalarles tiros libres.", "No ayudar de mas sobre las jugadoras menos eficientes."] },
+  tovPct: { titulo: "Presionar y correr", contexto: "Pierden muchas posesiones: la presion al balon puede convertir sus errores en transicion.",
+    intervenciones: ["Presionar la salida de balon y el pase de entrada.", "Preparar el contraataque para correr tras cada robo.", "Doblar al bote en las zonas donde mas pierden (revisar video).", "Que el robo acabe en tiro rapido, no en falta."] },
+  pctRd: { titulo: "Ir al rebote ofensivo", contexto: "Les cuesta cerrar el rebote defensivo: hay segundas oportunidades.",
+    intervenciones: ["Asignar dos o tres jugadoras al rebote ofensivo desde el lado debil.", "Tirar con balance de rebote: el fallo propio es una opcion.", "Medir en video sus contactos de bloqueo y atacar el hueco.", "Reservar a las mejores reboteadoras para los tramos clave."] },
+  ftr: { titulo: "Defender con contacto", contexto: "Generan pocos tiros libres: no atacan el aro con contacto.",
+    intervenciones: ["Defender con contacto firme sin miedo a cargarse de faltas.", "Obligarles a resolver desde fuera.", "Mantener a las interiores en pista: la falta casi no les beneficia.", "Vigilar a las jugadoras que si buscan el contacto."] },
+};
+
 function planPropuesto(nombre) {
   const d = diagnosticoEquipo(nombre);
   if (!d) return [];
+  if (esEquipoRival(nombre)) {
+    return d.metricas.filter(x => x.valor !== null).sort((a, b) => a.percentil - b.percentil).slice(0, 3).map(x => {
+      const t = PLAN_RIVAL[x.def.id]; if (!t) return null;
+      return { titulo: t.titulo,
+        dato: `${x.def.etiqueta} ${fmtNum(x.valor)}${x.def.sufijo} frente a ${fmtNum(x.media)}${x.def.sufijo} de media; puesto ${x.puesto} de ${x.total} del grupo.`,
+        contexto: t.contexto, intervenciones: t.intervenciones.slice(),
+        objetivo: `Comprobar durante el partido que su ${x.def.etiqueta} sigue siendo flojo (${fmtNum(x.valor)}${x.def.sufijo}) y ajustar al descanso si no se cumple.`,
+        revision: "Confirmar la tendencia viendo el video de sus ultimos partidos." };
+    }).filter(Boolean);
+  }
   const flojas = d.metricas
     .filter(x => x.valor !== null)
     .sort((a, b) => a.percentil - b.percentil)
@@ -14133,6 +14186,7 @@ function planPropuesto(nombre) {
 }
 
 function planDeEquipo(nombre) {
+  if (esEquipoRival(nombre)) return planPropuesto(nombre);
   return planGuardado(nombre) || planPropuesto(nombre);
 }
 
@@ -14168,11 +14222,13 @@ function bloquePlan(nombre, editando) {
     </div>`;
   }
 
+  const rivalP = esEquipoRival(nombre);
   return `<div class="plan">
     <p class="hint no-imprimir" style="margin-top:0;">
-      ${esPropio ? "Plan propio, guardado en este navegador."
-                 : "Propuesta automatica con las tres metricas donde el equipo esta peor situado. Puedes reescribirla."}
-      <button class="inf-btn no-imprimir" type="button" id="planEditar" style="margin-left:8px;padding:5px 11px;">Editar plan</button>
+      ${rivalP ? "Propuesta automatica de como jugarles, a partir de las tres metricas donde este rival esta peor situado."
+        : (esPropio ? "Plan propio, guardado en este navegador."
+                 : "Propuesta automatica con las tres metricas donde el equipo esta peor situado. Puedes reescribirla.")}
+      ${rivalP ? "" : `<button class="inf-btn no-imprimir" type="button" id="planEditar" style="margin-left:8px;padding:5px 11px;">Editar plan</button>`}
     </p>
     ${plan.map((pr, i) => `<div class="plan-tarjeta">
       <div class="p-num">${i + 1}</div>
@@ -14182,20 +14238,19 @@ function bloquePlan(nombre, editando) {
         <div class="p-ctx">${escapeHtml(pr.contexto)}</div>
         <div class="p-cols">
           <div>
-            <div class="p-sub">Intervenciones sugeridas</div>
+            <div class="p-sub">${rivalP ? "Como jugarles" : "Intervenciones sugeridas"}</div>
             <ul>${pr.intervenciones.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>
           </div>
           <div>
-            <div class="p-sub">Objetivo de control</div>
+            <div class="p-sub">${rivalP ? "Que vigilar en el partido" : "Objetivo de control"}</div>
             <div class="p-obj">${escapeHtml(pr.objetivo)}</div>
             <div class="p-rev">${escapeHtml(pr.revision || "Revisar despues de 4-6 partidos y contrastar con video.")}</div>
           </div>
         </div>
       </div>
     </div>`).join("")}
-    <p class="diag-aviso">Elige como mucho dos prioridades a la vez, fija un objetivo medible y una conducta
-      observable, y revisa video y datos tras 4-6 partidos. Que mejore el numero sin mejorar el comportamiento
-      puede ser solo casualidad.</p>
+    <p class="diag-aviso">${rivalP ? "Son tendencias de la temporada, no una garantia: contrastalas con el video de sus ultimos partidos antes de cambiar tu plan."
+      : "Elige como mucho dos prioridades a la vez, fija un objetivo medible y una conducta observable, y revisa video y datos tras 4-6 partidos. Que mejore el numero sin mejorar el comportamiento puede ser solo casualidad."}</p>
   </div>`;
 }
 
@@ -15325,7 +15380,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26i";
+const VERSION_APP = "2026-10-26j";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
