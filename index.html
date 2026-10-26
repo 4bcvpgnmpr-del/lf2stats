@@ -6002,7 +6002,7 @@ function tablaKpis(nombre) {
   const todos = fuente.rows.map(r => {
     const eq = cellText(r, "Equipo");
     const met = (calc && calc.equipos) ? metricasEquipo(calc.equipos.get(eq)) : null;
-    return { equipo: eq, valores: valoresKpi(r, met) };
+    return { equipo: eq, grupo: grupoDeEquipo(eq), valores: valoresKpi(r, met) };
   });
 
   const mio = todos.find(t => normalizarEquipo(t.equipo) === normalizarEquipo(equipoOficial(nombre)));
@@ -6024,6 +6024,11 @@ function tablaKpis(nombre) {
       total: lista.length,
       altoEsMejor,
     };
+    if (mio.grupo) {
+      const delGrupo = todos.filter(t => t.grupo === mio.grupo).map(t => t.valores[clave]).filter(v => v !== null && v !== undefined)
+        .sort((a, b) => altoEsMejor === false ? a - b : b - a);
+      if (delGrupo.length > 1) { salida[clave].puestoG = delGrupo.indexOf(valor) + 1; salida[clave].totalG = delGrupo.length; salida[clave].grupo = mio.grupo; }
+    }
   });
   return salida;
 }
@@ -6042,7 +6047,8 @@ function kpisEquipoHtml(nombre) {
     const signo = d.dif > 0 ? "+" : "";
     return `<div class="kpi">
       <div class="kpi-cab"><span class="kpi-nombre">${escapeHtml(clave)}</span>
-        <span class="kpi-puesto ${clasePuesto}">#${d.puesto} de ${d.total}</span></div>
+        <span style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">${d.puestoG ? (() => { const tg = Math.ceil(d.totalG / 3), cg = d.puestoG <= tg ? "alto" : (d.puestoG > d.totalG - tg ? "bajo" : "medio");
+          return `<span class="kpi-puesto ${cg}" title="Puesto en el grupo ${escapeAttr(d.grupo)}">#${d.puestoG} de ${d.totalG} · Gr. ${escapeHtml(d.grupo)}</span>`; })() : ""}<span class="kpi-puesto ${clasePuesto}">#${d.puesto} de ${d.total}</span></span></div>
       <div class="kpi-valor">${fmtNum(d.valor)}${suf}</div>
       <div class="kpi-pie"><span>Liga ${fmtNum(d.media)}${suf}</span>
         <span class="${bueno === null ? "" : (bueno ? "dif-bien" : "dif-mal")}">${signo}${fmtNum(d.dif)}${suf}</span></div>
@@ -6052,7 +6058,7 @@ function kpisEquipoHtml(nombre) {
   return GRUPOS_KPI.map(([titulo, claves]) => {
     const tarjetas = claves.map(([c, , suf]) => tarjeta(c, suf)).join("");
     return tarjetas ? `<h4 class="kpi-grupo">${escapeHtml(titulo)}</h4><div class="kpis">${tarjetas}</div>` : "";
-  }).join("") + `<p class="hint" style="margin-top:12px;">Comparado con los ${datos["Pts/P"] ? datos["Pts/P"].total : 28} equipos.
+  }).join("") + `<p class="hint" style="margin-top:12px;">Comparado con los ${datos["Pts/P"] ? datos["Pts/P"].total : 28} equipos de la liga${datos["Pts/P"] && datos["Pts/P"].puestoG ? ` y con los ${datos["Pts/P"].totalG} del grupo ${escapeHtml(datos["Pts/P"].grupo)}` : ""}.
     El puesto sale en verde si esta en el mejor tercio de la liga y en rojo si esta en el peor.
     Las posesiones son una estimacion calculada con el jugada a jugada.</p>`;
 }
@@ -15319,7 +15325,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26h";
+const VERSION_APP = "2026-10-26i";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
