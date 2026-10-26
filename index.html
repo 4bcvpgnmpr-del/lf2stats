@@ -4569,7 +4569,7 @@ function tvRender() {
 }
 function tvIr(d) { if (!TV.slides.length) return; TV.i = (TV.i + d + TV.slides.length) % TV.slides.length; tvRender(); }
 function tvMostrarControles() { const r = document.getElementById("tvModo"); if (!r) return; r.classList.add("tv-ver"); clearTimeout(TV.ocultar); TV.ocultar = setTimeout(() => r.classList.remove("tv-ver"), 3000); }
-function tvTecla(e) { if (!TV.abierto) return; if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return; if (document.getElementById("tvObj")) { if (e.key === "Escape") { const ok = document.getElementById("tvObjOk"); if (ok) ok.click(); } return; } if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === "i" || e.key === "I") { tvToggleIndice(); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
+function tvTecla(e) { if (!TV.abierto) return; const vg = document.getElementById("tvVideoGrande"); if (vg) { if (e.key === "Escape") vg.remove(); return; } const mg = document.getElementById("tvMapaGrande"); if (mg) { if (e.key === "Escape") mg.remove(); return; } if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return; if (document.getElementById("tvObj")) { if (e.key === "Escape") { const ok = document.getElementById("tvObjOk"); if (ok) ok.click(); } return; } if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === "i" || e.key === "I") { tvToggleIndice(); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
 function cerrarTV() {
   TV.abierto = false; clearTimeout(TV.timer); clearTimeout(TV.ocultar); clearInterval(TV.anim); clearTimeout(TV.anim); document.removeEventListener("keydown", tvTecla);
   const r = document.getElementById("tvModo"); if (r) r.remove();
@@ -4694,7 +4694,7 @@ function tvHtmlVideos(eq, nombre, sel, equipo) {
         <div class="tv-card" style="margin-top:2vh;padding:1vw;"><div class="tv-lab" style="margin:0 0 .8vh;">Añadir enlace</div>
           <input id="tvVidT" placeholder="Título" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:0;margin-bottom:6px;font-size:14px;"><input id="tvVidU" placeholder="Enlace (YouTube, Drive, mp4)" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:0;margin-bottom:6px;font-size:14px;">
           <label style="display:block;margin:2px 0 8px;color:#9fb2c6;font-size:13px;font-weight:700;cursor:pointer;">o subir un vídeo de este ordenador<input id="tvVidF" type="file" accept="video/*" style="display:block;margin-top:4px;max-width:100%;font-size:12px;"></label><button id="tvVidAdd" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer;">Guardar</button></div></div>
-      ${v ? `<div id="tvVidPlayer" style="max-height:${Math.round(H * 0.72)}px;">${reproductorHtml(v, v.segundos || 0)}${v.nota ? `<div class="tv-sub" style="margin-top:1vh;">${escapeHtml(v.nota)}</div>` : ""}</div>` : ""}</div>`;
+      ${v ? `<div id="tvVidPlayer" style="max-height:${Math.round(H * 0.72)}px;"><div style="text-align:right;margin-bottom:.5vh;"><button data-ampliar="${escapeAttr(v.id || "")}" style="background:#1d3248;color:#fff;border:0;border-radius:8px;padding:6px 14px;font:700 14px Inter,sans-serif;cursor:pointer;">⛶ Ver en pantalla grande</button></div>${reproductorHtml(v, v.segundos || 0)}${v.nota ? `<div class="tv-sub" style="margin-top:1vh;">${escapeHtml(v.nota)}</div>` : ""}</div>` : ""}</div>`;
 }
 function tvPostVideos(caja, eq, nombre, equipo) {
   try { montarVideosLocales(caja); } catch (e) { /* nada */ }
@@ -4704,7 +4704,22 @@ function tvPostVideos(caja, eq, nombre, equipo) {
   const repintar = (sel) => { const sl = caja.closest(".tv-slide") || caja; sl.innerHTML = tvHtmlVideos(eq, nombre, sel, equipo); tvPostVideos(sl, eq, nombre, equipo); };
   tvBindVideos(caja, repintar, eq, nombre, equipo);
 }
+function tvVidLista(eq, nombre, equipo) {
+  return equipo ? ((scouting.equipos && scouting.equipos[scoutClave("equipos", eq)] ? scouting.equipos[scoutClave("equipos", eq)].videos : []) || []) : tvVideosJugadora(eq, nombre);
+}
+function tvVideoGrande(eq, nombre, equipo, sel) {
+  const raiz = document.getElementById("tvModo"); if (!raiz || raiz.querySelector("#tvVideoGrande")) return;
+  const vs = tvVidLista(eq, nombre, equipo); let act = vs.find(x => x.id === sel) || vs[0]; if (!act) return;
+  const d = document.createElement("div"); d.id = "tvVideoGrande"; d.style.cssText = "position:absolute;inset:0;z-index:7;background:rgba(2,6,12,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2vh;";
+  const pintar = () => { d.innerHTML = `<div id="tvVgIn" style="display:flex;flex-direction:column;align-items:center;gap:1.2vh;width:100%;"><div style="display:flex;align-items:center;gap:1.2vw;flex-wrap:wrap;justify-content:center;font:800 clamp(13px,1.5vw,24px) Inter,sans-serif;color:#fff;"><span>${escapeHtml(nombre)}</span>${vs.map(x => `<span data-vg="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:5px 12px;border-radius:99px;font:700 14px Inter,sans-serif;background:${x === act ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 30))}</span>`).join("")}<button id="tvVgX" style="background:#5a2b2b;color:#fff;border:0;border-radius:10px;padding:7px 16px;font:700 14px Inter,sans-serif;cursor:pointer;">✕ Cerrar</button></div>
+      <div style="width:min(94vw,148vh);">${reproductorHtml(act, act.segundos || 0)}</div></div>`;
+    try { montarVideosLocales(d); } catch (e) { /* nada */ }
+    d.querySelector("#tvVgX").addEventListener("click", (e) => { e.stopPropagation(); d.remove(); });
+    d.querySelectorAll("[data-vg]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); act = vs.find(x => (x.id || "") === b.dataset.vg) || act; pintar(); })); };
+  raiz.appendChild(d); pintar();
+}
 function tvBindVideos(caja, repintar, eq, nombre, equipo) {
+  caja.querySelectorAll("[data-ampliar]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); tvVideoGrande(eq, nombre, equipo, b.dataset.ampliar); }));
   caja.querySelectorAll("[data-vid]").forEach(el => el.addEventListener("click", (e) => { e.stopPropagation(); repintar(el.dataset.vid); }));
   const add = caja.querySelector("#tvVidAdd");
   if (add) add.addEventListener("click", async (e) => { e.stopPropagation(); const u = caja.querySelector("#tvVidU").value.trim(), fi = caja.querySelector("#tvVidF"), arch = fi && fi.files ? fi.files[0] : null; if (!u && !arch) return; const id = "v" + Date.now();
@@ -4718,7 +4733,7 @@ function tvBindVideos(caja, repintar, eq, nombre, equipo) {
 /* ---- Scouting individual de las jugadoras del rival ---- */
 function tvPanelVideosCompacto(eq, nombre, sel) {
   const vs = tvVideosJugadora(eq, nombre), v = vs.find(x => x.id === sel) || vs[0], H = window.innerHeight;
-  return `${v ? `<div style="max-height:${Math.round(H * 0.42)}px;overflow:hidden;">${reproductorHtml(v, v.segundos || 0)}</div>${v.nota ? `<div class="tv-sub" style="font-size:clamp(11px,1.2vw,20px);margin-top:.6vh;">${escapeHtml(v.nota)}</div>` : ""}`
+  return `${v ? `<div style="text-align:right;margin-bottom:.5vh;"><button data-ampliar="${escapeAttr(v.id || "")}" style="background:#1d3248;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 clamp(11px,1.1vw,18px) Inter,sans-serif;cursor:pointer;">⛶ Ver en pantalla grande</button></div><div style="max-height:${Math.round(H * 0.42)}px;overflow:hidden;">${reproductorHtml(v, v.segundos || 0)}</div>${v.nota ? `<div class="tv-sub" style="font-size:clamp(11px,1.2vw,20px);margin-top:.6vh;">${escapeHtml(v.nota)}</div>` : ""}`
     : `<div class="tv-card" style="text-align:center;padding:5vh 1vw;"><div class="tv-sub">Aún no hay vídeo de ${escapeHtml(nombre)}</div></div>`}
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:1vh;">${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:5px 11px;border-radius:99px;font:700 clamp(11px,1.1vw,18px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 28))}</span>`).join("")}</div>
     <details style="margin-top:1vh;"><summary style="cursor:pointer;color:#9fb2c6;font:700 clamp(11px,1.1vw,18px) Inter,sans-serif;">+ Añadir vídeo</summary>
@@ -4729,31 +4744,57 @@ function tvSlidePerfilRival(eq, x, k, n) {
   const H = window.innerHeight, nombre = x.n; let pl = null; try { pl = fichaPlantilla(nombre, eq); } catch (e) { pl = null; }
   let dorsal = ""; try { dorsal = dorsalDe(nombre, eq) || ""; } catch (e) { dorsal = ""; } if (!dorsal && pl) dorsal = cellText(pl, "Dorsal");
   const dato = pl ? [cellText(pl, "Puesto"), cellText(pl, "Altura"), cellText(pl, "Edad") ? cellText(pl, "Edad") + " años" : ""].filter(Boolean).join(" · ") : "";
-  const tiros = tvFilasTirosJug(eq, nombre).map(tiroEnMetros).filter(Boolean), alto = Math.round(H * 0.4);
-  const card = (t, v, sub) => `<div class="tv-card" style="padding:.7vw 1vw;text-align:center;"><div class="tv-num" style="font-size:clamp(20px,2.7vw,48px);">${v}</div><div class="tv-lab" style="margin:.2em 0 0;font-size:clamp(9px,.95vw,16px);">${t}</div>${sub ? `<div class="tv-sub" style="font-size:clamp(9px,.95vw,15px);">${sub}</div>` : ""}</div>`;
+  const tiros = tvFilasTirosJug(eq, nombre).map(tiroEnMetros).filter(Boolean), alto = Math.round(H * 0.44), nVid = tvVideosJugadora(eq, nombre).length;
+  const card = (t, v, sub, grande) => `<div class="tv-card" style="padding:.6vw 1vw;text-align:center;${grande ? "border-color:#f2803f;height:100%;box-sizing:border-box;" : ""}"><div class="tv-num" style="font-size:clamp(20px,${grande ? 3.6 : 2.6}vw,${grande ? 64 : 46}px);${grande ? "color:#f2803f;" : ""}">${v}</div><div class="tv-lab" style="margin:.2em 0 0;font-size:clamp(9px,1vw,17px);">${t}</div>${sub ? `<div class="tv-sub" style="font-size:clamp(10px,1.05vw,17px);">${sub}</div>` : ""}</div>`;
   let vg = null; try { vg = tvJugVsGrupo(eq, nombre); } catch (e) { vg = null; }
-  let fm = ""; if (vg && vg.filas.length >= 4) { const o = vg.filas.slice().sort((a, b) => a.frac - b.frac), bu = o.slice(0, 2), ma = o.slice(-2).reverse().filter(y => !bu.includes(y)), chip = (y, c) => `<span style="color:${c};white-space:nowrap;">${escapeHtml(y.t)} ${y.v} <small style="color:#9fb2c6;">#${y.pg}/${y.ng}</small></span>`;
-    fm = `<div style="margin-top:1vh;font:700 clamp(11px,1.2vw,20px) Inter,sans-serif;display:grid;gap:.4vh;"><div><span style="color:#9fb2c6;">Fuerte en: </span>${bu.map(y => chip(y, "#ff9a8d")).join(" · ")}</div><div><span style="color:#9fb2c6;">Le podemos hacer daño en: </span>${ma.map(y => chip(y, "#4fd69c")).join(" · ")}</div></div>`; }
+  let fm = "", fm2 = ""; if (vg && vg.filas.length >= 4) { const o = vg.filas.slice().sort((a, b) => a.frac - b.frac), bu = o.slice(0, 2), ma = o.slice(-2).reverse().filter(y => !bu.includes(y)), chip = (y, c) => `<span style="color:${c};white-space:nowrap;">${escapeHtml(y.t)} ${y.v} <small style="color:#9fb2c6;">#${y.pg}/${y.ng}</small></span>`;
+    fm2 = `<div class="tv-card" style="border-color:#ff7b6b66;margin-bottom:1.4vh;"><div class="tv-lab" style="color:#ff9a8d;margin:0 0 .8vh;">Fuerte en</div>${bu.map(y => `<div style="display:flex;justify-content:space-between;font-weight:800;font-size:clamp(13px,1.7vw,29px);margin:.4vh 0;"><span>${escapeHtml(y.t)}</span><span>${y.v} <small style="color:#9fb2c6;font-size:.65em;">#${y.pg} de ${y.ng}</small></span></div>`).join("")}</div>
+      <div class="tv-card" style="border-color:#4fd69c66;"><div class="tv-lab" style="color:#4fd69c;margin:0 0 .8vh;">Le podemos hacer daño en</div>${ma.map(y => `<div style="display:flex;justify-content:space-between;font-weight:800;font-size:clamp(13px,1.7vw,29px);margin:.4vh 0;"><span>${escapeHtml(y.t)}</span><span>${y.v} <small style="color:#9fb2c6;font-size:.65em;">#${y.pg} de ${y.ng}</small></span></div>`).join("")}</div>`; }
   return { id: "rj:" + nombre, tit: "Perfil · " + nombre, dur: 3600, html: `<div class="tv-kick">Scouting individual · ${escapeHtml(equipoOficial(eq))} · ${k} de ${n}</div>
-    <div style="display:flex;align-items:center;gap:2vw;margin:.6vh 0 1.4vh;"><div style="position:relative;flex:none;">${tvFoto(nombre, Math.round(H * 0.2), eq)}${dorsal ? `<div style="position:absolute;right:-.6vw;bottom:-.6vh;background:#f2803f;border-radius:.8vw;padding:.2vh .8vw;font-weight:900;font-size:clamp(16px,2.2vw,38px);">#${escapeHtml(dorsal)}</div>` : ""}</div>
+    <div style="display:flex;align-items:center;gap:2vw;margin:.6vh 0 1.4vh;"><div style="position:relative;flex:none;">${tvFoto(nombre, Math.round(H * 0.27), eq)}${dorsal ? `<div style="position:absolute;right:-.6vw;bottom:-.6vh;background:#f2803f;border-radius:.8vw;padding:.2vh .8vw;font-weight:900;font-size:clamp(16px,2.2vw,38px);">#${escapeHtml(dorsal)}</div>` : ""}</div>
       <div style="min-width:0;"><h2 style="margin:0;font-size:clamp(22px,3.2vw,56px);">${escapeHtml(nombre)}</h2><div class="tv-sub" style="font-size:clamp(11px,1.3vw,22px);">${x.pj} partidos${dato ? " · " + escapeHtml(dato) : ""}</div></div>
-      <div style="flex:1;display:grid;grid-template-columns:repeat(6,1fr);gap:.8vw;">${card("Puntos", tvF1(x.pt))}${card("Rebotes", tvF1(x.reb), "of " + tvF1(x.ro) + " · def " + tvF1(x.rd))}${card("Asist.", tvF1(x.as))}${card("Valoración", tvF1(x.va))}${card("2P", tvPct(x.t2a, x.t2i), x.t2a + "/" + x.t2i)}${card("3P · TL", tvPct(x.t3a, x.t3i), "TL " + tvPct(x.tla, x.tli))}</div></div>
-    <div style="display:grid;grid-template-columns:1fr 1.25fr;gap:2vw;align-items:start;"><div>${tiros.length >= 8 ? `<div id="tvMapaJ">${cartaSvg(tiros, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:100%;border-radius:1vw;" `)}</div>
-        <div style="display:flex;gap:6px;margin-top:.8vh;"><button data-mm="puntos" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 12px Inter,sans-serif;cursor:pointer;">Tiro a tiro</button><button data-mm="fg" style="background:#1d3248;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 12px Inter,sans-serif;cursor:pointer;">Por zonas</button><span class="tv-sub" style="font-size:clamp(10px,1vw,16px);align-self:center;">${tiros.length} tiros</span></div>`
-        : `<div class="tv-card" style="text-align:center;padding:6vh 1vw;"><div class="tv-sub">Sin tiros suficientes registrados</div></div>`}${fm}</div>
-      <div id="tvVidPanel">${tvPanelVideosCompacto(eq, nombre, null)}</div></div>`,
+      <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:.7vw;">${card("Puntos", tvF1(x.pt))}${card("Rebotes", tvF1(x.reb), "of " + tvF1(x.ro) + " · def " + tvF1(x.rd))}${card("Asist.", tvF1(x.as))}${card("Valoración", tvF1(x.va))}${card("Tiros de 2", tvPct(x.t2a, x.t2i), x.t2a + " de " + x.t2i)}${card("Triples", tvPct(x.t3a, x.t3i), x.t3a + " de " + x.t3i)}<div style="grid-column:span 2;">${card("Tiros libres", tvPct(x.tla, x.tli), x.tla + " de " + x.tli + (x.tli ? "" : " (sin intentos)"), true)}</div></div></div>
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:2.4vw;align-items:start;"><div>${tiros.length >= 8 ? `<div id="tvMapaJ" style="cursor:zoom-in;" title="Toca para ampliar">${cartaSvg(tiros, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:100%;border-radius:1vw;" `)}</div>
+        <div style="display:flex;gap:6px;margin-top:.8vh;"><button data-mm="puntos" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 12px Inter,sans-serif;cursor:pointer;">Tiro a tiro</button><button data-mm="fg" style="background:#1d3248;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 12px Inter,sans-serif;cursor:pointer;">Por zonas</button><span class="tv-sub" style="font-size:clamp(10px,1vw,16px);align-self:center;">${tiros.length} tiros · toca el mapa para ampliarlo</span></div>`
+        : `<div class="tv-card" style="text-align:center;padding:6vh 1vw;"><div class="tv-sub">Sin tiros suficientes registrados</div></div>`}</div>
+      <div>${fm2 || `<div class="tv-card" style="text-align:center;"><div class="tv-sub">Sin datos suficientes del grupo para compararla</div></div>`}<div class="tv-sub" style="margin-top:1.6vh;font-size:clamp(11px,1.3vw,22px);text-align:center;">${nVid ? "▶ " + nVid + (nVid === 1 ? " vídeo" : " vídeos") + " · pulsa → para verlo en grande" : "Sin vídeo todavía · pulsa → para añadirlo"}</div></div></div>`,
+    post: (caja) => { TV.auto = false; clearTimeout(TV.timer);
+      const prog = document.querySelector("#tvModo .tv-prog"); if (prog) { prog.style.transition = "none"; prog.style.width = "0"; } const bt = document.getElementById("tvAuto"); if (bt) bt.textContent = "▶ Seguir";
+      let modoM = "puntos";
+      const pintarMapa = () => { const cm = caja.querySelector("#tvMapaJ"); if (cm) cm.innerHTML = cartaSvg(tiros, modoM, modoM === "fg" ? ligaZonasCache : undefined).replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:100%;border-radius:1vw;" `);
+        caja.querySelectorAll("[data-mm]").forEach(o => { o.style.background = o.dataset.mm === modoM ? "#f2803f" : "#1d3248"; }); };
+      caja.querySelectorAll("[data-mm]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); modoM = b.dataset.mm; pintarMapa(); }));
+      const mj = caja.querySelector("#tvMapaJ"); if (mj) mj.addEventListener("click", (e) => { e.stopPropagation(); tvMapaGrande(tiros, modoM, nombre, (m) => { modoM = m; pintarMapa(); }); });
+    } };
+}
+function tvMapaGrande(tiros, modo, nombre, alCambiar) {
+  const raiz = document.getElementById("tvModo"); if (!raiz || raiz.querySelector("#tvMapaGrande")) return;
+  const d = document.createElement("div"); d.id = "tvMapaGrande"; d.style.cssText = "position:absolute;inset:0;z-index:7;background:rgba(5,12,20,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4vh;cursor:zoom-out;";
+  const pintar = () => { d.innerHTML = `<div style="display:flex;align-items:center;gap:1.4vw;font:800 clamp(14px,1.6vw,26px) Inter,sans-serif;color:#fff;"><span>${escapeHtml(nombre)} · ${tiros.length} tiros</span>
+      <button data-g="puntos" style="border:0;border-radius:10px;padding:8px 16px;font:700 15px Inter,sans-serif;cursor:pointer;color:#fff;background:${modo === "puntos" ? "#f2803f" : "#1d3248"};">Tiro a tiro</button><button data-g="fg" style="border:0;border-radius:10px;padding:8px 16px;font:700 15px Inter,sans-serif;cursor:pointer;color:#fff;background:${modo === "fg" ? "#f2803f" : "#1d3248"};">Por zonas</button><span style="color:#9fb2c6;font-size:.75em;">Toca fuera para cerrar</span></div>
+      <div>${cartaSvg(tiros, modo, modo === "fg" ? ligaZonasCache : undefined).replace("<svg ", `<svg style="height:${Math.round(window.innerHeight * 0.8)}px;width:auto;max-width:92vw;border-radius:1vw;" `)}</div>`;
+    d.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); modo = b.dataset.g; if (alCambiar) alCambiar(modo); pintar(); })); };
+  d.addEventListener("click", () => d.remove()); raiz.appendChild(d); pintar();
+}
+function tvVideoSlideHtml(eq, nombre, sel, k, n) {
+  const vs = tvVideosJugadora(eq, nombre), v = vs.find(x => x.id === sel) || vs[0], H = window.innerHeight, w = Math.round(H * 0.66 * 16 / 9);
+  return `<div class="tv-kick">Vídeo · ${escapeHtml(equipoOficial(eq))} · ${k} de ${n}</div>
+    <div style="display:flex;align-items:center;gap:1.2vw;flex-wrap:wrap;margin:.3vh 0 1vh;"><h2 style="margin:0;font-size:clamp(18px,2.4vw,40px);">${escapeHtml(nombre)}</h2>${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:5px 12px;border-radius:99px;font:700 clamp(11px,1.2vw,19px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 30))}</span>`).join("")}
+      <details ${v ? "" : "open"} style="position:relative;"><summary style="cursor:pointer;color:#9fb2c6;font:700 clamp(11px,1.2vw,19px) Inter,sans-serif;">+ Añadir vídeo</summary>
+        <div class="tv-card" style="position:absolute;z-index:4;top:2.2em;left:0;width:min(340px,80vw);padding:.8vw;background:#12263a;"><input id="tvVidT" placeholder="Título" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;"><input id="tvVidU" placeholder="Enlace (YouTube, Drive, mp4)" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;">
+          <input id="tvVidF" type="file" accept="video/*" style="display:block;margin:2px 0 6px;max-width:100%;font-size:12px;color:#9fb2c6;"><button id="tvVidAdd" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:800;cursor:pointer;">Guardar</button></div></details></div>
+    ${v ? `<div id="tvVidPlayer" style="width:min(92vw,${w}px);margin:0 auto;">${reproductorHtml(v, v.segundos || 0)}</div>${v.nota ? `<div class="tv-sub" style="text-align:center;margin-top:.8vh;font-size:clamp(11px,1.3vw,22px);">${escapeHtml(v.nota)}</div>` : ""}` : `<div class="tv-card" style="text-align:center;padding:10vh 2vw;"><div class="tv-sub">Aún no hay vídeo de ${escapeHtml(nombre)}. Añade un enlace o sube un archivo.</div></div>`}`;
+}
+function tvSlideVideoJug(eq, nombre, k, n) {
+  return { id: "rjv:" + nombre, tit: "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n),
     post: (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ } TV.auto = false; clearTimeout(TV.timer);
       const prog = document.querySelector("#tvModo .tv-prog"); if (prog) { prog.style.transition = "none"; prog.style.width = "0"; } const bt = document.getElementById("tvAuto"); if (bt) bt.textContent = "▶ Seguir";
-      caja.querySelectorAll("[data-mm]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); const m = b.dataset.mm, cm = caja.querySelector("#tvMapaJ"); if (!cm) return;
-        cm.innerHTML = cartaSvg(tiros, m, m === "fg" ? ligaZonasCache : undefined).replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:100%;border-radius:1vw;" `);
-        caja.querySelectorAll("[data-mm]").forEach(o => { o.style.background = o === b ? "#f2803f" : "#1d3248"; }); }));
-      const panel = caja.querySelector("#tvVidPanel");
-      const rep = (sel) => { panel.innerHTML = tvPanelVideosCompacto(eq, nombre, sel); try { montarVideosLocales(panel); } catch (e) { /* nada */ } tvBindVideos(panel, rep, eq, nombre, false); };
-      tvBindVideos(panel, rep, eq, nombre, false); } };
+      const rep = (sel) => { caja.innerHTML = tvVideoSlideHtml(eq, nombre, sel, k, n); try { montarVideosLocales(caja); } catch (e) { /* nada */ } tvBindVideos(caja, rep, eq, nombre, false); };
+      tvBindVideos(caja, rep, eq, nombre, false); } };
 }
 function tvSlidesJugRival(R) {
   const L = tvJugRival(R, 1).sort((a, b) => b.pt - a.pt), S = [];
-  L.forEach((x, i) => { try { S.push(tvSlidePerfilRival(R, x, i + 1, L.length)); } catch (e) { console.warn("Modo TV:", e); } });
+  L.forEach((x, i) => { try { S.push(tvSlidePerfilRival(R, x, i + 1, L.length)); S.push(tvSlideVideoJug(R, x.n, i + 1, L.length)); } catch (e) { console.warn("Modo TV:", e); } });
   return S;
 }
 function tvToggleIndice() {
@@ -16257,7 +16298,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-26z";
+const VERSION_APP = "2026-10-27c";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
