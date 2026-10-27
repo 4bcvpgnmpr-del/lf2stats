@@ -4006,8 +4006,11 @@ function tvCss() {
   #tvModo table.tv-t tr:hover,#tvModo table.tv-t tr:hover td{background:transparent !important;color:inherit !important;}
   #tvVidInfo,#tvVidMarcas{transition:opacity .4s;} #tvModo:not(.tv-ver) #tvVidInfo,#tvModo:not(.tv-ver) #tvVidMarcas{opacity:0;}
   #tvDibujo{position:absolute;inset:0;z-index:6;cursor:crosshair;} #tvDibujo canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
-  #tvDibBar{position:absolute;left:50%;top:1.6vh;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:rgba(5,12,20,.9);border:1px solid #2b4764;border-radius:99px;padding:6px 14px;z-index:7;cursor:default;}
-  #tvDibBar button{background:#1d3248;color:#fff;border:0;border-radius:99px;padding:6px 12px;font:700 13px Inter,sans-serif;cursor:pointer;} #tvDibBar i{width:24px;height:24px;border-radius:50%;border:3px solid transparent;cursor:pointer;display:block;} #tvDibBar i.on{border-color:#fff;}
+  #tvDibBar{position:absolute;left:.8vw;top:50%;transform:translateY(-50%);width:176px;max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:6px;background:rgba(5,12,20,.93);border:1px solid #2b4764;border-radius:16px;padding:8px;z-index:7;cursor:default;}
+  #tvDibBar button{background:#1d3248;color:#fff;border:0;border-radius:8px;padding:5px 6px;font:700 12px Inter,sans-serif;cursor:pointer;} #tvDibBar button.on{background:#f2803f;}
+  #tvDibBar .g{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;} #tvDibBar .g button{height:30px;padding:0;font-size:15px;}
+  #tvDibBar .c{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;} #tvDibBar .c i{height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;display:block;} #tvDibBar .c i.on{border-color:#fff;}
+  #tvDibBar .r{display:flex;gap:3px;align-items:center;color:#9fb2c6;font:700 11px Inter,sans-serif;} #tvDibBar .r button{flex:1;} #tvDibHint{color:#9fb2c6;font:600 11px Inter,sans-serif;line-height:1.3;}
   #tvModo .tv-grid{display:grid;gap:2vw;} #tvModo .tv-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:1.4vw;padding:1.6vw 2vw;}
   #tvModo .tv-num{font-size:clamp(34px,6vw,110px);font-weight:900;line-height:1;white-space:nowrap;} #tvModo .tv-lab{color:#9fb2c6;font-size:clamp(12px,1.3vw,22px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:.4em;}
   #tvModo .tv-bar{background:rgba(255,255,255,.1);border-radius:99px;height:1.1vw;min-height:10px;overflow:hidden;} #tvModo .tv-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#f2803f,#ffb36b);transition:width 1.4s cubic-bezier(.2,.8,.2,1);}
@@ -4458,7 +4461,7 @@ function tvSlideClasificacion(ctx) {
       ${rows.slice(ini, fin).map((x, k) => { const mio = ini + k === iMio; return `<tr style="${mio ? "background:rgba(242,128,63,.25);" : ""}"><td style="text-align:center;color:#f2803f;">${escapeHtml(cellText(x, "Po") || String(ini + k + 1))}</td><td style="text-align:left;"><span style="display:inline-flex;align-items:center;gap:.8vw;">${tvEscudo(cellText(x, "Equipo"), Math.round(window.innerHeight * 0.037))}${escapeHtml(cellText(x, "Equipo"))}</span></td>${cols.map(c => `<td>${escapeHtml(cellText(x, c.label))}</td>`).join("")}</tr>`; }).join("")}</tbody></table></div>` };
 }
 
-const TV_TIT = { calendario: "Calendario y resultados", "rival-calendario": "Calendario del rival", "cmp-stats": "Comparar jugadoras", "cmp-mapas": "Mapas de tiro comparados", portada: "Portada", clasificacion: "Clasificación del grupo", ultimo: "Último partido", forma: "Forma reciente", progreso: "Quién está mejorando", premio: "Jugadora del partido (MVP)", numeros: "Nuestro equipo en cifras", plantilla: "Toda la plantilla", lideres: "Líderes de la temporada", cuartos: "Cuartos", quintetos: "Quintetos", honor: "Cuadro de honor", objetivos: "Objetivos del equipo", "metas-jug": "Metas por jugadora", mapa: "Mapa de tiro", zonas: "Tiro por zonas", vueltas: "Evolución del equipo", "claves-victoria": "Cuándo ganamos y perdemos", indicadores: "Todos los indicadores", fortalezas: "Dónde somos fuertes", ranking: "Ranking del grupo",
+const TV_TIT = { calendario: "Calendario y resultados", "rival-calendario": "Calendario del rival", "cmp-stats": "Comparar jugadoras", "cmp-mapas": "Mapas de tiro", portada: "Portada", clasificacion: "Clasificación del grupo", ultimo: "Último partido", forma: "Forma reciente", progreso: "Quién está mejorando", premio: "Jugadora del partido (MVP)", numeros: "Nuestro equipo en cifras", plantilla: "Toda la plantilla", lideres: "Líderes de la temporada", cuartos: "Cuartos", quintetos: "Quintetos", honor: "Cuadro de honor", objetivos: "Objetivos del equipo", "metas-jug": "Metas por jugadora", mapa: "Mapa de tiro", zonas: "Tiro por zonas", vueltas: "Evolución del equipo", "claves-victoria": "Cuándo ganamos y perdemos", indicadores: "Todos los indicadores", fortalezas: "Dónde somos fuertes", ranking: "Ranking del grupo",
   rival: "Portada del rival", "rival-forma": "Su forma", "rival-cara": "Cara a cara", "rival-numeros": "Sus números", "rival-kpi": "Fuertes y débiles", "rival-indicadores": "Sus indicadores", "rival-jug": "Jugadoras a vigilar", "rival-plantilla": "Toda su plantilla", "rival-lideres": "Sus líderes", "mapa-rival": "Su mapa de tiro", "rival-zonas": "Sus zonas de tiro", "rival-cuartos": "Sus cuartos", "rival-quintetos": "Sus quintetos", "rival-claves": "Claves del partido", "rival-duelo": "Último duelo", "rival-video": "Vídeo de scouting",
   "jug-ficha": "Ficha", "jug-metas": "Sus metas", "jug-numeros": "Todos sus números", "jug-partidos": "Partido a partido", "jug-evolucion": "Cómo ha cambiado", "jug-resumen": "Frente a su plantilla", "jug-grupo": "Frente al grupo", "jug-grupo-resumen": "Destaca y a mejorar", "jug-mapa": "Mapa de tiro", "jug-zonas": "Tiro por zonas", "jug-video": "Vídeos" };
 function tvTitulo(sl) { return sl.tit || TV_TIT[sl.id] || String(sl.id || "").replace(/^jug-mapa:/, "Mapa de tiro · ") || "Diapositiva"; }
@@ -4599,7 +4602,7 @@ function tvRender() {
 function tvIr(d) { if (!TV.slides.length) return; TV.i = (TV.i + d + TV.slides.length) % TV.slides.length; tvRender(); }
 function tvMostrarControles() { const r = document.getElementById("tvModo"); if (!r) return; r.classList.add("tv-ver"); clearTimeout(TV.ocultar); TV.ocultar = setTimeout(() => r.classList.remove("tv-ver"), 3000); }
 function tvTecla(e) { if (!TV.abierto) return; const dibj = document.getElementById("tvDibujo"), enCampo = e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
-  if (!enCampo && !TV.menu) { if (e.key === "d" || e.key === "D") { e.preventDefault(); tvDibujoToggle(); return; } if (dibj) { if (e.key === "Escape") { dibj.remove(); return; } if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && dibj._undo) { e.preventDefault(); dibj._undo(); return; } } }
+  if (!enCampo && !TV.menu) { if (e.key === "d" || e.key === "D") { e.preventDefault(); tvDibujoToggle(); return; } if (dibj) { if (e.key === "Escape") { dibj.remove(); return; } if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && dibj._undo) { e.preventDefault(); dibj._undo(); return; } if ((e.key === "Delete" || e.key === "Backspace") && dibj._del) { e.preventDefault(); dibj._del(); return; } } }
   const slx = TV.slides[TV.i]; if (slx && slx.tecla && !TV.menu && !(e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) && !document.getElementById("tvVideoGrande") && !document.getElementById("tvMapaGrande") && !document.getElementById("tvObj") && slx.tecla(e)) { e.preventDefault(); return; } const vg = document.getElementById("tvVideoGrande"); if (vg) { if (e.key === "Escape") vg.remove(); return; } const mg = document.getElementById("tvMapaGrande"); if (mg) { if (e.key === "Escape") mg.remove(); return; } if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return; if (document.getElementById("tvObj")) { if (e.key === "Escape") { const ok = document.getElementById("tvObjOk"); if (ok) ok.click(); } return; } if (e.key === "Escape") cerrarTV(); else if (e.key === "ArrowRight") { tvIr(1); } else if (e.key === "ArrowLeft") { tvIr(-1); } else if (e.key === "i" || e.key === "I") { tvToggleIndice(); } else if (e.key === " ") { e.preventDefault(); TV.auto = !TV.auto; tvRender(); } }
 function cerrarTV() {
   TV.abierto = false; clearTimeout(TV.timer); clearTimeout(TV.ocultar); clearInterval(TV.anim); clearTimeout(TV.anim); document.removeEventListener("keydown", tvTecla);
@@ -4924,7 +4927,7 @@ function tvCtrlVideo(caja, alTerminar) {
 }
 function tvSlideVideoJug(eq, nombre, k, n, equipo, idx) {
   const est = { sel: null }; let sl = null;
-  const avanzar = () => { if (!sl || TV.slides[TV.i] !== sl) return; if (TV.i >= TV.slides.length - 1) return; const vs = tvVidLista(eq, nombre, equipo), i = vs.findIndex(x => x.id === (est.sel || (vs[0] && vs[0].id)));
+  const avanzar = () => { if (!sl || TV.slides[TV.i] !== sl || document.getElementById("tvDibujo")) return; if (TV.i >= TV.slides.length - 1) return; const vs = tvVidLista(eq, nombre, equipo), i = vs.findIndex(x => x.id === (est.sel || (vs[0] && vs[0].id)));
     if (vs.length && i >= 0 && i + 1 < vs.length) { const caja = document.querySelector("#tvModo .tv-slide"); est.sel = vs[i + 1].id; if (TV.vidMsg) { window.removeEventListener("message", TV.vidMsg); TV.vidMsg = null; } caja.innerHTML = tvVideoSlideHtml(eq, nombre, est.sel, k, n, equipo); sl.post2(caja); } else tvIr(1); };
   sl = { id: idx || (equipo ? "rival-video" : (k ? "rjv:" + nombre : "jug-video")), tit: equipo ? "Vídeo de scouting" : "Vídeo · " + nombre, dur: 3600, html: tvVideoSlideHtml(eq, nombre, null, k, n, equipo) };
   const montar = (caja) => { try { montarVideosLocales(caja); } catch (e) { /* nada */ }
@@ -4971,8 +4974,8 @@ function tvSlideCompJug(A, B) {
 function tvSlideCompMapas(A, B) {
   const H = window.innerHeight, alto = Math.round(H * 0.52), tr = (P) => tvFilasTirosJug(P.eq, P.n).map(tiroEnMetros).filter(Boolean), tA = tr(A), tB = tr(B);
   if (tA.length < 10 && tB.length < 10) return null;
-  const col = (P, t) => { const ac = t.filter(x => x.anotado).length; return `<div style="flex:1;text-align:center;"><div style="font-weight:900;font-size:clamp(14px,1.9vw,32px);margin-bottom:.6vh;">${escapeHtml(corto3(P.n, 26))}</div>${t.length >= 10 ? cartaSvg(t, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:100%;border-radius:1vw;" `) : `<div class="tv-sub" style="padding:10vh 0;">Pocos tiros registrados</div>`}<div class="tv-sub" style="margin-top:.8vh;">${t.length ? `Acierto ${tvPct(ac, t.length)} (${ac}/${t.length})` : ""}</div></div>`; };
-  return { id: "cmp-mapas", dur: 18, html: `<div class="tv-kick">Mapas de tiro</div>
+  const col = (P, t) => { const ac = t.filter(x => x.anotado).length; return `<div style="flex:1;text-align:center;"><div style="font-weight:900;font-size:clamp(14px,1.9vw,32px);margin-bottom:.6vh;">${escapeHtml(corto3(P.n, 26))}</div>${t.length >= 10 ? cartaSvg(t, "puntos").replace("<svg ", `<svg style="height:${alto}px;width:auto;max-width:100%;border-radius:1vw;" `) : `<div class="tv-sub" style="padding:10vh 0;">Pocos tiros registrados</div>`}<div class="tv-sub" style="margin-top:.8vh;">${t.length ? `${t.length} tiros · acierto ${tvPct(ac, t.length)}` : ""}</div>${t.length >= 10 ? `<div style="margin-top:.6vh;font-weight:800;font-size:clamp(11px,1.3vw,22px);">${datosZonas(t).sort((a, b) => b.share - a.share).slice(0, 3).map(z => `<span style="margin:0 .6vw;white-space:nowrap;">${escapeHtml(z.zona)} <b style="color:#f2803f;">${fmtNum(z.share)}%</b></span>`).join("")}</div>` : ""}</div>`; };
+  return { id: "cmp-mapas", dur: 18, html: `<div class="tv-kick">Mapa de tiro · desde dónde tiran</div>
     <div style="display:flex;gap:3vw;align-items:flex-start;margin-top:1vh;">${col(A, tA)}${col(B, tB)}</div>` };
 }
 function tvSlidesComparar() {
@@ -4987,21 +4990,86 @@ function tvSlidesJugRival(R) {
   L.forEach((x, i) => { try { S.push(tvSlidePerfilRival(R, x, i + 1, L.length)); S.push(tvSlideVideoJug(R, x.n, i + 1, L.length)); } catch (e) { console.warn("Modo TV:", e); } });
   return S;
 }
+const TV_HERR = [["select", "↖", "Seleccionar y mover"], ["arrow", "➚", "Flecha"], ["line", "／", "Línea"], ["curve", "⤴", "Línea curva"], ["circle", "◯", "Círculo"], ["rect", "▭", "Rectángulo"], ["text", "T", "Texto"], ["pen", "✎", "Lápiz"], ["hl", "🖍", "Resaltador"], ["spot", "🔦", "Spotlight (oscurece el resto)"],
+  ["lens", "🔍", "Lupa (en vídeos subidos o mp4)"], ["num", "①", "Numeración / jugadora"], ["cone", "◭", "Cono de visión"], ["zone", "⬠", "Zona (clics; doble clic para cerrar)"], ["traj", "⤳", "Trayectoria"], ["tline", "⟷", "Línea en T (medida)"], ["move", "⇢", "Movimiento"], ["beam", "☀", "Foco sobre una jugadora (arrastra hacia arriba desde sus pies)"], ["wall", "▥", "Muro defensivo (de un extremo a otro)"], ["ghost", "👤", "Mueve una pieza: de dónde sale a dónde debe ir"]];
+const TV_COLS = ["#FFD23F", "#FF4D4D", "#3DDC97", "#4DA3FF", "#FFFFFF", "#B58CFF", "#FF9F45", "#111111"];
 function tvDibujoToggle() {
   const raiz = document.getElementById("tvModo"); if (!raiz || TV.menu) return; const ya = raiz.querySelector("#tvDibujo"); if (ya) { ya.remove(); return; }
-  const d = document.createElement("div"); d.id = "tvDibujo"; const cols = ["#ff3b30", "#ffd60a", "#ffffff", "#f2803f", "#34c759", "#0a84ff"]; let col = cols[0], gr = 5;
-  d.innerHTML = `<canvas></canvas><div id="tvDibBar">${cols.map((c, i) => `<i data-c="${c}" class="${i ? "" : "on"}" style="background:${c};"></i>`).join("")}<button data-g="5">Fino</button><button data-g="12">Grueso</button><button id="tvDibUndo">↶ Deshacer</button><button id="tvDibClr">🧹 Borrar</button><button id="tvDibX" style="background:#5a2b2b;">✕ Terminar (D)</button></div>`;
-  raiz.appendChild(d);
-  const cv = d.querySelector("canvas"), dpr = window.devicePixelRatio || 1; cv.width = Math.round(innerWidth * dpr); cv.height = Math.round(innerHeight * dpr); const cx = cv.getContext("2d"); cx.scale(dpr, dpr); cx.lineCap = "round"; cx.lineJoin = "round";
-  let trazos = [], act = null;
-  const pintar = () => { cx.clearRect(0, 0, innerWidth, innerHeight); trazos.forEach(t => { cx.strokeStyle = t.c; cx.lineWidth = t.w; cx.beginPath(); t.p.forEach((q, i) => { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); if (t.p.length === 1) cx.lineTo(t.p[0][0] + .1, t.p[0][1]); cx.stroke(); }); };
-  cv.addEventListener("pointerdown", (e) => { e.stopPropagation(); try { cv.setPointerCapture(e.pointerId); } catch (er) { /* nada */ } act = { c: col, w: gr, p: [[e.clientX, e.clientY]] }; trazos.push(act); pintar(); });
-  cv.addEventListener("pointermove", (e) => { if (!act) return; act.p.push([e.clientX, e.clientY]); pintar(); });
-  const fin = () => { act = null; }; cv.addEventListener("pointerup", fin); cv.addEventListener("pointercancel", fin);
-  d.querySelector("#tvDibBar").addEventListener("click", (e) => { e.stopPropagation(); const c = e.target.closest("[data-c]"), g = e.target.closest("[data-g]");
-    if (c) { col = c.dataset.c; d.querySelectorAll("[data-c]").forEach(x => x.classList.toggle("on", x === c)); } else if (g) gr = Number(g.dataset.g);
-    else if (e.target.closest("#tvDibUndo")) { trazos.pop(); pintar(); } else if (e.target.closest("#tvDibClr")) { trazos = []; pintar(); } else if (e.target.closest("#tvDibX")) d.remove(); });
-  d.addEventListener("click", (e) => e.stopPropagation()); d._undo = () => { trazos.pop(); pintar(); };
+  const W = innerWidth, H = innerHeight; let fig = [], tool = "pen", col = TV_COLS[0], sw = 5, lz = 2, sel = -1, act = null, zona = null, numN = 1;
+  const d = document.createElement("div"); d.id = "tvDibujo";
+  d.innerHTML = `<div id="tvLensWrap" style="position:absolute;inset:0;pointer-events:none;"></div><svg id="tvDibSvg" viewBox="0 0 ${W} ${H}" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;"></svg>
+    <div id="tvDibBar"><div class="g">${TV_HERR.map(h => `<button data-t="${h[0]}" title="${escapeAttr(h[2])}" class="${h[0] === tool ? "on" : ""}">${h[1]}</button>`).join("")}</div>
+      <div class="c">${TV_COLS.map((c, i) => `<i data-c="${c}" class="${i ? "" : "on"}" style="background:${c};"></i>`).join("")}</div>
+      <div class="r"><button data-g="3">Fino</button><button data-g="5" class="on">Medio</button><button data-g="9">Grueso</button></div>
+      <div class="r">Lupa ×<button data-z="2" class="on">2</button><button data-z="3">3</button><button data-z="4">4</button></div>
+      <div class="r"><button id="tvDibUndo">↶ Atrás</button><button id="tvDibDel">🗑 Quitar</button></div><div class="r"><button id="tvDibClr">🧹 Borrar todo</button></div>
+      <button id="tvDibX" style="background:#5a2b2b;">✕ Terminar (D)</button><div id="tvDibHint"></div></div>`;
+  raiz.appendChild(d); const svg = d.querySelector("#tvDibSvg");
+  const hd = (x0, y0, x1, y1, w) => { const a = Math.atan2(y1 - y0, x1 - x0), L = 12 + w * 3, q = 0.45; return `${x1},${y1} ${x1 - L * Math.cos(a - q)},${y1 - L * Math.sin(a - q)} ${x1 - L * Math.cos(a + q)},${y1 - L * Math.sin(a + q)}`; };
+  const ctl = (a, b) => [(a[0] + b[0]) / 2 - (b[1] - a[1]) * 0.25, (a[1] + b[1]) / 2 + (b[0] - a[0]) * 0.25];
+  const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const jug = (x, y, w, cc, solid) => `<circle cx="${x}" cy="${y - 52 - w}" r="${11 + w}" fill="${solid ? cc : "none"}" stroke="${cc}" stroke-width="${w * 0.6 + 1}" ${solid ? "" : 'stroke-dasharray="4 3"'}/><path d="M${x - 17} ${y} V${y - 26} Q${x} ${y - 46} ${x + 17} ${y - 26} V${y} Z" fill="${solid ? cc : "none"}" fill-opacity="${solid ? .85 : 1}" stroke="${cc}" stroke-width="${w * 0.6 + 1}" ${solid ? "" : 'stroke-dasharray="4 3"'}/>`;
+  const fm = (s, i) => { const c = s.c, w = s.w, p = s.p, a = p[0], b = p[1] || p[0], stk = `stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`, ruta = p.map((q, k) => (k ? "L" : "M") + q[0] + " " + q[1]).join(" ");
+    switch (s.t) {
+      case "pen": return `<path d="${ruta}" fill="none" ${stk}/>`;
+      case "hl": return `<path d="${ruta}" fill="none" stroke="${c}" stroke-width="${w * 4}" stroke-linecap="round" stroke-linejoin="round" opacity=".35"/>`;
+      case "line": return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" ${stk}/>`;
+      case "arrow": case "move": return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" ${stk} ${s.t === "move" ? `stroke-dasharray="${w * 2} ${w * 2}"` : ""}/><polygon points="${hd(a[0], a[1], b[0], b[1], w)}" fill="${c}"/>`;
+      case "curve": case "traj": { const k = ctl(a, b); return `<path d="M${a[0]} ${a[1]} Q${k[0]} ${k[1]} ${b[0]} ${b[1]}" fill="none" ${stk} ${s.t === "traj" ? `stroke-dasharray="${w * 2} ${w * 2}"` : ""}/><polygon points="${hd(k[0], k[1], b[0], b[1], w)}" fill="${c}"/>`; }
+      case "circle": return `<circle cx="${a[0]}" cy="${a[1]}" r="${dist(a, b)}" fill="${c}" fill-opacity=".1" ${stk}/>`;
+      case "rect": return `<rect x="${Math.min(a[0], b[0])}" y="${Math.min(a[1], b[1])}" width="${Math.abs(b[0] - a[0])}" height="${Math.abs(b[1] - a[1])}" fill="${c}" fill-opacity=".08" ${stk}/>`;
+      case "text": return `<text x="${a[0]}" y="${a[1]}" font-size="${22 + w * 2}" font-weight="800" fill="${c}" stroke="#000" stroke-width="4" paint-order="stroke" font-family="Inter,sans-serif">${escapeHtml(s.s)}</text>`;
+      case "spot": return `<circle cx="${a[0]}" cy="${a[1]}" r="${dist(a, b)}" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>`;
+      case "lens": return `<circle cx="${a[0]}" cy="${a[1]}" r="${dist(a, b)}" fill="none" ${stk}/>`;
+      case "num": { const r = 16 + w * 2; return `<circle cx="${a[0]}" cy="${a[1]}" r="${r}" fill="${c}" stroke="#000" stroke-opacity=".5" stroke-width="2"/><text x="${a[0]}" y="${a[1]}" dy=".35em" text-anchor="middle" font-size="${r * 1.1}" font-weight="900" fill="${c === "#111111" ? "#fff" : "#111"}" font-family="Inter,sans-serif">${s.n}</text>`; }
+      case "cone": { const L = dist(a, b) || 1, h = L * Math.tan(0.5), ux = -(b[1] - a[1]) / L, uy = (b[0] - a[0]) / L; return `<polygon points="${a[0]},${a[1]} ${b[0] + ux * h},${b[1] + uy * h} ${b[0] - ux * h},${b[1] - uy * h}" fill="${c}" fill-opacity=".25" ${stk}/>`; }
+      case "zone": { const pts = (s.abierto && s.cur ? p.concat([s.cur]) : p).map(q => q.join(",")).join(" "); return s.abierto ? `<polyline points="${pts}" fill="${c}" fill-opacity=".12" ${stk}/>` : `<polygon points="${pts}" fill="${c}" fill-opacity=".18" ${stk}/>`; }
+      case "tline": { const L = dist(a, b) || 1, ux = -(b[1] - a[1]) / L * 14, uy = (b[0] - a[0]) / L * 14; return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" ${stk}/><line x1="${a[0] - ux}" y1="${a[1] - uy}" x2="${a[0] + ux}" y2="${a[1] + uy}" ${stk}/><line x1="${b[0] - ux}" y1="${b[1] - uy}" x2="${b[0] + ux}" y2="${b[1] + uy}" ${stk}/>`; }
+      case "beam": { const h = Math.max(70, a[1] - b[1]), wv = Math.max(26, h * 0.16); return `<defs><linearGradient id="tvBg${i}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${c}" stop-opacity=".6"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient></defs><polygon points="${a[0] - wv},${a[1]} ${a[0] - wv * .45},${a[1] - h} ${a[0] + wv * .45},${a[1] - h} ${a[0] + wv},${a[1]}" fill="url(#tvBg${i})"/><ellipse cx="${a[0]}" cy="${a[1]}" rx="${wv}" ry="${wv * .35}" fill="${c}" fill-opacity=".25" ${stk}/>`; }
+      case "wall": { const hh = Math.min(140, dist(a, b) * 0.45); return `<polygon points="${a[0]},${a[1]} ${b[0]},${b[1]} ${b[0]},${b[1] - hh} ${a[0]},${a[1] - hh}" fill="${c}" fill-opacity=".22" ${stk}/>`; }
+      case "ghost": return `${jug(a[0], a[1], w, c, false)}<line x1="${a[0]}" y1="${a[1] - 20}" x2="${b[0]}" y2="${b[1] - 20}" ${stk} stroke-dasharray="${w * 2} ${w * 2}"/><polygon points="${hd(a[0], a[1] - 20, b[0], b[1] - 20, w)}" fill="${c}"/>${jug(b[0], b[1], w, c, true)}`;
+    } return ""; };
+  const bb = (s) => { const xs = s.p.map(q => q[0]), ys = s.p.map(q => q[1]); let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), pad = 18;
+    if (["circle", "spot", "lens"].includes(s.t)) { const r = dist(s.p[0], s.p[1]); x0 = s.p[0][0] - r; x1 = s.p[0][0] + r; y0 = s.p[0][1] - r; y1 = s.p[0][1] + r; }
+    else if (s.t === "beam") { y0 -= Math.max(70, s.p[0][1] - s.p[1][1]); pad = 50; } else if (["ghost", "wall"].includes(s.t)) { y0 -= 150; pad = 30; } else if (s.t === "text") { x1 += 8 * (s.s || "").length * 3; y0 -= 30; } else if (s.t === "num") pad = 30;
+    return [x0 - pad, y0 - pad, x1 + pad, y1 + pad]; };
+  const hit = (q) => { for (let i = fig.length - 1; i >= 0; i--) { const r = bb(fig[i]); if (q[0] >= r[0] && q[0] <= r[2] && q[1] >= r[1] && q[1] <= r[3]) return i; } return -1; };
+  const pistas = { select: "Pulsa una figura y arrástrala · Supr la quita", zone: "Clic en cada punto · doble clic para cerrar la zona", beam: "Arrastra hacia arriba desde sus pies", wall: "Arrastra de un extremo a otro", ghost: "Arrastra desde dónde sale hasta dónde debe ir", num: "Pulsa para poner 1, 2, 3…", text: "Pulsa donde quieras el texto, escribe y Enter" };
+  const pintar = () => { const spots = fig.filter(x => x.t === "spot");
+    const mask = spots.length ? `<defs><mask id="tvSpm" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${spots.map(x => `<circle cx="${x.p[0][0]}" cy="${x.p[0][1]}" r="${dist(x.p[0], x.p[1])}" fill="#000"/>`).join("")}</mask></defs><rect width="${W}" height="${H}" fill="#000" fill-opacity=".58" mask="url(#tvSpm)" pointer-events="none"/>` : "";
+    svg.innerHTML = mask + fig.map((x, i) => fm(x, i)).join("") + (sel >= 0 && fig[sel] ? (() => { const r = bb(fig[sel]); return `<rect x="${r[0]}" y="${r[1]}" width="${r[2] - r[0]}" height="${r[3] - r[1]}" fill="none" stroke="#fff" stroke-dasharray="6 4" stroke-width="1.5"/>`; })() : "");
+    const hint = pistas[tool] || (tool === "lens" ? (document.querySelector("#tvModo video") ? "Arrastra desde el centro para marcar la lupa" : "La lupa solo funciona con vídeos subidos o enlaces mp4") : "Arrastra para dibujar"); d.querySelector("#tvDibHint").textContent = hint; };
+  const lente = () => { if (!d.isConnected) return; requestAnimationFrame(lente); const lens = fig.filter(x => x.t === "lens"), wrap = d.querySelector("#tvLensWrap"); if (!wrap) return;
+    while (wrap.children.length > lens.length) wrap.lastChild.remove(); while (wrap.children.length < lens.length) { const cv = document.createElement("canvas"); cv.style.cssText = "position:absolute;border-radius:50%;"; wrap.appendChild(cv); }
+    const v = [...document.querySelectorAll("#tvModo video")].find(x => x.videoWidth);
+    lens.forEach((s, k) => { const cv = wrap.children[k], r = dist(s.p[0], s.p[1]), px = Math.max(2, Math.round(2 * r)); cv.style.left = s.p[0][0] - r + "px"; cv.style.top = s.p[0][1] - r + "px"; cv.style.width = cv.style.height = 2 * r + "px"; if (cv.width !== px) { cv.width = px; cv.height = px; } if (!v) return;
+      const R = v.getBoundingClientRect(), sc = Math.min(R.width / v.videoWidth, R.height / v.videoHeight), ox = R.left + (R.width - v.videoWidth * sc) / 2, oy = R.top + (R.height - v.videoHeight * sc) / 2, sz = 2 * r / (s.lz || 2) / sc;
+      try { cv.getContext("2d").drawImage(v, (s.p[0][0] - ox) / sc - sz / 2, (s.p[0][1] - oy) / sc - sz / 2, sz, sz, 0, 0, px, px); } catch (e) { /* nada */ } }); };
+  const cerrarZona = () => { if (zona) { if (zona.p.length < 3) fig.splice(fig.indexOf(zona), 1); else zona.abierto = false; zona = null; } };
+  const pedirTexto = (q) => { const inp = document.createElement("input"); inp.style.cssText = `position:absolute;left:${q[0]}px;top:${q[1] - 20}px;z-index:8;font:800 ${22 + sw * 2}px Inter,sans-serif;padding:2px 8px;border-radius:8px;border:2px solid ${col};background:rgba(0,0,0,.65);color:${col};min-width:140px;`; d.appendChild(inp); setTimeout(() => inp.focus(), 0); let ok = false;
+    const fin = () => { if (ok) return; ok = true; const t = inp.value.trim(); inp.remove(); if (t) { fig.push({ t: "text", c: col, w: sw, p: [q], s: t }); pintar(); } };
+    inp.addEventListener("keydown", (ev) => { ev.stopPropagation(); if (ev.key === "Enter") fin(); else if (ev.key === "Escape") { ok = true; inp.remove(); } }); inp.addEventListener("blur", fin); };
+  const pt = (e) => [Math.round(e.clientX), Math.round(e.clientY)];
+  svg.addEventListener("pointerdown", (e) => { e.stopPropagation(); const q = pt(e); try { svg.setPointerCapture(e.pointerId); } catch (er) { /* nada */ }
+    if (tool === "select") { sel = hit(q); act = sel >= 0 ? { mover: true, last: q } : null; pintar(); return; }
+    if (tool === "text") { act = { texto: q }; return; }
+    if (tool === "num") { fig.push({ t: "num", c: col, w: sw, p: [q], n: numN++ }); pintar(); return; }
+    if (tool === "zone") { if (!zona) { zona = { t: "zone", c: col, w: sw, p: [q], abierto: true }; fig.push(zona); } else if (zona.p.length > 2 && dist(q, zona.p[0]) < 16) cerrarZona(); else zona.p.push(q); pintar(); return; }
+    act = { t: tool, c: col, w: sw, lz, p: (tool === "pen" || tool === "hl") ? [q] : [q, q] }; fig.push(act); sel = -1; pintar(); });
+  svg.addEventListener("pointermove", (e) => { const q = pt(e);
+    if (act && act.mover) { const s = fig[sel]; if (s) { const dx = q[0] - act.last[0], dy = q[1] - act.last[1]; s.p = s.p.map(r => [r[0] + dx, r[1] + dy]); act.last = q; pintar(); } }
+    else if (act) { if (act.t === "pen" || act.t === "hl") act.p.push(q); else act.p[1] = q; pintar(); }
+    else if (zona) { zona.cur = q; pintar(); } });
+  const fin = () => { if (act && act.texto) { const q0 = act.texto; act = null; setTimeout(() => { if (d.isConnected) pedirTexto(q0); }, 40); return; } if (act && !act.mover && !["pen", "hl"].includes(act.t) && dist(act.p[0], act.p[1]) < 4) fig.splice(fig.indexOf(act), 1); act = null; pintar(); }; svg.addEventListener("pointerup", fin); svg.addEventListener("pointercancel", fin);
+  svg.addEventListener("dblclick", (e) => { e.stopPropagation(); if (zona) { zona.p.pop(); cerrarZona(); pintar(); } });
+  const marcar = (sel2, att, val) => d.querySelectorAll(sel2).forEach(x => x.classList.toggle("on", x.getAttribute(att) === String(val)));
+  d.querySelector("#tvDibBar").addEventListener("click", (e) => { e.stopPropagation(); const t = e.target.closest("[data-t]"), c = e.target.closest("[data-c]"), g = e.target.closest("[data-g]"), z = e.target.closest("[data-z]");
+    if (t) { cerrarZona(); tool = t.dataset.t; sel = -1; marcar("[data-t]", "data-t", tool); pintar(); } else if (c) { col = c.dataset.c; marcar("[data-c]", "data-c", col); if (sel >= 0 && fig[sel]) { fig[sel].c = col; pintar(); } } else if (g) { sw = Number(g.dataset.g); marcar("[data-g]", "data-g", sw); if (sel >= 0 && fig[sel]) { fig[sel].w = sw; pintar(); } } else if (z) { lz = Number(z.dataset.z); marcar("[data-z]", "data-z", lz); if (sel >= 0 && fig[sel] && fig[sel].t === "lens") { fig[sel].lz = lz; pintar(); } }
+    else if (e.target.closest("#tvDibUndo")) d._undo(); else if (e.target.closest("#tvDibDel")) d._del(); else if (e.target.closest("#tvDibClr")) { fig = []; sel = -1; zona = null; numN = 1; pintar(); } else if (e.target.closest("#tvDibX")) d.remove(); });
+  d.addEventListener("click", (e) => e.stopPropagation());
+  d._undo = () => { cerrarZona(); const x = fig.pop(); if (x && x.t === "num") numN = Math.max(1, numN - 1); sel = -1; pintar(); };
+  d._del = () => { if (sel >= 0 && fig[sel]) { fig.splice(sel, 1); sel = -1; } else fig.pop(); pintar(); };
+  pintar(); requestAnimationFrame(lente);
 }
 function tvToggleIndice() {
   const raiz = document.getElementById("tvModo"); if (!raiz) return; const ya = raiz.querySelector("#tvIndice"); if (ya) { ya.remove(); return; }
@@ -16535,7 +16603,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27l";
+const VERSION_APP = "2026-10-27o";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
