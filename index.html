@@ -4775,12 +4775,16 @@ function tvBindVideos(caja, repintar, eq, nombre, equipo) {
       else if (a) { if (TV.ctrl && TV.ctrl.goto) TV.ctrl.goto(Number(a.dataset.mk)); }
       else if (e.target.closest("#tvMarcaAdd")) tvMarcaAnadir(eq, nombre, equipo, mbox); });
     mbox.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "tvMarcaNota") { e.preventDefault(); e.stopPropagation(); tvMarcaAnadir(eq, nombre, equipo, mbox); } }); }
+  const up = caja.querySelector("#tvVidUp");
+  if (up && !up._b) { up._b = 1; up.addEventListener("click", async (e) => { e.stopPropagation(); up.textContent = "Subiendo…"; up.disabled = true; const r = await videoLocalANube(up.dataset.up);
+    if (r.ok) { repintar(up.dataset.up); } else { up.textContent = "No se pudo: " + (r.error || "error"); up.disabled = false; setTimeout(() => { if (up.isConnected) up.textContent = "☁ Subir a la nube"; }, 5000); } }); }
   const dl = caja.querySelector("#tvVidDl");
   if (dl && !dl._b) { dl._b = 1; dl.addEventListener("click", async (e) => { e.stopPropagation(); dl.textContent = "…"; const ok = await videoDescargar(dl.dataset.dl); dl.textContent = ok ? "✓ Descargado" : "No encontrado"; setTimeout(() => { if (dl.isConnected) dl.textContent = "⬇ Copia"; }, 2500); }); }
   const del = caja.querySelector("#tvVidDel");
   if (del && !del._b) { del._b = 1; del.addEventListener("click", (e) => { e.stopPropagation();
     if (!del.dataset.sure) { del.dataset.sure = "1"; del.textContent = "¿Seguro? Pulsa otra vez"; del.style.background = "#c0392b"; setTimeout(() => { if (del.isConnected) { delete del.dataset.sure; del.textContent = "🗑 Quitar vídeo"; del.style.background = "#5a2b2b"; } }, 4000); return; }
-    const id = del.dataset.del, quitar = (f) => { if (f && f.videos) f.videos = f.videos.filter(x => x.id !== id); };
+    const id = del.dataset.del; try { const vv = videoPorId(id); if (vv && vv.nubeRuta) videoNubeBorrar(vv.nubeRuta); } catch (er) { /* nada */ }
+    const quitar = (f) => { if (f && f.videos) f.videos = f.videos.filter(x => x.id !== id); };
     try { quitar(scouting.jugadoras && scouting.jugadoras[scoutClave("jugadoras", nombre)]); } catch (er) { /* nada */ }
     try { quitar(scouting.equipos && scouting.equipos[scoutClave("equipos", eq)]); } catch (er) { /* nada */ }
     try { videoArchivoBorrar(id); } catch (er) { /* nada */ }
@@ -4790,7 +4794,7 @@ function tvBindVideos(caja, repintar, eq, nombre, equipo) {
   if (add && add._b === 1 && !add._h) add._h = 1, add.addEventListener("click", async (e) => { e.stopPropagation(); const u = caja.querySelector("#tvVidU").value.trim(), fi = caja.querySelector("#tvVidF"), arch = fi && fi.files ? fi.files[0] : null; if (!u && !arch) return; const id = "v" + Date.now();
     const f = equipo ? scoutFicha("equipos", eq) : scoutFicha("jugadoras", nombre), base = { id, fecha: new Date().toISOString(), titulo: caja.querySelector("#tvVidT").value.trim() || (arch ? arch.name.replace(/\.[^.]+$/, "") : nombre), nota: "", segundos: 0, etiquetas: [] };
     if (arch) { add.disabled = true; add.textContent = "Guardando…"; try { await videoArchivoGuardar(id, arch); } catch (er) { add.disabled = false; add.textContent = "Guardar"; alert("No se ha podido guardar el vídeo en este navegador (falta de espacio). Prueba con uno más corto o pega un enlace."); return; }
-      f.videos.push(Object.assign(base, { url: "", origen: "local", archivoNombre: arch.name, archivoTamano: arch.size })); }
+      const nv = Object.assign(base, { url: "", origen: "local", archivoNombre: arch.name, archivoTamano: arch.size }); add.textContent = "Subiendo a la nube…"; const rn = await videoNubeSubir(id, arch); if (rn && rn.url) { nv.nubeRuta = rn.ruta; nv.nubeUrl = rn.url; } f.videos.push(nv); }
     else f.videos.push(Object.assign(base, { url: u, origen: "enlace" }));
     scoutGuardar(); repintar(id); });
 }
@@ -4843,6 +4847,7 @@ function tvMapaGrande(tiros, modo, nombre, alCambiar) {
 }
 function tvPlayerHtml(v) {
   const seg = v.segundos || 0, vst = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;border:0;";
+  if (v.nubeUrl) return `<video src="${escapeAttr(v.nubeUrl)}${seg ? "#t=" + Number(seg) : ""}" controls autoplay playsinline style="${vst}"></video>`;
   if (v.origen === "local") return `<video data-local="${escapeAttr(v.id)}" data-desde="${escapeAttr(String(seg))}" controls autoplay playsinline style="${vst}"></video>`;
   const emb = videoIncrustado(v.url, seg);
   if (emb.tipo === "iframe" && !(emb.youtube && SIN_SERVIDOR)) { let src = emb.src;
@@ -4873,7 +4878,9 @@ function tvMarcaAnadir(eq, nombre, equipo, box) {
   scoutGuardar(); box.querySelector("#tvMarcasLista").innerHTML = tvMarcasChips(v); tvMostrarControles(); return true;
 }
 async function videoDescargar(id) {
-  const blob = await videoArchivoLeer(id); if (!blob) return false;
+  let blob = await videoArchivoLeer(id);
+  if (!blob) { const vv = videoPorId(id); if (vv && vv.nubeUrl) { try { const r = await fetch(vv.nubeUrl); if (r.ok) blob = await r.blob(); } catch (e) { /* nada */ } } }
+  if (!blob) return false;
   let nom = id; const busca = (f) => (f && f.videos || []).forEach(v => { if (v.id === id && v.archivoNombre) nom = v.archivoNombre; });
   try { Object.values(scouting.jugadoras || {}).forEach(busca); Object.values(scouting.equipos || {}).forEach(busca); } catch (e) { /* nada */ }
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "scoutflow-video-" + id + "__" + nom; document.body.appendChild(a); a.click();
@@ -4900,7 +4907,7 @@ function tvVideoSlideHtml(eq, nombre, sel, k, n, equipo) {
     <div class="tv-card" style="position:absolute;z-index:5;top:2em;left:0;width:min(340px,80vw);padding:.8vw;background:#12263a;"><input id="tvVidT" placeholder="Título" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;"><input id="tvVidU" placeholder="Enlace (YouTube, Drive, mp4)" style="width:100%;box-sizing:border-box;padding:7px;border-radius:8px;border:0;margin-bottom:5px;font-size:13px;">
       <input id="tvVidF" type="file" accept="video/*" style="display:block;margin:2px 0 6px;max-width:100%;font-size:12px;color:#9fb2c6;"><button id="tvVidAdd" style="background:#f2803f;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:800;cursor:pointer;">Guardar</button></div></details>`;
   const info = `<div id="tvVidInfo" style="position:absolute;left:1.6vw;top:1.6vh;right:1.6vw;z-index:4;display:flex;gap:1vw;align-items:center;flex-wrap:wrap;background:rgba(5,12,20,.72);border-radius:12px;padding:.8vh 1.2vw;font:800 clamp(12px,1.4vw,22px) Inter,sans-serif;color:#fff;">
-    <span>${escapeHtml(nombre)}</span><span style="color:#f2803f;">${k ? k + " de " + n : (equipo ? "Vídeo de scouting" : "Vídeos")}</span>${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:3px 10px;border-radius:99px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 24))}</span>`).join("")}${form}${v && v.origen === "local" ? `<button id="tvVidDl" data-dl="${escapeAttr(v.id || "")}" style="background:#1d3248;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">⬇ Copia</button>` : ""}${v ? `<button id="tvVidDel" data-del="${escapeAttr(v.id || "")}" style="background:#5a2b2b;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">🗑 Quitar vídeo</button>` : ""}
+    <span>${escapeHtml(nombre)}</span><span style="color:#f2803f;">${k ? k + " de " + n : (equipo ? "Vídeo de scouting" : "Vídeos")}</span>${vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:3px 10px;border-radius:99px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 24))}</span>`).join("")}${form}${v && v.origen === "local" && !v.nubeUrl ? `<button id="tvVidUp" data-up="${escapeAttr(v.id || "")}" style="background:#1d3248;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">☁ Subir a la nube</button>` : ""}${v && v.nubeUrl ? `<span style="color:#4fd69c;font:700 clamp(10px,1vw,16px) Inter,sans-serif;">☁ En la nube</span>` : ""}${v && (v.origen === "local" || v.nubeUrl) ? `<button id="tvVidDl" data-dl="${escapeAttr(v.id || "")}" style="background:#1d3248;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">⬇ Copia</button>` : ""}${v ? `<button id="tvVidDel" data-del="${escapeAttr(v.id || "")}" style="background:#5a2b2b;color:#fff;border:0;border-radius:99px;padding:3px 12px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;cursor:pointer;">🗑 Quitar vídeo</button>` : ""}
     <span style="margin-left:auto;color:#9fb2c6;font:600 clamp(10px,1vw,16px) Inter,sans-serif;">Espacio: pausa · ← →: ±5 s · M: marca · ↑ ↓: marcas · Enter: siguiente · Retroceso: volver · D: dibujar</span></div>`;
   if (!v) return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#07101a;display:flex;align-items:center;justify-content:center;"><div class="tv-sub" style="text-align:center;">Aún no hay vídeo de ${escapeHtml(nombre)}.<br>Añade un enlace o sube un archivo arriba. <small style="display:block;margin-top:1vh;">Enter: siguiente jugadora</small></div>${info}</div>`;
   const nota = v.nota ? `<div style="position:absolute;left:2vw;bottom:19vh;z-index:3;max-width:60vw;background:rgba(5,12,20,.7);padding:.6vh 1vw;border-radius:10px;font:600 clamp(11px,1.3vw,22px) Inter,sans-serif;color:#fff;">${escapeHtml(v.nota)}</div>` : "";
@@ -7535,7 +7542,7 @@ function videoIncrustado(url, segundos) {
     const params = new URLSearchParams({ rel: "0", modestbranding: "1" });
     if (inicio) params.set("start", String(inicio));
     if (typeof location !== "undefined" && location.origin && location.origin !== "null") params.set("origin", location.origin);
-    return { tipo: "iframe", src: `https://www.youtube-nocookie.com/embed/${m[1]}?${params.toString()}`,
+    return { tipo: "iframe", src: `https://www.youtube.com/embed/${m[1]}?${params.toString()}`,
              youtube: m[1], inicio };
   }
   m = /vimeo\.com\/(\d+)/.exec(u);
@@ -7594,6 +7601,33 @@ function videoArchivoLeer(id) {
   })).catch(() => null);
 }
 
+function videoPorId(id) {
+  let r = null; const busca = (f) => (f && f.videos || []).forEach(v => { if (v.id === id) r = v; });
+  try { Object.values(scouting.jugadoras || {}).forEach(busca); Object.values(scouting.equipos || {}).forEach(busca); } catch (e) { /* nada */ }
+  return r;
+}
+async function videoNubeSubir(id, archivo) {
+  try {
+    const sb = clienteJugadoras(); if (!sb) return { error: "sin conexión con la nube" };
+    const { data: ses } = await sb.auth.getSession(); const u = ses && ses.session && ses.session.user; if (!u) return { error: "inicia sesión para subir" };
+    const ext = ((/\.([a-z0-9]{2,4})$/i.exec(archivo.name || "") || [])[1] || "mp4").toLowerCase(), ruta = "scout/" + u.id + "/" + id + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
+    const { error } = await sb.storage.from("entrenador").upload(ruta, archivo, { contentType: archivo.type || "video/mp4", upsert: false });
+    if (error) return { error: /size|exceed|large|413/i.test(error.message || "") ? "el archivo es demasiado grande para la nube (máx. 50 MB)" : error.message };
+    return { ruta, url: sb.storage.from("entrenador").getPublicUrl(ruta).data.publicUrl };
+  } catch (e) { return { error: String(e.message || e) }; }
+}
+async function videoNubeBorrar(ruta) { try { const sb = clienteJugadoras(); if (sb && ruta) await sb.storage.from("entrenador").remove([ruta]); } catch (e) { /* nada */ } }
+async function videoLocalANube(id) {
+  const v = videoPorId(id); if (!v) return { error: "no encontrado" }; if (v.nubeUrl) return { ok: true };
+  const blob = await videoArchivoLeer(id); if (!blob) return { error: "el archivo no está en este navegador" };
+  const r = await videoNubeSubir(id, new File([blob], v.archivoNombre || (id + ".mp4"), { type: blob.type || "video/mp4" }));
+  if (r && r.url) { v.nubeRuta = r.ruta; v.nubeUrl = r.url; scoutGuardar(); return { ok: true }; } return r || { error: "no se pudo" };
+}
+async function videosNubeSubirTodos(aviso) {
+  const ids = videosLocalesIds().filter(id => { const v = videoPorId(id); return v && !v.nubeUrl; }); let n = 0, err = "";
+  for (const id of ids) { if (aviso) aviso(`Subiendo ${n + 1} de ${ids.length}…`); const r = await videoLocalANube(id); if (r.ok) n++; else err = r.error || err; }
+  return { total: ids.length, hechos: n, error: err };
+}
 function videoArchivoBorrar(id) {
   return videoDB().then(db => new Promise((ok) => {
     const tx = db.transaction(VIDEO_ALMACEN, "readwrite");
@@ -7634,6 +7668,8 @@ function montarVideosLocales(raiz) {
 }
 
 function reproductorHtml(v, segundos) {
+  if (v.nubeUrl) return `<div class="video-caja"><video src="${escapeAttr(v.nubeUrl)}${segundos ? "#t=" + Number(segundos) : ""}" controls playsinline></video></div>
+    <p class="hint">${escapeHtml(v.archivoNombre || "Vídeo")}${v.archivoTamano ? " · " + tamanoLegible(v.archivoTamano) : ""} · guardado en la nube</p>`;
   if (v.origen === "local") {
     return `<div class="video-caja">
       <video data-local="${escapeAttr(v.id)}" data-desde="${escapeAttr(String(segundos || 0))}" controls playsinline></video>
@@ -7877,8 +7913,11 @@ function wireScouting(contenedor, alGuardar) {
 
     btnVideo.disabled = true;
     btnVideo.textContent = "Guardando el video...";
-    videoArchivoGuardar(id, archivo).then(() => {
-      anadir({ url: "", origen: "local", archivoNombre: archivo.name, archivoTamano: archivo.size });
+    videoArchivoGuardar(id, archivo).then(async () => {
+      btnVideo.textContent = "Subiendo a la nube...";
+      const rn = await videoNubeSubir(id, archivo), extra = { url: "", origen: "local", archivoNombre: archivo.name, archivoTamano: archivo.size };
+      if (rn && rn.url) { extra.nubeRuta = rn.ruta; extra.nubeUrl = rn.url; }
+      anadir(extra);
     }).catch(() => {
       btnVideo.disabled = false;
       btnVideo.textContent = "Guardar video";
@@ -7893,6 +7932,7 @@ function wireScouting(contenedor, alGuardar) {
     const lista = que === "nota" ? "notas" : "videos";
     const fuera = ficha[lista].find(x => x.id === id);
     if (fuera && fuera.origen === "local") videoArchivoBorrar(id);   // tambien el archivo
+    if (fuera && fuera.nubeRuta) videoNubeBorrar(fuera.nubeRuta);
     ficha[lista] = ficha[lista].filter(x => x.id !== id);
     est.seleccion = null;
     refrescar();
@@ -12179,6 +12219,7 @@ function renderScouting() {
           <input type="file" id="ficheroScout" accept="application/json" style="display:none;">
           <button class="btn-partido" id="btnVidDescargar" style="background:#1d3248;">Descargar vídeos subidos</button>
           <button class="btn-partido" id="btnVidRestaurar" style="background:#1d3248;">Restaurar vídeos</button>
+          <button class="btn-partido" id="btnVidNube" style="background:#1d3248;">☁ Subir vídeos a la nube</button>
           <input type="file" id="ficheroVid" accept="video/*" multiple style="display:none;"><span id="vidCopiaEstado" class="hint" style="align-self:center;"></span>
         </div>
       </div>
@@ -12199,6 +12240,8 @@ function renderScouting() {
   if (btnDesc) btnDesc.addEventListener("click", descargarScouting);
   const bvd = document.getElementById("btnVidDescargar"), bvr = document.getElementById("btnVidRestaurar"), fvid = document.getElementById("ficheroVid"), vest = document.getElementById("vidCopiaEstado");
   if (bvd) bvd.addEventListener("click", async () => { bvd.disabled = true; const r = await videosDescargarTodos((t) => { vest.textContent = t; }); vest.textContent = r.total ? `Listo: ${r.hechos} de ${r.total} vídeos descargados` : "No hay vídeos subidos en este navegador."; bvd.disabled = false; });
+  const bvn = document.getElementById("btnVidNube");
+  if (bvn) bvn.addEventListener("click", async () => { bvn.disabled = true; const r = await videosNubeSubirTodos((t) => { vest.textContent = t; }); vest.textContent = r.total ? `Subidos ${r.hechos} de ${r.total}` + (r.error ? " · " + r.error : "") : "No hay vídeos pendientes de subir."; bvn.disabled = false; });
   if (bvr && fvid) { bvr.addEventListener("click", () => fvid.click()); fvid.addEventListener("change", async () => { const r = await videosRestaurar(fvid.files); vest.textContent = `Restaurados ${r.hechos}` + (r.ignorados ? ` · ${r.ignorados} ignorados (el nombre debe empezar por scoutflow-video-)` : ""); fvid.value = ""; }); }
   const btnImp = document.getElementById("btnImportarScout");
   const fich = document.getElementById("ficheroScout");
@@ -16603,7 +16646,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27o";
+const VERSION_APP = "2026-10-27q";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
