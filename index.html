@@ -222,6 +222,15 @@
   input[type=text]:focus{outline:2px solid var(--orange);border-color:var(--orange);}
   .hint{color:var(--ink-soft);font-size:13px;}
   .status{padding:40px 12px;text-align:center;color:var(--ink-soft);}
+  .gu h2{margin:0 0 4px;font-size:26px} .gu .sub{color:var(--ink-soft);margin:0 0 16px}
+  .gu .bloque{background:var(--card,#fff);border:1px solid var(--linea,#e3e8ee);border-radius:16px;padding:18px 20px;margin:0 0 16px}
+  .gu .bloque h3{margin:0 0 8px;font-size:19px} .gu .bloque p,.gu .bloque li{line-height:1.5;margin:6px 0}
+  .gu .clave{background:#fdf1ea;border-left:4px solid #c4572a;border-radius:8px;padding:10px 14px;margin:10px 0}
+  .gu .buscar{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid var(--linea,#d5dbe3);font-size:16px;margin:0 0 12px}
+  .gu .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px} .gu .chips button{border:0;border-radius:999px;padding:6px 12px;background:#e8edf3;font-weight:700;cursor:pointer} .gu .chips button.on{background:#14181c;color:#fff}
+  .gu .met{border:1px solid var(--linea,#e3e8ee);border-radius:12px;margin:8px 0;background:var(--card,#fff)} .gu .met>summary{cursor:pointer;padding:12px 14px;font-weight:800;list-style:none;display:flex;justify-content:space-between;gap:10px} .gu .met>summary small{font-weight:600;color:var(--ink-soft)}
+  .gu .met .cuerpo{padding:0 14px 12px} .gu .met dt{font-weight:800;margin-top:8px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#c4572a} .gu .met dd{margin:2px 0 0;line-height:1.5}
+  .gu code{background:#eef2f6;border-radius:6px;padding:1px 6px;font-size:.92em}
   .status.error{color:var(--orange-dark);}
   .status a{color:var(--orange-dark);}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
@@ -295,7 +304,7 @@
 
   .view{max-width:1400px;margin:0 auto;padding:0 24px 24px;}
   #view-inicio.view, #view-clasificacion.view, #view-equipo-detail.view, #view-jugadora-detail.view,
-  #view-rankings.view, #view-rankings-eq.view, #view-estadisticas.view, #view-comparador.view, #view-resultados.view, #view-records.view{
+  #view-rankings.view, #view-rankings-eq.view, #view-estadisticas.view, #view-comparador.view, #view-resultados.view, #view-records.view, #view-guia.view{
     padding-top:24px;
   }
   .section-title{font-family:'Archivo Black',sans-serif;font-size:19px;margin:0 0 12px;}
@@ -2043,6 +2052,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
   <button data-view="comparador"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></span><span class="tx">Comparador</span></button>
   <button data-view="resultados"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span class="tx">Resultados</span></button>
   <button data-view="records"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span><span class="tx">Récords</span></button>
+  <button data-view="guia"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 8h6M9 12h6"/></svg></span><span class="tx">Aprender estadísticas</span></button>
   <h4>Scouting</h4>
   <button data-view="fichajes"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21a8 8 0 0 1 16 0M19 3v6M16 6h6"/></svg></span><span class="tx">Fichajes</span></button>
   <button data-view="informes"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg></span><span class="tx">Informes</span></button>
@@ -2234,6 +2244,10 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       </div>
     </div>
     <div id="ipVista"></div>
+  </section>
+
+  <section id="view-guia" class="view" style="display:none;">
+    <div id="guiaContent"></div>
   </section>
 
   <section id="view-records" class="view" style="display:none;">
@@ -3042,7 +3056,7 @@ document.getElementById("filterResultados").addEventListener("input", () => {
 /* ============================================================
    ROUTER
    ============================================================ */
-const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "rankings-eq", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "informes", "mis-jugadoras", "pizarra"];
+const VIEWS = ["inicio", "mi-equipo", "scouting", "clasificacion", "equipos", "equipo-detail", "jugadoras", "jugadora-detail", "rankings", "rankings-eq", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "partido-detail", "records", "guia", "informes", "mis-jugadoras", "pizarra"];
 
 // Historial de pantallas: al pulsar "Volver" se regresa a la anterior,
 // en el mismo sitio de la pagina donde estabas.
@@ -3083,6 +3097,7 @@ function showView(id, esVuelta) {
     if (marcoP && !marcoP.getAttribute("src")) marcoP.setAttribute("src", "pizarra.html?v=" + VERSION_APP);
   }
   if (id === "records") cargarRecords();
+  if (id === "guia") renderGuia();
 }
 
 function volverAtras(porDefecto) {
@@ -14579,6 +14594,145 @@ function renderRecords() {
   wireRankClicks(box);
 }
 
+
+/* ===== Aprender estadisticas: glosario y guia de lectura ===== */
+const GUIA_CATS = ["Ritmo", "Ataque", "Defensa", "Tiro", "Rebote", "Balón", "Ranking"];
+const GUIA_ESTAD = [
+  { n: "Posesión", c: "Ritmo", corto: "Cada vez que un equipo tiene el balón hasta que lo pierde, tira o lo cede.",
+    q: "Una jugada completa de ataque. Todas las estadísticas «por 100 posesiones» se calculan a partir de esto.",
+    f: "Posesiones ≈ tiros de campo intentados + 0,44 × tiros libres intentados − rebotes ofensivos + pérdidas.",
+    l: "Es la unidad de medida justa del baloncesto: dos equipos pueden anotar lo mismo y uno haberlo hecho con muchas menos jugadas.",
+    u: "Si dos equipos meten 60 puntos pero uno necesitó 70 posesiones y otro 80, el primero es más eficiente." },
+  { n: "Ritmo (posesiones por partido)", c: "Ritmo", corto: "Lo rápido que juega un equipo.",
+    q: "Cuántas posesiones tiene un equipo en un partido. Más ritmo = más posesiones para los dos equipos.",
+    f: "Posesiones del equipo y del rival, promediadas por partido.",
+    l: "Un ritmo alto no es bueno ni malo: es un estilo. Pero cambia todas las cifras «por partido».",
+    u: "Contra un equipo rápido habrá más ataques para ti, pero también para ella. Si tú eres un equipo de ritmo lento, vigila que no te saquen de tu juego." },
+  { n: "ORtg (Rating ofensivo)", c: "Ataque", corto: "Puntos anotados por cada 100 posesiones.",
+    q: "Lo bueno que es el ataque, sin depender del ritmo.",
+    f: "Puntos anotados ÷ posesiones × 100.",
+    l: "Cuanto más alto, mejor. Compáralo con la media de la liga que aparece en la tarjeta («media 85,3»). Por encima de la media = ataque por encima de la media.",
+    u: "ORtg 66 con media de 85 significa un ataque muy flojo: anotan unos 19 puntos menos que la media cada 100 jugadas." },
+  { n: "DRtg (Rating defensivo)", c: "Defensa", corto: "Puntos recibidos por cada 100 posesiones.",
+    q: "Lo buena que es la defensa, sin depender del ritmo.",
+    f: "Puntos recibidos ÷ posesiones del rival × 100.",
+    l: "Aquí MENOS es mejor. Un puesto 1 es el equipo que menos puntos concede por posesión.",
+    u: "Un equipo rápido recibe más puntos por partido aunque defienda bien. El DRtg corrige eso y es la medida fiable de su defensa." },
+  { n: "Net Rtg (Rating neto)", c: "Ataque", corto: "ORtg − DRtg: el balance real del equipo.",
+    q: "Cuántos puntos gana (o pierde) un equipo por cada 100 posesiones.",
+    f: "ORtg − DRtg.",
+    l: "Positivo = el equipo es mejor que sus rivales. Negativo = peor. Suele predecir mejor el futuro que el balance de victorias.",
+    u: "Un -6,3 indica un equipo que, jugando 100 posesiones, pierde de media por 6 puntos." },
+  { n: "Balance", c: "Ranking", corto: "Victorias y derrotas (ej. 1-3).",
+    q: "El resultado en la clasificación.",
+    f: "Partidos ganados - partidos perdidos.",
+    l: "Con pocos partidos es engañoso: una racha de rivales difíciles o fáciles lo distorsiona. Contrástalo con el Net Rtg.",
+    u: "1-3 tras 4 partidos todavía dice poco; el Net Rtg y el calendario ya jugado cuentan más." },
+  { n: "TS% (acierto real)", c: "Tiro", corto: "Eficiencia de tiro contando 2, 3 y tiros libres.",
+    q: "Lo bien que convierte sus tiros un equipo, teniendo en cuenta que un triple vale más y que los libres también cuentan.",
+    f: "Puntos ÷ (2 × (TC intentados + 0,44 × TL intentados)).",
+    l: "Más alto = mejor. Es mejor que el % de tiro de campo porque incluye todo.",
+    u: "Un 41,2% con media de liga 45,2 indica un equipo que tira por debajo de la media." },
+  { n: "eFG% (tiro de campo efectivo)", c: "Tiro", corto: "% de tiro de campo dando más valor a los triples.",
+    q: "El porcentaje de tiro corregido por el valor del triple.",
+    f: "(Canastas de campo + 0,5 × triples) ÷ tiros de campo intentados.",
+    l: "Sirve para comparar equipos que tiran muchos triples con los que tiran más de dos. Más alto = mejor.",
+    u: "Dos equipos con 40% de campo: el que mete más triples tiene mejor eFG%." },
+  { n: "Pérdidas % (TO%)", c: "Balón", corto: "De cada 100 jugadas, cuántas acaban en pérdida.",
+    q: "La frecuencia con la que un equipo pierde el balón sin tirar.",
+    f: "Pérdidas ÷ (tiros de campo + 0,44 × tiros libres + pérdidas) × 100.",
+    l: "Aquí MENOS es mejor. Un 30% significa que casi una de cada tres jugadas acaba en pérdida: es mucho.",
+    u: "Un equipo con muchas pérdidas es vulnerable a la presión y a correr en transición, que es lo que recomienda el Diagnóstico." },
+  { n: "AS/BP (asistencias por pérdida)", c: "Balón", corto: "Cuánto cuida el balón un equipo al pasar.",
+    q: "Cuántas asistencias hace por cada pérdida.",
+    f: "Asistencias ÷ pérdidas.",
+    l: "Más alto = mejor. Por encima de 1 es un buen reparto; por debajo de 0,6 suele indicar un juego descontrolado o muy individual.",
+    u: "0,47 significa que pierde el balón más del doble de veces de las que asiste." },
+  { n: "Rebote ofensivo % (OREB%)", c: "Rebote", corto: "De los tiros que falla tu equipo, el % que recoge en ataque.",
+    q: "Lo bien que un equipo consigue segundas oportunidades.",
+    f: "Rebotes ofensivos ÷ (rebotes ofensivos propios + rebotes defensivos del rival).",
+    l: "Más alto = mejor. Orientativamente, en este nivel entre el 25% y el 35%.",
+    u: "Un equipo con mucho rebote ofensivo suele tener peor transición defensiva porque manda jugadoras al rebote." },
+  { n: "Rebote defensivo % (DREB%)", c: "Rebote", corto: "De los tiros que falla el rival, el % que coges tú.",
+    q: "Lo bien que un equipo termina la defensa cogiendo el rebote.",
+    f: "Rebotes defensivos ÷ (rebotes defensivos propios + rebotes ofensivos del rival).",
+    l: "Más alto = mejor. El 74% de Pozuelo está por encima de la media; el rival solo coge el 26%.",
+    u: "Un DREB% bajo es una oportunidad: tu equipo puede ir al rebote ofensivo con garantías." },
+  { n: "Tiros libres: ratio (FTr)", c: "Ataque", corto: "Cuántos tiros libres consigue un equipo respecto a sus tiros.",
+    q: "La capacidad para ir a línea.",
+    f: "Tiros libres intentados ÷ tiros de campo intentados.",
+    l: "Más alto = ataca más el aro y recibe más faltas. Es una forma barata de puntos.",
+    u: "Un equipo con FTr alto sufre menos si no está acertado desde fuera." },
+  { n: "Puntos por partido vs por 100 posesiones", c: "Ranking", corto: "La confusión más común al leer rankings.",
+    q: "Por partido: depende del ritmo. Por 100 posesiones: es independiente del ritmo.",
+    f: "—",
+    l: "Para saber lo bueno que es un equipo, usa siempre por 100 posesiones. Por partido sirve para saber cuántos puntos va a haber en el marcador.",
+    u: "Pozuelo es 4.º en puntos recibidos por partido (59,8) pero 2.º en DRtg (72,6): juega rápido y eso infla lo que recibe por partido." },
+  { n: "Cómo leer un puesto (#1 de 14)", c: "Ranking", corto: "Qué significa estar 5.º o 14.º.",
+    q: "La posición del equipo frente a todos los del grupo en esa métrica.",
+    f: "—",
+    l: "Mira siempre el sentido: en pérdidas, puntos recibidos y DRtg, MENOS es mejor y por tanto el #1 es el que tiene el valor más bajo. La app lo indica con «menos es mejor».",
+    u: "Pérdidas: «puesto 14 de 14» es la peor del grupo (la que más pierde el balón), no la mejor." },
+  { n: "Media de la liga", c: "Ranking", corto: "El punto de comparación.",
+    q: "El valor promedio de los equipos del grupo.",
+    f: "Media de todos los equipos.",
+    l: "Un dato suelto no dice nada hasta compararlo con la media y con el puesto.",
+    u: "Un ORtg de 66,3 con media 85,3 y puesto 14/14 es un ataque claramente débil." },
+  { n: "Muestra pequeña", c: "Ranking", corto: "Por qué desconfiar con pocos partidos.",
+    q: "Con 3 o 4 partidos, un solo partido muy bueno o muy malo mueve mucho las medias.",
+    f: "—",
+    l: "Hasta unos 8-10 partidos, trata los datos como una tendencia, no como una verdad. Confirma con el vídeo.",
+    u: "Esta temporada llevamos pocos partidos: útil para ideas, no para conclusiones definitivas." }
+];
+let guiaCat = "";
+function renderGuia() {
+  const cont = document.getElementById("guiaContent"); if (!cont) return;
+  const f = (document.getElementById("guiaBuscar") || {}).value || "";
+  const q = f.trim().toLowerCase();
+  const lista = GUIA_ESTAD.filter(m => (!guiaCat || m.c === guiaCat) && (!q || (m.n + " " + m.corto + " " + m.q + " " + m.l).toLowerCase().includes(q)));
+  const enfoque = document.activeElement && document.activeElement.id === "guiaBuscar";
+  if (!cont.dataset.listo) {
+    cont.dataset.listo = "1";
+    cont.innerHTML = `<div class="gu">
+      <h2>📘 Aprender a leer estadísticas</h2>
+      <p class="sub">Todo lo que aparece en el Diagnóstico, los rankings y los informes, explicado en claro.</p>
+      <div class="bloque"><h3>Las 4 reglas para leer cualquier estadística</h3>
+        <ol>
+          <li><b>Compara siempre.</b> Un número solo no dice nada: míralo junto a la media de la liga y al puesto (ej. 5.º de 14).</li>
+          <li><b>Fíjate en el sentido.</b> En unas métricas más es mejor (ataque, tiro, rebote) y en otras menos es mejor (pérdidas, puntos recibidos).</li>
+          <li><b>Mejor por 100 posesiones que por partido.</b> Así no te engaña el ritmo de juego.</li>
+          <li><b>Con pocos partidos, prudencia.</b> Es una tendencia: confirma con el vídeo.</li>
+        </ol></div>
+      <div class="bloque"><h3>Ejemplo real: por qué Pozuelo sale 2.º y 5.º en defensa</h3>
+        <p>En el Diagnóstico su defensa es la <b>2.ª de 14</b> (DRtg 72,6, por 100 posesiones). En el ranking de <b>puntos recibidos por partido</b> es 4.ª (59,8). Y en <b>rebote defensivo %</b> es 5.ª (74%).</p>
+        <div class="clave">Son tres medidas distintas de la defensa: la general (por posesión), la que depende del ritmo (por partido) y una parte concreta (el rebote). No se contradicen: juega rápido, defiende muy bien por posesión y su punto menos fuerte es terminar el rebote.</div>
+        <p>Lectura para el partido: tendrás más ataques de lo habitual, pero contra una defensa top 2. Sus puntos débiles son las pérdidas y el acierto de tiro (ambos 14.º de 14), así que presión al balón y transición.</p></div>
+      <div class="bloque"><h3>Cómo preparar a un rival en 5 pasos</h3>
+        <ol>
+          <li>Mira el <b>Net Rtg</b>: ¿es mejor o peor que la media?</li>
+          <li>Separa <b>ORtg</b> (ataque) y <b>DRtg</b> (defensa): ¿en qué es fuerte?</li>
+          <li>Busca los <b>puestos más bajos</b> (14.º, 13.º): ahí está su punto débil.</li>
+          <li>Revisa las <b>cuatro claves</b>: tiro (eFG%), pérdidas, rebote y tiros libres.</li>
+          <li>Comprueba con el <b>vídeo</b> que lo que dicen los números se ve en pista.</li>
+        </ol></div>
+      <h3 style="margin:18px 0 8px">Glosario</h3>
+      <input id="guiaBuscar" class="buscar" type="search" placeholder="Buscar: rebote, pérdidas, ORtg, ritmo…" autocomplete="off">
+      <div class="chips" id="guiaChips"></div>
+      <div id="guiaLista"></div></div>`;
+    cont.querySelector("#guiaBuscar").addEventListener("input", renderGuia);
+    cont.querySelector("#guiaChips").addEventListener("click", e => {
+      const b = e.target.closest("[data-c]"); if (!b) return;
+      guiaCat = b.dataset.c === guiaCat ? "" : b.dataset.c; renderGuia();
+    });
+  }
+  cont.querySelector("#guiaChips").innerHTML = GUIA_CATS.map(c => `<button data-c="${c}" class="${guiaCat === c ? "on" : ""}">${c}</button>`).join("");
+  cont.querySelector("#guiaLista").innerHTML = lista.length ? lista.map(m => `<details class="met"><summary><span>${escapeHtml(m.n)}</span><small>${escapeHtml(m.corto)}</small></summary><div class="cuerpo"><dl>
+      <dt>Qué es</dt><dd>${escapeHtml(m.q)}</dd>
+      ${m.f !== "—" ? `<dt>Cómo se calcula</dt><dd><code>${escapeHtml(m.f)}</code></dd>` : ""}
+      <dt>Cómo leerlo</dt><dd>${escapeHtml(m.l)}</dd>
+      <dt>Ejemplo</dt><dd>${escapeHtml(m.u)}</dd></dl></div></details>`).join("") : `<div class="status">No hay nada con ese nombre.</div>`;
+}
+
 async function cargarRecords() {
   const box = document.getElementById("recordsContent");
   if (!box) return;
@@ -16646,7 +16800,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27q";
+const VERSION_APP = "2026-10-27r";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
