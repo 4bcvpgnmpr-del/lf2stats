@@ -4660,6 +4660,7 @@ function cerrarTV() {
 async function iniciarTVJugadoras() {
   if (TV_EQ_URL) miEquipo = TV_EQ_URL;
   TV.jugadoras = true; TV.modosOk = TV_MODOS_URL.length ? TV_MODOS_URL : ["nuestro"]; TV.modo = TV.modosOk[0];
+  try { const sb = clienteJugadoras(); if (sb) { const { data } = await sb.from("ajustes").select("valor").eq("clave", "tv_videos").limit(1); if (data && data.length) { const v = JSON.parse(data[0].valor || "{}"); scouting = Object.assign({ equipos: {}, jugadoras: {} }, { equipos: v.equipos || {}, jugadoras: v.jugadoras || {} }); } } } catch (e) { /* sin vídeos */ }
   if (!miEquipo) { document.body.insertAdjacentHTML("beforeend", '<div id="tvModo" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:8vw;font:700 20px Inter,sans-serif;">No he podido saber cuál es tu equipo. Vuelve a la app e inténtalo otra vez.</div>'); tvCss(); return; }
   await abrirTV();
 }
@@ -7527,6 +7528,17 @@ async function scoutNubeSubir() {
     const { error } = await sb.from("scout_nube").upsert({ id: scoutSync.email, datos: scouting, actualizado: scouting.actualizado || new Date().toISOString() });
     scoutSync.error = error ? error.message : "";
   } catch (e) { scoutSync.error = String(e.message || e); }
+  scoutTvPublicar();
+}
+/* Vídeos de scouting que las jugadoras pueden ver en su Modo TV: solo los de la nube o con enlace. Se guardan en ajustes (clave tv_videos). */
+async function scoutTvPublicar() {
+  try {
+    if (MODO_TV || !scoutSync.listo) return; const sb = clienteJugadoras(); if (!sb) return;
+    const ok = (v) => v && (v.nubeUrl || (v.origen !== "local" && v.url)), out = { equipos: {}, jugadoras: {} };
+    ["equipos", "jugadoras"].forEach(t => Object.keys(scouting[t] || {}).forEach(k => { const vs = ((scouting[t][k] || {}).videos || []).filter(ok).map(v => ({ id: v.id, titulo: v.titulo, nota: v.nota, etiquetas: v.etiquetas, url: v.url, nubeUrl: v.nubeUrl, origen: v.origen, segundos: v.segundos, inicio: v.inicio })); if (vs.length) out[t][k] = { videos: vs }; }));
+    const txt = JSON.stringify(out); if (txt === scoutSync.pub) return; scoutSync.pub = txt;
+    await sb.from("ajustes").upsert({ clave: "tv_videos", valor: txt, actualizado: new Date().toISOString() });
+  } catch (e) { /* nada */ }
 }
 async function scoutNubeInit(sb, email) {
   try {
@@ -7543,7 +7555,7 @@ async function scoutNubeInit(sb, email) {
     }
     try { localStorage.setItem(SCOUT_KEY, JSON.stringify(scouting)); localStorage.setItem(marca, "1"); } catch (e) { /* nada */ }
     scoutSync.listo = true; scoutSync.error = "";
-    if (subir) await scoutNubeSubir();
+    if (subir) await scoutNubeSubir(); else scoutTvPublicar();
     if (cambio) location.reload();
     else if (typeof renderFichajes === "function" && document.getElementById("fichajesContent")) { try { renderFichajes(); } catch (e) { /* nada */ } }
   } catch (e) { scoutSync.error = String(e.message || e); }
@@ -7554,6 +7566,7 @@ function estadoNubeHtml() {
 }
 
 function scoutGuardar() {
+  if (MODO_TV) return;
   scouting.actualizado = new Date().toISOString();
   clearTimeout(scoutSync.tm); scoutSync.tm = setTimeout(scoutNubeSubir, 1500);
   try {
@@ -7677,7 +7690,7 @@ async function videoComprimir(archivo) {
   const dur = v.duration || 0, sc = Math.min(1, 1280 / Math.max(v.videoWidth, 1), 720 / Math.max(v.videoHeight, 1)), W = Math.max(2, Math.round(v.videoWidth * sc / 2) * 2), H = Math.max(2, Math.round(v.videoHeight * sc / 2) * 2);
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d"), st = cv.captureStream(30);
   let conAudio = false; try { const vs = v.captureStream ? v.captureStream() : null; const at = vs && vs.getAudioTracks()[0]; if (at) { st.addTrack(at); conAudio = true; v.muted = false; v.volume = 0.0001; } } catch (e) { /* sin audio */ }
-  const rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: 1500000, audioBitsPerSecond: 64000 }), trozos = [];
+  const rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: dur > 0 ? Math.max(250000, Math.min(1500000, Math.floor(38 * 1048576 * 8 / dur) - 64000)) : 1500000, audioBitsPerSecond: 64000 }), trozos = [];
   rec.ondataavailable = (e) => { if (e.data && e.data.size) trozos.push(e.data); };
   const fin = new Promise((ok) => { rec.onstop = ok; });
   let vivo = true; const pinta = () => { if (!vivo) return; cx.drawImage(v, 0, 0, W, H); videoAviso("Comprimiendo vídeo… " + (dur ? Math.min(100, Math.round(v.currentTime / dur * 100)) + "% · " : "") + "no cambies de pestaña"); if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(pinta); else requestAnimationFrame(pinta); };
@@ -7688,12 +7701,12 @@ async function videoComprimir(archivo) {
 }
 async function videoNubeSubir(id, archivo) {
   try {
-    if (archivo && archivo.size > 45 * 1024 * 1024) { try { archivo = await videoComprimir(archivo); } catch (e) { videoAviso(""); return { error: "no pude comprimirlo: " + (e.message || e) }; } if (archivo.size > 50 * 1024 * 1024) return { error: "aun comprimido pesa " + Math.round(archivo.size / 1048576) + " MB (máx. 50 MB): es muy largo, recórtalo o usa un enlace" }; }
+    if (archivo && archivo.size > 20 * 1024 * 1024) { try { archivo = await videoComprimir(archivo); } catch (e) { videoAviso(""); return { error: "no pude comprimirlo: " + (e.message || e) }; } if (archivo.size > 50 * 1024 * 1024) return { error: "aun comprimido pesa " + Math.round(archivo.size / 1048576) + " MB y la nube admite menos (máx. 50 MB): es muy largo, recórtalo o usa un enlace" }; }
     const sb = clienteJugadoras(); if (!sb) return { error: "sin conexión con la nube" };
     const { data: ses } = await sb.auth.getSession(); const u = ses && ses.session && ses.session.user; if (!u) return { error: "inicia sesión para subir" };
     const ext = ((/\.([a-z0-9]{2,4})$/i.exec(archivo.name || "") || [])[1] || "mp4").toLowerCase(), ruta = "scout/" + u.id + "/" + id + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
     const { error } = await sb.storage.from("entrenador").upload(ruta, archivo, { contentType: archivo.type || "video/mp4", upsert: false });
-    if (error) return { error: /size|exceed|large|413/i.test(error.message || "") ? "el archivo es demasiado grande para la nube (máx. 50 MB)" : error.message };
+    if (error) return { error: /size|exceed|large|413/i.test(error.message || "") ? "la nube lo rechaza por tamaño (" + Math.round(archivo.size / 1048576) + " MB): sube el límite del bucket en Supabase o recorta el vídeo" : error.message };
     return { ruta, url: sb.storage.from("entrenador").getPublicUrl(ruta).data.publicUrl };
   } catch (e) { return { error: String(e.message || e) }; }
 }
@@ -16866,7 +16879,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-28d";
+const VERSION_APP = "2026-10-28f";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
