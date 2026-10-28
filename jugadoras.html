@@ -510,7 +510,7 @@ const CONFIG = {
 };
 const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
 let temporadaElegida = "2026";
-const VERSION = "2026-10-28a";
+const VERSION = "2026-10-28c";
 
 /* ============================================================
    UTILIDADES
@@ -1525,13 +1525,24 @@ function abrirModoTV(equipo, modos) {
   let ov = $("ovModoTV"); if (ov) ov.remove();
   ov = document.createElement("div"); ov.id = "ovModoTV";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:#0b1623;";
-  ov.innerHTML = `<iframe src="${esc(url)}" title="Modo TV" allow="fullscreen" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#0b1623;"></iframe>
-    <button id="tvOvX" aria-label="Cerrar" style="position:absolute;right:10px;top:10px;z-index:2;background:rgba(0,0,0,.45);color:#fff;border:0;border-radius:20px;padding:6px 12px;font:700 14px sans-serif;cursor:pointer;">✕ Salir</button>`;
+  ov.innerHTML = `<iframe src="${esc(url)}" title="Modo TV" allow="fullscreen; autoplay" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#0b1623;"></iframe>`;
   document.body.appendChild(ov);
-  const cerrar = () => { const o = $("ovModoTV"); if (o) o.remove(); window.removeEventListener("message", onMsg); };
+  const luna = $("sfTemaB"), lunaAntes = luna ? luna.style.display : "";
+  if (luna) luna.style.display = "none";
+  // a pantalla completa y apaisado cuando el móvil lo permite (si no, la propia presentación avisa de que gires el móvil)
+  try { if (ov.requestFullscreen) ov.requestFullscreen().then(() => { try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(() => {}); } catch (e) { /* nada */ } }).catch(() => {}); } catch (e) { /* nada */ }
+  try { history.pushState({ tv: 1 }, ""); } catch (e) { /* nada */ }
+  const cerrar = (desdeAtras) => {
+    const o = $("ovModoTV"); if (!o) return;
+    o.remove(); if (luna) luna.style.display = lunaAntes;
+    window.removeEventListener("message", onMsg); window.removeEventListener("popstate", onPop);
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ }
+    try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* nada */ }
+    if (desdeAtras !== true) { try { if (history.state && history.state.tv) history.back(); } catch (e) { /* nada */ } }
+  };
   const onMsg = (ev) => { if (ev.data && ev.data.scoutflowTvSalir) cerrar(); };
-  window.addEventListener("message", onMsg);
-  $("tvOvX").addEventListener("click", cerrar);
+  const onPop = () => cerrar(true);
+  window.addEventListener("message", onMsg); window.addEventListener("popstate", onPop);
 }
 
 async function cargarNumeros() {
