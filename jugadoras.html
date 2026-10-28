@@ -510,7 +510,7 @@ const CONFIG = {
 };
 const ETIQUETA_TEMPORADA = { "2026": "2026/27", "2025": "2025/26" };
 let temporadaElegida = "2026";
-const VERSION = "2026-10-25e";
+const VERSION = "2026-10-28a";
 
 /* ============================================================
    UTILIDADES
@@ -1507,7 +1507,29 @@ async function cargarInicio() {
       </div>
       <p class="expl" style="margin-top:8px;">Sale de su puesto en la liga en cada estadistica. Mas detalle en la pestaña El rival.</p></div>`;
   }
+  html = `<div class="ini-panel" style="display:flex;align-items:center;gap:12px;cursor:pointer;" id="btnModoTV" role="button" tabindex="0">
+      <div style="font-size:30px;line-height:1;">📺</div>
+      <div style="flex:1;"><h3 class="ini-tit" style="margin:0;">Modo TV</h3>
+      <p class="expl" style="margin:2px 0 0;">Mira a pantalla completa cómo va tu equipo: partidos, clasificación, jugadoras y más.</p></div>
+      <div style="font-weight:800;color:var(--orange);">Ver ›</div></div>` + html;
   caja.innerHTML = html;
+  { const bt = $("btnModoTV"); if (bt) { const ir = () => abrirModoTV(equipo); bt.addEventListener("click", ir); bt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ir(); } }); } }
+}
+/* Modo TV: las presentaciones del equipo a pantalla completa (se pueden pasar a una tele con AirPlay o cable) */
+function abrirModoTV(equipo) {
+  if (!equipo) return;
+  const temp = (typeof temporadaElegida !== "undefined" && temporadaElegida) ? temporadaElegida : "2026";
+  const url = "index.html?tv=1&eq=" + encodeURIComponent(equipo) + "&temp=" + encodeURIComponent(temp) + "&v=" + VERSION;
+  let ov = $("ovModoTV"); if (ov) ov.remove();
+  ov = document.createElement("div"); ov.id = "ovModoTV";
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:#0b1623;";
+  ov.innerHTML = `<iframe src="${esc(url)}" title="Modo TV" allow="fullscreen" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#0b1623;"></iframe>
+    <button id="tvOvX" aria-label="Cerrar" style="position:absolute;right:10px;top:10px;z-index:2;background:rgba(0,0,0,.45);color:#fff;border:0;border-radius:20px;padding:6px 12px;font:700 14px sans-serif;cursor:pointer;">✕ Salir</button>`;
+  document.body.appendChild(ov);
+  const cerrar = () => { const o = $("ovModoTV"); if (o) o.remove(); window.removeEventListener("message", onMsg); };
+  const onMsg = (ev) => { if (ev.data && ev.data.scoutflowTvSalir) cerrar(); };
+  window.addEventListener("message", onMsg);
+  $("tvOvX").addEventListener("click", cerrar);
 }
 
 async function cargarNumeros() {

@@ -2322,6 +2322,15 @@ const TEMPORADAS = [
 /* Modo "solo partido": la app de las jugadoras abre index.html?partido=ID dentro de un marco */
 const PARAMS_URL = new URLSearchParams(location.search);
 const MODO_PARTIDO = PARAMS_URL.get("partido") || "";
+/* Modo TV para las jugadoras: la app de jugadoras abre index.html?tv=1&eq=EQUIPO dentro de un marco a pantalla completa */
+const MODO_TV = PARAMS_URL.get("tv") === "1";
+const TV_EQ_URL = PARAMS_URL.get("eq") || "";
+if (MODO_TV) {
+  document.documentElement.classList.add("modo-tv");
+  const stTv = document.createElement("style");
+  stTv.textContent = "html.modo-tv body > *:not(#tvModo):not(script):not(style){display:none !important;} html.modo-tv body{background:#0b1623;}";
+  document.head.appendChild(stTv);
+}
 if (MODO_PARTIDO) {
   document.documentElement.classList.add("modo-partido");
   // La entrenadora decide desde el panel que bloques ve la jugadora
@@ -2340,7 +2349,7 @@ try {
   const guardada = localStorage.getItem("lf2_temporada");
   if (guardada && TEMPORADAS.some(t => t.id === guardada)) temporadaActiva = guardada;
 } catch (e) { /* sin guardar, se usa la mas reciente */ }
-if (MODO_PARTIDO && TEMPORADAS.some(t => t.id === PARAMS_URL.get("temp"))) temporadaActiva = PARAMS_URL.get("temp");
+if ((MODO_PARTIDO || MODO_TV) && TEMPORADAS.some(t => t.id === PARAMS_URL.get("temp"))) temporadaActiva = PARAMS_URL.get("temp");
 
 function datosTemporada() {
   return TEMPORADAS.find(t => t.id === temporadaActiva) || TEMPORADAS[0];
@@ -4623,6 +4632,14 @@ function cerrarTV() {
   TV.abierto = false; clearTimeout(TV.timer); clearTimeout(TV.ocultar); clearInterval(TV.anim); clearTimeout(TV.anim); document.removeEventListener("keydown", tvTecla);
   const r = document.getElementById("tvModo"); if (r) r.remove();
   try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* nada */ }
+  if (MODO_TV) { try { parent.postMessage({ scoutflowTvSalir: 1 }, "*"); } catch (e) { /* nada */ } if (parent === window) { try { if (history.length > 1) history.back(); else window.close(); } catch (e) { /* nada */ } } }
+}
+/* Modo TV de la app de las jugadoras: solo su equipo, sin menús de entrenador */
+async function iniciarTVJugadoras() {
+  if (TV_EQ_URL) miEquipo = TV_EQ_URL;
+  TV.jugadoras = true; TV.modo = "nuestro";
+  if (!miEquipo) { document.body.insertAdjacentHTML("beforeend", '<div id="tvModo" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:8vw;font:700 20px Inter,sans-serif;">No he podido saber cuál es tu equipo. Vuelve a la app e inténtalo otra vez.</div>'); tvCss(); return; }
+  await abrirTV();
 }
 
 /* ---- Presentación de una jugadora (nuestra o del rival) ---- */
@@ -5102,6 +5119,7 @@ function tvToggleIndice() {
   raiz.appendChild(d); const act = d.querySelector(`[data-k="${TV.i}"]`); if (act) act.scrollIntoView({ block: "center" });
 }
 function tvMenu() {
+  if (TV.jugadoras) return;
   const raiz = document.getElementById("tvModo"); if (!raiz) return;
   TV.menu = true; clearTimeout(TV.timer); clearInterval(TV.anim); clearTimeout(TV.anim);
   const prog = raiz.querySelector(".tv-prog"); prog.style.transition = "none"; prog.style.width = "0";
@@ -5194,10 +5212,12 @@ async function abrirTV() {
   r.querySelector("#tvObjB").addEventListener("click", (e) => { e.stopPropagation(); tvAbrirObjetivos(); });
   r.querySelector("#tvDibB").addEventListener("click", (e) => { e.stopPropagation(); tvDibujoToggle(); });
   r.querySelector("#tvFull").addEventListener("click", (e) => { e.stopPropagation(); try { if (document.fullscreenElement) document.exitFullscreen(); else r.requestFullscreen(); } catch (er) { /* nada */ } });
+  if (TV.jugadoras) { r.classList.add("tv-jug"); ["tvMenuB", "tvMetasB", "tvObjB", "tvDibB"].forEach(id => { const b = r.querySelector("#" + id); if (b) b.remove(); }); }
   document.addEventListener("keydown", tvTecla);
   tvMostrarControles();
   try { await tvCargar(); TV.ctx = tvContexto(); TV.slides = tvSlides(TV.ctx); } catch (e) { console.warn("Modo TV:", e); TV.slides = []; }
   if (!TV.abierto) return;
+  if (TV.slides.length && TV.jugadoras) { TV.modo = "nuestro"; TV.menu = false; TV.i = 0; TV.auto = true; tvRender(); return; }
   if (TV.slides.length) { tvMenu(); return; }
   if (!TV.slides.length) { r.querySelector(".tv-slide").classList.add("in"); r.querySelector(".tv-slide").innerHTML = `<div class="tv-sub" style="text-align:center;">Todavía no hay datos suficientes para la presentación. Entra una vez en Estadísticas y vuelve a intentarlo.</div>`; return; }
   tvRender();
@@ -10390,7 +10410,7 @@ async function resolverRolApp(sb, user) {
 
 async function verificarAcceso() {
   // Dentro de la app de las jugadoras solo se ve un partido: no pide entrar como entrenador
-  if (MODO_PARTIDO) { document.documentElement.classList.remove("sin-acceso"); return; }
+  if (MODO_PARTIDO || MODO_TV) { document.documentElement.classList.remove("sin-acceso"); return; }
   const sb = clienteJugadoras();
   if (!sb) { mostrarPuerta("No se pudo cargar el acceso. Recarga la pagina.", "mal"); return; }
   // Si llega desde el enlace de "Olvide mi contraseña", se pide la nueva
@@ -16800,7 +16820,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-27r";
+const VERSION_APP = "2026-10-28a";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
@@ -16975,6 +16995,8 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
   datosLiga = { equipos, jugadoras, rankingExtra: { ...rankingExtra } };
   prepararBarraGrupos();
   renderTodo();
+
+  if (MODO_TV) iniciarTVJugadoras();
 
   if (MODO_PARTIDO) {
     showPartidoDetail(MODO_PARTIDO);
