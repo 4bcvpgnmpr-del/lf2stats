@@ -4023,7 +4023,7 @@ function tvCss() {
   #tvModo h2{margin:.1em 0 .5em;font-size:clamp(24px,3.6vw,60px);line-height:1.1;font-weight:900;}
   #tvModo .tv-sub{color:#9fb2c6;font-size:clamp(14px,1.7vw,28px);}
   #tvModo .tv-barra-ctrl{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;padding:1.6vh 2.5vw;z-index:3;opacity:0;transition:opacity .4s;}
-  #tvModo.tv-ver .tv-barra-ctrl{opacity:1;}
+  #tvModo.tv-ver .tv-barra-ctrl{opacity:1;} #tvModo:has(#tvVidFull) .tv-barra-ctrl{bottom:auto;top:0;background:linear-gradient(rgba(5,12,20,.85),transparent);padding-bottom:3vh;} #tvModo:has(#tvVidFull) #tvVidInfo{top:8vh !important;}
   #tvModo.tv-ver{cursor:default;} #tvModo{cursor:none;} #tvModo.tv-ver{cursor:default;}
   #tvModo .tv-dots{display:flex;gap:10px;} #tvModo .tv-dots i{width:12px;height:12px;border-radius:99px;background:#33475c;display:block;cursor:pointer;} #tvModo .tv-dots i.on{background:#f2803f;width:34px;}
   #tvModo .tv-btns button{background:#1d3248;color:#fff;border:0;border-radius:12px;padding:8px 11px;font:700 14px Inter,sans-serif;margin-left:6px;cursor:pointer;white-space:nowrap;} #tvModo .tv-btns button:hover{background:#2b4764;}
@@ -4923,7 +4923,7 @@ function tvMarcasChips(v) {
 }
 function tvMarcasBarra(v) {
   if (!v) return "";
-  return `<div id="tvVidMarcas" data-v="${escapeAttr(v.id || "")}" style="position:absolute;left:1.6vw;right:1.6vw;top:9vh;z-index:4;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(5,12,20,.82);border-radius:12px;padding:.7vh 1vw;font:700 clamp(10px,1.05vw,17px) Inter,sans-serif;color:#fff;">
+  return `<div id="tvVidMarcas" data-v="${escapeAttr(v.id || "")}" style="position:absolute;left:1.6vw;right:1.6vw;top:15vh;z-index:4;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(5,12,20,.82);border-radius:12px;padding:.7vh 1vw;font:700 clamp(10px,1.05vw,17px) Inter,sans-serif;color:#fff;">
     <button id="tvMarcaAdd" style="background:#f2803f;color:#fff;border:0;border-radius:99px;padding:4px 12px;font:800 inherit;cursor:pointer;">📍 Marcar aquí (M)</button><input id="tvMarcaNota" placeholder="Nota de la marca (opcional)" style="width:min(240px,26vw);padding:5px 10px;border-radius:99px;border:0;font-size:13px;">
     <span id="tvMarcasLista" style="display:contents;">${tvMarcasChips(v)}</span></div>`;
 }
@@ -4968,9 +4968,9 @@ function tvVideoSlideHtml(eq, nombre, sel, k, n, equipo) {
   const infoJug = `<div id="tvVidInfo" style="position:absolute;left:1.6vw;top:1.6vh;right:1.6vw;z-index:4;display:flex;gap:1vw;align-items:center;flex-wrap:wrap;background:rgba(5,12,20,.72);border-radius:12px;padding:.8vh 1.2vw;font:800 clamp(12px,1.4vw,22px) Inter,sans-serif;color:#fff;"><span>${escapeHtml(nombre)}</span><span style="color:#f2803f;">${k ? k + " de " + n : (equipo ? "Vídeo de scouting" : "Vídeos")}</span>${vs.length > 1 ? vs.map(x => `<span data-vid="${escapeAttr(x.id || "")}" style="cursor:pointer;padding:3px 10px;border-radius:99px;font:700 clamp(10px,1vw,16px) Inter,sans-serif;background:${v && x.id === v.id ? "#f2803f" : "#1d3248"};">▶ ${escapeHtml(corto3(x.titulo || x.url || "Vídeo", 24))}</span>`).join("") : ""}</div>`;
   const info = TV.jugadoras ? infoJug : infoFull;
   if (!v) return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#07101a;display:flex;align-items:center;justify-content:center;"><div class="tv-sub" style="text-align:center;">Aún no hay vídeo de ${escapeHtml(nombre)}.<br>Añade un enlace o sube un archivo arriba. <small style="display:block;margin-top:1vh;">Enter: siguiente jugadora</small></div>${info}</div>`;
-  const nota = v.nota ? `<div style="position:absolute;left:2vw;bottom:150px;z-index:3;max-width:60vw;background:rgba(5,12,20,.7);padding:.6vh 1vw;border-radius:10px;font:600 clamp(11px,1.3vw,22px) Inter,sans-serif;color:#fff;">${escapeHtml(v.nota)}</div>` : "";
-  return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#000;"><div id="tvVidPlayer" style="position:absolute;left:0;right:0;top:0;bottom:72px;">${tvPlayerHtml(v)}</div>
-    <div id="tvVidTapa" style="position:absolute;left:0;right:0;top:0;bottom:130px;z-index:1;"></div>${nota}${info}${TV.jugadoras ? "" : tvMarcasBarra(v)}</div>`;
+  const nota = v.nota ? `<div style="position:absolute;left:2vw;bottom:19vh;z-index:3;max-width:60vw;background:rgba(5,12,20,.7);padding:.6vh 1vw;border-radius:10px;font:600 clamp(11px,1.3vw,22px) Inter,sans-serif;color:#fff;">${escapeHtml(v.nota)}</div>` : "";
+  return `<div id="tvVidFull" style="position:fixed;inset:0;z-index:2;background:#000;"><div id="tvVidPlayer" style="position:absolute;inset:0;">${tvPlayerHtml(v)}</div>
+    <div id="tvVidTapa" style="position:absolute;left:0;right:0;top:0;bottom:14%;z-index:1;"></div>${nota}${info}${TV.jugadoras ? "" : tvMarcasBarra(v)}</div>`;
 }
 function tvCtrlVideo(caja, alTerminar) {
   const vid = caja.querySelector("video"), fr = caja.querySelector("iframe"); let fin = false; const termino = () => { if (fin || !alTerminar) return; fin = true; setTimeout(alTerminar, 1200); };
@@ -16916,7 +16916,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-28m";
+const VERSION_APP = "2026-10-28n";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
