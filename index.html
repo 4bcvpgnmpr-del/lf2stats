@@ -4007,9 +4007,9 @@ function rkAnimar(porEq, met, caja) {
    cada jugadora, dónde somos fuertes y el ranking de la liga.
    ============================================================ */
 const TV = { jugEq: "", jug: "", menu: false, modo: "nuestro", rival: "", abierto: false, i: 0, auto: true, slides: [], timer: null, ocultar: null, ctx: null, anim: null };
-const TV_ETQ = { "ORtg": "Ataque", "DRtg": "Defensa", "Net": "Diferencial", "Pace": "Ritmo", "eFG%": "Acierto de tiro", "TS%": "Eficiencia de tiro", "TOV%": "Pérdidas", "OREB%": "Rebote ofensivo", "DREB%": "Rebote defensivo",
+const TV_ETQ = { "ORtg": "Ataque", "DRtg": "Defensa", "Net": "Diferencial", "Pace": "Ritmo", "eFG%": "Acierto de tiro", "TS%": "Eficiencia de tiro", "TOV%": "% de posesiones perdidas", "OREB%": "% de rebote ofensivo", "DREB%": "% de rebote defensivo",
   "Pts/P": "Puntos por partido", "2P%": "Tiros de 2", "3P%": "Triples", "FT%": "Tiros libres", "AST/P": "Asistencias", "TO/P": "Pérdidas por partido", "AST/TO": "Asistencias por pérdida",
-  "RebTot/P": "Rebotes", "RebDef/P": "Rebotes defensivos", "RebOf/P": "Rebotes ofensivos", "Robos/P": "Robos", "Tapones/P": "Tapones", "Val/P": "Valoración" };
+  "RebTot/P": "Rebotes por partido", "RebDef/P": "Rebotes defensivos por partido", "RebOf/P": "Rebotes ofensivos por partido", "Robos/P": "Robos", "Tapones/P": "Tapones", "Val/P": "Valoración" };
 
 function tvCss() {
   if (document.getElementById("tvCss")) return;
@@ -16916,7 +16916,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-28k";
+const VERSION_APP = "2026-10-28l";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
