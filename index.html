@@ -4831,8 +4831,8 @@ function tvBindVideos(caja, repintar, eq, nombre, equipo) {
       else if (e.target.closest("#tvMarcaAdd")) tvMarcaAnadir(eq, nombre, equipo, mbox); });
     mbox.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "tvMarcaNota") { e.preventDefault(); e.stopPropagation(); tvMarcaAnadir(eq, nombre, equipo, mbox); } }); }
   const up = caja.querySelector("#tvVidUp");
-  if (up && !up._b) { up._b = 1; up.addEventListener("click", async (e) => { e.stopPropagation(); up.textContent = "Subiendo…"; up.disabled = true; const r = await videoLocalANube(up.dataset.up);
-    if (r.ok) { repintar(up.dataset.up); } else { up.textContent = "No se pudo: " + (r.error || "error"); up.disabled = false; setTimeout(() => { if (up.isConnected) up.textContent = "☁ Subir a la nube"; }, 5000); } }); }
+  if (up && !up._b) { up._b = 1; up.addEventListener("click", async (e) => { e.stopPropagation(); up.textContent = "Subiendo…"; up.disabled = true; videoAviso("☁ Subiendo vídeo a la nube…"); const r = await videoLocalANube(up.dataset.up);
+    if (r.ok) { videoAviso("✓ Vídeo subido: las jugadoras ya pueden verlo"); setTimeout(() => videoAviso(""), 4000); repintar(up.dataset.up); } else { videoAviso("✗ No se pudo subir: " + (r.error || "error")); setTimeout(() => videoAviso(""), 9000); up.textContent = "No se pudo: " + (r.error || "error"); up.disabled = false; setTimeout(() => { if (up.isConnected) up.textContent = "☁ Subir a la nube"; }, 5000); } }); }
   const dl = caja.querySelector("#tvVidDl");
   if (dl && !dl._b) { dl._b = 1; dl.addEventListener("click", async (e) => { e.stopPropagation(); dl.textContent = "…"; const ok = await videoDescargar(dl.dataset.dl); dl.textContent = ok ? "✓ Descargado" : "No encontrado"; setTimeout(() => { if (dl.isConnected) dl.textContent = "⬇ Copia"; }, 2500); }); }
   const del = caja.querySelector("#tvVidDel");
@@ -12322,7 +12322,7 @@ function renderScouting() {
   const bvd = document.getElementById("btnVidDescargar"), bvr = document.getElementById("btnVidRestaurar"), fvid = document.getElementById("ficheroVid"), vest = document.getElementById("vidCopiaEstado");
   if (bvd) bvd.addEventListener("click", async () => { bvd.disabled = true; const r = await videosDescargarTodos((t) => { vest.textContent = t; }); vest.textContent = r.total ? `Listo: ${r.hechos} de ${r.total} vídeos descargados` : "No hay vídeos subidos en este navegador."; bvd.disabled = false; });
   const bvn = document.getElementById("btnVidNube");
-  if (bvn) bvn.addEventListener("click", async () => { bvn.disabled = true; const r = await videosNubeSubirTodos((t) => { vest.textContent = t; }); vest.textContent = r.total ? `Subidos ${r.hechos} de ${r.total}` + (r.error ? " · " + r.error : "") : "No hay vídeos pendientes de subir."; bvn.disabled = false; });
+  if (bvn) bvn.addEventListener("click", async () => { bvn.disabled = true; const r = await videosNubeSubirTodos((t) => { vest.textContent = t; videoAviso("☁ " + t); }); { const fin = r.total ? (r.hechos === r.total ? "✓ Subidos los " + r.total + " vídeos" : "Subidos " + r.hechos + " de " + r.total + (r.error ? " · " + r.error : "")) : "No hay vídeos pendientes de subir."; videoAviso(fin); setTimeout(() => videoAviso(""), 8000); } vest.textContent = r.total ? `Subidos ${r.hechos} de ${r.total}` + (r.error ? " · " + r.error : "") : "No hay vídeos pendientes de subir."; bvn.disabled = false; });
   if (bvr && fvid) { bvr.addEventListener("click", () => fvid.click()); fvid.addEventListener("change", async () => { const r = await videosRestaurar(fvid.files); vest.textContent = `Restaurados ${r.hechos}` + (r.ignorados ? ` · ${r.ignorados} ignorados (el nombre debe empezar por scoutflow-video-)` : ""); fvid.value = ""; }); }
   const btnImp = document.getElementById("btnImportarScout");
   const fich = document.getElementById("ficheroScout");
@@ -16866,7 +16866,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-28c";
+const VERSION_APP = "2026-10-28d";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
