@@ -1155,6 +1155,22 @@ function pedirMiniaturas(items) {
   }
   if (marcoMiniListo) enviar(); else colaMini.push(enviar);
 }
+/* Al pasar el ratón por una miniatura se ve el dibujo en grande, para saber qué jugada o ejercicio es */
+(function () {
+  let grande = null, actual = null;
+  const quitar = () => { if (grande) { grande.remove(); grande = null; } actual = null; };
+  const poner = (el, e) => {
+    const sv = el.querySelector("svg"); if (!sv) return;
+    if (!grande) { grande = document.createElement("div"); grande.style.cssText = "position:fixed;z-index:99999;pointer-events:none;background:#fff;border:2px solid #d9541e;border-radius:14px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.35);"; document.body.appendChild(grande); }
+    if (actual !== el) { actual = el; const c = sv.cloneNode(true); c.removeAttribute("width"); c.removeAttribute("height"); const r = sv.getBoundingClientRect(), asp = r.height && r.width ? r.height / r.width : 1.1; const W = Math.min(440, window.innerWidth - 40); c.style.cssText = "display:block;width:" + W + "px;height:" + Math.round(W * asp) + "px;max-height:" + (window.innerHeight - 40) + "px;"; grande.innerHTML = ""; grande.appendChild(c); }
+    const w = grande.offsetWidth, h = grande.offsetHeight; let x = e.clientX + 24, y = e.clientY - h / 2;
+    if (x + w > window.innerWidth - 8) x = e.clientX - w - 24; if (x < 8) x = 8; y = Math.max(8, Math.min(y, window.innerHeight - h - 8));
+    grande.style.left = x + "px"; grande.style.top = y + "px";
+  };
+  document.addEventListener("mouseover", (e) => { const el = e.target.closest && e.target.closest("[data-mini]"); if (el && el.querySelector("svg")) poner(el, e); else if (grande) quitar(); });
+  document.addEventListener("mousemove", (e) => { if (!grande) return; const el = e.target.closest && e.target.closest("[data-mini]"); if (el && el === actual) poner(el, e); else quitar(); });
+  document.addEventListener("mousedown", quitar); document.addEventListener("scroll", quitar, true);
+})();
 /* soltar elementos arrastrados sobre una carpeta (o sobre la raiz) */
 function soltarEn(el, tipo, nombre) {
   el.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add("sobre"); });
