@@ -2325,6 +2325,7 @@ const MODO_PARTIDO = PARAMS_URL.get("partido") || "";
 /* Modo TV para las jugadoras: la app de jugadoras abre index.html?tv=1&eq=EQUIPO dentro de un marco a pantalla completa */
 const MODO_TV = PARAMS_URL.get("tv") === "1";
 const TV_EQ_URL = PARAMS_URL.get("eq") || "";
+const TV_MODOS_URL = (PARAMS_URL.get("modos") || "nuestro").split(",").map(x => x.trim()).filter(x => ["nuestro", "rival", "jugadora", "jugrival", "comparar"].includes(x));
 if (MODO_TV) {
   document.documentElement.classList.add("modo-tv");
   const stTv = document.createElement("style");
@@ -4637,7 +4638,7 @@ function cerrarTV() {
 /* Modo TV de la app de las jugadoras: solo su equipo, sin menús de entrenador */
 async function iniciarTVJugadoras() {
   if (TV_EQ_URL) miEquipo = TV_EQ_URL;
-  TV.jugadoras = true; TV.modo = "nuestro";
+  TV.jugadoras = true; TV.modosOk = TV_MODOS_URL.length ? TV_MODOS_URL : ["nuestro"]; TV.modo = TV.modosOk[0];
   if (!miEquipo) { document.body.insertAdjacentHTML("beforeend", '<div id="tvModo" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:8vw;font:700 20px Inter,sans-serif;">No he podido saber cuál es tu equipo. Vuelve a la app e inténtalo otra vez.</div>'); tvCss(); return; }
   await abrirTV();
 }
@@ -5119,14 +5120,13 @@ function tvToggleIndice() {
   raiz.appendChild(d); const act = d.querySelector(`[data-k="${TV.i}"]`); if (act) act.scrollIntoView({ block: "center" });
 }
 function tvMenu() {
-  if (TV.jugadoras) return;
   const raiz = document.getElementById("tvModo"); if (!raiz) return;
   TV.menu = true; clearTimeout(TV.timer); clearInterval(TV.anim); clearTimeout(TV.anim);
   const prog = raiz.querySelector(".tv-prog"); prog.style.transition = "none"; prog.style.width = "0";
   raiz.querySelector(".tv-dots").innerHTML = "";
   let eqs = []; try { const mio = normalizarEquipo(equipoOficial(miEquipo)); eqs = listaDeEquipos(true).filter(n => normalizarEquipo(equipoOficial(n)) !== mio); } catch (e) { eqs = []; }
   const sig = tvRivalSiguiente(); let sel = TV.rival || sig || eqs[0] || "";
-  let modo = TV.modo || "nuestro";
+  let modo = TV.modo || "nuestro"; if (TV.jugadoras && !TV.modosOk.includes(modo)) modo = TV.modosOk[0];
   const eqJ = [equipoOficial(miEquipo)].concat(eqs); let jEq = TV.jugEq || eqJ[0], jNom = TV.jug || "", jugs = [];
   const selEst = "font-size:clamp(14px,1.6vw,26px);padding:.5vh 1vw;border-radius:12px;border:0;background:#1d3248;color:#fff;font-weight:800;max-width:36vw;";
   const cargaJugs = () => { try { jugs = tvJugRival(jEq, 1).map(x => x.n); } catch (e) { jugs = []; } if (!jugs.includes(jNom)) jNom = jugs[0] || ""; };
@@ -5134,7 +5134,7 @@ function tvMenu() {
   const jugsDe = (eq) => { try { return tvJugRival(eq, 1).sort((a, b) => b.pt - a.pt).map(x => x.n); } catch (e) { return []; } };
   let cA = TV.cmpA ? Object.assign({}, TV.cmpA) : { eq: eqJ[0], n: topDe(eqJ[0]) }, cB = TV.cmpB ? Object.assign({}, TV.cmpB) : { eq: sel || eqJ[1] || eqJ[0], n: topDe(sel || eqJ[1] || eqJ[0]) };
   const caja = raiz.querySelector(".tv-slide"); caja.classList.remove("in");
-  const op = [["nuestro", "🏀", "Nuestro equipo", "Progreso, objetivos, mapa de tiro, ranking…"], ["rival", "🔎", "Un rival", "Forma, jugadoras a vigilar, claves del partido…"], ["todo", "📺", "Todo", "Nuestro equipo y después el rival"], ["jugadora", "⭐", "Una jugadora", "Su ficha, su mapa de tiro y sus vídeos"], ["jugrival", "🗂️", "Jugadoras del rival", "Un perfil por jugadora: dorsal, tiros, stats y vídeo"], ["comparar", "⚔️", "Comparar dos jugadoras", "Cara a cara de cualquier par: nuestras o rivales"]];
+  const op = [["nuestro", "🏀", "Nuestro equipo", "Progreso, objetivos, mapa de tiro, ranking…"], ["rival", "🔎", "Un rival", "Forma, jugadoras a vigilar, claves del partido…"], ["todo", "📺", "Todo", "Nuestro equipo y después el rival"], ["jugadora", "⭐", "Una jugadora", "Su ficha, su mapa de tiro y sus vídeos"], ["jugrival", "🗂️", "Jugadoras del rival", "Un perfil por jugadora: dorsal, tiros, stats y vídeo"], ["comparar", "⚔️", "Comparar dos jugadoras", "Cara a cara de cualquier par: nuestras o rivales"]].filter(o => !TV.jugadoras || TV.modosOk.includes(o[0]));
   let abierta = false, lista = null, oc = tvOcultasLeer(); const btnMini = "background:#1d3248;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 12px Inter,sans-serif;cursor:pointer;";
   const prepararSlides = async () => { TV.modo = modo; if (modo !== "nuestro" && modo !== "jugadora" && modo !== "comparar") TV.rival = sel; if (modo === "comparar") { TV.cmpA = cA; TV.cmpB = cB; } if (modo === "jugadora") { TV.jugEq = jEq; TV.jug = (caja.querySelector("#tvMenuJ") || {}).value || jNom; }
     try { await zonasDeLaLiga(); } catch (er) { /* nada */ }
@@ -5188,6 +5188,7 @@ function tvMenu() {
       if (!TV.slides.length) { caja.innerHTML = `<div class="tv-sub" style="text-align:center;">No hay datos suficientes para esta presentación.</div>`; TV.menu = true; setTimeout(() => { if (TV.abierto) pintar(); }, 2500); return; }
       tvRender();
     });
+    if (TV.jugadoras) { ["#tvPresNom", "#tvMenuSel"].forEach(q => { const el = caja.querySelector(q); if (el && el.parentElement) el.parentElement.remove(); }); }
     requestAnimationFrame(() => caja.classList.add("in"));
   };
   pintar();
@@ -5212,12 +5213,12 @@ async function abrirTV() {
   r.querySelector("#tvObjB").addEventListener("click", (e) => { e.stopPropagation(); tvAbrirObjetivos(); });
   r.querySelector("#tvDibB").addEventListener("click", (e) => { e.stopPropagation(); tvDibujoToggle(); });
   r.querySelector("#tvFull").addEventListener("click", (e) => { e.stopPropagation(); try { if (document.fullscreenElement) document.exitFullscreen(); else r.requestFullscreen(); } catch (er) { /* nada */ } });
-  if (TV.jugadoras) { r.classList.add("tv-jug"); ["tvMenuB", "tvMetasB", "tvObjB", "tvDibB"].forEach(id => { const b = r.querySelector("#" + id); if (b) b.remove(); }); }
+  if (TV.jugadoras) { r.classList.add("tv-jug"); (TV.modosOk.length > 1 ? ["tvMetasB", "tvObjB", "tvDibB"] : ["tvMenuB", "tvMetasB", "tvObjB", "tvDibB"]).forEach(id => { const b = r.querySelector("#" + id); if (b) b.remove(); }); }
   document.addEventListener("keydown", tvTecla);
   tvMostrarControles();
   try { await tvCargar(); TV.ctx = tvContexto(); TV.slides = tvSlides(TV.ctx); } catch (e) { console.warn("Modo TV:", e); TV.slides = []; }
   if (!TV.abierto) return;
-  if (TV.slides.length && TV.jugadoras) { TV.modo = "nuestro"; TV.menu = false; TV.i = 0; TV.auto = true; tvRender(); return; }
+  if (TV.slides.length && TV.jugadoras && TV.modosOk.length === 1 && TV.modosOk[0] === "nuestro") { TV.modo = "nuestro"; TV.menu = false; TV.i = 0; TV.auto = true; tvRender(); return; }
   if (TV.slides.length) { tvMenu(); return; }
   if (!TV.slides.length) { r.querySelector(".tv-slide").classList.add("in"); r.querySelector(".tv-slide").innerHTML = `<div class="tv-sub" style="text-align:center;">Todavía no hay datos suficientes para la presentación. Entra una vez en Estadísticas y vuelve a intentarlo.</div>`; return; }
   tvRender();

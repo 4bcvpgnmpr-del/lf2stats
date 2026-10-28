@@ -1507,19 +1507,21 @@ async function cargarInicio() {
       </div>
       <p class="expl" style="margin-top:8px;">Sale de su puesto en la liga en cada estadistica. Mas detalle en la pestaña El rival.</p></div>`;
   }
-  html = `<div class="ini-panel" style="display:flex;align-items:center;gap:12px;cursor:pointer;" id="btnModoTV" role="button" tabindex="0">
+  let tvModos = ["nuestro"];
+  try { const { data } = await sb.from("ajustes").select("valor").eq("clave", "tv_jugadoras").limit(1); if (data && data.length) { const v = JSON.parse(data[0].valor || "{}"); if (Array.isArray(v.modos)) tvModos = v.modos; } } catch (e) { /* por defecto: solo su equipo */ }
+  if (tvModos.length) html = `<div class="ini-panel" style="display:flex;align-items:center;gap:12px;cursor:pointer;" id="btnModoTV" role="button" tabindex="0">
       <div style="font-size:30px;line-height:1;">📺</div>
       <div style="flex:1;"><h3 class="ini-tit" style="margin:0;">Modo TV</h3>
       <p class="expl" style="margin:2px 0 0;">Mira a pantalla completa cómo va tu equipo: partidos, clasificación, jugadoras y más.</p></div>
       <div style="font-weight:800;color:var(--orange);">Ver ›</div></div>` + html;
   caja.innerHTML = html;
-  { const bt = $("btnModoTV"); if (bt) { const ir = () => abrirModoTV(equipo); bt.addEventListener("click", ir); bt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ir(); } }); } }
+  { const bt = $("btnModoTV"); if (bt) { const ir = () => abrirModoTV(equipo, tvModos); bt.addEventListener("click", ir); bt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ir(); } }); } }
 }
 /* Modo TV: las presentaciones del equipo a pantalla completa (se pueden pasar a una tele con AirPlay o cable) */
-function abrirModoTV(equipo) {
+function abrirModoTV(equipo, modos) {
   if (!equipo) return;
   const temp = (typeof temporadaElegida !== "undefined" && temporadaElegida) ? temporadaElegida : "2026";
-  const url = "index.html?tv=1&eq=" + encodeURIComponent(equipo) + "&temp=" + encodeURIComponent(temp) + "&v=" + VERSION;
+  const url = "index.html?tv=1&eq=" + encodeURIComponent(equipo) + "&temp=" + encodeURIComponent(temp) + "&modos=" + encodeURIComponent((modos || ["nuestro"]).join(",")) + "&v=" + VERSION;
   let ov = $("ovModoTV"); if (ov) ov.remove();
   ov = document.createElement("div"); ov.id = "ovModoTV";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:#0b1623;";

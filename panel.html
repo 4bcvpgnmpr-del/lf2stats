@@ -234,6 +234,9 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <select id="selPartidoDespues"><option value="">El último partido jugado (automático)</option></select>
       <div id="avisoPartido"></div>
       <div id="avisoOrden"></div>
+      <label style="margin-top:12px;">Modo TV: qué pueden ver las jugadoras (a pantalla completa en su app)</label>
+      <div id="tvJugCfg"></div>
+      <div id="avisoTvJug"></div>
     </div>
 
     </div>
@@ -597,6 +600,7 @@ async function entrar(sesion) {
   }
   cargarJugadoras().then(cargarTestsPanel);
   cargarTemporada().then(cargarSelectorPartido);
+  cargarTvJug();
   cargarOrdenApp();
   cargarInformes();
   prepararAccesos();
@@ -664,6 +668,20 @@ async function cargarSelectorPartido() {
       avisar("avisoPartido", error ? "No se ha podido guardar: " + error.message : (sel.value ? "Guardado. Verán este partido." : "Guardado. Verán siempre el último partido jugado."), error ? "mal" : "ok");
     };
   } catch (e) { /* si falla, se queda el automatico */ }
+}
+
+/* Modo TV de las jugadoras: el entrenador decide qué apartados pueden abrir */
+const TV_JUG_MODOS = [["nuestro", "📊 Datos de nuestro equipo", "Temporada, clasificación, último partido, plantilla, mapa de tiro…"], ["rival", "🔎 Datos del rival", "Forma, jugadoras a vigilar, claves del partido…"], ["jugadora", "⭐ Una jugadora", "Su ficha, su mapa de tiro y sus vídeos"], ["jugrival", "🗂️ Jugadoras del rival", "Un perfil por jugadora del rival"], ["comparar", "⚔️ Comparar dos jugadoras", "Cara a cara de cualquier par"]];
+async function cargarTvJug() {
+  const caja = $("tvJugCfg"); if (!caja) return;
+  let modos = ["nuestro"];
+  try { const { data } = await sb.from("ajustes").select("valor").eq("clave", "tv_jugadoras").limit(1); if (data && data.length) { const v = JSON.parse(data[0].valor || "{}"); if (Array.isArray(v.modos)) modos = v.modos; } } catch (e) { /* por defecto */ }
+  caja.innerHTML = TV_JUG_MODOS.map(([id, t, d]) => `<label style="display:flex;gap:10px;align-items:flex-start;background:#f4f1ea;border-radius:10px;padding:10px;margin:6px 0;font-weight:700;font-size:14px;"><input type="checkbox" data-tvm="${id}" ${modos.includes(id) ? "checked" : ""} style="margin-top:3px;"><span>${t}<br><small style="font-weight:400;opacity:.75;">${d}</small></span></label>`).join("") + `<p class="expl" style="margin-top:6px;">Si no marcas ninguno, el botón «Modo TV» no aparece en su app. No sale nunca la probabilidad de victoria.</p>`;
+  caja.querySelectorAll("input[data-tvm]").forEach(i => i.addEventListener("change", async () => {
+    const sel = [...caja.querySelectorAll("input[data-tvm]:checked")].map(x => x.dataset.tvm);
+    const { error } = await sb.from("ajustes").upsert({ clave: "tv_jugadoras", valor: JSON.stringify({ modos: sel }), actualizado: new Date().toISOString() });
+    avisar("avisoTvJug", error ? "No se ha podido guardar: " + error.message : (sel.length ? "Guardado. Verán el Modo TV con " + sel.length + " apartado" + (sel.length === 1 ? "" : "s") + "." : "Guardado. El Modo TV no aparece en su app."), error ? "mal" : "ok");
+  }));
 }
 
 async function guardarTemporada() {
