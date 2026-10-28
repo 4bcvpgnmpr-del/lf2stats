@@ -285,6 +285,7 @@
   #pbLc{flex:1;min-height:0;overflow:auto;padding:10px 12px 20px;display:flex;flex-direction:column;} .pb-lb input{width:100%;} #pbLl{flex:1;}
   .pb-mig{font-size:13px;color:#7a858f;margin:10px 2px;} .pb-mig a{cursor:pointer;color:#4a5560;font-weight:700;} .pb-mig a:hover{color:var(--pgd);}
   .pb-lf{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:9px;cursor:pointer;font-weight:700;font-size:14px;} .pb-lf:hover,.pb-li:hover{background:#f3f5f7;}
+  .pb-ck{width:20px;height:20px;flex:none;accent-color:var(--na,#d9541e);cursor:pointer;} .pb-multi{display:flex;align-items:center;gap:8px;position:sticky;top:0;background:#fff;padding:6px 4px;border-bottom:1px solid var(--pln);z-index:2;font-size:13px;flex-wrap:wrap;} .pb-multi label{display:flex;gap:6px;align-items:center;margin:0;font-weight:700;text-transform:none;letter-spacing:0;} .pb-multi .esp{flex:1;} .pb-multi small{color:#7b8794;} .pb-var{background:#d9541e;color:#fff;border:0;border-radius:10px;padding:7px 12px;font-weight:800;cursor:pointer;} .pb-lim{background:#eef1f4;border:0;border-radius:10px;padding:7px 10px;font-weight:700;cursor:pointer;}
   .pb-li{display:flex;align-items:center;gap:10px;padding:6px;border-radius:10px;cursor:pointer;} .pb-lx{flex:1;min-width:0;display:flex;flex-direction:column;} .pb-lx b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .pb-lx small{color:#8b949c;font-size:12px;}
   .pb-mas{color:var(--pgd);font-size:18px;font-weight:800;} .pb-ay{font-size:13px;color:#7a858f;margin:10px 2px;}
   .pb-bl{display:flex;gap:12px;align-items:center;border:1.5px solid var(--pln);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:#fff;} .pb-bl:hover{border-color:var(--pg);} .pb-bl .i{font-size:20px;width:28px;text-align:center;color:#5b6670;} .pb-bl b{display:block;font-size:14px;} .pb-bl small{color:#7a858f;font-size:12.5px;}
@@ -1878,6 +1879,7 @@ function pbSoltar(ci, ii) {
   PB.sel = ci; pbSucio(); pbMain(); pbOut();
 }
 function pbAnadir(it) { const c = PB.p.data.capitulos[PB.sel] || PB.p.data.capitulos[0]; c.items.push(it); pbSucio(); pbMain(); pbOut(); const el = document.querySelector(`#pbMain [data-cap="${PB.p.data.capitulos.indexOf(c)}"]`); if (el) { const l = el.querySelector(".pb-items"); if (l && l.lastElementChild) l.lastElementChild.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }
+function pbAnadirVarios(its) { const c = PB.p.data.capitulos[PB.sel] || PB.p.data.capitulos[0]; its.forEach(it => c.items.push(it)); pbSucio(); pbMain(); pbOut(); const el = document.querySelector(`#pbMain [data-cap="${PB.p.data.capitulos.indexOf(c)}"]`); if (el) { const l = el.querySelector(".pb-items"); if (l && l.lastElementChild) l.lastElementChild.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }
 function pbMain() {
   const root = $("pbMain"), p = PB.p, caps = p.data.capitulos, ro = !puedeEscribir;
   if (PB.prev) { root.innerHTML = pbVistaHtml(p); pbCargar(root); pbPaginar(root, p); root.scrollTop = 0; return; }
@@ -1951,7 +1953,7 @@ function pbLib() {
   const box = $("pbLib"); if (PB.est && PB.prev) return pbPanelEstilo(box); box.classList.toggle("oculta", !PB.lib);
   if (!PB.lib) { box.innerHTML = `<button class="pb-ic pb-mostrar" id="pbLm" title="Mostrar biblioteca">«</button>`; $("pbLm").onclick = () => { PB.lib = true; pbLib(); }; return; }
   box.innerHTML = `<div class="pb-lt"><button data-t="j" class="${PB.tab === "j" ? "on" : ""}">Jugadas</button><button data-t="e" class="${PB.tab === "e" ? "on" : ""}">Ejercicios</button><button data-t="b" class="${PB.tab === "b" ? "on" : ""}">Bloques</button><span class="esp"></span><button class="pb-ic" id="pbLo" title="Ocultar biblioteca">»</button></div><div id="pbLc"></div>`;
-  box.querySelectorAll(".pb-lt [data-t]").forEach(b => b.onclick = () => { PB.tab = b.dataset.t; PB.car = ""; PB.q = ""; pbLib(); });
+  box.querySelectorAll(".pb-lt [data-t]").forEach(b => b.onclick = () => { PB.tab = b.dataset.t; PB.car = ""; PB.q = ""; PB.multi = new Set(); pbLib(); });
   $("pbLo").onclick = () => { PB.lib = false; pbLib(); };
   const c = $("pbLc");
   if (PB.tab === "b") {
@@ -1974,8 +1976,10 @@ function pbLibLista() {
   const carp = q ? [] : carpetasDe(tipo, PB.car);
   const partes = PB.car ? PB.car.split("/") : [];
   let h = `<div class="pb-mig"><a data-c="">${tipo === "ejercicios" ? "Ejercicios" : "Jugadas"}</a>${partes.map((s, i) => ` › <a data-c="${esc(partes.slice(0, i + 1).join("/"))}">${esc(s)}</a>`).join("")}</div>`;
+  if (!PB.multi) PB.multi = new Set();
+  if (puedeEscribir && items.length) { const n = PB.multi.size; h += `<div class="pb-multi"><label><input type="checkbox" id="pbTodo" ${items.every(x => PB.multi.has(x.id)) ? "checked" : ""}> Todas</label><span class="esp"></span>${n ? `<button id="pbVarios" class="pb-var">＋ Añadir ${n} seleccionada${n > 1 ? "s" : ""}</button><button id="pbLimp" class="pb-lim">Quitar selección</button>` : `<small>Marca varias y añádelas de golpe</small>`}</div>`; }
   h += carp.map(c => `<div class="pb-lf" data-c="${esc(c.ruta)}">${SVG_CARPETA(26)}<span>${esc(c.nombre)}</span></div>`).join("");
-  h += items.map(x => `<div class="pb-li" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}><div class="pb-th" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ((diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length) ? "" : "🏀")}</div><div class="pb-lx"><b>${esc(x.nombre || "(sin nombre)")}</b><small>Editado ${fechaTxt(x.actualizada)}</small></div>${puedeEscribir ? '<button class="pb-ic pb-mas" title="Añadir al capítulo">＋</button>' : ""}</div>`).join("");
+  h += items.map(x => `<div class="pb-li" data-id="${esc(x.id)}" ${puedeEscribir ? 'draggable="true"' : ""}>${puedeEscribir ? `<input type="checkbox" class="pb-ck" data-id="${esc(x.id)}" ${PB.multi.has(x.id) ? "checked" : ""}>` : ""}<div class="pb-th" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ((diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length) ? "" : "🏀")}</div><div class="pb-lx"><b>${esc(x.nombre || "(sin nombre)")}</b><small>Editado ${fechaTxt(x.actualizada)}</small></div>${puedeEscribir ? '<button class="pb-ic pb-mas" title="Añadir al capítulo">＋</button>' : ""}</div>`).join("");
   if (!carp.length && !items.length) h += `<div class="pb-vacio">${q ? "Nada coincide." : "No hay nada en esta carpeta."}</div>`;
   box.innerHTML = h;
   box.querySelectorAll(".pb-mig a").forEach(a => a.onclick = () => { PB.car = a.dataset.c; pbLibLista(); });
@@ -1987,6 +1991,10 @@ function pbLibLista() {
     el.addEventListener("dragstart", (e) => { PBD = { add: { t, id } }; try { e.dataTransfer.setData("text/plain", "pb"); } catch (x) { /* nada */ } e.dataTransfer.effectAllowed = "copy"; });
     el.addEventListener("dragend", () => { PBD = null; $("pbMain").querySelectorAll(".sobre").forEach(x => x.classList.remove("sobre")); });
   });
+  box.querySelectorAll(".pb-ck").forEach(c => { c.onclick = (e) => e.stopPropagation(); c.onchange = () => { if (c.checked) PB.multi.add(c.dataset.id); else PB.multi.delete(c.dataset.id); pbLibLista(); }; });
+  const bt = $("pbTodo"); if (bt) bt.onchange = () => { items.forEach(x => { if (bt.checked) PB.multi.add(x.id); else PB.multi.delete(x.id); }); pbLibLista(); };
+  const bv = $("pbVarios"); if (bv) bv.onclick = () => { const ids = [...PB.multi]; PB.multi = new Set(); pbAnadirVarios(ids.map(id => ({ t, id }))); pbLibLista(); aviso(ids.length + " añadidas ✓"); };
+  const bl = $("pbLimp"); if (bl) bl.onclick = () => { PB.multi = new Set(); pbLibLista(); };
   pedirMiniaturas(items);
 }
 
