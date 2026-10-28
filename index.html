@@ -4903,8 +4903,8 @@ function tvMapaGrande(tiros, modo, nombre, alCambiar) {
 }
 function tvPlayerHtml(v) {
   const seg = v.segundos || 0, vst = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;border:0;";
-  if (v.nubeUrl) return `<video src="${escapeAttr(v.nubeUrl)}${seg ? "#t=" + Number(seg) : ""}" controls autoplay playsinline style="${vst}"></video>`;
-  if (v.origen === "local") return `<video data-local="${escapeAttr(v.id)}" data-desde="${escapeAttr(String(seg))}" controls autoplay playsinline style="${vst}"></video>`;
+  if (v.nubeUrl && !(v.origen === "local" && !MODO_TV && !MODO_PARTIDO)) return `<video src="${escapeAttr(v.nubeUrl)}${seg ? "#t=" + Number(seg) : ""}" controls autoplay playsinline style="${vst}"></video>`;
+  if (v.origen === "local") return `<video data-local="${escapeAttr(v.id)}" data-nube="${escapeAttr(v.nubeUrl || "")}" data-desde="${escapeAttr(String(seg))}" controls autoplay playsinline style="${vst}"></video>`;
   const emb = videoIncrustado(v.url, seg);
   if (emb.tipo === "iframe" && !(emb.youtube && SIN_SERVIDOR)) { let src = emb.src;
     if (emb.youtube) src += "&enablejsapi=1&autoplay=1&playsinline=1";
@@ -7747,6 +7747,7 @@ function montarVideosLocales(raiz) {
     const id = el.getAttribute("data-local");
     const desde = Number(el.getAttribute("data-desde") || 0);
     videoArchivoLeer(id).then(archivo => {
+      if (!archivo && el.dataset.nube) { el.src = el.dataset.nube; el.addEventListener("loadedmetadata", () => { if (desde > 0) el.currentTime = desde; }, { once: true }); return; }
       if (!archivo) {
         const caja = el.closest(".video-caja");
         if (caja) caja.outerHTML = `<div class="video-externo"><p>El archivo de este video ya no esta en este navegador.</p>
@@ -7762,11 +7763,11 @@ function montarVideosLocales(raiz) {
 }
 
 function reproductorHtml(v, segundos) {
-  if (v.nubeUrl) return `<div class="video-caja"><video src="${escapeAttr(v.nubeUrl)}${segundos ? "#t=" + Number(segundos) : ""}" controls playsinline></video></div>
+  if (v.nubeUrl && !(v.origen === "local" && !MODO_TV && !MODO_PARTIDO)) return `<div class="video-caja"><video src="${escapeAttr(v.nubeUrl)}${segundos ? "#t=" + Number(segundos) : ""}" controls playsinline></video></div>
     <p class="hint">${escapeHtml(v.archivoNombre || "Vídeo")}${v.archivoTamano ? " · " + tamanoLegible(v.archivoTamano) : ""} · guardado en la nube</p>`;
   if (v.origen === "local") {
     return `<div class="video-caja">
-      <video data-local="${escapeAttr(v.id)}" data-desde="${escapeAttr(String(segundos || 0))}" controls playsinline></video>
+      <video data-local="${escapeAttr(v.id)}" data-nube="${escapeAttr(v.nubeUrl || "")}" data-desde="${escapeAttr(String(segundos || 0))}" controls playsinline></video>
     </div>
     <p class="hint">${escapeHtml(v.archivoNombre || "Archivo de tu ordenador")}${v.archivoTamano ? " · " + tamanoLegible(v.archivoTamano) : ""}
     · guardado en este navegador</p>`;
@@ -16879,7 +16880,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-28f";
+const VERSION_APP = "2026-10-28g";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
