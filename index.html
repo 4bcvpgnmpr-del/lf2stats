@@ -5160,7 +5160,7 @@ function tvMenu() {
   let cA = TV.cmpA ? Object.assign({}, TV.cmpA) : { eq: eqJ[0], n: topDe(eqJ[0]) }, cB = TV.cmpB ? Object.assign({}, TV.cmpB) : { eq: sel || eqJ[1] || eqJ[0], n: topDe(sel || eqJ[1] || eqJ[0]) };
   const caja = raiz.querySelector(".tv-slide"); caja.classList.remove("in");
   const op = [["nuestro", "🏀", "Nuestro equipo", "Progreso, objetivos, mapa de tiro, ranking…"], ["rival", "🔎", "Un rival", "Forma, jugadoras a vigilar, claves del partido…"], ["todo", "📺", "Todo", "Nuestro equipo y después el rival"], ["jugadora", "⭐", "Una jugadora", "Su ficha, su mapa de tiro y sus vídeos"], ["jugrival", "🗂️", "Jugadoras del rival", "Un perfil por jugadora: dorsal, tiros, stats y vídeo"], ["comparar", "⚔️", "Comparar dos jugadoras", "Cara a cara de cualquier par: nuestras o rivales"]].filter(o => !TV.jugadoras || TV.modosOk.includes(o[0]));
-  let abierta = false, lista = null, oc = tvOcultasLeer(); const btnMini = "background:#1d3248;color:#fff;border:0;border-radius:8px;padding:5px 12px;font:700 12px Inter,sans-serif;cursor:pointer;";
+  let abierta = false, lista = null, oc = tvOcultasLeer(); const btnMini = "background:#1d3248;color:#fff;border:0;border-radius:10px;padding:.7vh 1.2vw;font:700 clamp(13px,1.3vw,20px) Inter,sans-serif;cursor:pointer;";
   const prepararSlides = async () => { TV.modo = modo; if (modo !== "nuestro" && modo !== "jugadora" && modo !== "comparar") TV.rival = sel; if (modo === "comparar") { TV.cmpA = cA; TV.cmpB = cB; } if (modo === "jugadora") { TV.jugEq = jEq; TV.jug = (caja.querySelector("#tvMenuJ") || {}).value || jNom; }
     try { await zonasDeLaLiga(); } catch (er) { /* nada */ }
     try { if (modo === "comparar") { await cargarTirosEquipo(cA.eq); await cargarTirosEquipo(cB.eq); } else if (modo === "jugadora") await cargarTirosEquipo(TV.jugEq); else if (modo !== "nuestro" && TV.rival) await cargarTirosEquipo(TV.rival); } catch (er) { /* nada */ }
@@ -5178,7 +5178,7 @@ function tvMenu() {
         ${pres.length ? `<select id="tvPresSel" style="${selEst}font-size:clamp(12px,1.2vw,20px);">${pres.map(x => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.nombre)}</option>`).join("")}</select><button id="tvPresAbrir" style="${btnMini}background:#f2803f;">▶ Abrir</button><button id="tvPresDel" style="${btnMini}">🗑</button>` : ""}
         <input id="tvPresNom" placeholder="Nombre para guardar la actual" style="padding:6px 10px;border-radius:8px;border:0;font-size:13px;width:min(230px,22vw);"><button id="tvPresGuardar" style="${btnMini}">💾 Guardar</button></div>
       <div style="text-align:center;margin-top:1.4vh;"><button id="tvMenuSel" style="background:transparent;color:#9fb2c6;border:1px solid #33475c;border-radius:12px;padding:.8vh 1.6vw;font:700 clamp(12px,1.2vw,20px) Inter,sans-serif;cursor:pointer;">${abierta ? "▲ Ocultar la lista" : "☑ Elegir qué diapositivas mostrar"}</button></div>
-      ${abierta ? `<div id="tvMenuLista" style="margin:1.6vh auto 0;max-width:80vw;max-height:26vh;overflow:auto;background:rgba(255,255,255,.05);border-radius:12px;padding:1vh 1.4vw;">${lista === null ? `<div class="tv-sub" style="font-size:clamp(12px,1.2vw,20px);">Cargando…</div>` : `<div style="display:flex;gap:10px;margin-bottom:.8vh;"><button data-todas="1" style="${btnMini}">Marcar todas</button><button data-todas="0" style="${btnMini}">Quitar todas</button><button data-orden0="1" style="${btnMini}">Orden original</button><span class="tv-sub" style="font-size:12px;align-self:center;">▲▼ para cambiar el orden</span></div><div style="columns:3 220px;column-gap:1.6vw;">${lista.map((x, ix) => `<label style="display:block;break-inside:avoid;font:600 clamp(11px,1.15vw,19px) Inter,sans-serif;color:#d5e1ee;padding:.25vh 0;cursor:pointer;"><input type="checkbox" data-id="${escapeAttr(x.id)}" ${oc.has(x.id) ? "" : "checked"}> ${escapeHtml(tvTitulo(x))}<span style="float:right;white-space:nowrap;color:#9fb2c6;"><b data-mv="-1" data-ix="${ix}" style="cursor:pointer;padding:0 5px;">▲</b><b data-mv="1" data-ix="${ix}" style="cursor:pointer;padding:0 5px;">▼</b></span></label>`).join("")}</div>`}</div>` : ""}
+      ${abierta ? `<div id="tvMenuLista" style="margin:1.6vh auto 0;max-width:94vw;max-height:55vh;overflow:auto;background:rgba(255,255,255,.07);border-radius:14px;padding:1.4vh 1.8vw;">${lista === null ? `<div class="tv-sub" style="font-size:clamp(12px,1.2vw,20px);">Cargando…</div>` : `<div style="display:flex;gap:12px;margin-bottom:1.2vh;flex-wrap:wrap;position:sticky;top:-1.4vh;background:#12263a;padding:.8vh 0;z-index:1;"><button data-todas="1" style="${btnMini}">Marcar todas</button><button data-todas="0" style="${btnMini}">Quitar todas</button><button data-orden0="1" style="${btnMini}">Orden original</button><span class="tv-sub" style="font-size:clamp(13px,1.3vw,20px);align-self:center;">▲▼ para cambiar el orden</span></div><div style="columns:2 300px;column-gap:2vw;">${lista.map((x, ix) => `<label style="display:block;break-inside:avoid;font:600 clamp(15px,1.7vw,26px) Inter,sans-serif;color:#eaf1f8;padding:.7vh 0;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07);"><input type="checkbox" style="width:1.2em;height:1.2em;vertical-align:middle;accent-color:#f2803f;" data-id="${escapeAttr(x.id)}" ${oc.has(x.id) ? "" : "checked"}> ${escapeHtml(tvTitulo(x))}<span style="float:right;white-space:nowrap;color:#9fb2c6;"><b data-mv="-1" data-ix="${ix}" style="cursor:pointer;padding:.2em .6em;margin-left:.3em;background:#1d3248;border-radius:8px;">▲</b><b data-mv="1" data-ix="${ix}" style="cursor:pointer;padding:.2em .6em;margin-left:.3em;background:#1d3248;border-radius:8px;">▼</b></span></label>`).join("")}</div>`}</div>` : ""}
       <div style="text-align:center;margin-top:2.4vh;"><button id="tvMenuGo" style="background:#f2803f;color:#fff;border:0;border-radius:16px;padding:1.4vh 3vw;font:900 clamp(16px,2vw,32px) Inter,sans-serif;cursor:pointer;">▶ Empezar</button></div>`;
     caja.querySelectorAll("[data-m]").forEach(c => c.addEventListener("click", (e) => { e.stopPropagation(); modo = c.dataset.m; abierta = false; lista = null; pintar(); }));
     const bs = caja.querySelector("#tvMenuSel"); if (bs) bs.addEventListener("click", async (e) => { e.stopPropagation(); abierta = !abierta; lista = null; pintar(); if (abierta) { await prepararSlides(); if (abierta) pintar(); } });
@@ -5693,6 +5693,30 @@ function dueloFilas(miNom, rivNom) {
   }).filter(Boolean);
   return { filas, n: todos.length, ritmo: [v1.ritmo, v2.ritmo] };
 }
+/* Probabilidad de victoria sencilla: balance de la temporada, Net Rating y forma reciente (últimos 5) */
+function probVictoria(miNom, rivNom) {
+  const mapa = avanzadasCalculo && avanzadasCalculo.equipos; if (!mapa) return null;
+  const a1 = mapa.get(equipoOficial(miNom)), a2 = mapa.get(equipoOficial(rivNom)); if (!a1 || !a2 || !a1.pj || !a2.pj) return null;
+  const m1 = metricasEquipo(a1), m2 = metricasEquipo(a2);
+  const p1 = partidosGlobalesEquipo(miNom).filter(x => x.gano !== null), p2 = partidosGlobalesEquipo(rivNom).filter(x => x.gano !== null);
+  if (!p1.length || !p2.length) return null;
+  const sm = (w, n) => (w + 1) / (n + 2), log5 = (a, b) => (a * (1 - b)) / (a * (1 - b) + b * (1 - a));
+  const g = (ps) => ps.filter(x => x.gano).length, ult = (ps) => ps.slice(-5);
+  const bal = log5(sm(g(p1), p1.length), sm(g(p2), p2.length)), forma = log5(sm(g(ult(p1)), ult(p1).length), sm(g(ult(p2)), ult(p2).length));
+  const net1 = (m1.ortg !== null && m1.drtg !== null) ? m1.ortg - m1.drtg : null, net2 = (m2.ortg !== null && m2.drtg !== null) ? m2.ortg - m2.drtg : null;
+  const net = net1 !== null && net2 !== null ? 1 / (1 + Math.exp(-(net1 - net2) / 12)) : null;
+  const total = net !== null ? 0.4 * net + 0.35 * bal + 0.25 * forma : 0.58 * bal + 0.42 * forma;
+  return { p: Math.min(95, Math.max(5, Math.round(total * 100))), bal: Math.round(bal * 100), net: net === null ? null : Math.round(net * 100), forma: Math.round(forma * 100),
+    rec: [g(p1) + "-" + (p1.length - g(p1)), g(p2) + "-" + (p2.length - g(p2))], netv: [net1, net2], fr: [g(ult(p1)) + "-" + (ult(p1).length - g(ult(p1))), g(ult(p2)) + "-" + (ult(p2).length - g(ult(p2)))] };
+}
+function probVictoriaHtml(miNom, rivNom) {
+  const P = probVictoria(miNom, rivNom); if (!P) return "";
+  const f1 = (v) => v === null ? "–" : (v > 0 ? "+" : "") + fmtNum(Math.round(v * 10) / 10), col = P.p >= 55 ? "#4fd69c" : (P.p <= 45 ? "#e5645a" : "#f2b84b");
+  const lin = (et, a, b, p) => `<tr><td class="equipo">${et}</td><td>${a}</td><td>${b}</td><td>${p === null ? "–" : p + "%"}</td></tr>`;
+  return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 10px;"><div style="font:800 34px Inter,sans-serif;color:${col};">${P.p}%</div><div><b>Probabilidad de que gane ${escapeHtml(miNom)}</b><div class="hint" style="margin:0;">Estimación sencilla, no una predicción: no cuenta quién juega en casa ni las bajas.</div></div></div>
+    <div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Se calcula con</th><th>${escapeHtml(miNom)}</th><th>${escapeHtml(rivNom)}</th><th>Favorece a ${escapeHtml(miNom)}</th></tr></thead><tbody>
+    ${lin("Balance de temporada (G-P)", P.rec[0], P.rec[1], P.bal)}${lin("Net Rating", f1(P.netv[0]), f1(P.netv[1]), P.net)}${lin("Forma reciente (últimos 5)", P.fr[0], P.fr[1], P.forma)}</tbody></table></div>`;
+}
 function clavesDueloHtml(rivNom) {
   if (!miEquipo) return `<p class="hint">Elige tu equipo en "Mi equipo" para ver el duelo.</p>`;
   if (normalizarEquipo(equipoOficial(miEquipo)) === normalizarEquipo(equipoOficial(rivNom))) return `<p class="hint">Este es tu equipo: abre el informe de un rival para ver el duelo.</p>`;
@@ -5707,7 +5731,8 @@ function clavesDueloHtml(rivNom) {
   const fila = (x) => `<tr><td class="equipo" title="${escapeAttr(x.ayuda)}">${escapeHtml(x.et)}</td>
     <td class="${x.gana === 1 ? "bueno" : ""}">${f(x.v1)} <small>(${x.p1}º)</small></td><td class="${x.gana === 2 ? "malo" : ""}">${f(x.v2)} <small>(${x.p2}º)</small></td>
     <td>${x.gana === 1 ? "<b>" + escapeHtml(miEquipo) + "</b>" : (x.gana === 2 ? "<b>" + escapeHtml(rivNom) + "</b>" : "Igualado")}</td></tr>`;
-  return `<p class="resumen-jug">${resumen}</p><div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Dónde se decide</th><th>${escapeHtml(miEquipo)}</th><th>${escapeHtml(rivNom)}</th><th>Ventaja</th></tr></thead><tbody>${D.filas.map(fila).join("")}
+  let pv = ""; try { pv = probVictoriaHtml(miEquipo, rivNom); } catch (e) { /* nada */ }
+  return pv + `<p class="resumen-jug">${resumen}</p><div class="table-scroll"><table class="limpia"><thead><tr><th class="equipo">Dónde se decide</th><th>${escapeHtml(miEquipo)}</th><th>${escapeHtml(rivNom)}</th><th>Ventaja</th></tr></thead><tbody>${D.filas.map(fila).join("")}
     <tr><td class="equipo">Ritmo</td><td>${f(D.ritmo[0])}</td><td>${f(D.ritmo[1])}</td><td>${D.ritmo[0] === D.ritmo[1] ? "Igual" : (D.ritmo[0] > D.ritmo[1] ? "Vosotras más rápidas" : "Rival más rápido")}</td></tr></tbody></table></div>
     <p class="hint">Entre paréntesis, el puesto en la liga entre ${D.n} equipos. Solo se marca ventaja si la diferencia de puestos es de 3 o más. En defensa y pérdidas, menos es mejor.</p>`;
 }
@@ -16880,7 +16905,7 @@ function renderTodo() {
 /* ============================================================
    CARGA INICIAL
    ============================================================ */
-const VERSION_APP = "2026-10-28g";
+const VERSION_APP = "2026-10-28i";
 
 /* ---- Detector de fallos: si algo se rompe, se ve en pantalla ----
    Asi no hace falta abrir el panel de desarrollador para saber que paso. */
