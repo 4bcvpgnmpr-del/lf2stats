@@ -8019,7 +8019,8 @@ function wireScouting(contenedor, alGuardar) {
 
   const btnVideo = panel.querySelector(".scout-guardar-video");
   if (btnVideo) btnVideo.addEventListener("click", () => {
-    const url = panel.querySelector(".scout-video-url").value.trim();
+    const vv = c => { const e = panel.querySelector(c); return String((e && e.value) || ""); };
+    const url = vv(".scout-video-url").trim();
     const archivo = campoArchivo && campoArchivo.files ? campoArchivo.files[0] : null;
     if (!url && !archivo) {
       alert("Elige un video de tu ordenador o pega un enlace.");
@@ -8028,10 +8029,10 @@ function wireScouting(contenedor, alGuardar) {
     const id = "v" + Date.now();
     const comun = {
       id, fecha: new Date().toISOString(),
-      titulo: panel.querySelector(".scout-video-titulo").value.trim(),
-      nota: panel.querySelector(".scout-video-nota").value.trim(),
-      segundos: aSegundos(panel.querySelector(".scout-video-min").value),
-      etiquetas: panel.querySelector(".scout-video-etiquetas").value.split(",").map(x => x.trim()).filter(Boolean),
+      titulo: vv(".scout-video-titulo").trim(),
+      nota: vv(".scout-video-nota").trim(),
+      segundos: aSegundos(vv(".scout-video-min")),
+      etiquetas: vv(".scout-video-etiquetas").split(",").map(x => x.trim()).filter(Boolean),
     };
 
     const anadir = (extra) => {
