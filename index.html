@@ -10400,7 +10400,7 @@ function wireInforme(contenedor) {
   if (btnIV) btnIV.addEventListener("click", () => abrirInformeVisual(nombre));
 
   const btnMandar = panel.querySelector("#btnMandarJugadoras");
-  if (btnMandar) btnMandar.addEventListener("click", () => abrirEnvioJugadoras(nombre));
+  if (btnMandar) btnMandar.addEventListener("click", () => abrirEnvioJugadoras(nombre, (miEquipo && equipoOficial(nombre) === equipoOficial(miEquipo)) ? "equipo" : undefined));
 }
 
 /* ============================================================
@@ -10861,7 +10861,7 @@ function trozosEnvio(nombre) {
 
   const videos = (f.videos || []).filter(v => v.url && v.origen !== "local");
   if (videos.length) trozos.push({
-    id: "__videos", titulo: `Videos del rival (${videos.length})`, porDefecto: false,
+    id: "__videos", titulo: `Videos del rival (${videos.length})`, porDefecto: true,
     carga: {
       tipo: "videos", titulo: "Videos del rival",
       videos: videos.map(v => ({
@@ -10912,7 +10912,7 @@ async function abrirEnvioJugadoras(nombre, modo) {
         .replace(/Plantilla del rival/, "Plantilla").replace(/Videos del rival/, "Videos del equipo");
       t.titulo = ren(t.titulo);
       if (t.carga && t.carga.titulo) t.carga.titulo = ren(t.carga.titulo);
-      if (t.id === "__jugadas" || t.id === "__equipo") t.porDefecto = true;
+      if (t.id === "__jugadas" || t.id === "__equipo" || t.id === "__videos") t.porDefecto = true;
     });
     trozos.videosLocales = videosLocales;
   }
