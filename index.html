@@ -9202,10 +9202,7 @@ function informeOrdenadoHtml(nombre, dat, par) {
 
   const total = paginas.length + 1;
   const cab = `<div class="cab"><b>Scout<i>Flow</i></b><div class="es">${dat.escudo ? `<img src="${ea(dat.escudo)}" alt="" onerror="this.remove()">` : ""}${mio ? `<span>VS</span>${mio.escudo ? `<img src="${ea(mio.escudo)}" alt="" onerror="this.remove()">` : ""}` : ""}</div></div>`;
-  const cover = `<div class="pg cov"><div class="in"><small>SCOUTING &amp; ANALYTICS</small><h1>Informe<br>de Rival</h1><div class="sb">${esc(temp ? "Temporada " + temp : "")}${dat.jornada ? " · " + esc(dat.jornada) : ""}</div></div>
-    <div class="vs">${mio ? `<div class="esc">${escImg(mio.escudo, mio.sigla)}</div><div class="vv">VS</div>` : ""}<div class="esc">${escImg(dat.escudo, dat.sigla)}</div></div>
-    <div class="nm">${mio ? `<div>${esc(mio.nombre)}<span>${esc(mio.rec || "")}</span></div>` : ""}<div>${esc(oficial)}<span>${esc(dat.rec || "")}</span></div></div>
-    <div class="ft"><b>Scout<i>Flow</i></b><span>${esc(hoy)}</span></div></div>`;
+  const cover = portadaRivalHtml(dat, nombre);
   const body = paginas.map(([n, tit, html], i) => `<div class="pg">${cab}<div class="cu"><div class="st"><em>${String(n).padStart(2, "0")}</em><h2>${esc(tit)}</h2></div>${html}</div><div class="pie"><span>${esc(oficial.toUpperCase())}</span><span>Powered by <b>Scout<i>Flow</i></b> · Página ${i + 2} de ${total}</span></div></div>`).join("");
   return `<div class="iv ord" data-iv>${cover}${body}</div>`;
 }
@@ -9431,7 +9428,7 @@ function ivMostrar(html, nombre, render, conCompleto) {
       try {
         b.disabled = true; b.textContent = "Creando PDF...";
         const sc = document.querySelector("#ivCapa .iv-scroll"), zAntes = sc ? sc.style.zoom : ""; if (sc) sc.style.zoom = "";
-        try { await pdfDeNodoVivo(raiz, "Informe visual - " + nombre, { progreso: (i, n) => { b.textContent = "Página " + i + " de " + n + "..."; } }); }
+        try { await pdfDeNodoVivo(raiz, "Informe visual - " + nombre, { portada: (raiz.classList.contains("ord") || !IV_DAT) ? null : portadaRivalHtml(IV_DAT, nombre), progreso: (i, n) => { b.textContent = "Página " + i + " de " + n + "..."; } }); }
         finally { if (sc) sc.style.zoom = zAntes; }
         b.disabled = false; b.textContent = t0; return;
       } catch (e) { b.disabled = false; b.textContent = t0; }
@@ -10421,6 +10418,95 @@ function pdfZonasProhibidas(nodo, altoPag) {
   z.forEach(([a, b]) => { if (m.length && a <= m[m.length - 1][1]) m[m.length - 1][1] = Math.max(m[m.length - 1][1], b); else m.push([a, b]); });
   return m;
 }
+
+/* ===== PORTADA ScoutFlow para todos los PDF: fondo oscuro, escudos en círculo, VS, tema del informe y logo ===== */
+const SFP_CSS = `
+.sfp,.sfp *{box-sizing:border-box}
+.sfp{width:794px;height:1123px;position:relative;overflow:hidden;color:#fff;font-family:Inter,system-ui,sans-serif;text-align:left;
+ background:radial-gradient(55% 32% at 4% 46%,rgba(226,116,34,.42),transparent 72%),radial-gradient(55% 34% at 98% 52%,rgba(54,122,196,.38),transparent 72%),linear-gradient(165deg,#06120d 0%,#0a2118 38%,#0b2a29 62%,#0b2338 100%)}
+.sfp .gr{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 24px)}
+.sfp .bd{position:absolute;left:-120px;width:1100px;height:70px;transform:rotate(-17deg);transform-origin:0 0}
+.sfp .b1{top:900px;background:linear-gradient(90deg,rgba(226,116,34,.0),rgba(226,116,34,.30) 45%,rgba(226,116,34,.05))}
+.sfp .b2{top:965px;height:52px;background:linear-gradient(90deg,rgba(54,122,196,.0),rgba(54,122,196,.30) 55%,rgba(54,122,196,.05))}
+.sfp .ln{position:absolute;left:0;right:0;top:436px;height:1px;background:rgba(80,200,120,.45)}
+.sfp .c1,.sfp .c2{position:absolute;width:30px;height:90px;border:0 solid #2f9e57}
+.sfp .c1{left:36px;top:38px;width:86px;border-left-width:3px;border-top-width:3px}
+.sfp .c2{right:36px;bottom:38px;width:86px;border-right-width:3px;border-bottom-width:3px}
+.sfp .tx{position:absolute;left:60px;top:170px}
+.sfp .tx small{display:block;font:700 10px Inter;letter-spacing:.42em;color:#4fae6c}
+.sfp .tx h1{margin:16px 0 14px;font:300 52px/1 Inter;letter-spacing:-.02em;color:#fff}
+.sfp .tx h1 b{display:block;font-weight:800}
+.sfp .tx .sb{font:700 10.5px Inter;letter-spacing:.24em;color:#8a97c4;text-transform:uppercase;max-width:640px;line-height:1.6}
+.sfp .eq{position:absolute;left:0;right:0;top:410px;display:flex;justify-content:center;align-items:flex-start}
+.sfp .t{width:300px;text-align:center}
+.sfp .ci{width:200px;height:200px;border-radius:50%;background:#fff;margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;border:5px solid #e8742a;box-shadow:0 0 0 1px rgba(255,255,255,.2),0 10px 40px rgba(0,0,0,.45)}
+.sfp .t.az .ci{border-color:#3f7fc1}.sfp .ci img{width:80%;height:80%;object-fit:contain}.sfp .ci b{font:900 40px Inter;color:#14284f}
+.sfp .t.un .ci{width:270px;height:270px}.sfp .t.un{width:400px}
+.sfp .nm{margin-top:24px;font:700 15px/1.25 Inter;letter-spacing:.04em;text-transform:uppercase;min-height:38px}
+.sfp .bg{margin-top:8px;font:800 40px Inter}.sfp .sm{margin-top:4px;font:700 10px Inter;letter-spacing:.2em;color:#8a97c4;text-transform:uppercase}
+.sfp .vs{width:110px;margin-top:62px;display:flex;justify-content:center}
+.sfp .ft{position:absolute;left:60px;right:60px;bottom:62px;border-top:1px solid rgba(255,255,255,.18);padding-top:20px;display:flex;justify-content:space-between;align-items:center}
+.sfp .lg{display:flex;align-items:center;gap:10px}.sfp .lg img{width:34px;height:34px;border-radius:8px}
+.sfp .lg b{font:900 24px Inter;letter-spacing:-.01em}.sfp .lg b i{font-style:normal;color:#ff7a2b}
+.sfp .lg span{font:700 8px Inter;letter-spacing:.3em;color:#8a97c4;display:block;margin-top:2px}
+.sfp .fe{font:700 10px Inter;letter-spacing:.2em;color:#8a97c4}
+`;
+function portadaSFHtml(o) {
+  if (!document.getElementById("sfpEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="sfpEstilo">${SFP_CSS}</style>`);
+  const esc = escapeHtml, ea = escapeAttr;
+  const fecha = o.fecha || new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const eqs = (o.equipos || []).filter(Boolean).slice(0, 2);
+  const ci = (e) => `<div class="ci">${e.escudo ? `<img src="${ea(e.escudo)}" alt="" onerror="this.outerHTML='<b>${ea((e.sigla || (e.nombre || "").slice(0, 2)).toUpperCase())}</b>'">` : `<b>${esc((e.sigla || (e.nombre || "").slice(0, 2)).toUpperCase())}</b>`}</div>`;
+  const col = (e, cls) => `<div class="t ${cls}">${ci(e)}<div class="nm">${esc(e.nombre || "")}</div>${e.big ? `<div class="bg">${esc(e.big)}</div>` : ""}${e.small ? `<div class="sm">${esc(e.small)}</div>` : ""}</div>`;
+  const hex = `<div class="vs"><svg width="110" height="64" viewBox="0 0 110 64"><line x1="0" y1="32" x2="16" y2="32" stroke="#e8742a" stroke-width="2"/><line x1="94" y1="32" x2="110" y2="32" stroke="#e8742a" stroke-width="2"/><polygon points="55,2 80,16 80,48 55,62 30,48 30,16" fill="#101a2c" stroke="#2c3a58" stroke-width="2"/><text x="55" y="42" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="900" font-style="italic" font-size="25" fill="#f08a34">VS</text></svg></div>`;
+  let centro;
+  if (eqs.length >= 2) centro = col(eqs[0], "na") + hex + col(eqs[1], "az");
+  else if (eqs.length === 1) centro = col(eqs[0], "un");
+  else centro = `<div class="t un"><div class="ci"><img src="icono-192.png" alt="" onerror="this.outerHTML='<b>SF</b>'"></div></div>`;
+  return `<div class="sfp"><div class="gr"></div><div class="bd b1"></div><div class="bd b2"></div><div class="ln"></div><div class="c1"></div><div class="c2"></div>
+    <div class="tx"><small>SCOUTING &amp; ANALYTICS</small><h1>${esc(o.t1 || "Informe")}<b>${esc(o.t2 || "")}</b></h1><div class="sb">${esc(o.sub || "")}</div></div>
+    <div class="eq">${centro}</div>
+    <div class="ft"><div class="lg"><img src="icono-192.png" alt="" onerror="this.remove()"><div><b>Scout<i>Flow</i></b><span>SPORTS ANALYTICS</span></div></div><div class="fe">${esc(fecha)}</div></div></div>`;
+}
+function portadaRivalHtml(dat, nombre) {
+  const temp = (document.getElementById("selTemporada") || {}).value || "", mio = dat.mio;
+  const eq = (x) => x ? { nombre: x.nombre || x.oficial, escudo: x.escudo, sigla: x.sigla, small: x.rec || "" } : null;
+  return portadaSFHtml({ t1: "Informe", t2: "de Rival", sub: [LIGA_NOMBRE, temp ? "Temporada " + temp : "", dat.jornada || ""].filter(Boolean).join(" · "), equipos: [mio ? eq(mio) : null, eq({ nombre: dat.oficial, escudo: dat.escudo, sigla: dat.sigla, rec: dat.rec })] });
+}
+/* La portada que corresponde a lo que se ve en pantalla (partido, equipo, jugadora, clasificación…) */
+function portadaDeVista(vista, tit) {
+  const sub0 = [LIGA_NOMBRE, grupoActivo ? "Grupo " + grupoActivo : ""].filter(Boolean).join(" · ");
+  const img = (el) => { const i = el && el.querySelector && el.querySelector("img"); return i ? (i.getAttribute("src") || "") : ""; };
+  try {
+    if (vistaActual === "partido-detail") {
+      const t = [...vista.querySelectorAll(".match-hero .team")], sc = [...vista.querySelectorAll(".match-hero .score span")].map(x => x.textContent.trim());
+      const meta = (vista.querySelector(".match-meta") || {}).textContent || "";
+      if (t.length >= 2) return portadaSFHtml({ t1: "Informe", t2: "del Partido", sub: meta || sub0, equipos: t.map((e, i) => ({ nombre: e.textContent.trim(), escudo: img(e), big: sc[i] || "" })) });
+    }
+    if (vistaActual === "equipo-detail") {
+      const h = vista.querySelector(".profile-hero"), n = h && h.querySelector("h2");
+      if (n) return portadaSFHtml({ t1: "Informe", t2: "de Equipo", sub: sub0, equipos: [{ nombre: n.textContent.trim(), escudo: img(h), small: ((h.querySelector(".sub") || {}).textContent || "").trim() }] });
+    }
+    if (vistaActual === "jugadora-detail") {
+      const h = vista.querySelector(".profile-hero");
+      return portadaSFHtml({ t1: "Ficha", t2: "de Jugadora", sub: sub0, equipos: [{ nombre: JUG_VISTA || tit, escudo: img(h), small: ((h && h.querySelector(".sub")) || {}).textContent || "" }] });
+    }
+  } catch (e) { /* portada genérica */ }
+  const mi = (typeof miEquipo !== "undefined" && miEquipo) ? miEquipo : "";
+  return portadaSFHtml({ t1: "Informe", t2: tit, sub: sub0, equipos: mi ? [{ nombre: mi, escudo: escudoUrlFor(mi) }] : [] });
+}
+async function pdfPortadaCanvas(html) {
+  if (!document.getElementById("sfpEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="sfpEstilo">${SFP_CSS}</style>`);
+  const c = document.createElement("div"); c.style.cssText = "position:fixed;left:0;top:0;width:794px;height:1123px;z-index:2147482999;"; c.innerHTML = html; document.body.appendChild(c);
+  let volver = () => {};
+  try {
+    await Promise.all([...c.querySelectorAll("img")].map(im => im.complete ? 0 : new Promise(ok => { im.onload = im.onerror = ok; setTimeout(ok, 4000); })));
+    try { volver = await svgsAImagen(c); } catch (e) { /* nada */ }
+    await new Promise(ok => setTimeout(ok, 120));
+    return await window.html2canvas(c, { scale: 2, useCORS: true, backgroundColor: "#06120d", width: 794, height: 1123, scrollX: 0, scrollY: 0, logging: false });
+  } finally { try { volver(); } catch (e) { /* nada */ } c.remove(); }
+}
+
 async function pdfPaginado(nodo, archivo, opc) {
   opc = opc || {};
   const w = Math.max(300, Math.round(opc.ancho || nodo.scrollWidth || nodo.getBoundingClientRect().width));
@@ -10440,6 +10526,8 @@ async function pdfPaginado(nodo, archivo, opc) {
     else { let y = fin; const minimo = ini + altoPag * 0.4; while (y > minimo && dentro(y)) y -= 2; fin = y > minimo ? y : fin; }
     hojas.push([ini, fin]); ini = fin;
   }
+  let hayPortada = false;
+  if (opc.portada) { try { const cvp = await pdfPortadaCanvas(opc.portada); pdf.setFillColor(6, 18, 13); pdf.rect(0, 0, 210, 297, "F"); pdf.addImage(cvp.toDataURL("image/jpeg", 0.93), "JPEG", 0, 0, 210, 297); hayPortada = true; } catch (e) { /* sin portada */ } }
   let banda = null, bandaY0 = 0, bandaFin = -1;
   for (let i = 0; i < hojas.length; i++) {
     const [y0, y1] = hojas[i];
@@ -10454,7 +10542,7 @@ async function pdfPaginado(nodo, archivo, opc) {
     const cv = document.createElement("canvas"); cv.width = banda.width; cv.height = sh;
     cv.getContext("2d").drawImage(banda, 0, sy, banda.width, sh, 0, 0, banda.width, sh);;
     const pix = cv.getContext("2d").getImageData(Math.min(2, cv.width - 1), Math.max(0, cv.height - 1), 1, 1).data;
-    if (i) pdf.addPage();
+    if (i || hayPortada) pdf.addPage();
     pdf.setFillColor(pix[0], pix[1], pix[2]); pdf.rect(0, 0, 210, 297, "F");
     pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, Math.min(297, 210 * cv.height / cv.width));
     await new Promise(ok => setTimeout(ok, 0));
@@ -16576,7 +16664,7 @@ async function exportarPdfPagina() {
   try {
     if (btn) { btn.disabled = true; btn.textContent = "Creando PDF..."; }
     const arch = tit + (vistaActual === "informes" ? "" : " - " + LIGA_NOMBRE);
-    await pdfDeNodoVivo(vista, arch, { progreso: (i, n) => { if (btn) btn.textContent = "Página " + i + " de " + n + "..."; } });
+    await pdfDeNodoVivo(vista, arch, { portada: portadaDeVista(vista, tit), progreso: (i, n) => { if (btn) btn.textContent = "Página " + i + " de " + n + "..."; } });
   } catch (e) {
     if (confirm("No se pudo crear el PDF (" + (e && e.message ? e.message : e) + ").\n¿Quieres probar con el diálogo de imprimir?")) { marca.remove(); exportarPdfPaginaImprimir(); return; }
   } finally { marca.remove(); if (btn) { btn.disabled = false; btn.textContent = t0; } }
