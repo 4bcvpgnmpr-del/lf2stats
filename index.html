@@ -2062,7 +2062,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
     <button id="btnPanelApp" data-view="mis-jugadoras" title="Panel de control: jugadoras, accesos, lo que ven y lo que les envias">⚙️ Panel</button>
     <button id="btnEmpezar" title="Pasos para empezar con ScoutFlow Stats">🚀 Empezar aquí</button>
     <button id="btnTema" title="Cambiar entre fondo claro y oscuro">🌙 Modo oscuro</button>
-    <button id="btnPdfPagina" title="Guardar esta pantalla como PDF">📄 Exportar PDF</button>
+    <button id="btnPdfPagina" title="Guarda tal cual lo que ves en pantalla (con todas las tablas)">🖨 Pantalla completa en PDF</button>
     <button id="btnActLiga" title="Pide actualizar ahora los datos de la liga (tarda unos minutos)">🔄 Actualizar liga</button>
     <div class="hint" id="lastUpdated"></div>
   </div>
@@ -2241,7 +2241,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
         <h4 style="margin:16px 0 0;">Apartados</h4>
         <p class="hint" style="margin:2px 0 0;">Marca los que quieras incluir, ordénalos con las flechas y añade una nota a cada uno.</p>
         <ul id="ipSecs"></ul>
-        <div id="ipAcciones" class="fila" style="display:none;margin-top:14px;"><button class="ip-btn p" id="ipImprimir" type="button">Exportar PDF</button></div>
+        <div id="ipAcciones" class="fila" style="display:none;margin-top:14px;"><button class="ip-btn p" id="ipImprimir" type="button">📄 Informe PDF</button></div>
       </div>
     </div>
     <div id="ipVista"></div>
@@ -5457,8 +5457,8 @@ function showEquipoDetail(teamName) {
       <div>
         <h2>${escapeHtml(teamName)}</h2>
         <div class="sub">Partidos jugados: ${row["Part"] ? row["Part"].display : "N/D"}${clasifRow && clasifRow["Po"] ? ` &middot; Posicion #${clasifRow["Po"].display} en la liga` : ""}</div>
-        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" data-eq="${escapeAttr(teamName)}" onclick="abrirInformeVisual(this.dataset.eq)">Informe visual (scouting)</button>
-        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" onclick="abrirPerfilVisualEquipo(this.dataset.eq)" data-eq="${escapeAttr(teamName)}">Perfil en imagen</button>
+        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" data-eq="${escapeAttr(teamName)}" onclick="abrirInformeVisual(this.dataset.eq)">📄 Informe PDF</button>
+        <button class="btn-partido no-imprimir" style="background:#14181c;margin-top:8px" onclick="abrirPerfilVisualEquipo(this.dataset.eq)" data-eq="${escapeAttr(teamName)}">🖼 Perfil en imagen</button>
       </div>
     </div>
     <div class="section-block">
@@ -5853,7 +5853,7 @@ function showJugadoraDetail(playerName) {
   };
 
   document.getElementById("jugadoraDetailContent").innerHTML = `
-    <div style="margin:0 0 10px;"><button class="btn-partido" id="btnInformeJug" style="background:#14181c;">Informe visual de la jugadora</button></div>
+    <div style="margin:0 0 10px;"><button class="btn-partido" id="btnInformeJug" style="background:#14181c;">📄 Informe PDF</button></div>
     <div id="vidsJug" style="margin:0 0 12px;"></div>
     ${cabeceraJugadoraHtml(playerName, row, url)}
     ${(() => { try { return lecturaRapidaHtml(row); } catch (e) { return ""; } })()}
@@ -9338,7 +9338,7 @@ function ivMostrar(html, nombre, render, conCompleto) {
   if (!document.getElementById("ivEstilo")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo">${IV_CSS}${IV_CSS3}${IV_CSS4}${IV_CSS5}</style>`);
   const actual = ivEstiloGuardado();
   const chips = render ? `<div class="iv-est">${IV_ESTILOS.map(([k, t]) => `<button data-est="${k}" class="${k === actual ? "on" : ""}">${t}</button>`).join("")}${conCompleto ? `<button data-comp="1" class="${ivCompletoActivo() ? "on" : ""}" style="border-color:#ff6a2b">＋ Completo</button>` : ""}</div>` : "";
-  document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPdf" class="g">Imprimir / PDF</button><button id="ivCerrar" class="g">Cerrar</button></div>${chips}<div class="iv-scroll">${html}</div></div>`);
+  document.body.insertAdjacentHTML("beforeend", `<div id="ivCapa"><div class="iv-barra"><button id="ivPdf" class="g">📄 Descargar PDF</button><button id="ivCerrar" class="g">Cerrar</button></div>${chips}<div class="iv-scroll">${html}</div></div>`);
   if (!document.getElementById("ivEstilo2")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstilo2">#ivCapa .iv-est{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}#ivCapa .iv-est button{border:1px solid #ffffff33;background:transparent;color:#fff;border-radius:99px;padding:7px 14px;font:700 12.5px Inter,sans-serif;cursor:pointer}#ivCapa .iv-est button.on{background:#fff;color:#14181c}</style>`);
   document.querySelectorAll("#ivCapa .iv-est button[data-comp]").forEach(b => b.addEventListener("click", () => {
     try { localStorage.setItem("iv_completo2", ivCompletoActivo() ? "0" : "1"); } catch (e) { /* nada */ }
@@ -9426,7 +9426,7 @@ function ivMostrar(html, nombre, render, conCompleto) {
 
 
 /* Informe visual de cualquier seccion: la pantalla que estas viendo, dentro del marco ScoutFlow */
-const IV_SIN = ["mi-equipo", "equipo-detail", "informes", "pizarra", "mis-jugadoras", "fichajes", "scouting"];
+const IV_SIN = ["mi-equipo", "equipo-detail", "informes", "pizarra", "mis-jugadoras", "fichajes", "scouting", "jugadora-detail"];
 const IV_CSS2 = `.iv .gp{margin:0 48px 18px;background:linear-gradient(160deg,#151b23,#0f1319);border:1px solid #ffffff14;border-radius:4px;padding:18px 20px;color:#e8edf3}
 .iv .gp h2{margin:0 0 12px;font:900 italic 20px 'Inter Display',Inter;text-transform:uppercase;color:#fff;display:flex;align-items:center;gap:12px}.iv .gp h2:before{content:"";width:6px;height:20px;background:#ff6a2b;transform:skewX(-14deg);box-shadow:0 0 12px #ff6a2b}
 .iv .gp table{width:100%;border-collapse:collapse;font-size:13px}.iv .gp thead,.iv .gp thead tr,.iv .gp th{background:none!important;border-radius:0!important}.iv .gp th,.iv .gp td{text-align:left!important}.iv .gp tbody tr{background:none!important}.iv .gp td{border-top:0!important}.iv .gp th{font:800 10px Inter;letter-spacing:.16em;text-transform:uppercase;color:#8b95a3;text-align:left;padding:8px 6px;border-bottom:2px solid #ff6a2b55}
@@ -9483,15 +9483,19 @@ function abrirInformeVisualVista(id) {
   const h = informeVisualVistaHtml(id);
   if (!h) return;
   ivMostrar(h, id);
+  try {
+    const barra = document.querySelector("#ivCapa .iv-barra"), cer = document.getElementById("ivCerrar");
+    if (barra && cer) { const bc = document.createElement("button"); bc.className = "g"; bc.textContent = "🖨 Pantalla completa"; bc.title = "Guarda tal cual lo que ves en pantalla, con todas las tablas"; bc.onclick = () => { cer.click(); setTimeout(() => { try { exportarPdfPagina(); } catch (e) { /* nada */ } }, 150); }; barra.insertBefore(bc, cer); }
+  } catch (e) { /* nada */ }
 }
 (function () {
   const b = document.createElement("button");
-  b.id = "btnIVFlota"; b.textContent = "Informe visual";
+  b.id = "btnIVFlota"; b.textContent = "📄 Informe PDF";
   b.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:900;border:0;border-radius:99px;padding:12px 20px;font:800 14px Inter,sans-serif;background:#14181c;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;display:none;border-left:4px solid #ff6a2b";
   b.addEventListener("click", () => abrirInformeVisualVista(vistaActual));
   document.body.appendChild(b);
   const base = showView;
-  showView = function (id, esVuelta) { if (id === "tv") { try { abrirTV(); } catch (e) { console.warn(e); } return; } const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } if (id === "rankings-eq") { try { rkPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } return r; };
+  showView = function (id, esVuelta) { if (id === "tv") { try { abrirTV(); } catch (e) { console.warn(e); } return; } const r = base(id, esVuelta); if (id === "comparador") { try { cmpPintar(); } catch (e) { /* nada */ } } if (id === "rankings-eq") { try { rkPintar(); } catch (e) { /* nada */ } } try { b.style.display = IV_SIN.includes(vistaActual) ? "none" : "block"; } catch (e) { /* nada */ } try { const sp = document.getElementById("btnPdfPagina"); if (sp) sp.style.display = ["pizarra", "mis-jugadoras"].includes(vistaActual) ? "" : "none"; } catch (e) { /* nada */ } return r; };
 })();
 
 function plantillaHtml(nombre) {
@@ -9995,9 +9999,8 @@ function informeHtml(nombre) {
       <div><b>Informe de scouting</b><span class="hint"> · se guarda solo al salir de cada casilla</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-partido" id="btnMandarJugadoras" style="background:var(--verde,#1f7a5a);">Enviar a mis jugadoras</button>
-        <button class="btn-partido" id="btnInformeVisual" style="background:#14181c;">Informe visual</button>
         <button class="btn-partido" id="btnResumenIA" style="background:#5b3fd1;">Copiar resumen para IA</button>
-        <button class="btn-partido" id="btnImprimirInforme" style="background:#b4470f;">Exportar PDF</button>
+        <button class="btn-partido" id="btnInformeVisual" style="background:#b4470f;">📄 Informe PDF</button>
       </div>
     </div>
 
@@ -11887,7 +11890,7 @@ function tarjetaFichaje(item, liga) {
       </label>
     </div>
     <textarea class="nota-fichaje" rows="2" style="margin-top:10px;" placeholder="Por que te interesa, que aporta, que dudas tienes...">${rtEscRaw(item.nota || "")}</textarea>
-    <div class="fc-acc"><button class="btn-partido btn-informe-ia" data-bn="${escapeAttr(item.nombre)}" data-be="${escapeAttr(item.equipo)}" style="background:#5b3fd1;">🧠 Informe IA</button></div>
+    <div class="fc-acc"><button class="btn-partido btn-informe-ia" data-bn="${escapeAttr(item.nombre)}" data-be="${escapeAttr(item.equipo)}" style="background:#5b3fd1;">🧠 Análisis con IA</button></div>
     <details class="fc-d"><summary class="hint"><b>✏️ Editar ficha</b> (puesto, nacionalidad, liga)</summary>
       <div class="campos-fichaje" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">
         <label class="hint">Puesto
@@ -12287,7 +12290,7 @@ function abrirInformeIA(nombre, equipo) {
   ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:90vh;overflow:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.4);">
     <div style="display:flex;justify-content:space-between;align-items:center;"><h3 style="margin:0;">🧠 Informe IA · ${escapeHtml(nombre)}</h3><button id="iaX" class="btn-partido" style="background:var(--ink);padding:4px 12px;">✕</button></div>
     <label class="hint" style="display:block;margin-top:10px;">¿Qué buscas? (opcional)<input type="text" id="iaEnfoque" placeholder="Ej: pívot que corra la pista y rebotee, presupuesto bajo" style="width:100%;"></label>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn-partido" id="iaGen" style="background:#5b3fd1;">🧠 Generar informe</button><button class="btn-partido" id="iaCopia" style="background:var(--ink);">📋 Copiar datos para pegarlos en Claude</button></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn-partido" id="iaGen" style="background:#5b3fd1;">🧠 Generar análisis</button><button class="btn-partido" id="iaCopia" style="background:var(--ink);">📋 Copiar datos para pegarlos en Claude</button></div>
     <div id="iaRes" style="margin-top:12px;white-space:pre-wrap;line-height:1.5;"></div>
     <details style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Ver los datos que se envían</summary><pre style="white-space:pre-wrap;font-size:12px;background:#f4f4f6;padding:10px;border-radius:8px;">${escapeHtml(datos)}</pre></details></div>`;
   document.body.appendChild(ov);
@@ -12936,7 +12939,7 @@ function renderMiEquipo() {
         <button class="btn-partido" id="verPerfilEquipo">Ver perfil completo</button>
         <button class="btn-partido" id="verScoutingEquipo" style="background:var(--teal,#1f7a5a);">Scouting</button>
         <button class="btn-partido" id="enviarMiEquipo">Enviar a mis jugadoras</button>
-        <button class="btn-partido" id="informeVisualMi" style="background:#14181c;">Informe visual</button>
+        <button class="btn-partido" id="informeVisualMi" style="background:#14181c;">📄 Informe PDF</button>
         <button class="btn-partido" id="verQuintetosEquipo">Sus quintetos</button>
         <button class="btn-partido" id="cambiarMiEquipo" style="background:var(--ink);">Cambiar de equipo</button>
       </div>
