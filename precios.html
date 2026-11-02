@@ -43,6 +43,7 @@ footer a{color:var(--tinta)}
   <div class="mail"><input type="email" id="correo" placeholder="Tu correo de ScoutFlow" autocomplete="email"><small>Usa el mismo correo con el que entras a la app: así se activa tu plan solo.</small></div>
   <div class="grid" id="planes"></div>
 
+  <div class="extra" style="margin:22px 0 0;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px 16px;color:var(--tinta)"><b>Cómo se paga:</b> pulsa "Pedir este plan" y te escribimos por WhatsApp. Pagas por <b>Bizum al <span id="bz"></span></b> poniendo tu correo de ScoutFlow en el concepto, y en menos de 24 horas te activamos el plan.</div>
   <h2>Para clubes</h2>
   <div class="club" id="clubes"></div>
   <div class="extra">Entrenador extra: <b>70 €/año</b> · Alta del club (instalación propia): <b>150 € una vez</b></div>
@@ -51,7 +52,9 @@ footer a{color:var(--tinta)}
 
 <script>
 /* ===== CONFIGURA AQUÍ ===== */
-const CONTACTO = "hola@tudominio.com";                       // correo de ventas para los planes Club
+const CONTACTO = "hola@tudominio.com";
+const WHATSAPP = "34600000000";                              // tu WhatsApp con prefijo y sin +, p. ej. 34612345678
+const BIZUM = "600 000 000";                                 // el número al que te pagan por Bizum                       // correo de ventas para los planes Club
 const PORTAL_STRIPE = "";                                    // enlace del portal de clientes de Stripe (Settings > Billing > Customer portal)
 const ENLACES = {                                            // un "Payment Link" de Stripe por plan y periodo
   entrenador:        { mes: "", anio: "" },
@@ -65,7 +68,7 @@ const ENLACES = {                                            // un "Payment Link
 /* ========================== */
 const PLANES = [
   { id: "gratis", n: "Gratis", d: "Para empezar a probar", mes: 0, anio: 0, l: ["Jugadas y ejercicios (con límite)", "Planes de entrenamiento"] },
-  { id: "entrenador", n: "Entrenador", d: "Tu libro de jugadas y entrenamientos", mes: 10, anio: 99, l: ["Jugadas y playbooks sin límite", "Ejercicios y planes de entrenamiento", "Pizarra en 2D y 3D", "Modo partido", "Comparte con tus jugadoras"] },
+  { id: "entrenador", n: "Entrenador", d: "Tu libro de jugadas y entrenamientos", mes: 10, anio: 99, l: ["Jugadas y playbooks sin límite", "Ejercicios y planes de entrenamiento", "Pizarra animada en 2D", "Modo partido", "Comparte con tus jugadoras"] },
   { id: "stats", n: "Stats", d: "Scouting y estadísticas de la liga", mes: 15, anio: 149, l: ["Estadísticas y rankings de la liga", "Informes de rival en PDF", "Quintetos, tríos y parejas", "Mapas de tiro", "Comparador y fichajes"] },
   { id: "entrenador_stats", n: "Entrenador + Stats", d: "Lo más completo para tu equipo", mes: 22, anio: 219, rec: true, l: ["Todo Entrenador", "Todo Stats", "Ahorras 3 € al mes"] },
   { id: "video", n: "Vídeo", d: "El editor de vídeo para analizar", mes: 12, anio: 119, l: ["Editor de vídeo con tracking", "Dibujo sobre el vídeo y figuras", "Jugadas 2D/3D dentro del vídeo", "Exporta tus montajes"] },
@@ -86,7 +89,9 @@ function enlace(id) {
 function btn(p) {
   if (p.id === "gratis") return `<a class="btn sec" href="index.html">Entrar gratis</a>`;
   const u = enlace(p.id);
-  return u ? `<a class="btn" href="${u}">Suscribirme</a>` : `<a class="btn" href="mailto:${CONTACTO}?subject=${encodeURIComponent("Quiero el plan " + p.n)}">Contactar</a>`;
+  if (u) return `<a class="btn" href="${u}">Suscribirme</a>`;
+  const c = $("#correo").value.trim(), txt = `Hola, quiero el plan ${p.n} (${p[per]} € ${per === "mes" ? "al mes" : "al año"}).` + (c ? ` Mi correo en ScoutFlow: ${c}` : "");
+  return `<a class="btn" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Pedir este plan</a>`;
 }
 function pintar() {
   $("#planes").innerHTML = PLANES.map((p) => {
@@ -100,12 +105,13 @@ function pintar() {
     const u = (ENLACES[p.id] || {}).anio ? (ENLACES[p.id].anio + "?prefilled_email=" + encodeURIComponent($("#correo").value.trim())) : "";
     return `<div class="card"><h3>${p.n}</h3><div class="d">${p.d}</div><div class="precio">${p.anio} €<small> /año</small></div><div class="nota">+ alta 150 € una vez</div>
       <ul>${p.l.map((x) => `<li>${x}</li>`).join("")}</ul>
-      <a class="btn sec" href="mailto:${CONTACTO}?subject=${encodeURIComponent("Quiero el plan " + p.n)}">Hablar con ventas</a></div>`;
+      <a class="btn sec" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola, me interesa el plan " + p.n + " para mi club.")}" target="_blank" rel="noopener">Hablar con ventas</a></div>`;
   }).join("");
 }
 document.querySelectorAll("#sw button").forEach((b) => b.onclick = () => { per = b.dataset.p; document.querySelectorAll("#sw button").forEach((x) => x.classList.toggle("on", x === b)); pintar(); });
 $("#correo").addEventListener("input", pintar);
 $("#gestionar").onclick = (e) => { e.preventDefault(); if (PORTAL_STRIPE) location.href = PORTAL_STRIPE; else alert("Escríbenos a " + CONTACTO + " y gestionamos tu suscripción."); };
+$("#bz").textContent = BIZUM;
 pintar();
 </script>
 </body>
