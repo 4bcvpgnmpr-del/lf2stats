@@ -8594,7 +8594,7 @@ function ivLineas(txt, max) {
   return String(txt || "").split(/\n|•|·|;/).map(s => s.replace(/^[\s\-–*\d.)]+/, "").trim()).filter(Boolean).slice(0, max);
 }
 /* ---- Estilos del informe visual ---- */
-const IV_ESTILOS = [["fut", "Futurista"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"], ["est", "Estadio"], ["rev", "Revista"], ["dos", "Dossier"], ["car", "Carreras"], ["cin", "Cine"]];
+const IV_ESTILOS = [["ord", "Ordenado"], ["fut", "Futurista"], ["tv", "Retransmisión"], ["lim", "Limpio"], ["pos", "Póster"], ["piz", "Pizarra"], ["est", "Estadio"], ["rev", "Revista"], ["dos", "Dossier"], ["car", "Carreras"], ["cin", "Cine"]];
 const IV_CSS3 = `
 [data-iv]{font-family:Inter,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 [data-iv] *{box-sizing:border-box}
@@ -8879,7 +8879,7 @@ function resumenParaIA(nombre) {
 
 function informeVisualHtml(nombre, estilo, completo) {
   const h = informeVisualBase(nombre, estilo);
-  if (!h) return h;
+  if (!h || estilo === "ord") return h;
   return (completo === undefined ? ivCompletoActivo() : completo) ? ivInyectar(h, nombre, IV_DAT) : h;
 }
 function informeVisualBase(nombre, estilo) {
@@ -8970,6 +8970,7 @@ function informeVisualBase(nombre, estilo) {
     claves, resumen,
     mio: miN ? { nombre: miN, escudo: escudoUrlFor(miN), sigla: String(miN).split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase(), rec: parMi.length ? parMi.filter(x => x.gano).length + "-" + parMi.filter(x => !x.gano).length + " en liga" : "" } : null };
   IV_DAT = dat;
+  if (estilo === "ord") return informeOrdenadoHtml(nombre, dat, par);
   if (estilo && estilo !== "fut") return ivRender(estilo, dat);
   return `<div class="iv" data-iv><div class="hero"><div class="bar"><span class="live">SCOUTING REPORT</span><span>${prox ? `<b>${escapeHtml(prox.jornada ? jornadaCorta(prox.jornada) : "PRÓXIMO PARTIDO")}</b>` : ""}</span></div>
     <div class="ttl"><div class="hex"><i>${escudo ? `<img src="${escapeAttr(escudo)}" alt="" onerror="this.outerHTML='<b>${escapeAttr(sigla)}</b>'">` : `<b>${escapeHtml(sigla)}</b>`}</i></div>
@@ -8984,6 +8985,157 @@ function informeVisualBase(nombre, estilo) {
     ${tarjetas ? `<div class="sec"><h2>Jugadoras a vigilar <em>// KEY PLAYERS</em></h2><div class="pl">${tarjetas}</div></div>` : ""}
     ${claves.length ? `<div class="sec"><h2>Claves del partido <em>// GAME PLAN</em></h2><div class="cl">${claves.map((c, i) => `<div class="c"><div class="n">${i + 1}</div><b>${escapeHtml(c)}</b></div>`).join("")}</div></div>` : ""}
     </div><div class="ftr"><b>Scout<i>Flow</i></b><span>${escapeHtml(oficial.toUpperCase())}</span></div></div>`;
+}
+
+
+/* ===== INFORME ORDENADO: portada, una sección por página (A4), cabecera y pie, quintetos con fotos ===== */
+const IV_CSS_ORD = `
+.ord{width:794px;margin:0 auto;background:#fff;color:#1a2230;font-family:Inter,system-ui,sans-serif;text-align:left}
+.ord *{box-sizing:border-box}
+.ord .pg{width:794px;height:1123px;position:relative;overflow:hidden;background:#fff;border-bottom:1px solid #e3e7ec}
+.ord .cab{height:44px;background:linear-gradient(90deg,#0b1730,#14284f);display:flex;align-items:center;justify-content:space-between;padding:0 30px;color:#fff}
+.ord .cab b{font:800 15px Inter;letter-spacing:.06em}.ord .cab b i{color:#ff7a2b;font-style:normal}
+.ord .cab .es{display:flex;gap:8px;align-items:center}.ord .cab .es img{width:28px;height:28px;object-fit:contain;background:#fff;border-radius:50%;padding:2px}.ord .cab .es span{font:800 10px Inter;opacity:.7}
+.ord .cu{padding:26px 30px 70px}
+.ord .st{display:flex;align-items:center;gap:10px;margin:0 0 16px}.ord .st em{font:800 11px Inter;font-style:normal;background:#0b1730;color:#fff;padding:5px 9px;border-radius:5px;letter-spacing:.05em}.ord .st h2{font:800 12.5px Inter;letter-spacing:.16em;text-transform:uppercase;margin:0;color:#14284f}.ord .st:after{content:"";flex:1;height:2px;background:linear-gradient(90deg,#ff7a2b,#ff7a2b00)}
+.ord .pie{position:absolute;left:30px;right:30px;bottom:18px;display:flex;justify-content:space-between;font:600 9.5px Inter;color:#8b95a3;border-top:1px solid #e3e7ec;padding-top:8px}.ord .pie b{color:#14284f}.ord .pie i{color:#ff7a2b;font-style:normal}
+.ord .cov{background:radial-gradient(120% 90% at 20% 10%,#16345f 0%,#0b1730 55%,#070d1c 100%);color:#fff;padding:0;border:0}
+.ord .cov .in{position:absolute;inset:0;padding:64px 54px}
+.ord .cov small{font:700 11px Inter;letter-spacing:.32em;color:#7fa3d9}
+.ord .cov h1{font:900 54px/1 Inter;margin:12px 0 8px;letter-spacing:-.02em}.ord .cov .sb{font:700 12px Inter;letter-spacing:.2em;color:#ff9a55;text-transform:uppercase}
+.ord .cov .vs{position:absolute;left:0;right:0;top:370px;display:flex;justify-content:center;align-items:center;gap:34px}
+.ord .cov .esc{width:230px;height:230px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 7px #ffffff22;overflow:hidden}.ord .cov .esc img{width:78%;height:78%;object-fit:contain}.ord .cov .esc b{font:900 64px Inter;color:#14284f}
+.ord .cov .vv{font:900 40px Inter;color:#ff7a2b;transform:skew(-8deg)}
+.ord .cov .nm{position:absolute;left:0;right:0;top:640px;display:flex;justify-content:center;gap:90px;text-align:center}.ord .cov .nm div{width:300px;font:800 15px/1.25 Inter;text-transform:uppercase;letter-spacing:.04em}.ord .cov .nm span{display:block;font:700 12px Inter;color:#9fb6d9;margin-top:6px;letter-spacing:.1em}
+.ord .cov .ft{position:absolute;left:54px;right:54px;bottom:44px;display:flex;justify-content:space-between;align-items:flex-end;font:700 11px Inter;color:#9fb6d9}.ord .cov .ft b{font:900 22px Inter;color:#fff}.ord .cov .ft b i{color:#ff7a2b;font-style:normal}
+.ord .bar{display:grid;grid-template-columns:130px 1fr 74px;gap:10px;align-items:center;margin-bottom:11px;font:700 11.5px Inter}
+.ord .bar .t{position:relative;height:13px;background:#eef1f5;border-radius:3px}.ord .bar .t i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}.ord .bar .t u{position:absolute;top:-4px;bottom:-4px;width:3px;background:#14284f;border-radius:2px}
+.ord .bar .v{text-align:right;font:800 13px Inter}.ord .bar .v small{display:block;font:600 9.5px Inter;color:#8b95a3}
+.ord .lg{display:flex;gap:16px;font:600 10.5px Inter;color:#5b6676;margin:4px 0 10px}.ord .lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ord .rad{display:grid;grid-template-columns:300px 1fr;gap:22px;align-items:center;margin-bottom:12px}
+.ord .k4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}.ord .k4>div{border:1px solid #e3e7ec;border-top:3px solid #ff7a2b;border-radius:6px;padding:14px 10px;text-align:center}
+.ord .k4 span{display:block;font:800 9.5px Inter;letter-spacing:.12em;color:#8b95a3}.ord .k4 b{display:block;font:900 30px Inter;margin:6px 0 2px;color:#14284f}.ord .k4 em{font:700 10.5px Inter;font-style:normal}.ord .k4 em.u{color:#16a06a}.ord .k4 em.n{color:#d64545}.ord .k4 small{display:block;font:600 9.5px Inter;color:#8b95a3;margin-top:3px}
+.ord .fm{display:flex;gap:6px;align-items:center;margin:6px 0 16px;font:800 10px Inter;letter-spacing:.12em;color:#8b95a3}.ord .fm i{font-style:normal;width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font:800 12px Inter}.ord .fm i.W{background:#16a06a}.ord .fm i.L{background:#d64545}
+.ord .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}.ord .bx{border:1px solid #e3e7ec;border-radius:8px;padding:14px 16px}.ord .bx h3{font:800 10.5px Inter;letter-spacing:.14em;margin:0 0 10px}.ord .bx.f{border-top:3px solid #16a06a}.ord .bx.f h3{color:#16a06a}.ord .bx.d{border-top:3px solid #d64545}.ord .bx.d h3{color:#d64545}
+.ord .bx p{margin:0 0 9px;font:500 12px/1.45 Inter}.ord .bx p b{display:block;font:800 12.5px Inter}
+.ord .cl{display:grid;gap:8px}.ord .cl div{display:flex;gap:14px;align-items:center;border:1px solid #e3e7ec;border-left:4px solid #ff7a2b;border-radius:6px;padding:11px 14px;font:700 13px/1.35 Inter}.ord .cl i{font:900 22px Inter;color:#ff7a2b;font-style:normal;width:26px}
+.ord table{width:100%;border-collapse:collapse;font:500 11.5px Inter}.ord th{background:#0b1730;color:#fff;font:800 9.5px Inter;letter-spacing:.1em;padding:8px 6px;text-align:center;text-transform:uppercase}.ord td{padding:7px 6px;border-bottom:1px solid #eef1f5;text-align:center}.ord td:first-child,.ord th:first-child{text-align:left}.ord tr:nth-child(even) td{background:#f7f9fb}
+.ord .rs{display:inline-flex;width:24px;height:24px;border-radius:5px;align-items:center;justify-content:center;color:#fff;font:800 11px Inter}.ord .rs.W{background:#16a06a}.ord .rs.L{background:#d64545}
+.ord .jr{display:grid;grid-template-columns:76px 1fr;gap:16px;border:1px solid #e3e7ec;border-radius:8px;padding:10px 14px;margin-bottom:10px;align-items:center;height:150px;overflow:hidden}
+.ord .jr .fo{width:76px;height:96px;border-radius:8px;background:#eef1f5;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;font:900 22px Inter;color:#8b95a3}.ord .jr .fo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%}
+.ord .jr h4{font:800 14px Inter;margin:0 0 2px;text-transform:uppercase}.ord .jr small{font:700 10px Inter;letter-spacing:.14em;color:#ff7a2b}
+.ord .jr .ch{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0 5px}.ord .jr .ch span{background:#f1f4f8;border-radius:4px;padding:4px 7px;font:600 9.5px Inter;color:#5b6676}.ord .jr .ch b{color:#14284f;font-size:11px;margin-left:3px}
+.ord .jr p{margin:0;font:500 10.5px/1.4 Inter;color:#3d4757;max-height:30px;overflow:hidden}
+.ord .qg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.ord .qc{border:1px solid #e3e7ec;border-top:3px solid #ff7a2b;border-radius:8px;padding:10px 10px 12px}
+.ord .qc .qt{font:800 9.5px Inter;letter-spacing:.12em;color:#ff7a2b;margin-bottom:8px}
+.ord .qp{display:flex;gap:8px;align-items:center;margin-bottom:6px}.ord .qp .fo{width:34px;height:34px;border-radius:50%;background:#eef1f5;overflow:hidden;position:relative;flex:none;display:flex;align-items:center;justify-content:center;font:800 11px Inter;color:#8b95a3}.ord .qp .fo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%}.ord .qp span{font:600 11px/1.15 Inter}
+.ord .qm{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;border-top:1px solid #eef1f5;padding-top:8px}.ord .qm div{text-align:center}.ord .qm b{display:block;font:900 15px Inter;color:#14284f}.ord .qm b.p{color:#16a06a}.ord .qm b.m{color:#d64545}.ord .qm small{font:700 8.5px Inter;color:#8b95a3;letter-spacing:.08em}
+.ord .mp{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}.ord .mp img{width:100%;border-radius:8px;background:#f3e6d2;display:block}
+.ord .nb{border:1px solid #e3e7ec;border-left:4px solid #ff7a2b;border-radius:6px;padding:12px 16px;margin-bottom:10px;font:500 12px/1.55 Inter;white-space:pre-line}.ord .nb b{display:block;font:800 10.5px Inter;letter-spacing:.12em;color:#ff7a2b;margin-bottom:4px;text-transform:uppercase}
+.ord .jg{border:1px solid #e3e7ec;border-radius:8px;padding:12px 16px;margin-bottom:10px;break-inside:avoid}.ord .jg h5{font:800 13px Inter;margin:0 0 3px;text-transform:uppercase}.ord .jg small{font:800 9.5px Inter;letter-spacing:.14em;color:#ff7a2b}.ord .jg p{margin:4px 0 0;font:500 11.5px/1.45 Inter}.ord .jg .im{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}.ord .jg .im img{width:100%;max-height:250px;object-fit:contain;background:#f6f7f9;border-radius:4px}
+`;
+function informeOrdenadoHtml(nombre, dat, par) {
+  if (!document.getElementById("ivEstiloOrd")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstiloOrd">${IV_CSS_ORD}</style>`);
+  const esc = escapeHtml, ea = escapeAttr, f1 = (x) => fmtNum(Math.round(x * 10) / 10);
+  const oficial = dat.oficial, temp = (document.getElementById("selTemporada") || {}).value || "";
+  const hoy = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const escImg = (u, sig, big) => u ? `<img src="${ea(u)}" alt="" onerror="this.outerHTML='<b>${ea(sig)}</b>'">` : `<b>${esc(sig)}</b>`;
+  const mio = dat.mio, ficha = scoutFicha("equipos", nombre), campos = (ficha.informe && ficha.informe.campos) || {};
+  const pages = [];   // [num, titulo, html]
+  const sec = (titulo, html) => pages.push([titulo, html]);
+
+  // 01 perfil comparativo
+  const ej = (dat.ejes || []).filter(e => e.v != null);
+  if (ej.length) {
+    const N = ej.length, cx = 150, cy = 150, R = 100;
+    const maxs = ej.map(e => Math.max(e.v || 0, e.avg || 0, e.mio || 0, 1e-6));
+    const pt = (i, val) => { const a = -Math.PI / 2 + i * 2 * Math.PI / N; return [cx + R * val * Math.cos(a), cy + R * val * Math.sin(a)]; };
+    const poly = (vals) => vals.map((x, i) => pt(i, x).map(n => n.toFixed(1)).join(",")).join(" ");
+    const vr = ej.map((e, i) => (e.v || 0) / maxs[i]), vl = ej.map((e, i) => (e.avg || 0) / maxs[i]), vm = ej.map((e, i) => (e.mio || 0) / maxs[i]);
+    const radar = `<svg viewBox="0 0 300 300" width="300">${[1, 2, 3, 4].map(k => `<polygon points="${poly(Array(N).fill(k / 4))}" fill="none" stroke="#dfe4ea"/>`).join("")}
+      ${ej.map((e, i) => `<line x1="150" y1="150" x2="${pt(i, 1)[0].toFixed(1)}" y2="${pt(i, 1)[1].toFixed(1)}" stroke="#dfe4ea"/>`).join("")}
+      <polygon points="${poly(vl)}" fill="#8b95a322" stroke="#8b95a3" stroke-width="1.5" stroke-dasharray="4 3"/>
+      ${mio ? `<polygon points="${poly(vm)}" fill="#1e6fe022" stroke="#1e6fe0" stroke-width="2"/>` : ""}
+      <polygon points="${poly(vr)}" fill="#ff7a2b40" stroke="#ff7a2b" stroke-width="2.5"/>
+      ${ej.map((e, i) => `<text x="${pt(i, 1.2)[0].toFixed(1)}" y="${pt(i, 1.2)[1].toFixed(1)}" font-size="9.5" font-weight="700" fill="#5b6676" text-anchor="middle" dominant-baseline="middle">${esc(String(e.t).toUpperCase())}</text>`).join("")}</svg>`;
+    const barras = ej.map((e, i) => { const mx = maxs[i] * 1.1; const w = (x) => Math.max(2, Math.round(x / mx * 100));
+      return `<div class="bar"><span>${esc(e.t)}</span><div class="t"><i style="width:${w(e.v)}%;background:#ff7a2b"></i>${e.avg != null ? `<u style="left:${w(e.avg)}%"></u>` : ""}</div><div class="v">${f1(e.v)}${esc(e.u || "")}<small>liga ${e.avg != null ? f1(e.avg) : "—"}</small></div></div>`; }).join("");
+    sec("Perfil comparativo", `<div class="rad">${radar}<div><div class="lg"><span><i style="background:#ff7a2b"></i>${esc(oficial)}</span>${mio ? `<span><i style="background:#1e6fe0"></i>${esc(mio.nombre)}</span>` : ""}<span><i style="background:#8b95a3"></i>Media liga</span></div>${barras}</div></div>`);
+  }
+  // 02 vistazo
+  { const kp = (dat.kpis || []).map(k => { if (k.v == null) return `<div><span>${esc(k.t)}</span><b>—</b></div>`; const dl = k.v - (k.avg || 0), up = dl >= 0;
+      return `<div><span>${esc(k.t)}</span><b>${f1(k.v)}</b><em class="${up ? "u" : "n"}">${up ? "▲ +" : "▼ "}${f1(dl)} vs liga</em><small>liga: ${k.avg != null ? f1(k.avg) : "—"}</small></div>`; }).join("");
+    const pf = par.length ? par.reduce((a, x) => a + (x.pf || 0), 0) / par.length : null, pc = par.length ? par.reduce((a, x) => a + (x.pc || 0), 0) / par.length : null;
+    sec("Un vistazo rápido", `<div class="k4">${kp}</div>
+      ${dat.record ? `<div class="k4"><div><span>RÉCORD</span><b>${dat.record.v}-${dat.record.d}</b></div><div><span>PTS A FAVOR</span><b>${pf != null ? f1(pf) : "—"}</b></div><div><span>PTS CONTRA</span><b>${pc != null ? f1(pc) : "—"}</b></div><div><span>DIFERENCIA</span><b>${pf != null ? (pf - pc >= 0 ? "+" : "") + f1(pf - pc) : "—"}</b></div></div>` : ""}
+      ${(dat.forma || []).length ? `<div class="fm">FORMA ${dat.forma.map(g => `<i class="${g ? "W" : "L"}">${g ? "V" : "D"}</i>`).join("")}</div>` : ""}
+      ${dat.resumen ? `<div class="nb"><b>Resumen</b>${esc(dat.resumen)}</div>` : ""}`); }
+  // 03 análisis
+  { const it = (x) => `<p><b>${esc(x.t)}</b>${esc(x.d || "")}</p>`;
+    sec("Fortalezas, debilidades y claves", `<div class="g2"><div class="bx f"><h3>▲ PUNTOS FUERTES</h3>${(dat.fuertes || []).map(it).join("") || "<p>Sin datos suficientes.</p>"}</div><div class="bx d"><h3>▼ PUNTOS DÉBILES</h3>${(dat.debiles || []).map(it).join("") || "<p>Sin datos suficientes.</p>"}</div></div>
+      ${(dat.claves || []).length ? `<div class="st" style="margin-top:22px"><h2>Claves del partido</h2></div><div class="cl">${dat.claves.map((c, i) => `<div><i>${i + 1}</i>${esc(c)}</div>`).join("")}</div>` : ""}`); }
+  // 04 resultados
+  if (par.length) {
+    const filas = par.slice().reverse().slice(0, 22);
+    sec("Resultados", `<table><thead><tr><th>Jornada</th><th>Rival</th><th>Campo</th><th>Resultado</th><th></th></tr></thead><tbody>${filas.map(x => `<tr><td>${esc(x.jornada ? jornadaCorta(x.jornada) : "")}</td><td style="text-align:left;font-weight:700">${esc(equipoOficial(x.rival))}</td><td>${x.esLocal ? "Casa" : "Fuera"}</td><td><b>${x.pf}-${x.pc}</b></td><td><span class="rs ${x.gano ? "W" : "L"}">${x.gano ? "V" : "D"}</span></td></tr>`).join("")}</tbody></table>`);
+  }
+  // 05 plantilla (una jugadora debajo de otra, con foto)
+  let plant = []; try { plant = plantillaDe(nombre) || []; } catch (e) { plant = []; }
+  if (plant.length) {
+    const inf = ficha.informe || { jugadoras: {} };
+    const tarj = plant.map(p => {
+      const nt = (typeof notaJugadora === "function" && inf.jugadoras) ? notaJugadora(inf, p.jugadora) : { texto: "", posicion: "" };
+      const ini = p.jugadora.split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase();
+      let chips = ""; try { chips = todasStatsJugadora(p.jugadora, nombre).slice(0, 8).map(d => `<span title="${ea(d.titulo || "")}">${esc(d.et)}<b>${esc(d.v)}</b></span>`).join(""); } catch (e) { chips = ""; }
+      return `<div class="jr"><div class="fo">${esc(ini)}${p.foto ? `<img src="${ea(p.foto)}" alt="" onerror="this.remove()">` : ""}</div><div><small>${esc(nt.posicion || "JUGADORA")}${p.dorsal ? " · #" + esc(p.dorsal) : ""}${p.partidos ? " · " + esc(p.partidos) + " PJ" : ""}</small><h4>${esc(p.jugadora)}</h4><div class="ch">${chips}</div>${nt.texto ? `<p>${esc(rtPlain(nt.texto))}</p>` : ""}</div></div>`;
+    });
+    for (let i = 0; i < tarj.length; i += 5) sec("Plantilla" + (tarj.length > 5 ? ` (${Math.floor(i / 5) + 1}/${Math.ceil(tarj.length / 5)})` : ""), tarj.slice(i, i + 5).join(""));
+    const cols = STATS_FICHA.map(([, c]) => c);
+    sec("Tabla de la plantilla", `<table><thead><tr><th>Jugadora</th><th>PJ</th>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${plant.slice(0, 24).map(p => `<tr><td style="font-weight:700">${esc(p.jugadora)}</td><td>${esc(p.partidos == null ? "" : p.partidos)}</td>${cols.map(c => `<td>${esc(p[c] == null ? "" : String(p[c]))}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
+  }
+  // 06 quintetos, tríos y parejas (jugadoras una debajo de otra, con foto)
+  try {
+    if (tramosQuintetos && tramosQuintetos.rows && tramosQuintetos.rows.length) {
+      const guardado = Object.assign({}, filtrosQ), bloques = [];
+      try {
+        [[5, "Quintetos", 3, 15], [3, "Tríos", 3, 15], [2, "Parejas", 3, 20]].forEach(([k, titulo, n, minM]) => {
+          filtrosQ = Object.assign({}, guardado, { equipo: oficial, tamano: k, minutos: minM, partido: "", periodo: "" });
+          let filas = []; try { filas = ordenarCombinaciones(combinacionesCalculadas()).filter(c => normalizarEquipo(equipoOficial(c.equipo)) === normalizarEquipo(equipoOficial(nombre))); } catch (e) { filas = []; }
+          if (!filas.length) return;
+          const m = filas.map(metricasCombo), masMin = [...m].sort((a, b) => b.minutos - a.minutos)[0];
+          const mejor = [...m].filter(x => x.net != null).sort((a, b) => b.net - a.net)[0] || [...m].filter(x => x.dif40 != null).sort((a, b) => b.dif40 - a.dif40)[0];
+          const peor = [...m].filter(x => x.net != null).sort((a, b) => a.net - b.net)[0] || [...m].filter(x => x.dif40 != null).sort((a, b) => a.dif40 - b.dif40)[0];
+          const card = (c, tit) => { if (!c) return ""; const jug = c.combo.split(" · ");
+            const per = jug.map(j => { const fo = fotoDeJugadora(j, c.equipo), ini = j.slice(0, 2).toUpperCase(); return `<div class="qp"><div class="fo">${esc(ini)}${fo ? `<img src="${ea(fo)}" alt="" onerror="this.remove()">` : ""}</div><span>${esc(j.split(" ").slice(-3).join(" "))}</span></div>`; }).join("");
+            const v = c.net != null ? c.net : c.dif40;
+            return `<div class="qc"><div class="qt">${esc(tit)}</div>${per}<div class="qm"><div><b>${fmtNum(c.minutos)}</b><small>MIN JUNTAS</small></div><div><b class="${v > 0 ? "p" : v < 0 ? "m" : ""}">${v == null ? "—" : (v > 0 ? "+" : "") + fmtNum(v)}</b><small>${c.net != null ? "NET" : "+/- x40"}</small></div></div></div>`; };
+          bloques.push(`<div class="st" style="margin-top:6px"><em>${esc(titulo.toUpperCase())}</em></div><div class="qg">${card(masMin, "MÁS USADO")}${card(mejor, "MEJOR RENDIMIENTO")}${card(peor, "PEOR RENDIMIENTO")}</div>`);
+        });
+      } finally { filtrosQ = guardado; }
+      if (bloques.length) sec("Quintetos, tríos y parejas", bloques.join(""));
+    }
+  } catch (e) { console.error("QERR", e); }
+  // 07 mapa de tiro
+  try { const mt = mapaTiroParaEnvio(null, nombre);
+    if (mt) sec("Mapa de tiro del equipo", `<div class="mp"><div><img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mt.svg)}" alt=""><p style="font:700 10.5px Inter;color:#8b95a3;margin-top:6px">${mt.tiros} TIROS · ${String(mt.pct).replace(".", ",")} % DE ACIERTO</p></div>
+      <table><thead><tr><th>Zona</th><th>Tiros</th><th>%</th><th>Pts/tiro</th></tr></thead><tbody>${(mt.zonas || []).map(z => `<tr><td>${esc(z.zona)}</td><td>${z.a}/${z.i}</td><td>${z.pct == null ? "" : String(z.pct).replace(".", ",")}</td><td>${z.pps == null ? "" : String(z.pps).replace(".", ",")}</td></tr>`).join("")}</tbody></table></div>`);
+  } catch (e) { /* sin mapa */ }
+  // 08 notas y jugadas
+  { const extra = CAMPOS_ENVIO.filter(c => !["estilo", "fortalezas", "debilidades", "claves"].includes(c.id) && String(campos[c.id] || "").trim());
+    const notas = (ficha.notas || []).filter(n => String(n.texto || "").trim());
+    if (extra.length || notas.length) sec("Notas del entrenador", extra.map(c => `<div class="nb"><b>${esc(c.titulo)}</b>${esc(String(campos[c.id]).trim())}</div>`).join("") + notas.map(n => `<div class="nb">${esc(rtPlain(String(n.texto).trim()))}</div>`).join("")); }
+  { const jug = (ficha.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length);
+    for (let i = 0; i < jug.length; i += 2) sec("Jugadas del rival" + (jug.length > 2 ? ` (${Math.floor(i / 2) + 1}/${Math.ceil(jug.length / 2)})` : ""), jug.slice(i, i + 2).map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < 120000)).slice(0, 2);
+      return `<div class="jg"><small>${esc((j.tipo || "Otra").toUpperCase())}</small><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${ea(x)}" alt="">`).join("")}</div>` : ""}</div>`; }).join("")); }
+
+  const total = pages.length + 1;
+  const cab = `<div class="cab"><b>Scout<i>Flow</i></b><div class="es">${dat.escudo ? `<img src="${ea(dat.escudo)}" alt="" onerror="this.remove()">` : ""}${mio ? `<span>VS</span>${mio.escudo ? `<img src="${ea(mio.escudo)}" alt="" onerror="this.remove()">` : ""}` : ""}</div></div>`;
+  const cover = `<div class="pg cov"><div class="in"><small>SCOUTING &amp; ANALYTICS</small><h1>Informe<br>de Rival</h1><div class="sb">${esc(temp ? "Temporada " + temp : "")}${dat.jornada ? " · " + esc(dat.jornada) : ""}</div></div>
+    <div class="vs">${mio ? `<div class="esc">${escImg(mio.escudo, mio.sigla)}</div><div class="vv">VS</div>` : ""}<div class="esc">${escImg(dat.escudo, dat.sigla)}</div></div>
+    <div class="nm">${mio ? `<div>${esc(mio.nombre)}<span>${esc(mio.rec || "")}</span></div>` : ""}<div>${esc(oficial)}<span>${esc(dat.rec || "")}</span></div></div>
+    <div class="ft"><b>Scout<i>Flow</i></b><span>${esc(hoy)}</span></div></div>`;
+  const body = pages.map(([tit, html], i) => `<div class="pg">${cab}<div class="cu"><div class="st"><em>${String(i + 1).padStart(2, "0")}</em><h2>${esc(tit)}</h2></div>${html}</div><div class="pie"><span>${esc(oficial.toUpperCase())}</span><span>Powered by <b>Scout<i>Flow</i></b> · Página ${i + 2} de ${total}</span></div></div>`).join("");
+  return `<div class="iv ord" data-iv>${cover}${body}</div>`;
 }
 
 const IV_CSS5 = `
@@ -9165,7 +9317,7 @@ function informeVisualJugadoraHtml(nombre, row, vids) {
     <div class="lt">${st.partidos ? `<div><b>${esc(st.partidos)}</b><span>PARTIDOS</span></div>` : ""}${tiles.map(([k, v]) => `<div><b>${fmtNum(v)}</b><span>${k}</span></div>`).join("")}</div></div></div>
     <div class="wrap"><div class="xx">${S.join("")}</div></div><div class="ftb"><b>Scout<i>Flow</i></b><span>${esc(String(nombre).toUpperCase())}</span></div></div>`;
 }
-function ivEstiloGuardado() { try { return localStorage.getItem("iv_estilo") || "fut"; } catch (e) { return "fut"; } }
+function ivEstiloGuardado() { try { return localStorage.getItem("iv_estilo") || "ord"; } catch (e) { return "ord"; } }
 function abrirInformeVisual(nombre) {
   const render = (est) => informeVisualHtml(nombre, est);
   const html = render(ivEstiloGuardado());
