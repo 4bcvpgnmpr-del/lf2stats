@@ -703,7 +703,12 @@ async function guardarTemporada() {
 /* ============================================================
    JUGADORAS
    ============================================================ */
+let maxJug = 0;   // tope de asientos de jugadora (ajustes.max_jugadoras); 0 = sin tope
+const huecosJug = () => maxJug > 0 ? Math.max(0, maxJug - jugadoras.length) : Infinity;
+const msgTopeJug = () => `Has llegado al máximo de ${maxJug} jugadoras (asientos) de tu plan. Quita alguna o pide ampliarlo.`;
+const errTopeJug = (e) => /ASIENTOS_JUGADORAS/.test((e && e.message) || "") ? msgTopeJug() : null;
 async function cargarJugadoras() {
+  try { const r = await sb.from("ajustes").select("valor").eq("clave", "max_jugadoras").limit(1); maxJug = r && r.data && r.data.length ? (parseInt(r.data[0].valor, 10) || 0) : 0; } catch (e) { maxJug = 0; }
   const caja = $("listaJugadoras");
   const { data, error } = await sb.from("jugadoras").select("*").order("nombre");
   if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
@@ -773,13 +778,14 @@ async function guardarQueVe() {
 async function guardarNueva() {
   const nombre = $("nvNombre").value.trim();
   if (!nombre) { avisar("avisoNueva", "Hace falta al menos el nombre.", "mal"); return; }
+  if (huecosJug() < 1) { avisar("avisoNueva", msgTopeJug(), "mal"); return; }
   const fila = {
     nombre, equipo: $("nvEquipo").value.trim() || null,
     email: ($("nvCorreo").value.trim() || "").toLowerCase() || null,
     dorsal: $("nvDorsal").value.trim() || null,
   };
   const { error } = await sb.from("jugadoras").insert(fila);
-  if (error) { avisar("avisoNueva", "No se ha podido guardar: " + error.message, "mal"); return; }
+  if (error) { avisar("avisoNueva", errTopeJug(error) || "No se ha podido guardar: " + error.message, "mal"); return; }
   ["nvNombre", "nvEquipo", "nvCorreo", "nvDorsal"].forEach(i => { $(i).value = ""; });
   avisar("avisoNueva", "Jugadora creada.", "ok");
   cargarJugadoras();
@@ -843,10 +849,11 @@ async function alternarAlta(boton) {
     if (error) { avisar("avisoImportar", "No se ha podido quitar: " + error.message, "mal"); boton.disabled = false; return; }
     if (elegida && String(elegida.id) === String(id)) { elegida = null; $("fichaJugadora").hidden = true; }
   } else {
+    if (huecosJug() < 1) { avisar("avisoImportar", msgTopeJug(), "mal"); boton.disabled = false; return; }
     const { error } = await sb.from("jugadoras").insert({
       nombre, equipo: boton.getAttribute("data-equipo"),
       dorsal: boton.getAttribute("data-dorsal") || null, email: null });
-    if (error) { avisar("avisoImportar", "No se ha podido dar de alta: " + error.message, "mal"); boton.disabled = false; return; }
+    if (error) { avisar("avisoImportar", errTopeJug(error) || "No se ha podido dar de alta: " + error.message, "mal"); boton.disabled = false; return; }
   }
   await cargarJugadoras();
   pintarListaFeb();
@@ -872,10 +879,13 @@ async function traerPlantilla() {
     avisar("avisoImportar", "Ya estaban todas creadas.", "ok");
     return;
   }
+  const hu = huecosJug(), recorte = nuevas.length > hu ? nuevas.length - hu : 0;
+  if (recorte) nuevas.splice(hu);
+  if (!nuevas.length) { b.disabled = false; b.textContent = "Traer esa plantilla"; avisar("avisoImportar", msgTopeJug(), "mal"); return; }
   const { error } = await sb.from("jugadoras").insert(nuevas);
   b.disabled = false; b.textContent = "Traer esa plantilla";
-  if (error) { avisar("avisoImportar", "No se ha podido: " + error.message, "mal"); return; }
-  avisar("avisoImportar", `${nuevas.length} jugadoras creadas. Ahora ponles el correo a las que vayan a entrar.`, "ok");
+  if (error) { avisar("avisoImportar", errTopeJug(error) || "No se ha podido: " + error.message, "mal"); return; }
+  avisar("avisoImportar", `${nuevas.length} jugadoras creadas. Ahora ponles el correo a las que vayan a entrar.` + (recorte ? ` Quedaron ${recorte} sin crear porque el máximo de tu plan es ${maxJug}.` : ""), recorte ? "mal" : "ok");
   await cargarJugadoras();
   pintarListaFeb();
 }
@@ -971,9 +981,9 @@ function pintarAccesos() {
   if (!caja) return;
   caja.className = "";
   const conCorreo = jugadoras.filter(j => j.email).length;
-  $("contJug").textContent = jugadoras.length + (jugadoras.length === 1 ? " jugadora" : " jugadoras");
+  $("contJug").textContent = jugadoras.length + (maxJug ? " de " + maxJug : "") + (jugadoras.length === 1 && !maxJug ? " jugadora" : " jugadoras");
   $("asientosResumen").innerHTML = `
-    <div class="as j"><b>${jugadoras.length}</b>asientos de jugadora</div>
+    <div class="as j"><b>${jugadoras.length}${maxJug ? " / " + maxJug : ""}</b>asientos de jugadora${maxJug && jugadoras.length >= maxJug ? " · completo" : ""}</div>
     <div class="as c"><b>${conCorreo}</b>con correo puesto</div>
     <div class="as e"><b id="resEnt">${entrenadoresCuenta === null ? "–" : entrenadoresCuenta}</b>asientos de entrenador</div>`;
   if (!jugadoras.length) {
@@ -1035,9 +1045,13 @@ async function traerPlantillaCompleta() {
     else nuevas.push({ nombre: bueno, equipo: f.Equipo, dorsal: f.Dorsal || null, email: null });
   });
   let creadas = 0, renombradas = 0;
+  let recorteAcc = 0;
+  if (nuevas.length) {
+    const hu = huecosJug(); if (nuevas.length > hu) { recorteAcc = nuevas.length - hu; nuevas.splice(hu); }
+  }
   if (nuevas.length) {
     const { error } = await sb.from("jugadoras").insert(nuevas);
-    if (error) { avisar("avisoAcc", "No se ha podido crear la plantilla: " + error.message, "mal"); b.disabled = false; b.textContent = "Traer mi plantilla completa"; return; }
+    if (error) { avisar("avisoAcc", errTopeJug(error) || "No se ha podido crear la plantilla: " + error.message, "mal"); b.disabled = false; b.textContent = "Traer mi plantilla completa"; return; }
     creadas = nuevas.length;
   }
   for (const a of arreglar) {
@@ -1048,6 +1062,7 @@ async function traerPlantillaCompleta() {
   const partes = [];
   if (creadas) partes.push(`${creadas} jugadoras creadas`);
   if (renombradas) partes.push(`${renombradas} nombres corregidos`);
+  if (recorteAcc) partes.push(`${recorteAcc} sin crear: el máximo de tu plan es ${maxJug} jugadoras`);
   const nota = origen === "ranking" ? " (tu equipo aun no tiene plantilla en el Sheet: he traido a las que ya han jugado; vuelve a pulsar cuando se actualice)" : "";
   avisar("avisoAcc", (partes.length ? partes.join(" · ") + ". Ahora pon el correo de cada una." : "Ya estaban todas y con el nombre correcto.") + nota, "ok");
   await cargarJugadoras();
