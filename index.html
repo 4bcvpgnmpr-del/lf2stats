@@ -10431,10 +10431,16 @@ async function pdfDeNodoVivo(nodo, archivo, opc) {
   const zoomAntes = nodo.style.zoom; nodo.style.zoom = "";
   let volver = () => {};
   const estiloTmp = document.createElement("style");
-  estiloTmp.textContent = ".table-scroll{overflow:visible!important}[data-iv] .carta-wrap{grid-template-columns:minmax(0,1fr)!important}[data-iv] .carta-wrap svg.carta{max-width:440px!important}";
+  estiloTmp.textContent = ".table-scroll{overflow:visible!important;max-height:none!important;height:auto!important}.table-scroll th,.table-scroll td,table.limpia th.equipo,table.limpia td.equipo,table.full-players th{position:static!important}[data-iv] .carta-wrap{grid-template-columns:minmax(0,1fr)!important}[data-iv] .carta-wrap svg.carta{max-width:440px!important}";
   document.head.appendChild(estiloTmp);
+  /* mientras se captura, la pantalla se tapa: así no se ve el montaje temporal (tablas desplegadas, etc.) */
+  const velo = document.createElement("div");
+  velo.style.cssText = "position:fixed;inset:0;z-index:2147483000;background:rgba(255,255,255,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font:700 17px Inter,system-ui,sans-serif;color:#1b2430;";
+  velo.innerHTML = '<div style="font-size:34px;">📄</div><div>Creando el PDF…</div><div style="font:500 13px Inter,system-ui,sans-serif;opacity:.65;">Tarda unos segundos. No cierres esta pestaña.</div>';
+  document.body.appendChild(velo);
   try { volver = await svgsAImagen(nodo); await new Promise(ok => setTimeout(ok, 150)); await pdfPaginado(nodo, archivo, opc); }
   finally {
+    try { velo.remove(); } catch (e) { /* nada */ }
     try { volver(); } catch (e) { /* nada */ }
     try { estiloTmp.remove(); } catch (e) { /* nada */ }
     nodo.style.zoom = zoomAntes;
