@@ -1539,6 +1539,13 @@
   .fg-net .l{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-soft);margin-left:8px;}
   .fg-ritmo{background:var(--suave);border:1.5px solid var(--wood-line);border-radius:14px;padding:4px 12px;font-size:12px;font-weight:700;}
   .fg-datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-top:14px;}
+  .qf-fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+  .qf{display:flex;flex-direction:column;align-items:center;width:62px;text-align:center}
+  .qf-fo{position:relative;width:46px;height:46px;border-radius:50%;overflow:hidden;background:var(--suave,#eee);border:1.5px solid var(--wood-line,#ddd);display:flex;align-items:center;justify-content:center;font:800 13px 'Archivo Black',Inter,sans-serif;color:var(--ink-soft,#777)}
+  .qf-fo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+  .qf span{font-size:10.5px;font-weight:700;line-height:1.15;margin-top:4px;overflow-wrap:anywhere}
+  .qp-destacado .qf-fila{margin:8px 0}
+  .tarjeta-q .q-jug .qf-fila{margin-bottom:6px}
   .lista-quintetos{display:flex;flex-direction:column;gap:10px;}
   .tarjeta-q{display:flex;align-items:center;gap:14px;border:1.5px solid var(--wood-line);border-radius:10px;padding:10px 14px;background:var(--white);}
   .tarjeta-q .q-num{font-family:'Archivo Black',sans-serif;color:var(--ink-soft);font-size:15px;min-width:20px;}
@@ -7057,7 +7064,7 @@ function tablaQuintetosHtml(filas, conEquipo) {
     <th title="Diferencia de puntos">+/-</th><th title="Diferencia por cada 40 minutos">+/- por 40'</th></tr></thead><tbody>`;
   filas.forEach(q => {
     html += `<tr>${conEquipo ? `<td style="text-align:left;"><b class="rank-name" data-team="${escapeAttr(q.equipo)}">${escudoImgHtml(q.equipo, 20)}${escapeHtml(q.equipo)}</b></td>` : ""}
-      <td style="text-align:left;">${escapeHtml(q.quinteto)}</td><td>${fmtNum(q.partidos)}</td><td>${fmtNum(q.minutos)}</td>
+      <td style="text-align:left;">${fotosComboHtml(q.quinteto, q.equipo)}</td><td>${fmtNum(q.partidos)}</td><td>${fmtNum(q.minutos)}</td>
       <td>${fmtNum(q.pf)}</td><td>${fmtNum(q.pc)}</td><td>${fmtNum(q.dif)}</td><td>${fmtNum(q.dif40)}</td></tr>`;
   });
   return html + `</tbody></table></div>`;
@@ -13246,6 +13253,21 @@ function dosierHtml(filas) {
   </div>`;
 }
 
+/* --- Quintetos con foto: cada jugadora con su fotito y nombre corto, en fila ordenada --- */
+function nombreCortoQ(j) {
+  const t = String(j || "").trim(), cap = x => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase();
+  if (t.includes(",")) { const [ap, no] = t.split(",").map(x => x.trim()); return cap((no.split(/\s+/)[0] || "")) + " " + cap(ap.split(/\s+/)[0] || ""); }
+  return t.split(/\s+/).slice(-2).map(cap).join(" ");
+}
+function fotosComboHtml(combo, equipo, tam) {
+  const js = String(combo || "").split(" · ").map(x => x.trim()).filter(Boolean);
+  return `<div class="qf-fila">${js.map(j => {
+    let foto = ""; try { foto = fotoDeJugadora(j, equipo); } catch (e) { foto = ""; }
+    const ini = (j.includes(",") ? j.split(",")[1].trim().slice(0, 1) + j.slice(0, 1) : j.slice(0, 2)).toUpperCase();
+    return `<div class="qf"><div class="qf-fo">${escapeHtml(ini)}${foto ? `<img src="${escapeAttr(foto)}" alt="" onerror="this.remove()">` : ""}</div><span>${escapeHtml(nombreCortoQ(j))}</span></div>`;
+  }).join("")}</div>`;
+}
+
 /* --- La ficha grande del quinteto que mas juega --- */
 function fotoDeJugadora(nombre, equipo) {
   const fuentes = [jugadoras].concat(Object.keys(RANKING_EXTRA_TABS).map(k => rankingExtra[k]));
@@ -13302,7 +13324,7 @@ function listaQuintetosHtml(filas, hayRatings) {
     return `<div class="tarjeta-q">
       <div class="q-num">${i + 1}</div>
       <div class="q-cuerpo">
-        <div class="q-jug">${escapeHtml(f.combo)}</div>
+        <div class="q-jug">${fotosComboHtml(f.combo, f.equipo || (typeof qpEstado !== "undefined" ? qpEstado.equipo : ""))}</div>
         <div class="q-det">${fmtNum(f.minutos)}' · ${fmtNum(Math.round(f.pos))} pos${f.ortg !== null ? ` · OER ${fmtNum(f.ortg)} · DER ${fmtNum(f.drtg)}` : ""}
           ${(f.victorias + f.derrotas) ? ` · <b class="vd-txt">${f.victorias}V-${f.derrotas}D</b>${f.pctV !== null ? ` (${fmtNum(f.pctV)}%)` : ""}` : ""}
           ${!filtrosQ.equipo ? ` · ${escapeHtml(f.equipo)}` : ""}</div>
@@ -16731,7 +16753,7 @@ function tarjetaQpHtml(titulo, c, pie) {
   const signo = c.dif > 0 ? "+" : "";
   return `<div class="qp-destacado">
     <div class="qp-tit">${escapeHtml(titulo)}</div>
-    <div class="qp-jug">${escapeHtml(c.combo)}</div>
+    <div class="qp-jug">${fotosComboHtml(c.combo, c.equipo || (typeof qpEstado !== "undefined" ? qpEstado.equipo : ""))}</div>
     <div class="qp-grande ${c.dif >= 0 ? "bien" : "mal"}">${signo}${fmtNum(c.dif)}</div>
     <div class="qp-sub">${fmtNum(c.minutos)} minutos juntas · ${fmtNum(c.pf)} a favor · ${fmtNum(c.pc)} en contra</div>
     ${m.efg !== null ? `<div class="qp-sub">${fmtNum(m.efg)}% eFG · ${fmtNum(c.as)} asistencias · ${fmtNum(c.bp)} perdidas</div>` : ""}
@@ -16747,7 +16769,7 @@ function listaQpHtml(filas) {
     return `<div class="tarjeta-q">
       <div class="q-num">${i + 1}</div>
       <div class="q-cuerpo">
-        <div class="q-jug">${escapeHtml(f.combo)}</div>
+        <div class="q-jug">${fotosComboHtml(f.combo, f.equipo || (typeof qpEstado !== "undefined" ? qpEstado.equipo : ""))}</div>
         <div class="q-det">${fmtNum(f.minutos)}' juntas · ${fmtNum(f.pf)}-${fmtNum(f.pc)} en puntos${ratios}
           · ${fmtNum(f.rebO + f.rebD)} rebotes · ${fmtNum(f.as)} as. · ${fmtNum(f.bp)} perd.</div>
         <div class="q-barra"><span class="${f.dif >= 0 ? "bien" : "mal"}" style="width:${ancho}%"></span></div>
