@@ -7743,18 +7743,27 @@ async function videoComprimir(archivo) {
   const blob = new Blob(trozos, { type: mime.split(";")[0] }), ext = /mp4/.test(mime) ? "mp4" : "webm";
   return new File([blob], (archivo.name || "video").replace(/\.[^.]+$/, "") + "-ligero." + ext, { type: blob.type });
 }
+/* Vídeos de scouting en Cloudflare R2 (mismo Worker que en Entrenador). Vacío = se guardan en Supabase. */
+const WORKER_VIDEOS = "https://scoutflow-videos.4bcvpgnmpr.workers.dev";
+/* Tope de espacio por cuenta con plan (MB): 1 GB gratis y 10 GB de pago, sumando vídeos de scouting y archivos de Entrenador. El propietario no tiene tope. */
+let TOPE_MB = 0;
+function scoutBytes() { try { const s = JSON.parse(localStorage.getItem("lf2_scouting_v1") || "{}"); let t = 0; ["equipos", "jugadoras"].forEach(k => Object.values(s[k] || {}).forEach(x => ((x && x.videos) || []).forEach(v => { if (v && v.nubeUrl) t += +v.archivoTamano || 0; }))); return t; } catch (e) { return 0; } }
 async function videoNubeSubir(id, archivo) {
   try {
     if (archivo && archivo.size > 20 * 1024 * 1024) { try { archivo = await videoComprimir(archivo); } catch (e) { videoAviso(""); return { error: "no pude comprimirlo: " + (e.message || e) }; } if (archivo.size > 50 * 1024 * 1024) return { error: "aun comprimido pesa " + Math.round(archivo.size / 1048576) + " MB y la nube admite menos (máx. 50 MB): es muy largo, recórtalo o usa un enlace" }; }
     const sb = clienteJugadoras(); if (!sb) return { error: "sin conexión con la nube" };
     const { data: ses } = await sb.auth.getSession(); const u = ses && ses.session && ses.session.user; if (!u) return { error: "inicia sesión para subir" };
+    if (TOPE_MB) { let usado = scoutBytes(); try { const { data: ar } = await sb.from("archivos").select("tamano,tipo"); usado += (ar || []).filter(x => x.tipo !== "ajustes").reduce((t, x) => t + (+x.tamano || 0), 0); } catch (e) { /* sin dato */ } if (usado + (archivo.size || 0) > TOPE_MB * 1048576) return { error: "has llegado al límite de espacio de tu plan (" + (TOPE_MB / 1024) + " GB). Borra vídeos o pide más espacio" }; }
     const ext = ((/\.([a-z0-9]{2,4})$/i.exec(archivo.name || "") || [])[1] || "mp4").toLowerCase(), ruta = "scout/" + u.id + "/" + id + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
+    if (WORKER_VIDEOS) {
+      try { const r = await fetch(WORKER_VIDEOS.replace(/\/+$/, "") + "/" + encodeURI(ruta), { method: "PUT", headers: { Authorization: "Bearer " + ses.session.access_token, "Content-Type": archivo.type || "video/mp4" }, body: archivo }); const j = await r.json().catch(() => ({})); if (r.ok && j.url) return { ruta: j.url, url: j.url }; if (r.status === 401) return { error: "tu cuenta no tiene permiso para subir vídeos" }; } catch (e) { /* si falla R2, se prueba con Supabase */ }
+    }
     const { error } = await sb.storage.from("entrenador").upload(ruta, archivo, { contentType: archivo.type || "video/mp4", upsert: false });
     if (error) return { error: /size|exceed|large|413/i.test(error.message || "") ? "la nube lo rechaza por tamaño (" + Math.round(archivo.size / 1048576) + " MB): sube el límite del bucket en Supabase o recorta el vídeo" : error.message };
     return { ruta, url: sb.storage.from("entrenador").getPublicUrl(ruta).data.publicUrl };
   } catch (e) { return { error: String(e.message || e) }; }
 }
-async function videoNubeBorrar(ruta) { try { const sb = clienteJugadoras(); if (sb && ruta) await sb.storage.from("entrenador").remove([ruta]); } catch (e) { /* nada */ } }
+async function videoNubeBorrar(ruta) { try { const sb = clienteJugadoras(); if (!sb || !ruta) return; if (/^https?:\/\//.test(ruta)) { const t = (await sb.auth.getSession()).data.session.access_token; await fetch(ruta, { method: "DELETE", headers: { Authorization: "Bearer " + t } }); } else await sb.storage.from("entrenador").remove([ruta]); } catch (e) { /* nada */ } }
 async function videoLocalANube(id) {
   const v = videoPorId(id); if (!v) return { error: "no encontrado" }; if (v.nubeUrl) return { ok: true };
   const blob = await videoArchivoLeer(id); if (!blob) return { error: "el archivo no está en este navegador" };
@@ -10792,7 +10801,8 @@ function mostrarPuerta(msg, tipo) {
   document.documentElement.classList.add("sin-acceso");
 }
 
-const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "rankings-eq", "tv", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { gb: 1, n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { gb: 10, n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { gb: 20, n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "rankings-eq", "tv", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const topeDe = (P) => !P ? 0 : Math.round((P.gb > 0 ? P.gb : ((PLANES_APP[P.plan] && PLANES_APP[P.plan].gb) || 10)) * 1024);
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
@@ -10803,7 +10813,7 @@ async function leerPermisosAyudante(sb, email) {
     if (q) {
       let s = q.s || [], lock = null; const ligas = J(f.ligas_auto, []).map(l => l.id);
       if (q.plan) { if (q.plan !== "premium") { if (s.length) lock = "plan"; s = []; } else if (s.length && !ligas.includes(q.liga)) { lock = "liga"; s = []; } }
-      return { e: q.e || [], s, plan: q.plan || "", lock, precios: J(f.planes_precio, {}) };
+      return { e: q.e || [], s, plan: q.plan || "", gb: Number(q.gb) || 0, lock, precios: J(f.planes_precio, {}) };
     }
     const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
     if (lg.includes(yo)) return { e: ["partido"], s: [], plan: "", lock: null, precios: {} };
@@ -10864,6 +10874,7 @@ async function verificarAcceso() {
     if (PERMS.e.length) { location.replace("entrenador.html" + (PERMS.e.length === 1 && PERMS.e[0] === "partido" ? "#partido" : "")); return; }
     mostrarPuerta("Todavía no tienes menús habilitados. Pídeselos al entrenador.", "mal"); return;
   }
+  TOPE_MB = topeDe(PERMS);
   ROL_APP = PERMS ? "ayudante" : await resolverRolApp(sb, user);
   if (PERMS && ROL_APP === "ayudante") { VISTAS_AYUDANTE.length = 0; VISTAS_AYUDANTE.push(...PERMS.s, "equipo-detail", "jugadora-detail", "partido-detail", "scouting"); if (!PERMS.e.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="entrenador"]{display:none !important;}'; document.head.appendChild(st); } }
   const ERES_PROPIETARIO = ROL_APP === "propietario";

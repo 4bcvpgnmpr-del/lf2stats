@@ -1099,23 +1099,37 @@ async function cargarEntrenadores() {
     entrenadoresCuenta = null; $("contEnt").textContent = ""; pintarAccesos(); return;
   }
   const filas = data || [];
-  await cargarPermisosAyu(); pintarPlanesCfg(); pintarCobros();
+  await cargarPermisosAyu(); await cargarUsoEspacio(); pintarPlanesCfg(); pintarCobros();
   if (filas[0]) colCorreoEntrenador = ("email" in filas[0]) ? "email" : (Object.keys(filas[0]).find(k => /mail|correo/i.test(k)) || "email");
   entrenadoresCuenta = filas.length;
   $("contEnt").textContent = filas.length + (filas.length === 1 ? " entrenador" : " entrenadores");
   const yo = ($("quien").textContent || "").toLowerCase();
   caja.innerHTML = filas.length ? filas.map(f => {
     const c = String(f[colCorreoEntrenador] || "");
-    return `<div class="ent-fila"><span>${esc(c)}${c.toLowerCase() === yo ? " · tu" : ""}</span>
+    return `<div class="ent-fila"><span>${esc(c)}${c.toLowerCase() === yo ? " · tu" : ""}${c.toLowerCase() === yo ? "" : textoEspacio(c)}</span>
       ${c.toLowerCase() === yo ? "" : `<button class="boton fina" data-perm="${esc(c)}" style="white-space:nowrap;">⚙ Menús · ${esc(resumenPermisos(c))}</button><button class="boton borrar fina" data-correo="${esc(c)}">Quitar</button>`}</div>`;
   }).join("") : `<div class="vacio">No hay ningun entrenador en la lista.</div>`;
   caja.querySelectorAll("button[data-correo]").forEach(b => b.addEventListener("click", () => quitarEntrenador(b.getAttribute("data-correo"))));
   caja.querySelectorAll("button[data-perm]").forEach(b => b.addEventListener("click", () => abrirPermisos(b.getAttribute("data-perm"))));
   pintarAccesos();
 }
-const PLANES_APP = { gratis: { n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "rankings-eq", "tv", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { gb: 1, n: "Gratis", e: ["jugadas", "ejercicios", "planes"], s: [] }, pro: { gb: 10, n: "Pro", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { gb: 20, n: "Premium", e: ["jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "rankings-eq", "tv", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
 const MENUS_E = [["jugadas", "Jugadas"], ["playbooks", "Playbooks"], ["ejercicios", "Ejercicios"], ["planes", "Planes de entrenamiento"], ["equipos", "Quintetos y equipos"], ["libro", "Libro de partidos"], ["mini", "Mini basket"], ["tiro", "Tiro (competición)"], ["chat", "💬 Equipo técnico (chat y jugadas)"], ["video", "Vídeos"], ["videopro", "🎬 Vídeos avanzado (Centro de vídeo, datos, enviar a jugadoras)"], ["imagen", "Imágenes"], ["audio", "Audio"], ["partido", "🏀 Modo partido (pizarra, marcador, estadísticas)"]];
 const MENUS_S = [["inicio", "Inicio"], ["mi-equipo", "Mi equipo"], ["clasificacion", "Clasificación"], ["equipos", "Equipos"], ["jugadoras", "Jugadoras"], ["rankings", "Rankings"], ["rankings-eq", "Rankings de equipos"], ["tv", "Modo TV"], ["estadisticas", "Estadísticas"], ["quintetos", "Quintetos"], ["fichajes", "Fichajes"], ["comparador", "Comparador"], ["resultados", "Resultados"], ["records", "Récords"], ["informes", "Informes"]];
+/* Espacio usado por cada cuenta (necesita ejecutar espacio.sql una vez en Supabase) */
+let usoEspacio = null;
+async function cargarUsoEspacio() {
+  usoEspacio = null;
+  try { const r = await sb.rpc("uso_espacio"); if (!r.error && Array.isArray(r.data)) { usoEspacio = {}; r.data.forEach(x => { usoEspacio[String(x.correo || "").toLowerCase()] = (Number(x.archivos) || 0) + (Number(x.scout) || 0); }); } } catch (e) { usoEspacio = null; }
+}
+function topeCuentaMB(c) { const q = permisosAyu[String(c).toLowerCase()]; if (!q) return 0; return Math.round((q.gb > 0 ? q.gb : ((PLANES_APP[q.plan] && PLANES_APP[q.plan].gb) || 10)) * 1024); }
+function textoEspacio(c) {
+  if (!usoEspacio) return "";
+  const u = usoEspacio[String(c).toLowerCase()] || 0, t = topeCuentaMB(c), mb = u / 1048576;
+  const f = (x) => x >= 1024 ? (x / 1024).toFixed(1).replace(".", ",") + " GB" : Math.round(x) + " MB";
+  const pc = t ? Math.round(mb / t * 100) : 0, col = pc >= 90 ? "#b3261e" : pc >= 70 ? "#b45f06" : "#5b6670";
+  return `<br><small style="color:${col};font-weight:700;">💾 ${f(mb)}${t ? " de " + f(t) + " · " + pc + " %" : ""}</small>`;
+}
 async function cargarPermisosAyu() {
   permisosAyu = {}; legadoAyu = [];
   try {
@@ -1195,7 +1209,7 @@ function abrirPermisos(correo) {
   m.innerHTML = `<div style="background:#fff;border-radius:16px;padding:16px;width:min(720px,100%);max-height:100%;overflow:auto;"><h3 style="margin:0 0 4px;">Menús de ${esc(correo)}</h3><p style="margin:0;font-size:13px;opacity:.75;">Marca lo que puede ver. Solo lee: no puede cambiar nada. Se ve igual que tú, pero solo con esos menús.</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><button class="boton fina" data-pre="partido">Solo modo partido</button><button class="boton fina" data-pre="todo">Todo</button><button class="boton fina" data-pre="nada">Ninguno</button></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;"><label style="font-weight:700;font-size:13px;">Plan <select id="pmPlan" style="margin-left:4px;"><option value="">Personalizado</option>${Object.keys(PLANES_APP).map(k => `<option value="${k}" ${q.plan === k ? "selected" : ""}>${PLANES_APP[k].n}</option>`).join("")}</select></label><label style="font-weight:700;font-size:13px;">Liga con estadísticas <select id="pmLiga" style="margin-left:4px;"><option value="">— ninguna —</option>${ligasAuto.map(l => `<option value="${esc(l.id)}" ${q.liga === l.id ? "selected" : ""}>${esc(l.nombre)}</option>`).join("")}</select></label></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;"><label style="font-weight:700;font-size:13px;">Pagado hasta <input type="date" id="pmHasta" value="${esc(q.hasta || "")}" style="margin-left:4px;"></label><label style="font-weight:700;font-size:13px;">Nota de cobro <input id="pmPago" value="${esc(q.pago || "")}" placeholder="Ej. Bizum 99 € anual" style="margin-left:4px;"></label></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;"><label style="font-weight:700;font-size:13px;">Pagado hasta <input type="date" id="pmHasta" value="${esc(q.hasta || "")}" style="margin-left:4px;"></label><label style="font-weight:700;font-size:13px;">Nota de cobro <input id="pmPago" value="${esc(q.pago || "")}" placeholder="Ej. Bizum 99 € anual" style="margin-left:4px;"></label><label style="font-weight:700;font-size:13px;" title="Vacío = el que corresponde a su plan (Gratis 1, Pro 10, Premium 20)">Espacio (GB) <input type="number" min="0" step="1" id="pmGb" value="${q.gb ? esc(String(q.gb)) : ""}" placeholder="por plan" style="margin-left:4px;width:90px;"></label></div>
     <p style="margin:6px 0 0;font-size:12px;opacity:.7;">Las estadísticas solo se activan con plan Premium y una liga automatizada. Si cambias el plan se marcan sus menús; luego puedes ajustarlos.</p>
     ${grupo("ENTRENADOR", "e", MENUS_E, q.e)}${grupo("ESTADÍSTICAS", "s", MENUS_S, q.s)}
     <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:14px;"><span><button class="boton borrar fina" id="pmQuita">Quitar permisos</button> <button class="boton fina" id="pmVer" style="background:#2b6cb0;color:#fff;">👁 Ver como este ayudante</button></span><span><button class="boton fina" id="pmNo">Cancelar</button> <button class="boton" id="pmOk">Guardar</button></span></div></div>`;
@@ -1215,7 +1229,7 @@ function abrirPermisos(correo) {
     location.href = s2.length ? "index.html" : "entrenador.html";
   };
   document.getElementById("pmOk").onclick = async () => {
-    permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value), plan: document.getElementById("pmPlan").value, liga: document.getElementById("pmLiga").value, hasta: document.getElementById("pmHasta").value || "", pago: document.getElementById("pmPago").value.trim() };
+    permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value), plan: document.getElementById("pmPlan").value, liga: document.getElementById("pmLiga").value, hasta: document.getElementById("pmHasta").value || "", pago: document.getElementById("pmPago").value.trim(), gb: Math.max(0, Number(document.getElementById("pmGb").value) || 0) };
     const er = await guardarPermisosAyu(); m.remove();
     if (er) { avisar("avisoEnt", "No se ha podido guardar: " + er.message, "mal"); await cargarPermisosAyu(); return; }
     avisar("avisoEnt", `Guardado: ${c} → ${resumenPermisos(c)}.`, "ok"); cargarEntrenadores();

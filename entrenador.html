@@ -836,7 +836,8 @@ const WORKER_VIDEOS = "https://scoutflow-videos.4bcvpgnmpr.workers.dev";
 /* Menú de vídeos avanzado (Centro de vídeo, datos, enviar a jugadoras, filtros): solo el propietario, o quien tenga "videopro" en el panel. El resto ve el menú sencillo: subir y ver vídeos. */
 let VIDEO_PRO = true;
 /* Tope de espacio por cuenta con plan (en MB). El propietario no tiene tope (0). Cambia el número si quieres más o menos. */
-const TOPE_USUARIOS_MB = 2048; let TOPE_MB = 0;
+let TOPE_MB = 0;
+function scoutBytes() { try { const s = JSON.parse(localStorage.getItem("lf2_scouting_v1") || "{}"); let t = 0; ["equipos", "jugadoras"].forEach(k => Object.values(s[k] || {}).forEach(x => ((x && x.videos) || []).forEach(v => { if (v && v.nubeUrl) t += +v.archivoTamano || 0; }))); return t; } catch (e) { return 0; } }
 const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
@@ -3306,7 +3307,7 @@ function pintarArchivos(v, tipo) {
   const lista = ocultosHasta ? [] : D.archivos.filter(a => a.tipo === tipo && ((q || filtrando) ? ((!q || (a.nombre + " " + Object.values(MV[a.id] || {}).join(" ")).toLowerCase().includes(q)) && cumpleFv(a)) : enCarp.has(a.id)));
   const ruta = carpeta ? `<div class="barra" style="margin-bottom:6px;"><button class="gris" data-ac="raiz">📂 Todo</button>${carpeta.split("/").map((s0, i, arr) => `<button class="gris" data-ac="${esc(arr.slice(0, i + 1).join("/"))}">${esc(s0)}</button>`).join(" › ")}</div>` : "";
   const tarjCarp = cars.map(c => `<div class="tarj" data-fc="${esc(c.ruta)}" style="cursor:pointer;"><div class="vista" style="display:flex;align-items:center;justify-content:center;">${SVG_CARPETA(64)}</div><div class="cu"><b>${esc(c.nombre)}</b><span class="peq">${c.n} archivo(s)</span>${puedeEscribir ? `<div class="acc"><button class="gris" data-fm="${esc(c.ruta)}">⋯ Carpeta</button></div>` : ""}</div></div>`).join("");
-  v.innerHTML = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${(() => { const LIM = (TOPE_MB || 1024) * 1048576, us = (D.archivos || []).filter(x => x.tipo !== "ajustes").reduce((t, x) => t + (+x.tamano || 0), 0), pc = Math.min(100, Math.round(us / LIM * 100)); return `<span class="peq" title="Espacio usado en tus archivos (referencia: plan gratuito, 1 GB)" style="display:inline-flex;align-items:center;gap:6px;margin-left:12px;">💾 ${tamTxt(us)}${TOPE_MB ? " de " + (TOPE_MB / 1024) + " GB" : (WORKER_VIDEOS ? " usados" : " de 1 GB")}<span style="width:70px;height:6px;background:#2c3744;border-radius:9px;overflow:hidden;display:inline-block;"><span style="display:block;height:100%;width:${pc}%;background:${pc > 85 ? "#e5484d" : "#f26a21"};"></span></span></span>`; })()}<span class="esp"></span>${PRO ? '<button class="gris" id="bCentro">🎬 Centro de vídeo</button>' : ""}${puedeEscribir ? `<button class="gris" id="bCar">📁 Nueva carpeta</button><button class="naranja" id="bSubir">⬆ Subir ${tipo === "audio" ? "audios" : tipo === "video" ? "vídeos" : "imágenes"}</button>` : ""}</div>
+  v.innerHTML = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${(() => { const LIM = (TOPE_MB || 1024) * 1048576, us = (D.archivos || []).filter(x => x.tipo !== "ajustes").reduce((t, x) => t + (+x.tamano || 0), 0) + scoutBytes(), pc = Math.min(100, Math.round(us / LIM * 100)); return `<span class="peq" title="Espacio usado en tus archivos (referencia: plan gratuito, 1 GB)" style="display:inline-flex;align-items:center;gap:6px;margin-left:12px;">💾 ${tamTxt(us)}${TOPE_MB ? " de " + (TOPE_MB / 1024) + " GB" : (WORKER_VIDEOS ? " usados" : " de 1 GB")}<span style="width:70px;height:6px;background:#2c3744;border-radius:9px;overflow:hidden;display:inline-block;"><span style="display:block;height:100%;width:${pc}%;background:${pc > 85 ? "#e5484d" : "#f26a21"};"></span></span></span>`; })()}<span class="esp"></span>${PRO ? '<button class="gris" id="bCentro">🎬 Centro de vídeo</button>' : ""}${puedeEscribir ? `<button class="gris" id="bCar">📁 Nueva carpeta</button><button class="naranja" id="bSubir">⬆ Subir ${tipo === "audio" ? "audios" : tipo === "video" ? "vídeos" : "imágenes"}</button>` : ""}</div>
     ${puedeEscribir ? `<div id="soltar">Arrastra aquí tus archivos o pulsa «Subir». <span class="peq">(máx. ${tipo === "video" && WORKER_VIDEOS ? "100 MB por vídeo" : "50 MB por archivo"})</span></div><input type="file" id="fArch" accept="${ACEPTA[tipo]}" multiple style="display:none;">` : ""}
     ${ruta}${PRO ? "" : `<div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"></div>`}
     ${PRO ? `<div class="barra vbar" id="fvBar"><input type="search" id="bq" placeholder="Buscar vídeos…" value="${esc(busqueda)}">${Object.keys(MV).length ? `${[["equipo", "Equipo"], ["jugadora", "Jugadora"], ["categoria", "Categoría"]].map(([k, t]) => `<select data-fv="${k}"><option value="">${t}: todas</option>${[...new Set(Object.values(MV).map(x => x[k]).filter(Boolean))].sort().map(x => `<option ${fvid[k] === x ? "selected" : ""}>${esc(x)}</option>`).join("")}</select>`).join("")}${filtrando ? '<button class="gris" id="fvQ">✕ Quitar filtros</button>' : ""}` : ""}<span class="esp"></span><button class="gris" id="fvOc" title="Con esto activado no sale ningún vídeo hasta que elijas un equipo, jugadora o categoría (o busques)">${OCV ? "🙈 Ocultos hasta filtrar" : "👁 Mostrar todos"}</button>${lista.length ? `<button id="fvPlay" style="background:var(--naranja,#e0602a);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;">▶ Reproducir ${lista.length} seguidos</button>` : ""}</div>` : ""}
@@ -3371,7 +3372,7 @@ async function subir(files, tipo) {
     const f = files[i];
     const usaR2 = tipo === "video" && !!WORKER_VIDEOS, MAXMB = usaR2 ? 100 : 50;
     if (f.size > MAXMB * 1024 * 1024) { aviso("«" + f.name + "» pesa más de " + MAXMB + " MB: no se sube."); continue; }
-    if (TOPE_MB) { const usado = (D.archivos || []).filter(x => x.tipo !== "ajustes").reduce((t, x) => t + (+x.tamano || 0), 0); if (usado + f.size > TOPE_MB * 1024 * 1024) { aviso("Has llegado al límite de espacio de tu plan (" + (TOPE_MB / 1024) + " GB). Borra archivos o pide más espacio."); break; } }
+    if (TOPE_MB) { const usado = (D.archivos || []).filter(x => x.tipo !== "ajustes").reduce((t, x) => t + (+x.tamano || 0), 0) + scoutBytes(); if (usado + f.size > TOPE_MB * 1024 * 1024) { aviso("Has llegado al límite de espacio de tu plan (" + (TOPE_MB / 1024) + " GB). Borra archivos o pide más espacio."); break; } }
     aviso("Subiendo " + (i + 1) + " de " + files.length + "…");
     const id = idNuevo("a"), limpio = f.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_"), ruta = tipo + "/" + id + "-" + limpio;
     let rutaFinal = ruta;
@@ -3812,7 +3813,8 @@ function soloPartido(email) {
   abrirPartido();
 }
 const flagSoloPartido = () => { try { return localStorage.getItem("sf_solo_partido") === "1"; } catch (e) { return false; } };
-const PLANES_APP = { gratis: { n: "Gratis", e: ["inicio", "calendario", "jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { n: "Pro", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { n: "Premium", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const PLANES_APP = { gratis: { gb: 1, n: "Gratis", e: ["inicio", "calendario", "jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { gb: 10, n: "Pro", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { gb: 20, n: "Premium", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+const topeDe = (P) => !P ? 0 : Math.round((P.gb > 0 ? P.gb : ((PLANES_APP[P.plan] && PLANES_APP[P.plan].gb) || 10)) * 1024);
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
@@ -3823,7 +3825,7 @@ async function leerPermisosAyudante(sb, email) {
     if (q) {
       let s = q.s || [], lock = null; const ligas = J(f.ligas_auto, []).map(l => l.id);
       if (q.plan) { if (q.plan !== "premium") { if (s.length) lock = "plan"; s = []; } else if (s.length && !ligas.includes(q.liga)) { lock = "liga"; s = []; } }
-      return { e: q.e || [], s, plan: q.plan || "", lock, precios: J(f.planes_precio, {}) };
+      return { e: q.e || [], s, plan: q.plan || "", gb: Number(q.gb) || 0, lock, precios: J(f.planes_precio, {}) };
     }
     const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
     if (lg.includes(yo)) return { e: ["partido"], s: [], plan: "", lock: null, precios: {} };
@@ -3862,7 +3864,7 @@ async function iniciar() {
   try { PERMS = await leerPermisosAyudante(nube, data.session.user.email); } catch (e) { /* sin red */ }
   let SIM = false; if (!PERMS) { const q = permisosSimulados(); if (q) { PERMS = q; SIM = true; } }
   if (SIM) bannerSim();
-  VIDEO_PRO = !PERMS || (PERMS.e || []).includes("videopro"); TOPE_MB = PERMS ? TOPE_USUARIOS_MB : 0;
+  VIDEO_PRO = !PERMS || (PERMS.e || []).includes("videopro"); TOPE_MB = topeDe(PERMS);
   if (PERMS) {
     const E = PERMS.e.filter(x => SECCIONES[x] || x === "partido");
     if (!E.length) { if (PERMS.s.length) { location.replace("index.html"); return; } pantalla("Todavía no tienes menús habilitados. Pídeselos al entrenador."); return; }
