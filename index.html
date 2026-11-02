@@ -10369,10 +10369,19 @@ async function pdfPaginado(nodo, archivo, opc) {
     else { let y = fin; const minimo = ini + altoPag * 0.4; while (y > minimo && dentro(y)) y -= 2; fin = y > minimo ? y : fin; }
     hojas.push([ini, fin]); ini = fin;
   }
+  let banda = null, bandaY0 = 0, bandaFin = -1;
   for (let i = 0; i < hojas.length; i++) {
     const [y0, y1] = hojas[i];
     if (opc.progreso) opc.progreso(i + 1, hojas.length || estim);
-    const cv = await window.html2canvas(nodo, Object.assign({ scale: esc, useCORS: true, backgroundColor: fondo, x: 0, y: y0, width: w, height: Math.max(2, Math.round(y1 - y0)), scrollX: 0, scrollY: 0, logging: false, onclone: pdfArreglaClon }, opc.h2c || {}));
+    /* html2canvas copia TODA la pantalla en cada llamada: en vez de una llamada por hoja se pintan varias hojas de una vez y se recortan */
+    if (!banda || y1 > bandaFin + 0.5) {
+      let j = i, fin = y1; while (j + 1 < hojas.length && (hojas[j + 1][1] - y0) * esc <= 9000) { j++; fin = hojas[j][1]; }
+      banda = await window.html2canvas(nodo, Object.assign({ scale: esc, useCORS: true, backgroundColor: fondo, x: 0, y: y0, width: w, height: Math.max(2, Math.round(fin - y0)), scrollX: 0, scrollY: 0, logging: false, onclone: pdfArreglaClon }, opc.h2c || {}));
+      bandaY0 = y0; bandaFin = fin;
+    }
+    const kc = banda.width / w, sy = Math.max(0, Math.round((y0 - bandaY0) * kc)), sh = Math.max(2, Math.min(banda.height - sy, Math.round((y1 - y0) * kc)));
+    const cv = document.createElement("canvas"); cv.width = banda.width; cv.height = sh;
+    cv.getContext("2d").drawImage(banda, 0, sy, banda.width, sh, 0, 0, banda.width, sh);;
     const pix = cv.getContext("2d").getImageData(Math.min(2, cv.width - 1), Math.max(0, cv.height - 1), 1, 1).data;
     if (i) pdf.addPage();
     pdf.setFillColor(pix[0], pix[1], pix[2]); pdf.rect(0, 0, 210, 297, "F");
