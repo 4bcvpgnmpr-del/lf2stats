@@ -7885,7 +7885,7 @@ function scoutingPanelHtml(tipo, nombre) {
         <button class="scout-item ${x.id === est.seleccion ? "activo" : ""}" data-id="${escapeAttr(x.id)}">
           <span class="icono ${x.clase}">${x.clase === "video" ? "▶" : "✎"}</span>
           <span class="txt">
-            <span class="tit">${escapeHtml(x.clase === "video" ? (x.titulo || "Video sin titulo") : rtPlainrtPlainrtPlainrtPlain(x.texto || "").slice(0, 60))}</span>
+            <span class="tit">${escapeHtml(x.clase === "video" ? (x.titulo || "Video sin titulo") : rtPlain(x.texto || "").slice(0, 60))}</span>
             <span class="hint">${escapeHtml(fechaCorta(x.fecha))}${(x.etiquetas || []).length ? " · " + escapeHtml(x.etiquetas.join(", ")) : ""}</span>
           </span>
         </button>`).join("")
@@ -16522,7 +16522,7 @@ function textosParaImprimir() {
       destino.dataset.sustituto = "1";
       ta.parentNode.insertBefore(destino, ta.nextSibling);
     }
-    if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else destino.textContent = valor;                 // siempre lo ultimo escrito
+    if (valor.indexOf(RT_MARK) === 0) destino.innerHTML = escapeHtml(valor); else destino.textContent = valor;                 // siempre lo ultimo escrito
     destino.style.whiteSpace = "pre-wrap";
 
     // La ayuda ("Ritmo, como quieren jugar...") es para ti, no para el papel
