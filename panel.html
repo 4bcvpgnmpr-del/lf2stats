@@ -348,6 +348,9 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
         <div style="flex:none;"><button class="boton fina" id="btnEntAnadir">Dar asiento</button></div>
       </div>
       <div id="avisoEnt"></div>
+      <h3 class="sub" style="margin-top:22px;">Cobros y renovaciones <span class="asiento ent" id="contCobros"></span></h3>
+      <p class="expl" style="margin:0 0 8px;">Apunta hasta qué día ha pagado cada persona (en «⚙ Menús», campo «Pagado hasta»). Aquí ves quién vence pronto y renuevas con un clic al cobrar por Bizum. El acceso no se corta solo: tú decides.</p>
+      <div id="cobrosBox" class="cargando">Cargando...</div>
       <h3 class="sub" style="margin-top:22px;">4 · Planes, precios y ligas</h3>
       <p class="expl" style="margin:0 0 8px;">Gratis: de muestra, máximo 5 jugadas, 5 ejercicios y 3 planes de entrenamiento. Pro: todo el Entrenador. Premium: Pro + Estadísticas (solo si su liga está automatizada). El precio es solo un texto que verán cuando algo esté bloqueado; el cobro lo haces tú.</p>
       <div id="planesCfg"></div>
@@ -1096,7 +1099,7 @@ async function cargarEntrenadores() {
     entrenadoresCuenta = null; $("contEnt").textContent = ""; pintarAccesos(); return;
   }
   const filas = data || [];
-  await cargarPermisosAyu(); pintarPlanesCfg();
+  await cargarPermisosAyu(); pintarPlanesCfg(); pintarCobros();
   if (filas[0]) colCorreoEntrenador = ("email" in filas[0]) ? "email" : (Object.keys(filas[0]).find(k => /mail|correo/i.test(k)) || "email");
   entrenadoresCuenta = filas.length;
   $("contEnt").textContent = filas.length + (filas.length === 1 ? " entrenador" : " entrenadores");
@@ -1135,8 +1138,45 @@ function pintarPlanesCfg() {
   c.querySelectorAll("[data-ligax]").forEach(b => b.addEventListener("click", () => { ligasAuto.splice(Number(b.dataset.ligax), 1); guardaLigas(); }));
   document.getElementById("ligaAdd").addEventListener("click", () => { const n = document.getElementById("ligaNueva").value.trim(); if (!n) return; const id = n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); if (!id || ligasAuto.some(l => l.id === id)) return; ligasAuto.push({ id, nombre: n }); guardaLigas(); });
 }
+function estadoCobro(q) {
+  if (!q || !q.hasta) return null;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const dias = Math.round((new Date(q.hasta + "T00:00:00") - hoy) / 86400000);
+  if (dias < 0) return { dias, cls: "mal", txt: "vencido hace " + (-dias) + (dias === -1 ? " día" : " días") };
+  if (dias <= 7) return { dias, cls: "aviso", txt: dias === 0 ? "vence hoy" : "vence en " + dias + (dias === 1 ? " día" : " días") };
+  return { dias, cls: "ok", txt: "al día (hasta " + q.hasta.split("-").reverse().join("/") + ")" };
+}
+function sumaFecha(base, meses) {
+  const d = new Date(base + "T00:00:00"); const dia = d.getDate(); d.setMonth(d.getMonth() + meses);
+  if (d.getDate() < dia) d.setDate(0);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function pintarCobros() {
+  const caja = document.getElementById("cobrosBox"); if (!caja) return; caja.classList.remove("cargando");
+  const lista = Object.keys(permisosAyu).filter(c => permisosAyu[c] && (permisosAyu[c].hasta || (permisosAyu[c].plan && permisosAyu[c].plan !== "gratis")))
+    .map(c => ({ c, q: permisosAyu[c], st: estadoCobro(permisosAyu[c]) }))
+    .sort((a, b) => (a.st ? a.st.dias : 99999) - (b.st ? b.st.dias : 99999));
+  const urgentes = lista.filter(x => x.st && x.st.dias <= 7).length;
+  document.getElementById("contCobros").textContent = urgentes ? urgentes + (urgentes === 1 ? " a renovar" : " a renovar") : "";
+  if (!lista.length) { caja.innerHTML = '<div class="vacio">Todavía no hay nadie con plan de pago. Pon el plan y «Pagado hasta» en «⚙ Menús».</div>'; return; }
+  const col = { mal: "#b3261e", aviso: "#b45f06", ok: "#1b7a3a" };
+  caja.innerHTML = lista.map(({ c, q, st }) => `<div class="ent-fila" style="flex-wrap:wrap;gap:6px;"><span style="min-width:200px;"><b>${esc(c)}</b> · ${esc(q.plan && PLANES_APP[q.plan] ? PLANES_APP[q.plan].n : "personalizado")}${q.pago ? ` · <i>${esc(q.pago)}</i>` : ""}<br><span style="font-weight:700;color:${st ? col[st.cls] : "#888"};">${st ? esc(st.txt) : "sin fecha de pago"}</span></span>
+    <button class="boton fina" data-ren="${esc(c)}" data-m="1">Cobrado +1 mes</button><button class="boton fina" data-ren="${esc(c)}" data-m="12">Cobrado +1 año</button>
+    ${st && st.dias < 0 ? `<a class="boton fina" style="text-decoration:none;" href="mailto:${esc(c)}?subject=${encodeURIComponent("Renovación de ScoutFlow")}&body=${encodeURIComponent("Hola, tu plan de ScoutFlow ha vencido. ¿Quieres renovarlo? Te paso los datos para pagar por Bizum.")}">✉ Recordar</a>` : ""}</div>`).join("");
+  caja.querySelectorAll("button[data-ren]").forEach(b => b.addEventListener("click", async () => {
+    const c = b.dataset.ren, q = permisosAyu[c]; if (!q) return;
+    const hoy = new Date(); const h = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0") + "-" + String(hoy.getDate()).padStart(2, "0");
+    const base = q.hasta && q.hasta > h ? q.hasta : h;
+    q.hasta = sumaFecha(base, Number(b.dataset.m));
+    const er = await guardarPermisosAyu();
+    if (er) { avisar("avisoEnt", "No se ha podido guardar: " + er.message, "mal"); await cargarPermisosAyu(); }
+    else avisar("avisoEnt", `Renovado: ${c} hasta el ${q.hasta.split("-").reverse().join("/")}.`, "ok");
+    pintarCobros(); cargarEntrenadores();
+  }));
+}
 function resumenPermisos(c) {
   const q = permisosAyu[String(c).toLowerCase()]; if (!q) return "ayudante normal";
+  { const st = estadoCobro(q); if (st && st.dias <= 7) return (q.plan && PLANES_APP[q.plan] ? "plan " + PLANES_APP[q.plan].n : "plan") + " · " + st.txt; }
   if (q.plan && PLANES_APP[q.plan]) return "plan " + PLANES_APP[q.plan].n;
   if (q.e.length === 1 && q.e[0] === "partido" && !q.s.length) return "solo modo partido";
   const n = q.e.length + q.s.length; return n ? n + (n === 1 ? " menú" : " menús") : "sin menús";
@@ -1155,6 +1195,7 @@ function abrirPermisos(correo) {
   m.innerHTML = `<div style="background:#fff;border-radius:16px;padding:16px;width:min(720px,100%);max-height:100%;overflow:auto;"><h3 style="margin:0 0 4px;">Menús de ${esc(correo)}</h3><p style="margin:0;font-size:13px;opacity:.75;">Marca lo que puede ver. Solo lee: no puede cambiar nada. Se ve igual que tú, pero solo con esos menús.</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><button class="boton fina" data-pre="partido">Solo modo partido</button><button class="boton fina" data-pre="todo">Todo</button><button class="boton fina" data-pre="nada">Ninguno</button></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;"><label style="font-weight:700;font-size:13px;">Plan <select id="pmPlan" style="margin-left:4px;"><option value="">Personalizado</option>${Object.keys(PLANES_APP).map(k => `<option value="${k}" ${q.plan === k ? "selected" : ""}>${PLANES_APP[k].n}</option>`).join("")}</select></label><label style="font-weight:700;font-size:13px;">Liga con estadísticas <select id="pmLiga" style="margin-left:4px;"><option value="">— ninguna —</option>${ligasAuto.map(l => `<option value="${esc(l.id)}" ${q.liga === l.id ? "selected" : ""}>${esc(l.nombre)}</option>`).join("")}</select></label></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;"><label style="font-weight:700;font-size:13px;">Pagado hasta <input type="date" id="pmHasta" value="${esc(q.hasta || "")}" style="margin-left:4px;"></label><label style="font-weight:700;font-size:13px;">Nota de cobro <input id="pmPago" value="${esc(q.pago || "")}" placeholder="Ej. Bizum 99 € anual" style="margin-left:4px;"></label></div>
     <p style="margin:6px 0 0;font-size:12px;opacity:.7;">Las estadísticas solo se activan con plan Premium y una liga automatizada. Si cambias el plan se marcan sus menús; luego puedes ajustarlos.</p>
     ${grupo("ENTRENADOR", "e", MENUS_E, q.e)}${grupo("ESTADÍSTICAS", "s", MENUS_S, q.s)}
     <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:14px;"><span><button class="boton borrar fina" id="pmQuita">Quitar permisos</button> <button class="boton fina" id="pmVer" style="background:#2b6cb0;color:#fff;">👁 Ver como este ayudante</button></span><span><button class="boton fina" id="pmNo">Cancelar</button> <button class="boton" id="pmOk">Guardar</button></span></div></div>`;
@@ -1174,7 +1215,7 @@ function abrirPermisos(correo) {
     location.href = s2.length ? "index.html" : "entrenador.html";
   };
   document.getElementById("pmOk").onclick = async () => {
-    permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value), plan: document.getElementById("pmPlan").value, liga: document.getElementById("pmLiga").value };
+    permisosAyu[c] = { e: [...m.querySelectorAll('input[data-k="e"]:checked')].map(i => i.value), s: [...m.querySelectorAll('input[data-k="s"]:checked')].map(i => i.value), plan: document.getElementById("pmPlan").value, liga: document.getElementById("pmLiga").value, hasta: document.getElementById("pmHasta").value || "", pago: document.getElementById("pmPago").value.trim() };
     const er = await guardarPermisosAyu(); m.remove();
     if (er) { avisar("avisoEnt", "No se ha podido guardar: " + er.message, "mal"); await cargarPermisosAyu(); return; }
     avisar("avisoEnt", `Guardado: ${c} → ${resumenPermisos(c)}.`, "ok"); cargarEntrenadores();
