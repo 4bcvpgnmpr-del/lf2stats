@@ -697,7 +697,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <button data-s="imagen"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="4" width="17" height="16" rx="2.500"/><circle cx="9" cy="9.500" r="1.600"/><path d="M4 17l5-4.500 4 3.500 3-2.500 4 3.500"/></svg></span><span class="tx">Imágenes</span><span class="n" id="n-imagen"></span></button>
       <button data-s="audio"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4.500" height="6" rx="1.500"/><rect x="16.500" y="14" width="4.500" height="6" rx="1.500"/></svg></span><span class="tx">Audio</span><span class="n" id="n-audio"></span></button>
     </div>
-    <div class="grupo"><h4>Ayuda</h4><button type="button" onclick="window.open('ayuda.html','_blank')"><span class="i">❓</span><span class="tx">Cómo usar la app</span></button></div>
+    <div class="grupo"><h4>Ayuda</h4><button type="button" onclick="bienvenida(true)"><span class="i">🚀</span><span class="tx">Empezar aquí</span></button><button type="button" onclick="window.open('ayuda.html','_blank')"><span class="i">❓</span><span class="tx">Cómo usar la app</span></button></div>
     <div class="pie" style="display:none"><a href="index.html"><span class="i">←</span><span class="tx"> Volver a estadísticas</span></a></div>
   </aside>
   <div id="topMov"><button id="tmIzq" aria-label="Menú">☰</button><b id="tmTit">Jugadas</b><button id="tmMas" aria-label="Nuevo">＋</button></div>
@@ -3867,6 +3867,31 @@ async function iniciar() {
   const h = (location.hash || "").replace("#", ""); if (SECCIONES[h]) seccion = h;
   if (!puedeEscribir && !OFFLINE) aviso("Modo lectura: solo el propietario puede editar.");
   pintar();
+  let visto = false; try { visto = localStorage.getItem("sf_bienvenida_v1") === "1"; } catch (e) { /* nada */ }
+  if (!visto && puedeEscribir && !OFFLINE) setTimeout(() => bienvenida(false), 700);
+}
+
+/* Primer uso: pasos para empezar (se abre sola la primera vez; después desde Ayuda > Empezar aquí) */
+function bienvenida(manual) {
+  const ok = (sec) => !PERM_E || PERM_E.has(sec);
+  const pasos = [
+    ["👤", "Pon tu nombre, tu logo y tu equipo", "Sale en la bienvenida y en tus informes.", "perfil"],
+    ["✏️", "Crea tu primera jugada", "Dibújala en la pizarra, anímala y guárdala en tu biblioteca.", "jugadas"],
+    ["🏋️", "Crea un ejercicio", "Con dibujo, descripción y duración, para reutilizarlo.", "ejercicios"],
+    ["📅", "Planifica un entrenamiento", "Junta ejercicios en un plan y compártelo con tu equipo.", "planes"],
+    ["📖", "Mira los tutoriales", "Vídeos cortos: menú, jugadas, modo partido, estadísticas…", "ayuda"],
+  ].filter(x => x[3] === "ayuda" || x[3] === "perfil" || ok(x[3]));
+  const m = ventana(`<h3 style="margin:0 0 4px;">¡Bienvenido a ScoutFlow! 👋</h3>
+    <p class="peq" style="margin:0 0 12px;">Cinco pasos para empezar. Hazlos en el orden que quieras; tardarás menos de 10 minutos.</p>
+    <div style="display:grid;gap:8px;">${pasos.map((p, i) => `<button type="button" class="gris" data-paso="${p[3]}" style="display:flex;gap:12px;align-items:center;text-align:left;padding:10px 12px;">
+      <span style="font-size:22px;">${p[0]}</span><span style="flex:1;"><b>${i + 1}. ${p[1]}</b><br><span class="peq">${p[2]}</span></span><span style="font-weight:800;">›</span></button>`).join("")}</div>
+    <div class="pie-m" style="margin-top:14px;"><button class="gris" id="bvNo" type="button">${manual ? "Cerrar" : "No volver a mostrar"}</button><button class="naranja" id="bvOk" type="button">Empezar</button></div>`);
+  const cerrar = (guardar) => { if (guardar) { try { localStorage.setItem("sf_bienvenida_v1", "1"); } catch (e) { /* nada */ } } $("velo").classList.remove("ver"); };
+  m.querySelectorAll("[data-paso]").forEach(b => b.onclick = () => {
+    const d = b.dataset.paso; cerrar(true);
+    if (d === "perfil") formEquipo(); else if (d === "ayuda") window.open("ayuda.html", "_blank"); else ir(d);
+  });
+  $("bvNo").onclick = () => cerrar(!manual); $("bvOk").onclick = () => cerrar(true);
 }
 iniciar();
 
