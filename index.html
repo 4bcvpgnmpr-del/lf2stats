@@ -9022,19 +9022,79 @@ const IV_CSS_ORD = `
 .ord .cl{display:grid;gap:8px}.ord .cl div{display:flex;gap:14px;align-items:center;border:1px solid #e3e7ec;border-left:4px solid #ff7a2b;border-radius:6px;padding:11px 14px;font:700 13px/1.35 Inter}.ord .cl i{font:900 22px Inter;color:#ff7a2b;font-style:normal;width:26px}
 .ord table{width:100%;border-collapse:collapse;font:500 11.5px Inter}.ord th{background:#0b1730;color:#fff;font:800 9.5px Inter;letter-spacing:.1em;padding:8px 6px;text-align:center;text-transform:uppercase}.ord td{padding:7px 6px;border-bottom:1px solid #eef1f5;text-align:center}.ord td:first-child,.ord th:first-child{text-align:left}.ord tr:nth-child(even) td{background:#f7f9fb}
 .ord .rs{display:inline-flex;width:24px;height:24px;border-radius:5px;align-items:center;justify-content:center;color:#fff;font:800 11px Inter}.ord .rs.W{background:#16a06a}.ord .rs.L{background:#d64545}
-.ord .jr{display:grid;grid-template-columns:76px 1fr;gap:16px;border:1px solid #e3e7ec;border-radius:8px;padding:10px 14px;margin-bottom:10px;align-items:center;height:150px;overflow:hidden}
+.ord .jr{display:grid;grid-template-columns:76px 1fr;gap:16px;border:1px solid #e3e7ec;border-radius:8px;padding:10px 14px;margin-bottom:10px;align-items:center;min-height:120px}
 .ord .jr .fo{width:76px;height:96px;border-radius:8px;background:#eef1f5;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;font:900 22px Inter;color:#8b95a3}.ord .jr .fo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%}
 .ord .jr h4{font:800 14px Inter;margin:0 0 2px;text-transform:uppercase}.ord .jr small{font:700 10px Inter;letter-spacing:.14em;color:#ff7a2b}
 .ord .jr .ch{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0 5px}.ord .jr .ch span{background:#f1f4f8;border-radius:4px;padding:4px 7px;font:600 9.5px Inter;color:#5b6676}.ord .jr .ch b{color:#14284f;font-size:11px;margin-left:3px}
-.ord .jr p{margin:0;font:500 10.5px/1.4 Inter;color:#3d4757;max-height:30px;overflow:hidden}
+.ord .jr p{margin:0;font:500 10.5px/1.4 Inter;color:#3d4757;white-space:pre-line}
 .ord .qg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.ord .qc{border:1px solid #e3e7ec;border-top:3px solid #ff7a2b;border-radius:8px;padding:10px 10px 12px}
 .ord .qc .qt{font:800 9.5px Inter;letter-spacing:.12em;color:#ff7a2b;margin-bottom:8px}
 .ord .qp{display:flex;gap:8px;align-items:center;margin-bottom:6px}.ord .qp .fo{width:34px;height:34px;border-radius:50%;background:#eef1f5;overflow:hidden;position:relative;flex:none;display:flex;align-items:center;justify-content:center;font:800 11px Inter;color:#8b95a3}.ord .qp .fo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%}.ord .qp span{font:600 11px/1.15 Inter}
 .ord .qm{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;border-top:1px solid #eef1f5;padding-top:8px}.ord .qm div{text-align:center}.ord .qm b{display:block;font:900 15px Inter;color:#14284f}.ord .qm b.p{color:#16a06a}.ord .qm b.m{color:#d64545}.ord .qm small{font:700 8.5px Inter;color:#8b95a3;letter-spacing:.08em}
 .ord .mp{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}.ord .mp img{width:100%;border-radius:8px;background:#f3e6d2;display:block}
 .ord .nb{border:1px solid #e3e7ec;border-left:4px solid #ff7a2b;border-radius:6px;padding:12px 16px;margin-bottom:10px;font:500 12px/1.55 Inter;white-space:pre-line}.ord .nb b{display:block;font:800 10.5px Inter;letter-spacing:.12em;color:#ff7a2b;margin-bottom:4px;text-transform:uppercase}
-.ord .jg{border:1px solid #e3e7ec;border-radius:8px;padding:12px 16px;margin-bottom:10px;break-inside:avoid}.ord .jg h5{font:800 13px Inter;margin:0 0 3px;text-transform:uppercase}.ord .jg small{font:800 9.5px Inter;letter-spacing:.14em;color:#ff7a2b}.ord .jg p{margin:4px 0 0;font:500 11.5px/1.45 Inter}.ord .jg .im{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}.ord .jg .im img{width:100%;max-height:250px;object-fit:contain;background:#f6f7f9;border-radius:4px}
+.ord .table-scroll{overflow:visible!important;max-height:none!important;background:none}.ord table.limpia,.ord table.plantilla{font-size:8.5px}.ord table.limpia th,.ord table.limpia td{padding:4px 2px;white-space:nowrap;position:static!important}.ord table.limpia td.equipo b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}.ord table.limpia td.equipo,.ord table.limpia td.equipo *{white-space:nowrap!important}.ord .table-scroll thead th,.ord table.limpia thead th{background:#0b1730!important;color:#fff!important;font:800 8px Inter!important;letter-spacing:.04em}.ord .table-scroll thead th::after{display:none}.ord table.limpia th.equipo,.ord table.limpia td.equipo{max-width:150px;min-width:0;text-align:left}.ord table img.foto-mini{width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle}
+.ord .section-title{font:800 12px Inter;letter-spacing:.12em;text-transform:uppercase;color:#14284f;margin:16px 0 8px}.ord .hint{color:#8b95a3;font:500 10.5px Inter}.ord .datos-informe{display:flex;flex-wrap:wrap;gap:8px}.ord .dato-informe{border:1px solid #e3e7ec;border-radius:6px;padding:8px 10px;text-align:center;min-width:84px}.ord .dato-informe .v{display:block;font:900 17px Inter;color:#14284f}.ord .dato-informe .l{font:700 9px Inter;color:#8b95a3;letter-spacing:.06em}
+.ord .jg{border:1px solid #e3e7ec;border-radius:8px;padding:12px 16px;margin-bottom:10px;break-inside:avoid}.ord .jg h5{font:800 13px Inter;margin:0 0 3px;text-transform:uppercase}.ord .jg small{font:800 9.5px Inter;letter-spacing:.14em;color:#ff7a2b}.ord .jg p{margin:4px 0 0;font:500 11.5px/1.45 Inter}.ord .jg .im{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}.ord .jg .im img{width:100%;height:210px;object-fit:contain;background:#f6f7f9;border-radius:4px}
 `;
+
+/* Reparte cada sección en las hojas A4 que haga falta (mide los bloques en una caja oculta con el mismo ancho y estilo) */
+function ordPaginar(secciones) {
+  if (!document.getElementById("ivEstiloOrd")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstiloOrd">${IV_CSS_ORD}</style>`);
+  const med = document.createElement("div"); med.className = "iv ord";
+  med.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;visibility:hidden;pointer-events:none;";
+  med.innerHTML = '<div class="cu" style="padding:0 30px;"></div>';
+  document.body.appendChild(med);
+  const cu = med.firstChild, LIM = 925, GAP = 12, salida = [];
+  const limpia = (n) => {
+    n.querySelectorAll("button,input,select,textarea,script,style,.no-imprimir,.btn-partido,.btn-mini").forEach(e => e.remove());
+    n.querySelectorAll("img[loading]").forEach(i => { i.setAttribute("loading", "eager"); i.removeAttribute("decoding"); });
+    n.querySelectorAll("details").forEach(d => d.setAttribute("open", ""));
+    n.querySelectorAll(".table-scroll").forEach(t => { t.style.maxHeight = "none"; t.style.overflow = "visible"; });
+    return n;
+  };
+  const medir = (n) => { cu.innerHTML = ""; cu.appendChild(n.cloneNode(true)); return cu.scrollHeight; };
+  const tablaDe = (n) => n.tagName === "TABLE" ? n : n.querySelector(":scope > table, :scope > .table-scroll > table");
+  const partir = (n) => {
+    if (n.nodeType === 3) return n.textContent.trim() ? ["<p>" + n.textContent + "</p>"] : [];
+    if (n.nodeType !== 1) return [];
+    const h = medir(n);
+    if (h <= LIM) return [n.outerHTML];
+    const t = tablaDe(n);
+    if (t && t.tBodies[0] && t.tBodies[0].rows.length > 1) {
+      const filas = [...t.tBodies[0].rows], cab = t.tHead ? medir((() => { const c = t.cloneNode(true); [...c.tBodies].forEach(b => b.remove()); return c; })()) : 0;
+      const hFila = Math.max(12, (h - cab) / filas.length), porHoja = Math.max(1, Math.floor((LIM - cab - 8) / hFila)), trozos = [];
+      for (let i = 0; i < filas.length; i += porHoja) {
+        const c = t.cloneNode(true); [...c.tBodies].forEach(b => b.remove());
+        const tb = document.createElement("tbody"); filas.slice(i, i + porHoja).forEach(f => tb.appendChild(f.cloneNode(true))); c.appendChild(tb);
+        trozos.push('<div class="table-scroll">' + c.outerHTML + "</div>");
+      }
+      return trozos;
+    }
+    if (n.children.length) return [...n.childNodes].flatMap(partir);
+    return [n.outerHTML];
+  };
+  secciones.forEach(([titulo, items], k) => {
+    const atomos = [];
+    items.forEach(h => { const t = document.createElement("div"); t.innerHTML = h; limpia(t); [...t.childNodes].forEach(n => partir(n).forEach(x => atomos.push(x))); });
+    const hojas = []; let cur = [], alto = 0;
+    atomos.forEach(a => {
+      const t = document.createElement("div"); t.innerHTML = a; let ah = medir(t) + GAP;
+      const tbm = cu.querySelector("table"), ancho = Math.max(cu.scrollWidth - 60, tbm ? tbm.getBoundingClientRect().width : 0);
+      if (ancho > 740 && t.querySelector("table")) {   // tabla más ancha que la hoja: se encoge para que quepa entera
+        const z = 734 / ancho, h0 = ah - GAP;
+        a = `<div style="width:734px;height:${Math.ceil(h0 * z)}px;overflow:hidden"><div style="width:${Math.ceil(ancho) + 4}px;transform:scale(${(z * 0.995).toFixed(4)});transform-origin:0 0">${a}</div></div>`;
+        ah = Math.ceil(h0 * z) + GAP;
+      }
+      if (cur.length && alto + ah > LIM) { hojas.push(cur); cur = []; alto = 0; }
+      cur.push(a); alto += ah;
+    });
+    if (cur.length) hojas.push(cur);
+    hojas.forEach((h, i) => salida.push([k + 1, titulo + (hojas.length > 1 ? ` (${i + 1}/${hojas.length})` : ""), h.join("")]));
+  });
+  med.remove();
+  return salida;
+}
 function informeOrdenadoHtml(nombre, dat, par) {
   if (!document.getElementById("ivEstiloOrd")) document.head.insertAdjacentHTML("beforeend", `<style id="ivEstiloOrd">${IV_CSS_ORD}</style>`);
   const esc = escapeHtml, ea = escapeAttr, f1 = (x) => fmtNum(Math.round(x * 10) / 10);
@@ -9043,7 +9103,7 @@ function informeOrdenadoHtml(nombre, dat, par) {
   const escImg = (u, sig, big) => u ? `<img src="${ea(u)}" alt="" onerror="this.outerHTML='<b>${ea(sig)}</b>'">` : `<b>${esc(sig)}</b>`;
   const mio = dat.mio, ficha = scoutFicha("equipos", nombre), campos = (ficha.informe && ficha.informe.campos) || {};
   const pages = [];   // [num, titulo, html]
-  const sec = (titulo, html) => pages.push([titulo, html]);
+  const sec = (titulo, html) => pages.push([titulo, Array.isArray(html) ? html : [html]]);
 
   // 01 perfil comparativo
   const ej = (dat.ejes || []).filter(e => e.v != null);
@@ -9075,24 +9135,27 @@ function informeOrdenadoHtml(nombre, dat, par) {
   { const it = (x) => `<p><b>${esc(x.t)}</b>${esc(x.d || "")}</p>`;
     sec("Fortalezas, debilidades y claves", `<div class="g2"><div class="bx f"><h3>▲ PUNTOS FUERTES</h3>${(dat.fuertes || []).map(it).join("") || "<p>Sin datos suficientes.</p>"}</div><div class="bx d"><h3>▼ PUNTOS DÉBILES</h3>${(dat.debiles || []).map(it).join("") || "<p>Sin datos suficientes.</p>"}</div></div>
       ${(dat.claves || []).length ? `<div class="st" style="margin-top:22px"><h2>Claves del partido</h2></div><div class="cl">${dat.claves.map((c, i) => `<div><i>${i + 1}</i>${esc(c)}</div>`).join("")}</div>` : ""}`); }
+  // 03b claves del duelo y datos automáticos del equipo (los mismos bloques de la pantalla del rival)
+  try { const dh = dueloBloqueHtml(nombre); if (dh && !/Calculando/.test(dh)) sec("Claves del duelo", dh); } catch (e) { /* nada */ }
+  try { const eh = estadisticasInformeHtml(nombre); if (eh) sec("Datos del equipo", eh); } catch (e) { /* nada */ }
   // 04 resultados
   if (par.length) {
     const filas = par.slice().reverse().slice(0, 22);
     sec("Resultados", `<table><thead><tr><th>Jornada</th><th>Rival</th><th>Campo</th><th>Resultado</th><th></th></tr></thead><tbody>${filas.map(x => `<tr><td>${esc(x.jornada ? jornadaCorta(x.jornada) : "")}</td><td style="text-align:left;font-weight:700">${esc(equipoOficial(x.rival))}</td><td>${x.esLocal ? "Casa" : "Fuera"}</td><td><b>${x.pf}-${x.pc}</b></td><td><span class="rs ${x.gano ? "W" : "L"}">${x.gano ? "V" : "D"}</span></td></tr>`).join("")}</tbody></table>`);
   }
-  // 05 plantilla (una jugadora debajo de otra, con foto)
+  // 05 plantilla completa, mejores y peores, y perfiles (una jugadora debajo de otra, con foto)
   let plant = []; try { plant = plantillaDe(nombre) || []; } catch (e) { plant = []; }
   if (plant.length) {
+    try { sec("Plantilla completa", plantillaHtml(nombre)); } catch (e) { /* nada */ }
+    try { const mp = mejoresPeoresHtml(nombre); if (mp && !/Proximamente/.test(mp)) sec("Mejores y peores del equipo", mp); } catch (e) { /* nada */ }
     const inf = ficha.informe || { jugadoras: {} };
     const tarj = plant.map(p => {
       const nt = (typeof notaJugadora === "function" && inf.jugadoras) ? notaJugadora(inf, p.jugadora) : { texto: "", posicion: "" };
       const ini = p.jugadora.split(/\s+/).map(x => x[0]).slice(0, 2).join("").toUpperCase();
-      let chips = ""; try { chips = todasStatsJugadora(p.jugadora, nombre).slice(0, 8).map(d => `<span title="${ea(d.titulo || "")}">${esc(d.et)}<b>${esc(d.v)}</b></span>`).join(""); } catch (e) { chips = ""; }
+      let chips = ""; try { chips = todasStatsJugadora(p.jugadora, nombre).slice(0, 10).map(d => `<span title="${ea(d.titulo || "")}">${esc(d.et)}<b>${esc(d.v)}</b></span>`).join(""); } catch (e) { chips = ""; }
       return `<div class="jr"><div class="fo">${esc(ini)}${p.foto ? `<img src="${ea(p.foto)}" alt="" onerror="this.remove()">` : ""}</div><div><small>${esc(nt.posicion || "JUGADORA")}${p.dorsal ? " · #" + esc(p.dorsal) : ""}${p.partidos ? " · " + esc(p.partidos) + " PJ" : ""}</small><h4>${esc(p.jugadora)}</h4><div class="ch">${chips}</div>${nt.texto ? `<p>${esc(rtPlain(nt.texto))}</p>` : ""}</div></div>`;
     });
-    for (let i = 0; i < tarj.length; i += 5) sec("Plantilla" + (tarj.length > 5 ? ` (${Math.floor(i / 5) + 1}/${Math.ceil(tarj.length / 5)})` : ""), tarj.slice(i, i + 5).join(""));
-    const cols = STATS_FICHA.map(([, c]) => c);
-    sec("Tabla de la plantilla", `<table><thead><tr><th>Jugadora</th><th>PJ</th>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${plant.slice(0, 24).map(p => `<tr><td style="font-weight:700">${esc(p.jugadora)}</td><td>${esc(p.partidos == null ? "" : p.partidos)}</td>${cols.map(c => `<td>${esc(p[c] == null ? "" : String(p[c]))}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
+    sec("Perfiles de jugadoras", tarj);
   }
   // 06 quintetos, tríos y parejas (jugadoras una debajo de otra, con foto)
   try {
@@ -9113,7 +9176,7 @@ function informeOrdenadoHtml(nombre, dat, par) {
           bloques.push(`<div class="st" style="margin-top:6px"><em>${esc(titulo.toUpperCase())}</em></div><div class="qg">${card(masMin, "MÁS USADO")}${card(mejor, "MEJOR RENDIMIENTO")}${card(peor, "PEOR RENDIMIENTO")}</div>`);
         });
       } finally { filtrosQ = guardado; }
-      if (bloques.length) sec("Quintetos, tríos y parejas", bloques.join(""));
+      if (bloques.length) sec("Quintetos, tríos y parejas", bloques);
     }
   } catch (e) { console.error("QERR", e); }
   // 07 mapa de tiro
@@ -9124,18 +9187,19 @@ function informeOrdenadoHtml(nombre, dat, par) {
   // 08 notas y jugadas
   { const extra = CAMPOS_ENVIO.filter(c => !["estilo", "fortalezas", "debilidades", "claves"].includes(c.id) && String(campos[c.id] || "").trim());
     const notas = (ficha.notas || []).filter(n => String(n.texto || "").trim());
-    if (extra.length || notas.length) sec("Notas del entrenador", extra.map(c => `<div class="nb"><b>${esc(c.titulo)}</b>${esc(String(campos[c.id]).trim())}</div>`).join("") + notas.map(n => `<div class="nb">${esc(rtPlain(String(n.texto).trim()))}</div>`).join("")); }
-  { const jug = (ficha.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length);
-    for (let i = 0; i < jug.length; i += 2) sec("Jugadas del rival" + (jug.length > 2 ? ` (${Math.floor(i / 2) + 1}/${Math.ceil(jug.length / 2)})` : ""), jug.slice(i, i + 2).map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && (!x.startsWith("data:") || x.length < 120000)).slice(0, 2);
-      return `<div class="jg"><small>${esc((j.tipo || "Otra").toUpperCase())}</small><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${ea(x)}" alt="">`).join("")}</div>` : ""}</div>`; }).join("")); }
+    if (extra.length || notas.length) sec("Notas del entrenador", extra.map(c => `<div class="nb"><b>${esc(c.titulo)}</b>${esc(String(campos[c.id]).trim())}</div>`).concat(notas.map(n => `<div class="nb">${esc(rtPlain(String(n.texto).trim()))}</div>`))); }
+  { const jug = (ficha.jugadas || []).filter(j => j.nombre || j.descripcion || imagenesDe(j).length || j.enlace);
+    if (jug.length) sec("Jugadas del rival", jug.map(j => { const im = imagenesDe(j).filter(x => typeof x === "string" && x);
+      return `<div class="jg"><small>${esc((j.tipo || "Otra").toUpperCase())}</small><h5>${esc(j.nombre || "Jugada")}</h5>${j.descripcion ? `<p>${esc(String(j.descripcion).trim())}</p>` : ""}${j.enlace ? `<p style="color:#ff7a2b;word-break:break-all">${esc(String(j.enlace))}</p>` : ""}${im.length ? `<div class="im">${im.map(x => `<img src="${ea(x)}" alt="">`).join("")}</div>` : ""}</div>`; })); }
+  const paginas = ordPaginar(pages);
 
-  const total = pages.length + 1;
+  const total = paginas.length + 1;
   const cab = `<div class="cab"><b>Scout<i>Flow</i></b><div class="es">${dat.escudo ? `<img src="${ea(dat.escudo)}" alt="" onerror="this.remove()">` : ""}${mio ? `<span>VS</span>${mio.escudo ? `<img src="${ea(mio.escudo)}" alt="" onerror="this.remove()">` : ""}` : ""}</div></div>`;
   const cover = `<div class="pg cov"><div class="in"><small>SCOUTING &amp; ANALYTICS</small><h1>Informe<br>de Rival</h1><div class="sb">${esc(temp ? "Temporada " + temp : "")}${dat.jornada ? " · " + esc(dat.jornada) : ""}</div></div>
     <div class="vs">${mio ? `<div class="esc">${escImg(mio.escudo, mio.sigla)}</div><div class="vv">VS</div>` : ""}<div class="esc">${escImg(dat.escudo, dat.sigla)}</div></div>
     <div class="nm">${mio ? `<div>${esc(mio.nombre)}<span>${esc(mio.rec || "")}</span></div>` : ""}<div>${esc(oficial)}<span>${esc(dat.rec || "")}</span></div></div>
     <div class="ft"><b>Scout<i>Flow</i></b><span>${esc(hoy)}</span></div></div>`;
-  const body = pages.map(([tit, html], i) => `<div class="pg">${cab}<div class="cu"><div class="st"><em>${String(i + 1).padStart(2, "0")}</em><h2>${esc(tit)}</h2></div>${html}</div><div class="pie"><span>${esc(oficial.toUpperCase())}</span><span>Powered by <b>Scout<i>Flow</i></b> · Página ${i + 2} de ${total}</span></div></div>`).join("");
+  const body = paginas.map(([n, tit, html], i) => `<div class="pg">${cab}<div class="cu"><div class="st"><em>${String(n).padStart(2, "0")}</em><h2>${esc(tit)}</h2></div>${html}</div><div class="pie"><span>${esc(oficial.toUpperCase())}</span><span>Powered by <b>Scout<i>Flow</i></b> · Página ${i + 2} de ${total}</span></div></div>`).join("");
   return `<div class="iv ord" data-iv>${cover}${body}</div>`;
 }
 
