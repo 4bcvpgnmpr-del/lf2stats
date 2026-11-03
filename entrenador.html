@@ -1076,7 +1076,7 @@ function pintarCarpetas(v, tipo) {
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
   let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${PLAN_LIM && PLAN_LIM[tipo] != null ? `<span class="peq" style="background:#fff4e6;color:#c2570c;border-radius:999px;padding:4px 10px;font-weight:800;">Muestra: ${D[tipo].length}/${PLAN_LIM[tipo]}</span>` : ""}${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${tipo === "jugadas" ? '<button class="gris" id="bPartido" title="Pizarra en vivo para el banquillo">🏟 Modo partido</button>' : ""}${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
     <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
-      ${tipo === "planes" ? '<button class="gris" id="bCarga" title="Cuánto trabajas de ataque, defensa…">📊 Control de carga</button>' : ""}
+      ${tipo === "planes" ? '<button class="gris" id="bTemp" title="Entrenamiento 1, 2, 3… de la temporada">🗓 Sesiones</button><button class="gris" id="bCarga" title="Cuánto trabajas de ataque, defensa…">📊 Control de carga</button>' : ""}
       <button class="gris" id="bIr" title="Ir a una carpeta">📂 Carpetas</button>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
       <button class="gris" id="bOrden" title="Ordenar">⇅ ${ORDENES[ordenar]}</button>
@@ -1106,6 +1106,7 @@ function pintarCarpetas(v, tipo) {
   $("bq").addEventListener("input", (e) => { busqueda = e.target.value; const p = e.target.selectionStart; redib(); const n = $("bq"); n.focus(); n.setSelectionRange(p, p); });
   $("bFiltro").onclick = () => abrirFiltro(v, tipo);
   if ($("bCarga")) $("bCarga").onclick = () => controlCarga();
+  if ($("bTemp")) $("bTemp").onclick = () => sesionesTemporada();
   $("bIr").onclick = (e) => { const rs = rutasCarpetas(tipo).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")); abrirMenu(e, [[(carpeta === "" ? "✓ " : "") + "📂 Todo (raíz)", () => { carpeta = ""; seleccion.clear(); pintar(); }]].concat(rs.map(c => [(carpeta === c.nombre ? "✓ " : "") + "　".repeat(c.nombre.split("/").length - 1) + "📁 " + ultimo(c.nombre) + " (" + c.n + ")", () => { carpeta = c.nombre; seleccion.clear(); pintar(); }]))); };
   v.querySelectorAll("[data-fx]").forEach(a => a.onclick = () => { const k = a.dataset.fx, val = a.dataset.v || true; if (fx[k] && fx[k] === val) delete fx[k]; else fx[k] = val; redib(); });
   v.querySelectorAll("[data-vg]").forEach(a => a.onclick = (e) => { const lst = vistasGuardadas(tipo), i = Number(a.dataset.vg); if (e.target.closest("[data-vx]")) { if (confirm("¿Quitar la vista «" + lst[i].n + "»?")) { lst.splice(i, 1); guardarVistas(tipo, lst); redib(); } return; } const g = lst[i]; busqueda = g.q || ""; filtroTags = (g.t || []).slice(); filtroTipo = g.ti || ""; fx = Object.assign({}, g.fx || {}); if (g.c != null) carpeta = g.c; redib(); });
@@ -2124,6 +2125,36 @@ function controlCarga() {
     x.p.data = x.p.data || {}; x.p.data.ejercicios[x.i].cat = sel.value;
     await guardarFila("planes", { id: x.p.id, nombre: x.p.nombre, carpeta: x.p.carpeta || "", fecha: x.p.fecha || null, data: x.p.data }); controlCarga();
   });
+}
+/* ------------ sesiones de la temporada: Entrenamiento 1, 2, 3… en orden de fecha ------------ */
+const ST = { temp: "" };
+const tempDe = (f) => { const d = new Date(f + "T12:00:00"); return d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1; };
+const etqTemp = (y) => y + "/" + String((y + 1) % 100).padStart(2, "0");
+function sesionesTemporada() {
+  const hoy = new Date().toISOString().slice(0, 10), fd = (p) => String(p.fecha || "").slice(0, 10);
+  const con = D.planes.filter(p => fd(p)), sin = D.planes.filter(p => !fd(p));
+  const anios = [...new Set(con.map(p => tempDe(fd(p))))].sort((a, b) => b - a), actual = tempDe(hoy);
+  if (!anios.includes(actual)) anios.unshift(actual);
+  if (!ST.temp || !anios.includes(Number(ST.temp))) ST.temp = actual;
+  const y = Number(ST.temp);
+  const lista = con.filter(p => tempDe(fd(p)) === y).sort((a, b) => (fd(a) + ((a.data && a.data.inicio) || "")).localeCompare(fd(b) + ((b.data && b.data.inicio) || "")));
+  const hechas = lista.filter(p => fd(p) <= hoy), minH = hechas.reduce((a, p) => a + minPlan(p.data || {}), 0);
+  const dia = (f) => new Date(f + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "2-digit", month: "short" });
+  const fila = (p, i) => { const d = p.data || {}, g = minPorGrupo(d), f = fd(p), est = f < hoy ? "✓ hecha" : f === hoy ? "● hoy" : "⏳ pendiente";
+    return `<tr data-id="${esc(p.id)}" style="cursor:pointer;"><td class="n"><b>${i + 1}</b></td><td>${esc(dia(f))}</td><td>${esc(p.nombre || "(sin título)")}</td><td class="n">${minPlan(d)} min</td><td class="n">${segmentos(d).length}</td><td class="peq"><span style="color:${CG_COL.Ataque}">A ${g.Ataque}</span> · <span style="color:${CG_COL.Defensa}">D ${g.Defensa}</span> · <span style="color:${CG_COL.Otros}">O ${g.Otros}</span></td><td>${est}</td></tr>`; };
+  const h = `<h3>🗓 Sesiones de la temporada</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;"><select id="stT" style="width:auto;">${anios.map(a => `<option value="${a}" ${a === y ? "selected" : ""}>Temporada ${etqTemp(a)}</option>`).join("")}</select>${puedeEscribir ? `<button class="naranja" id="stN" style="margin-left:auto;">＋ Entrenamiento ${lista.length + 1}</button>` : ""}</div>
+    <div class="cg-kpi"><div><b>${lista.length}</b><span>sesiones</span></div><div><b>${hechas.length}</b><span>realizadas</span></div><div><b>${lista.length - hechas.length}</b><span>por hacer</span></div><div><b>${(minH / 60).toFixed(1).replace(".", ",")} h</b><span>entrenadas</span></div></div>
+    ${lista.length ? `<table class="cg-t"><tr><th class="n">Nº</th><th>Fecha</th><th>Título</th><th class="n">Duración</th><th class="n">Ejerc.</th><th>Ataque · Defensa · Otros</th><th>Estado</th></tr>${lista.map(fila).join("")}</table>`
+      : '<div class="vacio" style="padding:26px 6px;">Todavía no hay entrenamientos con fecha en esta temporada.</div>'}
+    ${sin.length ? `<p class="peq" style="margin-top:10px;">${sin.length} plan${sin.length > 1 ? "es" : ""} sin fecha no aparece${sin.length > 1 ? "n" : ""} aquí. Pon la fecha en la pestaña Detalles del plan.</p>` : ""}
+    <p class="peq" style="margin-top:8px;">El número va por orden de fecha (temporada de septiembre a agosto). Pulsa una sesión para abrirla. A, D, O = minutos de ataque, defensa y otros.</p>
+    <div class="pie-m"><button class="gris" id="stCg">📊 Control de carga</button><button class="naranja" id="stX">Cerrar</button></div>`;
+  const m = ventana(h, true);
+  $("stX").onclick = cerrarVentana; $("stCg").onclick = () => controlCarga();
+  $("stT").onchange = (e) => { ST.temp = e.target.value; sesionesTemporada(); };
+  m.querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => { const p = D.planes.find(x => x.id === tr.dataset.id); if (p) { cerrarVentana(); abrirPlan(p); } });
+  if ($("stN")) $("stN").onclick = () => { cerrarVentana(); abrirPlan({ id: idNuevo("p"), nombre: "Entrenamiento " + (lista.length + 1), carpeta: "", fecha: hoy, data: { ejercicios: [], notas: "", inicio: "18:00" }, nuevo: true }); };
 }
 const snapPlan = () => JSON.stringify({ n: PL.p.nombre, f: PL.p.fecha, c: PL.p.carpeta, d: PL.p.data });
 function histPlan() { const s = snapPlan(); if (PL.hist[PL.hist.length - 1] === s) return; PL.hist.push(s); if (PL.hist.length > 80) PL.hist.shift(); PL.fut = []; PL.sucio = true; }
