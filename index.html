@@ -7046,6 +7046,7 @@ function quintetosDe(teamName) {
   return quintetosCache.rows
     .filter(r => cellText(r, "Equipo") === teamName)
     .map(r => ({
+      equipo: teamName,
       quinteto: cellText(r, "Quinteto"),
       partidos: parseSpanishNumber(cellText(r, "Partidos")),
       minutos: parseSpanishNumber(cellText(r, "Minutos")),
@@ -7508,7 +7509,7 @@ async function rellenarAvanzadasEquipo(teamName) {
     html += `<h4 style="margin:16px 0 8px;">Quintetos iniciales mas repetidos</h4>
       <div class="table-scroll"><table><thead><tr><th style="text-align:left;">Quinteto</th><th>Veces</th><th>V-D</th><th>+/- medio</th></tr></thead><tbody>`;
     top.forEach(([clave, q]) => {
-      html += `<tr><td style="text-align:left;">${escapeHtml(clave)}</td><td>${q.pj}</td><td>${q.v}-${q.d}</td><td>${fmtNum(Math.round(q.dif / q.pj * 10) / 10)}</td></tr>`;
+      html += `<tr><td style="text-align:left;">${fotosComboHtml(clave, teamName)}</td><td>${q.pj}</td><td>${q.v}-${q.d}</td><td>${fmtNum(Math.round(q.dif / q.pj * 10) / 10)}</td></tr>`;
     });
     html += `</tbody></table></div>`;
   }
