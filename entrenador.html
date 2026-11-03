@@ -2222,7 +2222,7 @@ function pEd() {
     if ($("peAdd")) {
       const nuevoSeg = () => { lista.push({ titulo: "", min: 10, notas: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=titulo]"); if (ins.length) ins[ins.length - 1].focus(); root.querySelector(".pe-cuerpo").scrollTop = 1e6; };
       $("peAdd").onclick = nuevoSeg;
-      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=sec]"); if (ins.length) ins[ins.length - 1].focus(); }]]);
+      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["🎯 Crear ejercicio nuevo", () => crearEjercicioRapido((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista.push({ id, titulo: ej.nombre, min: (ej.data && ej.data.minutos) || 10, notas: "" }); histPlan(); pEd(); })], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=sec]"); if (ins.length) ins[ins.length - 1].focus(); }]]);
     }
   } else if (tab === "det") {
     const volc = () => { p.fecha = $("pdF").value || null; d.inicio = $("pdH").value || "18:00"; p.carpeta = $("pdC").value.trim(); d.notas = $("pdN").value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; };
@@ -2259,9 +2259,31 @@ function reutilizarSegmentos() {
   pin(); $("rsQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase(); pin(); }); $("rsX").onclick = cerrarVentana;
   $("rsOk").onclick = () => { const L = PL.p.data.ejercicios; todos.filter(t => sel.has(t.titulo.trim().toLowerCase())).forEach(t => { const o = { titulo: t.titulo, min: t.min, notas: t.notas }; if (t.id && D.ejercicios.some(y => y.id === t.id)) o.id = t.id; L.push(o); }); cerrarVentana(); histPlan(); pEd(); };
 }
+/* crear un ejercicio nuevo sin salir del plan: se guarda en la biblioteca y se devuelve su id */
+function crearEjercicioRapido(ok) {
+  const cs = rutasCarpetas("ejercicios").map(c => c.nombre);
+  ventana(`<h3>Nuevo ejercicio</h3>
+    <label>Título</label><input id="enN" placeholder="Ej: 3 contra 2 en transición">
+    <div class="dos"><div><label>Categoría</label><select id="enK">${CATEGORIAS.map(c => `<option ${c === "Otro" ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+      <div><label>Duración (minutos)</label><input type="number" id="enM" min="0" step="1" placeholder="10"></div></div>
+    <div class="dos"><div><label>Carpeta</label><input id="enC" list="dlen" placeholder="Sin carpeta"><datalist id="dlen">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
+      <div><label>Material</label><input id="enMat" placeholder="Balones, conos, petos…"></div></div>
+    <label>Descripción / cómo se hace</label><textarea id="enD"></textarea>
+    <p class="peq" style="margin:6px 0 0;">Si quieres dibujarlo en la pizarra, hazlo luego desde Ejercicios; así no pierdes el plan.</p>
+    <div class="pie-m"><button class="gris" id="enX">Cancelar</button><button class="naranja" id="enG">Crear y añadir al plan</button></div>`);
+  $("enN").focus(); $("enX").onclick = cerrarVentana;
+  $("enG").onclick = async () => {
+    const nombre = $("enN").value.trim(); if (!nombre) { aviso("Ponle un título."); return; }
+    const x = { id: idNuevo("e"), nombre, carpeta: $("enC").value.trim(), data: { categoria: $("enK").value, minutos: Number($("enM").value) || 0, materiales: $("enMat").value.trim(), descripcion: $("enD").value } };
+    if (!(await guardarFila("ejercicios", x))) return;
+    if (x.carpeta && !D.carpetas.some(c => c.tipo === "ejercicios" && c.nombre === x.carpeta)) { const c = { tipo: "ejercicios", nombre: x.carpeta }; if (await guardarFila("carpetas", c)) D.carpetas.push(c); }
+    x.actualizada = new Date().toISOString(); D.ejercicios.push(x);
+    cerrarVentana(); aviso("Ejercicio creado ✓"); ok(x.id);
+  };
+}
 function elegirEjercicio(ok) {
   let q = "", cur = "";
-  ventana(`<h3>Elegir ejercicio de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en todas las carpetas…"><div id="elMig" class="peq" style="margin:8px 2px 4px;"></div><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
+  ventana(`<h3>Elegir ejercicio de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en todas las carpetas…"><div id="elMig" class="peq" style="margin:8px 2px 4px;"></div><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m">${puedeEscribir ? '<button class="naranja" id="elN" style="margin-right:auto;">＋ Crear ejercicio nuevo</button>' : ""}<button class="gris" id="elX">Cerrar</button></div>`);
   const ejs = () => D.ejercicios.slice().sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
   const fila = (e, ruta) => `<label class="it" data-id="${esc(e.id)}"><span class="mini-s" data-mini="${esc(e.id)}">${MINIS[e.id + "|" + e.actualizada] || "🎯"}</span><span style="flex:1;">${esc(e.nombre)}${ruta && e.carpeta ? ` <span class="peq">· ${esc(e.carpeta)}</span>` : ""}</span><span class="peq">${esc((e.data && e.data.categoria) || "")} ${e.data && e.data.minutos ? "· " + e.data.minutos + " min" : ""}</span></label>`;
   const pin = () => {
@@ -2285,6 +2307,7 @@ function elegirEjercicio(ok) {
   };
   pedirMiniaturas(D.ejercicios);
   pin(); $("elQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase().trim(); pin(); }); $("elX").onclick = cerrarVentana;
+  if ($("elN")) $("elN").onclick = () => crearEjercicioRapido(ok);
 }
 function nuevoPlanModal() {
   ventana(`<h3>Nuevo plan de entrenamiento</h3><div class="np"><button class="gris" id="npB"><b>＋ Empezar en blanco</b><span class="peq">Un plan vacío para montar tú mismo</span></button><button class="gris" id="npC"><b>⧉ Copiar un plan existente</b><span class="peq">Parte de uno que ya tienes</span></button></div><div class="pie-m"><button class="gris" id="npX">Cancelar</button></div>`);
