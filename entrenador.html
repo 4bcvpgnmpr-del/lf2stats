@@ -1468,6 +1468,7 @@ function abrirEditor(id, tabla) {
 }
 async function cerrarEditorMarco() {
   $("editorMarco").classList.remove("ver"); $("marcoEd").src = "about:blank"; await cargarTodo(); pintar();
+  if (typeof PL !== "undefined" && PL && $("planEd").classList.contains("ver")) pEd(); /* el plan sigue abierto debajo: se repinta con el dibujo nuevo */
   if (detalleActual && $("detalleJ").classList.contains("ver")) { const t = detalleActual.tipo, f = (D[t] || []).find(y => y.id === detalleActual.x.id); if (f) abrirDetalle(t, f); else { $("detalleJ").classList.remove("ver"); detalleActual = null; } }
 }
 const animDe = (ej) => { const d = diagDe(ej); return !!(d && d.pasos && d.pasos.length); };
@@ -2269,17 +2270,19 @@ function crearEjercicioRapido(ok) {
     <div class="dos"><div><label>Carpeta</label><input id="enC" list="dlen" placeholder="Sin carpeta"><datalist id="dlen">${cs.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
       <div><label>Material</label><input id="enMat" placeholder="Balones, conos, petos…"></div></div>
     <label>Descripción / cómo se hace</label><textarea id="enD"></textarea>
-    <p class="peq" style="margin:6px 0 0;">Si quieres dibujarlo en la pizarra, hazlo luego desde Ejercicios; así no pierdes el plan.</p>
-    <div class="pie-m"><button class="gris" id="enX">Cancelar</button><button class="naranja" id="enG">Crear y añadir al plan</button></div>`);
+    <p class="peq" style="margin:6px 0 0;">«Crear y dibujar» abre la pizarra encima del plan: al cerrarla vuelves a tu plan tal cual lo dejaste.</p>
+    <div class="pie-m"><button class="gris" id="enX">Cancelar</button><button class="gris" id="enP">🎨 Crear y dibujar en la pizarra</button><button class="naranja" id="enG">Crear y añadir al plan</button></div>`);
   $("enN").focus(); $("enX").onclick = cerrarVentana;
-  $("enG").onclick = async () => {
+  const crear = async (dibujar) => {
     const nombre = $("enN").value.trim(); if (!nombre) { aviso("Ponle un título."); return; }
     const x = { id: idNuevo("e"), nombre, carpeta: $("enC").value.trim(), data: { categoria: $("enK").value, minutos: Number($("enM").value) || 0, materiales: $("enMat").value.trim(), descripcion: $("enD").value } };
     if (!(await guardarFila("ejercicios", x))) return;
     if (x.carpeta && !D.carpetas.some(c => c.tipo === "ejercicios" && c.nombre === x.carpeta)) { const c = { tipo: "ejercicios", nombre: x.carpeta }; if (await guardarFila("carpetas", c)) D.carpetas.push(c); }
     x.actualizada = new Date().toISOString(); D.ejercicios.push(x);
     cerrarVentana(); aviso("Ejercicio creado ✓"); ok(x.id);
+    if (dibujar) abrirEditor(x.id, "ejercicios");
   };
+  $("enG").onclick = () => crear(false); $("enP").onclick = () => crear(true);
 }
 function elegirEjercicio(ok) {
   let q = "", cur = "";
