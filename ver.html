@@ -92,6 +92,15 @@ async function iniciar() {
     const html = items.map((e, i) => { if (e.sec) return `<div class="sec">${esc(e.titulo)}</div>`; tot += Number(e.min) || 0; n++; return ejercicioHtml(e, i); }).join("");
     m.innerHTML = `<h1>${esc(fila.nombre)}</h1><div class="meta">${esc(fechaTxt(d.fecha))}${d.inicio ? " · " + esc(d.inicio) : ""} · ${n} ejercicios · ${tot} min</div>${d.notas ? `<div class="card nota">${esc(d.notas)}</div>` : ""}${html}`;
     m.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { const i = Number(b.dataset.d), c = $("d" + i); if (c.firstChild) { c.innerHTML = ""; b.textContent = "▶ Ver diagrama"; return; } visor(c, Object.assign({}, items[i].diagrama, { nombre: items[i].titulo })); b.textContent = "✕ Ocultar diagrama"; });
+  } else if (fila.tipo === "playbook") {
+    const caps = d.capitulos || []; let n = 0;
+    const html = caps.map((c, ci) => `<div class="sec">${esc(c.titulo || ("Capítulo " + (ci + 1)))}</div>` + (c.items || []).map(it => {
+      if (it.t === "txt") return `<div class="card nota">${esc(it.txt || "").replace(/\n/g, "<br>")}</div>`;
+      const k = n++; return `<div class="card"><div class="ej"><b>${esc(it.nombre || "Jugada")}</b></div>${it.notas ? `<div class="meta" style="margin:2px 0 8px">${esc(it.notas)}</div>` : ""}${diagOk(it.diagrama) ? `<button class="btn" data-pj="${k}">▶ Ver jugada en movimiento</button><div id="pj${k}"></div>` : ""}</div>`;
+    }).join("")).join("");
+    m.innerHTML = `<h1>${esc(fila.nombre)}</h1><div class="meta">${esc([d.equipo, d.temporada].filter(Boolean).join(" · "))}</div>${d.notas ? `<div class="card nota">${esc(d.notas).replace(/\n/g, "<br>")}</div>` : ""}${html || '<div class="vacio">Este playbook está vacío.</div>'}`;
+    const lista = []; caps.forEach(c => (c.items || []).forEach(it => { if (it.t !== "txt") lista.push(it); }));
+    m.querySelectorAll("[data-pj]").forEach(b => b.onclick = () => { const i = Number(b.dataset.pj), c = $("pj" + i); if (c.firstChild) { c.innerHTML = ""; b.textContent = "▶ Ver jugada en movimiento"; return; } visor(c, Object.assign({}, lista[i].diagrama, { nombre: lista[i].nombre })); b.textContent = "✕ Cerrar"; });
   } else m.innerHTML = '<div class="vacio">Este enlace no es válido.</div>';
 }
 iniciar();

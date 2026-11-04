@@ -1221,6 +1221,14 @@ function abrirFiltro(v, tipo) {
 const TK_K = (id) => "ent_enlace_" + id;
 const enlaceDe = (t) => new URL("ver.html?c=" + t, location.href).href;
 function datosCompartir(tipo, x) {
+  if (tipo === "playbooks") {
+    const caps = pbCaps(x).map((c, ci) => ({ titulo: pbTit(c, ci), items: c.items.map(it => {
+      if (it.t === "txt") return { t: "txt", txt: it.txt || "" };
+      if (!pbEsJ(it)) return null; const e = pbElem(it); if (!e) return null; const d = diagDe(e) || null;
+      return { t: it.t, nombre: e.nombre || "", notas: it.t === "e" ? ((e.data && e.data.descripcion) || "") : ((d && d.notas) || (e.data && e.data.notas) || ""), diagrama: d && d.pasos && d.pasos.length ? d : null };
+    }).filter(Boolean) }));
+    return { t: "playbook", d: { equipo: x.equipo || "", temporada: x.temporada || "", notas: (x.data && x.data.notas) || "", capitulos: caps } };
+  }
   if (tipo === "jugadas") return { t: "jugada", d: Object.assign({}, x.data || {}, { nombre: x.nombre }) };
   if (tipo === "ejercicios") { const dd = x.data || {}; return { t: "ejercicio", d: { categoria: dd.categoria || "", minutos: dd.minutos || 0, descripcion: dd.descripcion || "", materiales: dd.materiales || "", diagrama: diagDe(x) || null } }; }
   const d = x.data || {};
@@ -1825,10 +1833,11 @@ function pbPaginar(root, p) {
 function imprimirPb(root) { const h = $("hojaImp"); h.className = root.querySelector(".paginado") ? "pdf-pb" : ""; h.innerHTML = '<div class="pbp">' + root.innerHTML + "</div>"; h.querySelectorAll("details").forEach(d => { d.open = true; }); window.print(); }
 function pintarPlaybook(v) {
   const p = D.playbooks.find(y => y.id === vistaDetalle.id); if (!p) { vistaDetalle = null; return pintar(); }
-  v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span></div><div class="pbv-acc"><button class="gris" id="impPb">🖨 Imprimir / PDF</button>${puedeEscribir ? '<button class="naranja" id="editPb">✏️ Editar playbook</button>' : ""}</div><div id="pbLect">${pbVistaHtml(p)}</div>`;
+  v.innerHTML = `<div class="cab"><h2>📘 ${esc(p.nombre)}</h2><span class="miga"><a id="volverPb">← Playbooks</a></span><span class="esp"></span></div><div class="pbv-acc"><button class="gris" id="impPb">🖨 Imprimir / PDF</button>${puedeEscribir ? '<button class="gris" id="cmpPb">🔗 Compartir enlace (jugadas en movimiento)</button>' : ""}${puedeEscribir ? '<button class="naranja" id="editPb">✏️ Editar playbook</button>' : ""}</div><div id="pbLect">${pbVistaHtml(p)}</div>`;
   $("volverPb").onclick = () => { vistaDetalle = null; pintar(); };
   if ($("editPb")) $("editPb").onclick = () => abrirPbEd(p, false);
   $("impPb").onclick = () => imprimirPb($("pbLect"));
+  if ($("cmpPb")) $("cmpPb").onclick = () => compartirEnlace("playbooks", p);
   pbCargar($("pbLect"));
 }
 /* datos del playbook (título, equipo, temporada, notas, visible para jugadoras) */
