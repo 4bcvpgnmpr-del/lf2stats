@@ -1383,12 +1383,12 @@ function segmentosAnim(j, dur, desde, hasta) {
 function animarJugada(j, caja, dur, op) {
   op = op || {};
   const { segs, total } = segmentosAnim(j, dur, op.desde || 0, op.hasta == null ? j.pasos.length : op.hasta);
-  let cancelar = false, ini = null, ultima = -1;
+  let cancelar = false, ini = null, ultima = -1, elUlt = op.desdeMs || 0;
   if (!segs.length) { if (op.alAcabar) op.alAcabar(); return () => {}; }
   const marco = (ts) => {
     if (cancelar) { if (op.alAcabar) op.alAcabar(false); return; }
-    if (ini === null) ini = ts;
-    const el = Math.min(total, ts - ini);
+    if (ini === null) ini = ts - (op.desdeMs || 0);
+    const el = Math.min(total, ts - ini); elUlt = el;
     let sg = segs.find(s => el < s.fin) || segs[segs.length - 1];
     const t = Math.min(1, (el - sg.ini) / sg.dur);
     if (sg.i !== ultima) { ultima = sg.i; if (op.enFase) op.enFase(sg.i); }
@@ -1398,7 +1398,8 @@ function animarJugada(j, caja, dur, op) {
     requestAnimationFrame(marco);
   };
   requestAnimationFrame(marco);
-  return () => { cancelar = true; };
+  const parar = () => { cancelar = true; }; parar.ms = () => elUlt;
+  return parar;
 }
 const tiempoTxt = (ms) => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
 
@@ -2075,7 +2076,7 @@ function crearVisor(ids, dur) {
   const mostrar = () => { pista.innerHTML = svgPaso(v.j, v.i, { rotulo: true }); ley.innerHTML = textoLista(v.j.pasos[v.i].texto); };
   const barras = () => linea.querySelectorAll(".seg i");
   const resetBarras = (hasta) => { barras().forEach((b, k) => { b.style.width = hasta != null && k < hasta ? "100%" : "0"; }); };
-  const detener = () => { if (v.parar) { v.parar(); v.parar = null; } play.textContent = "▶"; };
+  const detener = () => { if (v.parar) { v.parar(); v.parar = null; } v.pausaMs = 0; play.textContent = "▶"; };
   v.abrir = (j) => {
     detener(); v.j = normalizar(clonar(j)); v.i = 0;
     $(ids.titulo).textContent = v.j.nombre || "Jugada";
@@ -2128,17 +2129,19 @@ function crearVisor(ids, dur) {
   v.reproducir = () => {
     if (!v.j || v.parar) return;
     if (!segmentosAnim(v.j, dur, 0, v.j.pasos.length).segs.length) return;
-    play.textContent = "■";
+    play.textContent = "⏸";
     const { segs } = segmentosAnim(v.j, dur, 0, v.j.pasos.length);
-    v.parar = animarJugada(v.j, pista, dur, { desde: 0, hasta: v.j.pasos.length,
+    const desdeMs = v.pausaMs || 0; v.pausaMs = 0;
+    v.parar = animarJugada(v.j, pista, dur, { desde: 0, hasta: v.j.pasos.length, desdeMs,
       enFase: (k) => { ley.innerHTML = textoLista(v.j.pasos[k].texto); },
       enProgreso: (el, tot) => { tiempo.textContent = tiempoTxt(el) + " / " + tiempoTxt(tot); segs.forEach((s, k) => { const b = barras()[k]; if (b) b.style.width = Math.max(0, Math.min(1, (el - s.ini) / (s.fin - s.ini))) * 100 + "%"; }); },
-      alAcabar: () => { v.parar = null; play.textContent = "▶"; v.i = v.j.pasos.length - 1; if (!(v.j.pasos[v.i].lineas || []).length) mostrar(); } });
+      alAcabar: (ok) => { if (ok === false) return; v.parar = null; v.pausaMs = 0; play.textContent = "▶"; v.i = v.j.pasos.length - 1; if (!(v.j.pasos[v.i].lineas || []).length) mostrar(); } });
   };
   const ir = (d) => { if (!v.j) return; detener(); v.i = Math.max(0, Math.min(v.j.pasos.length - 1, v.i + d)); resetBarras(v.i); mostrar(); };
   $(ids.prev).addEventListener("click", () => ir(-1));
   $(ids.next).addEventListener("click", () => ir(1));
-  play.addEventListener("click", () => { if (v.parar) { detener(); mostrar(); } else { v.i = 0; resetBarras(0); v.reproducir(); } });
+  /* pausa: al volver a pulsar sigue desde el mismo punto (no empieza de nuevo) */
+  play.addEventListener("click", () => { if (v.parar) { const ms = v.parar.ms ? v.parar.ms() : 0; v.parar(); v.parar = null; v.pausaMs = ms; play.textContent = "▶"; } else if (v.pausaMs > 0) { v.reproducir(); } else { v.i = 0; resetBarras(0); v.reproducir(); } });
   return v;
 }
 
