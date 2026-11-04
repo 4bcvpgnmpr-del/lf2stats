@@ -844,6 +844,7 @@ const NOMBRE_ACCION = { corte: "Corte", bote: "Bote", pase: "Pase", pantalla: "P
 const MOVEDORAS = ["corte", "bote", "pantalla", "mueve", "entrega"];
 const SB = { url: "https://tizmzblksovdqqnlxpli.supabase.co", anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
 const PARAMS = new URLSearchParams(location.search);
+const MODO_VIDEO = (PARAMS.get("video") === "1" || PARAMS.get("pizarra") === "1") && window.parent !== window;
 const VISOR = PARAMS.get("visor") === "1", PARTIDO = PARAMS.get("partido") === "1";
 const EJ = PARAMS.get("tabla") === "ejercicios", ORIG = {}, CATEG = ["Calentamiento", "Técnica individual", "Tiro", "Defensa", "Ataque", "Juego reducido", "Físico", "Estrategia", "Otro"], TABLA = EJ ? "ejercicios" : "jugadas";
 const EDITOR = PARAMS.get("editor") === "1", ID_ED = PARAMS.get("id") || "", CARPETA_ED = PARAMS.get("carpeta") || "";
@@ -1322,8 +1323,10 @@ function estadoEn(j, i, t, dur) {
     const f = s < si ? 1 : e;
     idxs.forEach(li => { const l = a.lineas[li]; if (l.de && !l.opcional && MOVEDORAS.includes(l.t) && pos[l.de]) { const q = puntoEn(trayectoria(l), f); pos[l.de] = { x: q[0], y: q[1] }; movidas.add(l.de); } });
   });
+  /* quien tiene una flecha de movimiento en esta fase se queda quieta hasta su turno: antes se deslizaba hacia su destino en linea recta antes de que empezara su corte */
+  const conFlecha = new Set(); st.forEach(idxs => idxs.forEach(li => { const l = a.lineas[li]; if (l.de && !l.opcional && MOVEDORAS.includes(l.t)) conFlecha.add(l.de); }));
   const g = easeIO(Math.max(0, Math.min(1, (si + e) / nS)));
-  Object.keys(a.pos).forEach(k => { if (!movidas.has(k) && b.pos[k]) { pos[k] = { x: a.pos[k].x + (b.pos[k].x - a.pos[k].x) * g, y: a.pos[k].y + (b.pos[k].y - a.pos[k].y) * g }; } });
+  Object.keys(a.pos).forEach(k => { if (!movidas.has(k) && !conFlecha.has(k) && b.pos[k]) { pos[k] = { x: a.pos[k].x + (b.pos[k].x - a.pos[k].x) * g, y: a.pos[k].y + (b.pos[k].y - a.pos[k].y) * g }; } });
   let holder = a.balon, vuelo = null;
   st.forEach((idxs, s) => {
     if (s > si) return;
@@ -2236,6 +2239,7 @@ function pintarLista() {
       <div class="cuerpo">
         <b class="n">${x.favorita ? "⭐ " : ""}${esc(x.nombre)}</b>
         <div class="sub">${esc(x.tipo)} · ${x.pasos.length} ${x.pasos.length === 1 ? "fase" : "fases"}${(x.videos || []).length ? " · 🎬" : ""} ${x.compartida ? '<span class="insignia comp">📤 Jugadoras</span>' : ""}</div>
+        ${MODO_VIDEO ? '<div class="ins" style="margin-bottom:6px"><button class="naranja" data-a="envid" style="flex:1">🎬 Poner en el vídeo</button><button class="gris" data-a="mostrar2d3d" title="Verla en 2D y 3D">▶ 2D/3D</button></div>' : ""}
         <div class="ins"><button class="gris" data-a="abrir">✏️ Editar</button><button class="gris" data-a="fav" title="Favorita">${x.favorita ? "★" : "☆"}</button>
           <button class="gris" data-a="comp" title="Mostrar u ocultar a las jugadoras">📤</button><button class="gris" data-a="dup" title="Duplicar">⧉</button><button class="gris" data-a="borrar" title="Borrar">🗑️</button></div>
       </div></div>`).join("")
@@ -2245,6 +2249,12 @@ function pintarLista() {
 async function accionLista(id, a) {
   const x = BIB.find(y => y.id === id); if (!x) return;
   if (a === "ver") { $("modalVer").classList.add("ver"); visorGrande.abrir(x); return; }
+  if (a === "envid" || a === "mostrar2d3d") {
+    let d = null; try { d = hornearJugada(normalizar(clonar(x)), 1200); } catch (e) { d = null; }
+    if (!d) { aviso("Esta jugada no tiene acciones (pase, corte, bote…) que animar."); return; }
+    try { parent.postMessage({ jugadaParaVideo: d, accion: a === "envid" ? "use" : "show" }, "*"); aviso(a === "envid" ? "Enviada al vídeo ✓" : "Abriendo en 2D y 3D…"); } catch (e) { aviso("No se pudo enviar al vídeo."); }
+    return;
+  }
   if (a === "abrir") { jugada = normalizar(clonar(x)); paso = 0; hist = []; rehacer = []; cargarCampos(); mostrarVista("ed"); irPestana("Draw"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
   if (a === "fav") { const c = clonar(x); c.favorita = !c.favorita; if (await guardarJugada(c)) recargarBib(); return; }
   if (a === "comp") { const c = clonar(x); c.compartida = !c.compartida; if (await guardarJugada(c)) { aviso(c.compartida ? "Ahora la ven las jugadoras 📤" : "Ya no la ven las jugadoras"); recargarBib(); } return; }
@@ -2456,13 +2466,16 @@ function conectarPC(idBoton, idCaja) {
 }
 document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && pcActivo && pcApi) salirPC(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pcActivo) salirPC(); });
+window.addEventListener("message", (ev) => { if (ev.data && ev.data.pedirJugadaVideo) { try { $("btnHornear").click(); } catch (e) { /* nada */ } } });
 $("btnHornear").addEventListener("click", () => {
   try { volcarCampos(); } catch (e) { /* nada */ }
   const d = hornearJugada(jugada, Number($("vel").value) || 1200);
   if (!d) { aviso("Dibuja alguna acción (pase, corte…) para poder animarla."); return; }
+  if ((PARAMS.get("video") === "1" || PARAMS.get("pizarra") === "1") && window.parent !== window) { try { parent.postMessage({ jugadaParaVideo: d }, "*"); aviso("Enviada al vídeo ✓"); return; } catch (e) { /* si falla, se descarga */ } }
   descargar(nombreArchivo() + ".jugada.json", new Blob([JSON.stringify(d)], { type: "application/json" }));
   aviso("Descargada. En el editor de vídeo usa la herramienta «Jugada» y elige este archivo.");
 });
+if ((PARAMS.get("video") === "1" || PARAMS.get("pizarra") === "1") && window.parent !== window) { const bh = $("btnHornear"); if (bh) bh.textContent = "🎬 Poner en el vídeo"; }
 conectarPC("btnFsAni", "cajaAni"); conectarPC("mvFs", "mvCaja"); conectarPC("vsFs", "visor");
 if ($("btnDatos")) { $("btnDatos").addEventListener("click", () => document.querySelector(".datos-ed").classList.toggle("plegado")); if (window.innerWidth <= 760) document.querySelector(".datos-ed").classList.add("plegado"); }
 
@@ -3509,7 +3522,13 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
         mostrarVista("ed"); irPestana("Draw"); $("btnNuevaBib").click();
       }
     });
-  } else iniciarNube().then(recargarBib);
+  } else iniciarNube().then(recargarBib).then(() => {
+    /* dentro del editor de vídeo: se abre directamente la pizarra para dibujar */
+    if ((PARAMS.get("video") === "1" || PARAMS.get("pizarra") === "1") && window.parent !== window) {
+      jugada = jugadaNueva("cinco"); cargarCampos(); marcaGuardado();
+      mostrarVista("ed"); irPestana("Draw"); try { $("btnNuevaBib").click(); } catch (e) { /* nada */ }
+    }
+  });
   pintarLista(); botonesHistorial();
 }
 </script>
