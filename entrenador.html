@@ -878,8 +878,48 @@ async function guardarFila(tabla, fila) {
 async function borrarFila(tabla, id) { const { error } = await nube.from(tabla).delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } return true; }
 
 /* ------------ navegacion ------------ */
-function ir(s, c) { if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; seleccion = new Set(); vistaDetalle = null; try { history.replaceState(null, "", "#" + s); } catch (e) { /* nada */ } pintar(); }
+function ir(s, c) { if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; seleccion = new Set(); vistaDetalle = null; pintar(); }
+/* historial: «atrás» vuelve a la sección o ficha anterior dentro de Entrenador (antes saltaba a Estadísticas) */
+let HIST_BASE = false, HIST_SIN = false;
+const histClave = () => seccion + "|" + (vistaDetalle ? (vistaDetalle.tipo || "") + ":" + (vistaDetalle.id || "") : "") + "|" + (carpeta || "");
+function histSync() {
+  if (HIST_SIN) return;
+  try {
+    const k = histClave(), st = { sf: 1, k, s: seccion, d: vistaDetalle, c: carpeta };
+    if (!HIST_BASE) { HIST_BASE = true; history.replaceState({ sf: 0 }, "", location.pathname + location.search); history.pushState(st, "", "#" + seccion); return; }
+    if (history.state && history.state.sf === 1 && history.state.k === k) return;
+    history.pushState(st, "", "#" + seccion);
+  } catch (e) { /* nada */ }
+}
+/* pantallas encima (editor de pizarra, visor, editor de playbook): «atrás» las cierra y se queda en Entrenador */
+const OVL = []; let OVL_IGN = 0, OVL_POP = false;
+function ovAbrir(tag, cerrar, abierto) {
+  if (OVL.some(o => o.tag === tag)) return;
+  OVL.push({ tag, cerrar, abierto });
+  try { history.pushState({ sf: 2, tag }, "", location.hash || ("#" + seccion)); } catch (e) { /* nada */ }
+}
+function ovCerrado(tag) {
+  const i = OVL.findIndex(o => o.tag === tag); if (i < 0) return;
+  OVL.splice(i, 1); if (OVL_POP) return;
+  OVL_IGN++; try { history.back(); } catch (e) { OVL_IGN--; }
+}
+window.addEventListener("popstate", async (ev) => {
+  if (OVL_IGN > 0) { OVL_IGN--; return; }
+  if (OVL.length) {
+    const o = OVL[OVL.length - 1]; OVL_POP = true;
+    try { await o.cerrar(); } catch (e) { /* nada */ }
+    OVL_POP = false;
+    if (OVL.includes(o)) { if (o.abierto && !o.abierto()) OVL.splice(OVL.indexOf(o), 1); else { try { history.pushState({ sf: 2, tag: o.tag }, "", location.hash || ("#" + seccion)); } catch (e) { /* nada */ } } }
+    return;
+  }
+  const st = ev.state;
+  if (!st || st.sf === 0) { try { history.pushState({ sf: 1, k: histClave(), s: seccion, d: vistaDetalle, c: carpeta }, "", "#" + seccion); } catch (e) { /* nada */ } return; }
+  if (st.sf !== 1) return;
+  if (PERM_E && !PERM_E.has(st.s)) return;
+  HIST_SIN = true; try { seccion = st.s; vistaDetalle = st.d || null; carpeta = st.c || ""; busqueda = ""; seleccion = new Set(); pintar(); } finally { HIST_SIN = false; }
+});
 function pintar() {
+  histSync();
   if (PERM_E && !PERM_E.has(seccion)) seccion = [...PERM_E].find(x => x !== "partido") || "jugadas";
   document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
   const m = $("main"); m.scrollTop = 0;
@@ -1473,10 +1513,12 @@ function editarElemento(tipo, x) {
 /* ------------ editor de jugadas (pizarra) y visor ------------ */
 function abrirEditor(id, tabla) {
   const u = "pizarra.html?editor=1" + (tabla === "ejercicios" ? "&tabla=ejercicios" : "") + (id ? "&id=" + encodeURIComponent(id) : "&carpeta=" + encodeURIComponent(carpeta)) + "&v=" + VERSION;
-  $("marcoEd").src = u; $("editorMarco").classList.add("ver");
+  ovAbrir("editor", () => cerrarEditorMarco(), () => $("editorMarco").classList.contains("ver"));
+  try { $("marcoEd").contentWindow.location.replace(u); } catch (e) { $("marcoEd").src = u; } $("editorMarco").classList.add("ver");
 }
 async function cerrarEditorMarco() {
-  $("editorMarco").classList.remove("ver"); $("marcoEd").src = "about:blank"; await cargarTodo(); pintar();
+  ovCerrado("editor");
+  $("editorMarco").classList.remove("ver"); try { $("marcoEd").contentWindow.location.replace("about:blank"); } catch (e) { $("marcoEd").src = "about:blank"; } await cargarTodo(); pintar();
   if (typeof PL !== "undefined" && PL && $("planEd").classList.contains("ver")) pEd(); /* el plan sigue abierto debajo: se repinta con el dibujo nuevo */
   if (detalleActual && $("detalleJ").classList.contains("ver")) { const t = detalleActual.tipo, f = (D[t] || []).find(y => y.id === detalleActual.x.id); if (f) abrirDetalle(t, f); else { $("detalleJ").classList.remove("ver"); detalleActual = null; } }
 }
@@ -1489,8 +1531,10 @@ function verJugada(x) {
   $("tituloVisor").textContent = x.nombre || "Jugada";
   const marco = $("marcoVisor"); window.__enviarJugada = () => { try { marco.contentWindow.postMessage({ jugada: Object.assign({}, x.data, { nombre: x.nombre }) }, "*"); } catch (e) { /* nada */ } };
   marco.onload = () => setTimeout(window.__enviarJugada, 250);
-  marco.src = "pizarra.html?visor=1&v=" + VERSION; $("visorMarco").classList.add("ver");
+  ovAbrir("visor", () => cerrarVisorX(), () => $("visorMarco").classList.contains("ver"));
+  try { marco.contentWindow.location.replace("pizarra.html?visor=1&v=" + VERSION); } catch (e) { marco.src = "pizarra.html?visor=1&v=" + VERSION; } $("visorMarco").classList.add("ver");
 }
+function cerrarVisorX() { ovCerrado("visor"); $("visorMarco").classList.remove("ver"); $("marcoVisor").onload = null; try { $("marcoVisor").contentWindow.location.replace("about:blank"); } catch (e) { $("marcoVisor").src = "about:blank"; } window.__enviarJugada = null; }
 /* tocar la miniatura de una jugada o ejercicio (playbook) la abre animada en grande */
 document.addEventListener("click", (ev) => {
   const th = ev.target.closest && ev.target.closest(".pb-th[data-mini]"); if (!th || (typeof bbEditing !== "undefined" && bbEditing)) return;
@@ -1498,7 +1542,7 @@ document.addEventListener("click", (ev) => {
   ev.stopPropagation(); ev.preventDefault();
   if (D.jugadas.includes(x)) verJugada(x); else verEjercicio(x);
 }, true);
-$("cerrarVisor").onclick = () => { $("visorMarco").classList.remove("ver"); $("marcoVisor").onload = null; $("marcoVisor").src = "about:blank"; window.__enviarJugada = null; };
+$("cerrarVisor").onclick = () => cerrarVisorX();
 window.addEventListener("message", (ev) => {
   const d = ev.data || {};
   if (d.visorListo && window.__enviarJugada) window.__enviarJugada();
@@ -1876,12 +1920,14 @@ function abrirPbEd(p, nuevo) {
   p = clonar(p); pbCaps(p);
   PB = { p, sel: 0, tab: "j", car: "", q: "", prev: false, sucio: !!nuevo, lib: true };
   $("pbEd").innerHTML = `<div class="pb-top" id="pbTop"></div><div class="pb-cuerpo"><div class="pb-out" id="pbOut"></div><div class="pb-main" id="pbMain"></div><div class="pb-lib" id="pbLib"></div></div>`;
+  ovAbrir("pb", () => pbCerrar(), () => !!PB);
   $("pbEd").classList.add("ver"); pbTodo();
 }
 const pbTodo = () => { pbTop(); pbOut(); pbMain(); pbLib(); $("pbEd").classList.toggle("prev", PB.prev); $("pbEd").classList.toggle("est", !!(PB.est && PB.prev)); };
 const pbSucio = () => { PB.sucio = true; const g = $("pbGuardar"); if (g) g.classList.add("sucio"); };
 async function pbCerrar() {
   if (PB && PB.sucio && !confirm("Hay cambios sin guardar. ¿Salir sin guardar?")) return;
+  ovCerrado("pb");
   $("pbEd").classList.remove("ver"); $("pbEd").innerHTML = ""; const id = PB && PB.p.id; PB = null; await cargarTodo(); if (vistaDetalle && vistaDetalle.tipo === "playbook" && !D.playbooks.find(y => y.id === id)) vistaDetalle = null; pintar();
 }
 async function pbGuardar() {
