@@ -2557,8 +2557,12 @@ function pintarEquipos(v) {
     /* cambiar de formato (3c3 → 5c5…) en el mismo reparto: se ajusta el nº de equipos a las presentes y se reparte de nuevo */
     const viejo = EQ_MODOS[set.modo][0], nuevo = EQ_MODOS[$("eqMo").value][0];
     if (set.nombre.indexOf(viejo) === 0) set.nombre = nuevo + set.nombre.slice(viejo.length);
-    set.modo = $("eqMo").value; const t2 = EQ_MODOS[set.modo][1], k2 = Math.min(8, Math.max(2, Math.floor(eqPresentes().length / t2) || 2));
-    eqAjustar(set, k2); eqRepartir(set, false); EQ.sel = null; guardar();
+    /* cada formato conserva su propio reparto dentro del mismo reparto: al volver a 3c3 aparece como lo dejaste */
+    set.porModo = set.porModo || {}; set.porModo[set.modo] = clonar(set.equipos);
+    set.modo = $("eqMo").value;
+    if (set.porModo[set.modo]) { set.equipos = clonar(set.porModo[set.modo]); eqAjustar(set, set.equipos.length); }
+    else { const t2 = EQ_MODOS[set.modo][1], k2 = Math.min(8, Math.max(2, Math.floor(eqPresentes().length / t2) || 2)); eqAjustar(set, k2); eqRepartir(set, false); }
+    EQ.sel = null; guardar();
   };
   $("eqKm").onclick = () => { if (set.equipos.length > 1) { eqAjustar(set, set.equipos.length - 1); guardar(); } };
   $("eqKp").onclick = () => { if (set.equipos.length < 8) { eqAjustar(set, set.equipos.length + 1); guardar(); } };
