@@ -2453,12 +2453,12 @@ const EQ_MODOS = { q5: ["Quinteto (5)", 5], c4: ["4 contra 4", 4], c3: ["3 contr
 const EQ_POS = ["Base", "Escolta", "Alero", "Ala-pívot", "Pívot"];
 let EQ = null;
 function eqLeer() { const r = D.archivos.find(a => a.id === "_equipos"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } 
-  let eqs = Array.isArray(o.equipos) && o.equipos.length ? o.equipos : [{ id: "e1", nombre: "Mi equipo", plantilla: o.plantilla || [], sets: o.sets || [], setId: o.setId || "", mini: o.mini || [], miniId: o.miniId || "" }];
+  let eqs = Array.isArray(o.equipos) && o.equipos.length ? o.equipos : [{ id: "e1", nombre: "Mi equipo", plantilla: o.plantilla || [], sets: o.sets || [], setId: o.setId || "", mini: o.mini || [], miniId: o.miniId || "", mp: o.mp }];
   const act = eqs.find(x => x.id === o.activo) || eqs[0];
-  return { plantilla: act.plantilla || [], sets: act.sets || [], setId: act.setId || "", mini: act.mini || [], miniId: act.miniId || "", equipos: eqs, activo: act.id }; }
+  return { plantilla: act.plantilla || [], sets: act.sets || [], setId: act.setId || "", mini: act.mini || [], miniId: act.miniId || "", mp: act.mp, equipos: eqs, activo: act.id }; }
 /* varios equipos (cadete, infantil…): cada uno con su plantilla, repartos y partidos de mini basket */
-function eqSync() { const a = EQ.equipos.find(x => x.id === EQ.activo); if (a) { a.plantilla = EQ.plantilla; a.sets = EQ.sets; a.setId = EQ.setId; a.mini = EQ.mini || []; a.miniId = EQ.miniId || ""; } }
-async function eqCambiar(id) { eqSync(); const t = EQ.equipos.find(x => x.id === id); if (!t) return; EQ.activo = id; EQ.plantilla = t.plantilla || []; EQ.sets = t.sets || []; EQ.setId = t.setId || ""; EQ.mini = t.mini || []; EQ.miniId = t.miniId || ""; EQ.sel = null; await eqGuardar(); }
+function eqSync() { const a = EQ.equipos.find(x => x.id === EQ.activo); if (a) { a.plantilla = EQ.plantilla; a.sets = EQ.sets; a.setId = EQ.setId; a.mini = EQ.mini || []; a.miniId = EQ.miniId || ""; a.mp = EQ.mp; } }
+async function eqCambiar(id) { eqSync(); const t = EQ.equipos.find(x => x.id === id); if (!t) return; EQ.activo = id; EQ.plantilla = t.plantilla || []; EQ.sets = t.sets || []; EQ.setId = t.setId || ""; EQ.mini = t.mini || []; EQ.miniId = t.miniId || ""; EQ.mp = t.mp; EQ.sel = null; await eqGuardar(); }
 const eqTodosSets = () => { eqAsegurar(); eqSync(); return EQ.equipos.flatMap(t => (t.sets || []).map(x => ({ x, eq: t.nombre }))); };
 function eqSelHtml(ro) {
   eqAsegurar(); const n = EQ.equipos.length;
@@ -2467,12 +2467,12 @@ function eqSelHtml(ro) {
 function eqSelBind(repintar) {
   const sel = $("eqTm"); if (!sel) return;
   sel.onchange = async () => { await eqCambiar(sel.value); repintar(); };
-  if ($("eqTmN")) $("eqTmN").onclick = () => preguntar("Nuevo equipo", "Nombre (ej: Cadete, Infantil A)", "", async (nm) => { eqSync(); const t = { id: idNuevo("e"), nombre: nm, plantilla: [], sets: [], setId: "", mini: [], miniId: "" }; EQ.equipos.push(t); await eqCambiar(t.id); repintar(); });
+  if ($("eqTmN")) $("eqTmN").onclick = () => preguntar("Nuevo equipo", "Nombre (ej: Cadete, Infantil A)", "", async (nm) => { eqSync(); const t = { id: idNuevo("e"), nombre: nm, plantilla: [], sets: [], setId: "", mini: [], miniId: "", mp: [] }; EQ.equipos.push(t); await eqCambiar(t.id); repintar(); });
   if ($("eqTmR")) $("eqTmR").onclick = () => preguntar("Nombre del equipo", "Nombre", (EQ.equipos.find(x => x.id === EQ.activo) || {}).nombre || "", async (nm) => { const t = EQ.equipos.find(x => x.id === EQ.activo); if (t) t.nombre = nm; await eqGuardar(); repintar(); });
   if ($("eqTmD")) $("eqTmD").onclick = async () => { const t = EQ.equipos.find(x => x.id === EQ.activo); if (!t || !await confirmar("¿Borrar el equipo «" + t.nombre + "» con su plantilla y sus repartos?")) return; EQ.equipos = EQ.equipos.filter(x => x !== t); await eqCambiar(EQ.equipos[0].id); repintar(); };
 }
 async function eqGuardar() {
-  eqSync(); const nombre = JSON.stringify({ plantilla: EQ.plantilla, sets: EQ.sets, setId: EQ.setId, mini: EQ.mini || [], miniId: EQ.miniId || "", equipos: EQ.equipos, activo: EQ.activo });
+  eqSync(); const nombre = JSON.stringify({ plantilla: EQ.plantilla, sets: EQ.sets, setId: EQ.setId, mini: EQ.mini || [], miniId: EQ.miniId || "", mp: EQ.mp, equipos: EQ.equipos, activo: EQ.activo });
   if (await guardarFila("archivos", { id: "_equipos", nombre, tipo: "ajustes", ruta: "", mime: "", tamano: 0 })) { const r = D.archivos.find(a => a.id === "_equipos"); if (r) r.nombre = nombre; else D.archivos.push({ id: "_equipos", nombre, tipo: "ajustes" }); }
 }
 const eqJug = (id) => EQ.plantilla.find(j => j.id === id) || ((EQ.equipos || []).flatMap(t => t.plantilla || []).find(j => j.id === id));
@@ -2713,7 +2713,11 @@ function imprimirLibro(r) {
 }
 /* ------------ mini basket: quién juega cada cuarto ------------ */
 const MB_PRE = { libre: ["Personalizado", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }] };
-const mbJug = (pl) => eqPresentes().concat(pl.x || []);
+/* plantilla propia de mini basket (distinta de la de Quintetos); la primera vez parte de una copia de la de Quintetos */
+const mbPlant = () => { if (!Array.isArray(EQ.mp)) EQ.mp = clonar(EQ.plantilla || []); return EQ.mp; };
+const mbPres = () => mbPlant().filter(j => j.pres !== false);
+const mbJug = (pl) => mbPres().concat(pl.x || []);
+let MB_PL = false;
 const mbFila = (pl, id) => { const r = (pl.g[id] = pl.g[id] || []); while (r.length < pl.r.cuartos) r.push(0); r.length = pl.r.cuartos; return r; };
 function mbAuto(pl, rehacer) {
   const pres = mbJug(pl), Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ || Q;
@@ -2882,25 +2886,38 @@ function tiroEditor() {
 }
 
 function pintarMini(v) {
-  const ro = !puedeEscribir, pl = (EQ.mini || []).find(x => x.id === EQ.miniId) || null, pres = pl ? mbJug(pl) : eqPresentes();
+  const ro = !puedeEscribir, pl = (EQ.mini || []).find(x => x.id === EQ.miniId) || null, pres = pl ? mbJug(pl) : mbPres();
   const guardar = () => { eqGuardar(); };
+  mbPlant();
+  const verPl = MB_PL || !mbPlant().length;
+  const panelPl = !verPl ? "" : `<div class="eq-card" style="margin-bottom:12px;"><h3>Plantilla de mini basket <span class="peq">${mbPres().length}/${mbPlant().length} presentes · independiente de Quintetos</span></h3>
+    <div class="eq-lista">${mbPlant().map(j => `<div class="eq-jug ${j.pres === false ? "aus" : ""}"><input type="checkbox" data-mpp="${esc(j.id)}" ${j.pres === false ? "" : "checked"} ${ro ? "disabled" : ""} title="Presente"><span class="eq-n" style="flex:1;">${eqEtq(j)}</span>${ro ? "" : `<button class="gris" data-mpe="${esc(j.id)}" style="min-height:0;padding:2px 8px;">✎</button><button class="gris" data-mpd="${esc(j.id)}" style="min-height:0;padding:2px 8px;color:#c0392b;">🗑</button>`}</div>`).join("") || '<p class="peq">Aún no hay jugadoras: añádelas aquí abajo.</p>'}</div>
+    ${ro ? "" : `<div class="eq-add"><input id="mpNum" placeholder="Nº" inputmode="numeric" style="width:54px;"><input id="mpNom" placeholder="Nombre" style="flex:1;min-width:0;"><button class="naranja" id="mpAdd">＋</button></div><button class="gris" id="mpPegar" style="margin-top:8px;">📋 Pegar lista de nombres</button>`}</div>`;
   let cuerpo = "";
-  if (!pl) cuerpo = `<div class="eq-card eq-vacio"><h3>Cuartos de mini basket</h3><p class="peq">Crea un partido, pon las reglas de tu competición (cuartos, minutos y mínimo de cuartos por jugadora) y marca quién juega cada cuarto. «Autocompletar» reparte los cuartos por ti y respeta lo que ya hayas marcado. Las jugadoras son las presentes de «Quintetos y equipos», y puedes añadir otras a mano en cada partido.</p></div>`;
+  if (!pl) cuerpo = `<div class="eq-card eq-vacio"><h3>Cuartos de mini basket</h3><p class="peq">Crea un partido, pon las reglas de tu competición (cuartos, minutos y mínimo de cuartos por jugadora) y marca quién juega cada cuarto. «Autocompletar» reparte los cuartos por ti y respeta lo que ya hayas marcado. Las jugadoras son las de la plantilla de mini basket (botón «👥 Plantilla»), que es independiente de «Quintetos y equipos»; también puedes añadir otras a mano en cada partido.</p></div>`;
   else {
     const Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ, av = mbResumen(pl);
-    const filas = EQ.plantilla.concat(pl.x || []).map(j => { const man = (pl.x || []).includes(j), r = mbFila(pl, j.id), ausente = j.pres === false, tot = ausente ? 0 : r.reduce((a, b) => a + b, 0), mal = !ausente && (tot < mn || (mx && tot > mx));
+    const filas = mbPlant().concat(pl.x || []).map(j => { const man = (pl.x || []).includes(j), r = mbFila(pl, j.id), ausente = j.pres === false, tot = ausente ? 0 : r.reduce((a, b) => a + b, 0), mal = !ausente && (tot < mn || (mx && tot > mx));
       return `<tr class="${ausente ? "aus" : ""}"><td class="nm">${man ? (ro ? "" : `<button class="gris" data-xq="${esc(j.id)}" title="Quitar" style="min-height:0;padding:0 7px;margin-right:6px;">✕</button>`) : `<input type="checkbox" data-pr="${esc(j.id)}" ${ausente ? "" : "checked"} ${ro ? "disabled" : ""} title="Presente hoy">`}${eqEtq(j)}${man ? " <span class=\"peq\">(manual)</span>" : ""}</td>${r.map((x, q) => `<td><button class="mb-c ${x && !ausente ? "on" : ""}" data-j="${esc(j.id)}" data-q="${q}" ${ro || ausente ? "disabled" : ""}>${x && !ausente ? "✓" : ""}</button></td>`).join("")}<td class="${mal ? "bad" : "ok"}">${tot}</td><td>${tot * pl.r.min}′</td></tr>`; }).join("");
     const pie = Array.from({ length: Q }, (_, q) => { const n = pres.filter(j => mbFila(pl, j.id)[q]).length; return `<td class="${n === P ? "ok" : "bad"}">${n}/${P}</td>`; }).join("");
     cuerpo = `<div class="eq-card">
       <div class="eq-tb"><input id="mbN" value="${esc(pl.nombre)}" ${ro ? "disabled" : ""}>${ro ? "" : `<button class="naranja" id="mbAuto" title="Reparte los cuartos que faltan, respetando lo que marcaste">🎲 Autocompletar</button><button class="verde" id="mbRe" title="Borra todo y lo reparte de nuevo">♻️ Rehacer</button><button class="gris" id="mbAdd" title="Añadir una jugadora solo para este partido">＋ Jugadora</button><button class="gris" id="mbLim">Limpiar</button><button class="gris" id="mbReg">⚙ Reglas</button>`}<button class="gris" id="mbPdf">🖨 PDF</button></div>
       <div class="mb-reg"><span>${Q} cuartos de ${pl.r.min}′</span><span>Todas ≥ ${mn} cuartos</span>${mx ? `<span>Máx. ${mx}</span>` : ""}<span>${P} en pista</span></div>
       ${av.length ? av.map(a => `<div class="mb-aviso">⚠️ ${esc(a)}</div>`).join("") : ""}
-      <div style="overflow-x:auto;"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th>${Array.from({ length: Q }, (_, q) => `<th>${q + 1}º</th>`).join("")}<th>Cuartos</th><th>Min</th></tr></thead><tbody>${filas || `<tr><td colspan="${Q + 3}" class="peq">No hay jugadoras: añádelas en «Repartos».</td></tr>`}</tbody><tfoot><tr><th style="text-align:left;">En pista</th>${pie}<th></th><th></th></tr></tfoot></table></div>
+      <div style="overflow-x:auto;"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th>${Array.from({ length: Q }, (_, q) => `<th>${q + 1}º</th>`).join("")}<th>Cuartos</th><th>Min</th></tr></thead><tbody>${filas || `<tr><td colspan="${Q + 3}" class="peq">No hay jugadoras: añádelas en «👥 Plantilla».</td></tr>`}</tbody><tfoot><tr><th style="text-align:left;">En pista</th>${pie}<th></th><th></th></tr></tfoot></table></div>
       <p class="peq" style="margin:8px 2px 0;">Toca una casilla para poner o quitar a una jugadora en ese cuarto. En rojo: cuartos sin las ${P} en pista, o jugadoras por debajo del mínimo.</p></div>`;
   }
-  v.innerHTML = `<div class="cab"><h2>🏀 Mini basket</h2>${eqSelHtml(ro)}<span class="esp"></span><button class="gris" id="mbVolver" title="Editar la plantilla">👥 Plantilla</button>${ro ? "" : '<button class="naranja" id="mbNuevo">＋ Nuevo partido</button>'}</div>
-    <div class="eq-sets">${(EQ.mini || []).map(s => `<button class="gris ${s.id === EQ.miniId ? "on" : ""}" data-mini="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${pl && !ro ? '<button class="gris" id="mbDup" title="Duplicar">⧉</button><button class="gris" id="mbDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>${cuerpo}`;
-  $("mbVolver").onclick = () => ir("equipos");
+  v.innerHTML = `<div class="cab"><h2>🏀 Mini basket</h2>${eqSelHtml(ro)}<span class="esp"></span><button class="gris" id="mbVolver" title="Plantilla de mini basket (independiente de Quintetos)">👥 Plantilla</button>${ro ? "" : '<button class="naranja" id="mbNuevo">＋ Nuevo partido</button>'}</div>
+    <div class="eq-sets">${(EQ.mini || []).map(s => `<button class="gris ${s.id === EQ.miniId ? "on" : ""}" data-mini="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${pl && !ro ? '<button class="gris" id="mbDup" title="Duplicar">⧉</button><button class="gris" id="mbDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>${panelPl}${cuerpo}`;
+  $("mbVolver").onclick = () => { MB_PL = !MB_PL; pintarMini(v); };
+  v.querySelectorAll("[data-mpp]").forEach(c => c.onchange = () => { const j = mbPlant().find(y => y.id === c.dataset.mpp); if (j) { j.pres = c.checked; guardar(); pintarMini(v); } });
+  if (!ro) {
+    const addJ = () => { const nm = $("mpNom").value.trim(); if (!nm) return; mbPlant().push({ id: idNuevo("j"), nombre: nm, num: $("mpNum").value.trim(), nivel: 3, pres: true }); guardar(); MB_PL = true; pintarMini(v); };
+    if ($("mpAdd")) { $("mpAdd").onclick = addJ; $("mpNom").addEventListener("keydown", (e) => { if (e.key === "Enter") addJ(); }); }
+    v.querySelectorAll("[data-mpd]").forEach(b => b.onclick = async () => { const j = mbPlant().find(y => y.id === b.dataset.mpd); if (!j || !await confirmar("¿Quitar a " + j.nombre + " de la plantilla de mini basket?")) return; EQ.mp = EQ.mp.filter(y => y !== j); (EQ.mini || []).forEach(m => { delete (m.g || {})[j.id]; }); guardar(); MB_PL = true; pintarMini(v); });
+    v.querySelectorAll("[data-mpe]").forEach(b => b.onclick = () => { const j = mbPlant().find(y => y.id === b.dataset.mpe); if (!j) return; ventana(`<h3>Editar</h3><div class="dos"><div><label>Dorsal</label><input id="mpeD" value="${esc(j.num || "")}"></div><div><label>Nombre</label><input id="mpeN" value="${esc(j.nombre)}"></div></div><div class="pie-m"><button class="gris" id="mpeX">Cancelar</button><button class="naranja" id="mpeOk">Guardar</button></div>`); $("mpeX").onclick = cerrarVentana; $("mpeOk").onclick = () => { const nm = $("mpeN").value.trim(); if (!nm) return; j.nombre = nm; j.num = $("mpeD").value.trim(); cerrarVentana(); guardar(); MB_PL = true; pintarMini(v); }; });
+    if ($("mpPegar")) $("mpPegar").onclick = () => { ventana(`<h3>Pegar lista</h3><p class="peq">Una persona por línea. Puedes poner el dorsal delante: «7 Lucía».</p><textarea id="mpgT" style="min-height:200px;"></textarea><div class="pie-m"><button class="gris" id="mpgX">Cancelar</button><button class="naranja" id="mpgOk">Añadir</button></div>`); $("mpgX").onclick = cerrarVentana; $("mpgOk").onclick = () => { $("mpgT").value.split("\n").map(l => l.trim()).filter(Boolean).forEach(l => { const m = /^(\d{1,3})[\s.\-–:]+(.+)$/.exec(l); mbPlant().push({ id: idNuevo("j"), nombre: m ? m[2].trim() : l, num: m ? m[1] : "", nivel: 3, pres: true }); }); cerrarVentana(); guardar(); MB_PL = true; pintarMini(v); }; };
+  }
   eqSelBind(() => pintarMini(v));
   v.querySelectorAll("[data-mini]").forEach(b => b.onclick = () => { EQ.miniId = b.dataset.mini; pintarMini(v); });
   if (!pl) { if ($("mbNuevo")) $("mbNuevo").onclick = () => formMini(v, null); return; }
@@ -2919,7 +2936,7 @@ function pintarMini(v) {
     const ok = () => { const nm = $("mxN").value.trim(); if (!nm) { aviso("Escribe un nombre"); return; } pl.x = pl.x || []; pl.x.push({ id: idNuevo("x"), nombre: nm, num: $("mxD").value.trim() }); cerrarVentana(); guardar(); pintarMini(v); };
     $("mxOk").onclick = ok; $("mxN").addEventListener("keydown", (e) => { if (e.key === "Enter") ok(); }); };
   v.querySelectorAll("[data-xq]").forEach(b => b.onclick = async () => { const j = (pl.x || []).find(y => y.id === b.dataset.xq); if (!j || !await confirmar("¿Quitar a " + j.nombre + " de este partido?")) return; pl.x = pl.x.filter(y => y !== j); delete pl.g[j.id]; guardar(); pintarMini(v); });
-  v.querySelectorAll("[data-pr]").forEach(c => c.onchange = () => { const j = eqJug(c.dataset.pr); j.pres = c.checked; guardar(); pintarMini(v); });
+  v.querySelectorAll("[data-pr]").forEach(c => c.onchange = () => { const j = mbPlant().find(y => y.id === c.dataset.pr); if (j) { j.pres = c.checked; guardar(); pintarMini(v); } });
   v.querySelectorAll(".mb-c").forEach(b => b.onclick = () => { const r = mbFila(pl, b.dataset.j), q = Number(b.dataset.q); r[q] = r[q] ? 0 : 1; guardar(); pintarMini(v); });
 }
 function formMini(v, pl) {
