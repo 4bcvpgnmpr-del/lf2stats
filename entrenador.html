@@ -316,6 +316,7 @@
   .pe-c2{display:flex;align-items:center;} .pe-c3{display:flex;align-items:center;} .pe-c3 input{flex:1;min-width:0;} .pe-rep{flex:none;background:#e8f4f0;color:#c44f1e;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;margin-left:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .eq-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start;} .eq-card{background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:14px;} .eq-card h3{margin:0 0 8px;font-size:16px;}
   .eq-lista{max-height:60vh;overflow:auto;} .eq-jug{display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid #eef0f2;} .eq-jug:first-child{border-top:0;} .eq-jug.aus{opacity:.45;} .eq-jug input{width:auto;margin:0;} .eq-n{width:26px;text-align:right;font-weight:800;color:#e8590c;} .eq-nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .eq-st{color:#f08c00;font-size:11px;letter-spacing:-1px;}
+  .pl-jm{flex:none;width:64px;height:46px;border:1px solid #d9dee3;border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:2px;} .pl-jm svg{width:100%;height:100%;display:block;} .lista-sel label.it input[data-ja]{width:auto;margin:0;}
   .pl-rej{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;} .pl-card{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:10px 12px;cursor:pointer;} .pl-card:hover{border-color:var(--pg);box-shadow:0 2px 8px rgba(0,0,0,.06);} .pl-i{flex:1;min-width:0;} .pl-n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .pl-n b{color:#e8590c;} .pl-av{font-size:12px;color:#7a5a00;background:#fff4d6;border-radius:8px;padding:2px 8px;margin-top:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pl-f{flex:none;width:52px;height:52px;border-radius:50%;background:#fdeee6;color:#c44f1e;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;overflow:hidden;} .pl-f img{width:100%;height:100%;object-fit:cover;display:block;} .pl-f.mini{width:30px;height:30px;font-size:12px;display:inline-flex;vertical-align:middle;margin-right:8px;} .pl-f.grande{width:92px;height:92px;font-size:30px;} .pl-fh{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
   .pl-pc{flex:none;background:#e6f6ee;color:#1f8a52;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:800;} .pl-pc.bad{background:#fdeaea;color:#c0392b;} .pl-ses{display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid #eef0f2;cursor:pointer;} .pl-ses:first-of-type{border-top:0;} .pl-ses:hover{background:#faf6f3;} .pl-tp{background:#f1f3f5;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;color:#495057;}
@@ -2651,27 +2652,57 @@ function plReducir(file) {
     r.readAsDataURL(file);
   });
 }
+/* jugadas de un equipo: usan el campo «equipo» que ya tiene cada jugada */
+const plEq = () => ((EQ.equipos || []).find(t => t.id === EQ.activo) || {}).nombre || "";
+const plN = (t) => String(t || "").trim().toLowerCase();
+const plJugadas = () => { eqAsegurar(); const n = plN(plEq()); return n ? D.jugadas.filter(x => plN(x.data && x.data.equipo) === n).sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es")) : []; };
+async function plPonerEq(x, nombre) {
+  const d = clonar(x.data || {}); if (nombre) d.equipo = nombre; else delete d.equipo;
+  const { error } = await nube.from("jugadas").update({ data: d }).eq("id", x.id);
+  if (error) { aviso("No se pudo guardar: " + error.message); return false; }
+  x.data = d; return true;
+}
+function plAsignar(v) {
+  const nom = plEq(), n = plN(nom), L = D.jugadas.filter(x => !ajena(x)).sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+  if (!L.length) { aviso("Aún no tienes jugadas."); return; }
+  const m = ventana(`<h3>Jugadas de ${esc(nom)}</h3><p class="peq" style="margin:0 0 6px;">Marca las que trabaja este equipo.</p><input id="jaQ" placeholder="Buscar…" style="margin:0;"><div class="lista-sel" id="jaL" style="max-height:48vh;">${L.map(x => { const o = plN(x.data && x.data.equipo); return `<label class="it" data-n="${esc(plN(x.nombre))}"><input type="checkbox" data-ja="${esc(x.id)}" ${o === n ? "checked" : ""}><span style="flex:1;min-width:0;">${esc(x.nombre || "Jugada")}</span>${o && o !== n ? `<span class="peq">de «${esc(x.data.equipo)}»</span>` : ""}</label>`; }).join("")}</div><div class="pie-m"><button class="gris" id="jaX">Cancelar</button><button class="naranja" id="jaOk">Guardar</button></div>`);
+  $("jaX").onclick = cerrarVentana;
+  $("jaQ").oninput = () => { const q = plN($("jaQ").value); $("jaL").querySelectorAll("label").forEach(l => { l.style.display = !q || l.dataset.n.includes(q) ? "" : "none"; }); };
+  $("jaOk").onclick = async () => {
+    const cambios = []; m.querySelectorAll("[data-ja]").forEach(c => { const x = L.find(y => y.id === c.dataset.ja), esta = plN(x.data && x.data.equipo) === n; if (c.checked && !esta) cambios.push([x, nom]); else if (!c.checked && esta) cambios.push([x, ""]); });
+    for (const [x, t] of cambios) if (!await plPonerEq(x, t)) return;
+    cerrarVentana(); aviso(cambios.length ? "Guardado" : "Sin cambios"); pintarPlantilla(v);
+  };
+}
 function pintarPlantilla(v) {
   eqAsegurar(); const ro = !puedeEscribir, J = EQ.plantilla, A = plAsis();
   const tab = PLT.tab;
-  const cab = `<div class="cab"><h2>Plantilla</h2>${eqSelHtml(ro)}<span class="esp"></span>${ro ? "" : (tab === "jug" ? '<button class="gris" id="plPeg">📋 Pegar lista</button><button class="naranja" id="plNew">＋ Añadir jugadora</button>' : '<button class="naranja" id="asNew">＋ Nueva sesión</button>')}</div>
-    <div class="eq-sets"><button class="gris ${tab === "jug" ? "on" : ""}" data-pt="jug">👤 Jugadoras (${J.length})</button><button class="gris ${tab === "asi" ? "on" : ""}" data-pt="asi">✅ Asistencia (${A.length})</button></div>`;
+  const cab = `<div class="cab"><h2>Plantilla</h2>${eqSelHtml(ro)}<span class="esp"></span>${ro ? "" : (tab === "jug" ? '<button class="gris" id="plPeg">📋 Pegar lista</button><button class="naranja" id="plNew">＋ Añadir jugadora</button>' : tab === "jgd" ? '<button class="naranja" id="jgAs">＋ Asignar jugadas</button>' : '<button class="naranja" id="asNew">＋ Nueva sesión</button>')}</div>
+    <div class="eq-sets"><button class="gris ${tab === "jug" ? "on" : ""}" data-pt="jug">👤 Jugadoras (${J.length})</button><button class="gris ${tab === "asi" ? "on" : ""}" data-pt="asi">✅ Asistencia (${A.length})</button><button class="gris ${tab === "jgd" ? "on" : ""}" data-pt="jgd">🏀 Jugadas (${plJugadas().length})</button></div>`;
   let cuerpo = "";
   if (tab === "jug") {
     cuerpo = J.length ? `<div class="pl-rej">${J.map(j => { const a = plPct(j.id), ed = plEdad(j.nac); return `<div class="pl-card" data-pj="${esc(j.id)}">${plFoto(j)}<div class="pl-i"><div class="pl-n">${j.num !== "" && j.num != null ? `<b>${esc(String(j.num))}</b> ` : ""}${esc(j.nombre)}</div><div class="peq">${[j.pos, ed].filter(Boolean).map(esc).join(" · ") || "&nbsp;"}</div>${j.aviso ? `<div class="pl-av">⚠️ ${esc(j.aviso)}</div>` : ""}</div>${a ? `<span class="pl-pc ${a.pct < 60 ? "bad" : ""}" title="Asistencia">${a.pct}%</span>` : ""}</div>`; }).join("")}</div>`
       : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Aún no tienes jugadoras</div>${ro ? "" : "Añádelas una a una o pega la lista de nombres. Con la ficha puedes guardar foto, fecha de nacimiento, teléfono y notas."}</div>`;
+  } else if (tab === "jgd") {
+    const L = plJugadas();
+    cuerpo = L.length ? `<div class="eq-card"><h3>Jugadas de ${esc(plEq())} <span class="peq">${L.length}</span></h3>${L.map(x => `<div class="pl-ses" data-jv="${esc(x.id)}"><span class="pl-jm" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO.jugadas}</span><b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.nombre || "Jugada")}</b><span class="peq">${esc(x.carpeta || "")}</span>${ro ? "" : `<button class="gris" data-jq="${esc(x.id)}" title="Quitar de este equipo">✕</button>`}</div>`).join("")}</div>`
+      : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Este equipo aún no tiene jugadas</div>${ro ? "" : "Pulsa «Asignar jugadas» y elige las que trabaja este equipo."}</div>`;
   } else {
     const res = J.length ? `<div class="eq-card" style="margin-bottom:14px;"><h3>Resumen de asistencia</h3><div class="tabla-sc"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th><th>Sesiones</th><th>Asiste</th><th>Faltas</th><th>Justif.</th><th>%</th></tr></thead><tbody>${J.map(j => { const a = plPct(j.id); return `<tr><td class="nm" data-pj="${esc(j.id)}" style="cursor:pointer;">${plFoto(j, "mini")} ${eqEtq(j)}</td>${a ? `<td>${a.n}</td><td>${a.p}</td><td class="${a.f ? "bad" : ""}">${a.f}</td><td>${a.j}</td><td class="${a.pct < 60 ? "bad" : "ok"}">${a.pct}%</td>` : '<td colspan="5" class="peq">–</td>'}</tr>`; }).join("")}</tbody></table></div></div>` : "";
     const ses = A.slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.id).localeCompare(String(a.id)));
     cuerpo = res + (ses.length ? `<div class="eq-card"><h3>Sesiones</h3>${ses.map(s => { const tot = Object.keys(s.r || {}).length, p = Object.values(s.r || {}).filter(x => x === "p").length; return `<div class="pl-ses" data-as="${esc(s.id)}"><b>${esc(plFecha(s.fecha))}</b><span class="pl-tp">${esc(s.tipo || "Entrenamiento")}</span><span class="peq" style="flex:1;">${esc(s.nota || "")}</span><span class="pl-pc">${p}/${tot}</span></div>`; }).join("")}</div>` : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Aún no has pasado lista</div>${ro ? "" : "Pulsa «Nueva sesión» al empezar el entrenamiento o el partido y marca quién falta."}</div>`);
   }
   v.innerHTML = cab + cuerpo;
+  if (tab === "jgd") { try { pedirMiniaturas(plJugadas()); } catch (e) { /* sin miniaturas */ } }
   eqSelBind(() => pintarPlantilla(v));
   const guardar = async () => { await eqGuardar(); pintarPlantilla(v); };
   v.querySelectorAll("[data-pt]").forEach(b => b.onclick = () => { PLT.tab = b.dataset.pt; pintarPlantilla(v); });
   v.querySelectorAll("[data-pj]").forEach(b => b.onclick = () => plFicha(b.dataset.pj, v));
   v.querySelectorAll("[data-as]").forEach(b => b.onclick = () => plSesion(b.dataset.as, v));
+  v.querySelectorAll("[data-jv]").forEach(b => b.onclick = (ev) => { if (ev.target.closest("[data-jq]")) return; const x = D.jugadas.find(y => y.id === b.dataset.jv); if (x) verJugada(x); });
   if (ro) return;
+  v.querySelectorAll("[data-jq]").forEach(b => b.onclick = async () => { const x = D.jugadas.find(y => y.id === b.dataset.jq); if (x && await plPonerEq(x, "")) pintarPlantilla(v); });
+  if ($("jgAs")) $("jgAs").onclick = () => plAsignar(v);
   if ($("plNew")) $("plNew").onclick = () => plFicha("", v);
   if ($("plPeg")) $("plPeg").onclick = () => { ventana(`<h3>Pegar lista</h3><p class="peq">Una persona por línea. Puedes poner el dorsal delante: «7 Lucía».</p><textarea id="pgT" style="min-height:200px;"></textarea><div class="pie-m"><button class="gris" id="pgX">Cancelar</button><button class="naranja" id="pgOk">Añadir</button></div>`); $("pgX").onclick = cerrarVentana; $("pgOk").onclick = async () => { $("pgT").value.split(/\n+/).map(x => x.trim()).filter(Boolean).forEach(l => { const m = l.match(/^#?(\d{1,3})[\s.\-:)]+(.+)$/); EQ.plantilla.push({ id: idNuevo("j"), nombre: (m ? m[2] : l).trim(), num: m ? m[1] : "", nivel: 3, pres: true }); }); cerrarVentana(); await guardar(); }; };
   if ($("asNew")) $("asNew").onclick = () => {
