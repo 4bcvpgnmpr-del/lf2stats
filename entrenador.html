@@ -2252,7 +2252,7 @@ function pEd() {
     }).join("");
     cuerpo = `<div class="pe-cuerpo"><div class="pe-h"><h2>Cronograma</h2><span>${total} min</span>${total ? (() => { const g = minPorGrupo(d); return `<span style="font-size:13.5px;">${["Ataque", "Defensa", "Otros"].filter(k => g[k]).map(k => `<b style="color:${CG_COL[k]};">${k} ${g[k]}\u2032</b>`).join(" · ")}</span>`; })() : ""}</div>
       <div class="pe-lista" id="peLista">${filas || '<div class="vacio">Añade segmentos para montar la sesión.</div>'}</div>
-      ${ro ? "" : `<div class="pe-add"><span class="pe-addb"><button id="peAdd">${IC.plus.replace('width="24" height="24"','width="18" height="18"')} Añadir segmento</button><button id="peAddM" title="Más opciones">${IC.chev}</button></span></div>`}</div>`;
+      ${ro ? "" : `<div class="pe-add"><span class="pe-addb"><button id="peAdd">${IC.plus.replace('width="24" height="24"','width="18" height="18"')} Añadir segmento</button><button id="peAddM" title="Más opciones">${IC.chev}</button></span><button class="gris" id="peEq" style="margin-left:8px;">👥 Quintetos y equipos</button></div>`}</div>`;
   } else if (tab === "det") {
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><div class="dos"><div><label style="margin-top:0;">Fecha</label><input type="date" id="pdF" value="${esc(p.fecha || "")}" ${ro ? "disabled" : ""}></div><div><label style="margin-top:0;">Hora de inicio</label><input type="time" id="pdH" value="${esc(d.inicio || "18:00")}" ${ro ? "disabled" : ""}></div></div>
       <label>Carpeta</label><input id="pdC" list="dlpl" value="${esc(p.carpeta || "")}" placeholder="Sin carpeta" ${ro ? "disabled" : ""}><datalist id="dlpl">${carpetasDe("planes").map(c => `<option value="${esc(c.nombre)}">`).join("")}</datalist>
@@ -2309,7 +2309,8 @@ function pEd() {
     if ($("peAdd")) {
       const nuevoSeg = () => { lista.push({ titulo: "", min: 10, notas: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=titulo]"); if (ins.length) ins[ins.length - 1].focus(); root.querySelector(".pe-cuerpo").scrollTop = 1e6; };
       $("peAdd").onclick = nuevoSeg;
-      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["🎯 Crear ejercicio nuevo", () => crearEjercicioRapido((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista.push({ id, titulo: ej.nombre, min: (ej.data && ej.data.minutos) || 10, notas: "" }); histPlan(); pEd(); })], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=sec]"); if (ins.length) ins[ins.length - 1].focus(); }]]);
+      $("peEq").onclick = () => repartoRapido(null);
+      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["👥 Quintetos y equipos…", () => repartoRapido(null)], ["🎯 Crear ejercicio nuevo", () => crearEjercicioRapido((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista.push({ id, titulo: ej.nombre, min: (ej.data && ej.data.minutos) || 10, notas: "" }); histPlan(); pEd(); })], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=sec]"); if (ins.length) ins[ins.length - 1].focus(); }]]);
     }
   } else if (tab === "det") {
     const volc = () => { p.fecha = $("pdF").value || null; d.inicio = $("pdH").value || "18:00"; p.carpeta = $("pdC").value.trim(); d.notas = $("pdN").value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; };
@@ -2550,9 +2551,26 @@ function eqHtmlPdf(set) {
   eqAsegurar();
   return `<div class="pdf-rep"><div class="pdf-rep-t">Equipos · ${esc(set.nombre)}</div><div class="pdf-rep-g">${set.equipos.map(e => `<div class="pdf-rep-e" style="--c:${e.c}"><div class="pdf-rep-h">${esc(e.n)}</div>${e.s.map((id, i) => { const j = id && eqJug(id); return j ? `<div class="pdf-rep-r">${set.modo === "q5" ? `<i>${EQ_POS[i]}</i>` : ""}${eqNombreJ(j)}</div>` : ""; }).join("")}</div>`).join("")}</div></div>`;
 }
+/* quintetos y equipos dentro del plan: se crea o se edita el reparto encima del plan y, si se pulsa «Usar», se vincula al segmento */
+function repartoRapido(ok) {
+  eqAsegurar(); const antes = EQ.sets.length;
+  let el = $("eqRapido"); if (el) el.remove();
+  el = document.createElement("div"); el.id = "eqRapido";
+  el.style.cssText = "position:fixed;inset:0;z-index:190;background:var(--bg,#f5f6f8);display:flex;flex-direction:column;";
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border-bottom:1px solid #e3e6ea;"><b style="flex:1;font-size:16px;">👥 Quintetos y equipos</b>${ok ? '<button class="naranja" id="eqrUsar">✓ Usar este reparto en el segmento</button>' : ""}<button class="gris" id="eqrX">Cerrar</button></div><div id="eqrV" style="flex:1;overflow:auto;padding:14px;"></div>`;
+  document.body.appendChild(el);
+  const cerrar = () => { ovCerrado("eqr"); el.remove(); };
+  ovAbrir("eqr", () => { el.remove(); }, () => document.body.contains(el));
+  const pintar2 = () => pintarEquipos($("eqrV"));
+  pintar2();
+  if (EQ.sets.length > antes) { /* ya se creó uno nuevo antes de abrir: nada */ }
+  $("eqrX").onclick = cerrar;
+  if ($("eqrUsar")) $("eqrUsar").onclick = () => { if (!EQ.setId) { aviso("Elige o crea un reparto primero."); return; } const id = EQ.setId; cerrar(); ok(id); };
+}
 function elegirReparto(actual, ok) {
   eqAsegurar();
-  ventana(`<h3>Vincular reparto de equipos</h3><p class="peq" style="margin:0 0 6px;">Aparecerá en el PDF dentro de este ejercicio.</p><div class="lista-sel" id="rpL" style="max-height:340px;"><label class="it" data-id=""><span style="flex:1;">— Ninguno —</span>${actual ? "" : "✓"}</label>${EQ.sets.map(x => `<label class="it" data-id="${esc(x.id)}"><span style="flex:1;">👥 <b>${esc(x.nombre)}</b></span><span class="peq">${x.equipos.length} equipos ${actual === x.id ? "✓" : ""}</span></label>`).join("") || '<div class="vacio">Aún no tienes repartos: créalos en «Quintetos y equipos».</div>'}</div><div class="pie-m"><button class="gris" id="rpX">Cerrar</button></div>`);
+  ventana(`<h3>Vincular reparto de equipos</h3><p class="peq" style="margin:0 0 6px;">Aparecerá en el PDF dentro de este ejercicio.</p><div class="lista-sel" id="rpL" style="max-height:340px;"><label class="it" data-id=""><span style="flex:1;">— Ninguno —</span>${actual ? "" : "✓"}</label>${EQ.sets.map(x => `<label class="it" data-id="${esc(x.id)}"><span style="flex:1;">👥 <b>${esc(x.nombre)}</b></span><span class="peq">${x.equipos.length} equipos ${actual === x.id ? "✓" : ""}</span></label>`).join("") || '<div class="vacio">Aún no tienes repartos: crea uno aquí mismo.</div>'}</div><div class="pie-m"><button class="gris" id="rpX">Cerrar</button>${puedeEscribir ? '<button class="naranja" id="rpNew">👥 Crear / editar quintetos y equipos…</button>' : ""}</div>`);
+  if ($("rpNew")) $("rpNew").onclick = () => { cerrarVentana(); repartoRapido(ok); };
   $("rpX").onclick = cerrarVentana; $("rpL").querySelectorAll("[data-id]").forEach(el => el.onclick = () => { cerrarVentana(); ok(el.dataset.id); });
 }
 /* ------------ libro de partidos ------------ */
