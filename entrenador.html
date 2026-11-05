@@ -2692,7 +2692,7 @@ function pintarPlantilla(v) {
     <div class="eq-sets"><button class="gris ${tab === "jug" ? "on" : ""}" data-pt="jug">👤 Jugadoras (${J.length})</button><button class="gris ${tab === "asi" ? "on" : ""}" data-pt="asi">✅ Asistencia (${A.length})</button><button class="gris ${tab === "jgd" ? "on" : ""}" data-pt="jgd">🏀 Jugadas (${plJugadas().length})</button></div>`;
   let cuerpo = "";
   if (tab === "jug") {
-    cuerpo = J.length ? `<div class="pl-rej">${J.map(j => { const a = plPct(j.id), ed = plEdad(j.nac); return `<div class="pl-card" data-pj="${esc(j.id)}">${plFoto(j)}<div class="pl-i"><div class="pl-n">${j.num !== "" && j.num != null ? `<b>${esc(String(j.num))}</b> ` : ""}${esc(j.nombre)}</div><div class="peq">${[j.pos, ed].filter(Boolean).map(esc).join(" · ") || "&nbsp;"}</div>${j.aviso ? `<div class="pl-av">⚠️ ${esc(j.aviso)}</div>` : ""}</div>${a ? `<span class="pl-pc ${a.pct < 60 ? "bad" : ""}" title="Asistencia">${a.pct}%</span>` : ""}</div>`; }).join("")}</div>`
+    cuerpo = J.length ? `<div class="pl-rej">${J.map(j => { const a = plPct(j.id), ed = plEdad(j.nac); return `<div class="pl-card" data-pj="${esc(j.id)}">${plFoto(j)}<div class="pl-i"><div class="pl-n">${j.num !== "" && j.num != null ? `<b>${esc(String(j.num))}</b> ` : ""}${esc(j.nombre)}</div><div class="peq">${[j.pos, ed].filter(Boolean).map(esc).join(" · ") || "&nbsp;"}</div>${j.aviso ? `<div class="pl-av">⚠️ ${esc(j.aviso)}</div>` : ""}</div>${j.email ? '<span title="Tiene correo de acceso" style="flex:none;">✉️</span>' : ""}${a ? `<span class="pl-pc ${a.pct < 60 ? "bad" : ""}" title="Asistencia">${a.pct}%</span>` : ""}</div>`; }).join("")}</div>`
       : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Aún no tienes jugadoras</div>${ro ? "" : "Añádelas una a una o pega la lista de nombres. Con la ficha puedes guardar foto, fecha de nacimiento, teléfono y notas."}</div>`;
   } else if (tab === "jgd") {
     const L = plJugadas();
@@ -2738,6 +2738,7 @@ function plFicha(id, v) {
     <div class="dos"><div><label>Dorsal</label><input id="pjD" value="${esc(String(j.num ?? ""))}" inputmode="numeric" ${dis}></div><div><label>Posición</label><select id="pjP" ${dis}>${PL_POS.map(p => `<option value="${p}" ${p === (j.pos || "") ? "selected" : ""}>${p || "—"}</option>`).join("")}</select></div></div>
     <div class="dos"><div><label>Fecha de nacimiento</label><input type="date" id="pjB" value="${esc(j.nac || "")}" ${dis}></div><div><label>Nivel (1-5, para equilibrar)</label><select id="pjV" ${dis}>${[1, 2, 3, 4, 5].map(n => `<option ${n === (Number(j.nivel) || 3) ? "selected" : ""}>${n}</option>`).join("")}</select></div></div>
     <div class="dos"><div><label>Teléfono de contacto</label><input id="pjT" value="${esc(j.tel || "")}" inputmode="tel" ${dis}></div><div><label>Madre / padre / tutor</label><input id="pjU" value="${esc(j.tutor || "")}" ${dis}></div></div>
+    <label>Correo de acceso a la app de jugadoras</label><input id="pjE" type="email" value="${esc(j.email || "")}" placeholder="Opcional" ${dis}><p class="peq" style="margin:4px 0 0;">Solo se guarda. El acceso se activará cuando esté lista la app de jugadoras para tu plan.</p>
     <label>⚠️ Aviso (lesión, alergia…)</label><input id="pjA" value="${esc(j.aviso || "")}" placeholder="Solo si hay algo importante" ${dis}>
     <label>Notas del entrenador</label><textarea id="pjO" style="min-height:90px;" ${dis}>${esc(j.notas || "")}</textarea>
     ${a ? `<p class="peq" style="margin:8px 0 0;">Asistencia: <b>${a.pct}%</b> · ${a.p} de ${a.n} sesiones${a.f ? ` · ${a.f} falta${a.f > 1 ? "s" : ""}` : ""}${a.j ? ` · ${a.j} justificada${a.j > 1 ? "s" : ""}` : ""}</p>` : ""}
@@ -2752,7 +2753,7 @@ function plFicha(id, v) {
   $("pjOk").onclick = async () => {
     const nm = $("pjN").value.trim(); if (!nm) { aviso("Escribe el nombre."); return; }
     const o = ex || j;
-    o.nombre = nm; o.num = $("pjD").value.trim(); o.pos = $("pjP").value; o.nac = $("pjB").value; o.nivel = Number($("pjV").value) || 3; o.tel = $("pjT").value.trim(); o.tutor = $("pjU").value.trim(); o.aviso = $("pjA").value.trim(); o.notas = $("pjO").value.trim();
+    o.nombre = nm; o.num = $("pjD").value.trim(); o.pos = $("pjP").value; o.nac = $("pjB").value; o.nivel = Number($("pjV").value) || 3; o.tel = $("pjT").value.trim(); o.tutor = $("pjU").value.trim(); o.email = $("pjE").value.trim().toLowerCase(); if (!o.email) delete o.email; o.aviso = $("pjA").value.trim(); o.notas = $("pjO").value.trim();
     if (foto) o.foto = foto; else delete o.foto;
     if (!ex) EQ.plantilla.push(o);
     cerrarVentana(); await eqGuardar(); pintarPlantilla(v);
