@@ -2514,7 +2514,7 @@ function pintarEquipos(v) {
   else {
     const tam = EQ_MODOS[set.modo][1];
     tablero = `<div class="eq-card"><div class="eq-tb"><input id="eqSN" value="${esc(set.nombre)}" ${ro ? "disabled" : ""}>
-      ${ro ? "" : `<select id="eqMo">${Object.keys(EQ_MODOS).map(k => `<option value="${k}" ${k === set.modo ? "selected" : ""}>${EQ_MODOS[k][0]}</option>`).join("")}</select>
+      ${ro ? "" : `<span class="peq" style="font-weight:700;">Formato</span><select id="eqMo" title="Cambia a 3c3, 4c4, 5c5… sin crear otro reparto">${Object.keys(EQ_MODOS).map(k => `<option value="${k}" ${k === set.modo ? "selected" : ""}>${EQ_MODOS[k][0]}</option>`).join("")}</select>
       <span class="eq-k"><button class="gris" id="eqKm">−</button><b>${set.equipos.length}</b> eq.<button class="gris" id="eqKp">＋</button></span>
       <button class="naranja" id="eqSor">🎲 Sorteo</button><button class="verde" id="eqEqu" title="Reparte en serpiente según el nivel">⚖️ Equilibrar</button><button class="gris" id="eqVac">Vaciar</button>`}
       <button class="gris" id="eqPdf">🖨 PDF</button></div>
@@ -2538,7 +2538,13 @@ function pintarEquipos(v) {
   if (!set) return;
   const tam = EQ_MODOS[set.modo][1];
   $("eqSN").onchange = () => { set.nombre = $("eqSN").value.trim() || set.nombre; guardar(); };
-  $("eqMo").onchange = () => { set.modo = $("eqMo").value; eqAjustar(set, set.equipos.length); guardar(); };
+  $("eqMo").onchange = () => {
+    /* cambiar de formato (3c3 → 5c5…) en el mismo reparto: se ajusta el nº de equipos a las presentes y se reparte de nuevo */
+    const viejo = EQ_MODOS[set.modo][0], nuevo = EQ_MODOS[$("eqMo").value][0];
+    if (set.nombre.indexOf(viejo) === 0) set.nombre = nuevo + set.nombre.slice(viejo.length);
+    set.modo = $("eqMo").value; const t2 = EQ_MODOS[set.modo][1], k2 = Math.min(8, Math.max(2, Math.floor(eqPresentes().length / t2) || 2));
+    eqAjustar(set, k2); eqRepartir(set, false); EQ.sel = null; guardar();
+  };
   $("eqKm").onclick = () => { if (set.equipos.length > 1) { eqAjustar(set, set.equipos.length - 1); guardar(); } };
   $("eqKp").onclick = () => { if (set.equipos.length < 8) { eqAjustar(set, set.equipos.length + 1); guardar(); } };
   $("eqSor").onclick = () => { eqRepartir(set, false); EQ.sel = null; guardar(); };
