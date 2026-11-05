@@ -2386,15 +2386,34 @@ function crearEjercicioRapido(ok) {
   };
   $("enG").onclick = () => crear(false); $("enP").onclick = () => crear(true);
 }
-/* elegir una jugada de la biblioteca para ponerla como segmento del plan */
+/* elegir una jugada de la biblioteca (con sus carpetas, igual que al añadir un ejercicio) para ponerla como segmento del plan */
 function elegirJugadaPlan(ok) {
-  const L = D.jugadas.slice().sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
-  if (!L.length) { aviso("Aún no tienes jugadas. Créalas en el menú Jugadas."); return; }
-  const m = ventana(`<h3>Añadir jugada al plan</h3><input type="search" id="jpQ" placeholder="Buscar jugada…"><div class="lista-sel" id="jpL" style="max-height:380px;">${L.map(x => `<label class="it" data-id="${esc(x.id)}" data-n="${esc(plN(x.nombre + " " + (x.carpeta || "")))}"><span class="mini-s" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || "🏀"}</span><span style="flex:1;">${esc(x.nombre || "Jugada")}${x.carpeta ? ` <span class="peq">· ${esc(x.carpeta)}</span>` : ""}</span></label>`).join("")}</div><div class="pie-m"><button class="gris" id="jpX">Cancelar</button></div>`);
-  pedirMiniaturas(L);
-  $("jpX").onclick = cerrarVentana;
-  $("jpQ").oninput = () => { const q = plN($("jpQ").value); m.querySelectorAll("#jpL label").forEach(l => { l.style.display = !q || l.dataset.n.includes(q) ? "" : "none"; }); };
-  m.querySelectorAll("#jpL label").forEach(l => l.onclick = (ev) => { ev.preventDefault(); cerrarVentana(); ok(l.dataset.id); });
+  if (!D.jugadas.length) { aviso("Aún no tienes jugadas. Créalas en el menú Jugadas."); return; }
+  let q = "", cur = "";
+  ventana(`<h3>Elegir jugada de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en todas las carpetas…"><div id="elMig" class="peq" style="margin:8px 2px 4px;"></div><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m"><button class="gris" id="elX">Cerrar</button></div>`);
+  const js = () => D.jugadas.slice().sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+  const fila = (e, ruta) => `<label class="it" data-id="${esc(e.id)}"><span class="mini-s" data-mini="${esc(e.id)}">${MINIS[e.id + "|" + e.actualizada] || "🏀"}</span><span style="flex:1;">${esc(e.nombre || "Jugada")}${ruta && e.carpeta ? ` <span class="peq">· ${esc(e.carpeta)}</span>` : ""}</span><span class="peq">${esc((e.data && e.data.equipo) || "")}</span></label>`;
+  const pin = () => {
+    const box = $("elL"), mig = $("elMig");
+    if (q) {
+      mig.textContent = "Resultados en todas las carpetas";
+      const l = js().filter(e => (e.nombre + " " + (e.carpeta || "") + " " + ((e.data && e.data.equipo) || "")).toLowerCase().includes(q));
+      box.innerHTML = l.length ? l.map(e => fila(e, true)).join("") : '<div class="vacio">Nada coincide.</div>';
+    } else {
+      const partes = cur ? cur.split("/") : [];
+      mig.innerHTML = `<a data-c="" style="cursor:pointer;font-weight:700;">Jugadas</a>` + partes.map((s0, i) => ` › <a data-c="${esc(partes.slice(0, i + 1).join("/"))}" style="cursor:pointer;font-weight:700;">${esc(s0)}</a>`).join("");
+      const todas = new Set(rutasCarpetas("jugadas").map(c => c.nombre)); D.jugadas.forEach(e => { let acc = ""; (e.carpeta ? e.carpeta.split("/") : []).forEach(s0 => { acc = acc ? acc + "/" + s0 : s0; todas.add(acc); }); });
+      const hijas = [...todas].filter(r => (r.includes("/") ? r.slice(0, r.lastIndexOf("/")) : "") === cur).sort((a, b) => a.localeCompare(b, "es"));
+      const cuenta = (r) => D.jugadas.filter(e => e.carpeta === r || (e.carpeta || "").startsWith(r + "/")).length;
+      const propios = js().filter(e => (e.carpeta || "") === cur);
+      box.innerHTML = hijas.map(r => `<label class="it" data-car="${esc(r)}"><span style="flex:1;">📁 <b>${esc(ultimo(r))}</b></span><span class="peq">${cuenta(r)} ›</span></label>`).join("") + propios.map(e => fila(e, false)).join("") || '<div class="vacio">Esta carpeta está vacía.</div>';
+      mig.querySelectorAll("[data-c]").forEach(a => a.onclick = () => { cur = a.dataset.c; pin(); });
+      box.querySelectorAll("[data-car]").forEach(el => el.addEventListener("click", () => { cur = el.dataset.car; pin(); }));
+    }
+    box.querySelectorAll("[data-id]").forEach(el => el.addEventListener("click", () => { cerrarVentana(); ok(el.dataset.id); }));
+    pedirMiniaturas(D.jugadas);
+  };
+  pin(); $("elQ").addEventListener("input", (e) => { q = e.target.value.toLowerCase().trim(); pin(); }); $("elX").onclick = cerrarVentana;
 }
 function elegirEjercicio(ok) {
   let q = "", cur = "";
