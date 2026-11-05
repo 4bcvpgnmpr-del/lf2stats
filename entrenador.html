@@ -1280,7 +1280,7 @@ function datosCompartir(tipo, x) {
       if (!pbEsJ(it)) return null; const e = pbElem(it); if (!e) return null; const d = diagDe(e) || null;
       return { t: it.t, nombre: e.nombre || "", notas: it.t === "e" ? ((e.data && e.data.descripcion) || "") : ((d && d.notas) || (e.data && e.data.notas) || ""), diagrama: d && d.pasos && d.pasos.length ? d : null };
     }).filter(Boolean) }));
-    return { t: "playbook", d: { equipo: x.equipo || "", temporada: x.temporada || "", notas: (x.data && x.data.notas) || "", capitulos: caps } };
+    return { t: "playbook", d: { equipo: x.equipo || "", temporada: x.temporada || "", notas: (x.data && x.data.notas) || "", capitulos: caps, eventos: x.eventosComp || [] } };
   }
   if (tipo === "jugadas") return { t: "jugada", d: Object.assign({}, x.data || {}, { nombre: x.nombre }) };
   if (tipo === "ejercicios") { const dd = x.data || {}; return { t: "ejercicio", d: { categoria: dd.categoria || "", minutos: dd.minutos || 0, descripcion: dd.descripcion || "", materiales: dd.materiales || "", diagrama: diagDe(x) || null } }; }
@@ -2664,7 +2664,12 @@ const plJugadas = () => { eqAsegurar(); const n = plN(plEq()); return n ? D.juga
 /* playbook con las jugadas del equipo: temporal (para compartir o sacar PDF) o guardado de verdad */
 function plPlaybook(guardado) {
   const L = plJugadas(), nom = plEq();
-  return { id: guardado ? idNuevo("pb") : "tj-" + EQ.activo, nombre: "Jugadas de " + nom, equipo: nom, temporada: "", compartido: false, data: { capitulos: [{ id: idNuevo("c"), titulo: "Jugadas", items: L.map(x => ({ t: "j", id: x.id })) }] } };
+  return { id: guardado ? idNuevo("pb") : "tj-" + EQ.activo, nombre: "Jugadas de " + nom, equipo: nom, temporada: "", compartido: false, eventosComp: guardado ? [] : plEventos(), data: { capitulos: [{ id: idNuevo("c"), titulo: "Jugadas", items: L.map(x => ({ t: "j", id: x.id })) }] } };
+}
+/* próximos eventos del equipo (calendario) para el enlace de las jugadoras: solo fecha, hora, lugar y título */
+function plEventos() {
+  if (CAL.ev === null) CAL.ev = calLeer(); const n = plN(plEq()), hoy = calISO(new Date()), lim = calISO(new Date(Date.now() + 90 * 864e5));
+  return CAL.ev.filter(e => e.cat && plN(e.cat) === n && e.fecha >= hoy && e.fecha <= lim).sort((a, b) => (a.fecha + (a.hora || "")).localeCompare(b.fecha + (b.hora || ""))).slice(0, 20).map(e => ({ fecha: e.fecha, hora: e.hora || "", fin: e.fin || "", titulo: e.titulo || "", lugar: e.lugar || "" }));
 }
 function plAbrirPb(p) { if (!D.playbooks.some(y => y.id === p.id)) D.playbooks.push(p); seccion = "playbooks"; carpeta = ""; vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }
 async function plPonerEq(x, nombre) {
@@ -2696,7 +2701,7 @@ function pintarPlantilla(v) {
       : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Aún no tienes jugadoras</div>${ro ? "" : "Añádelas una a una o pega la lista de nombres. Con la ficha puedes guardar foto, fecha de nacimiento, teléfono y notas."}</div>`;
   } else if (tab === "jgd") {
     const L = plJugadas();
-    cuerpo = L.length ? `<div class="eq-card"><h3>Jugadas de ${esc(plEq())} <span class="peq">${L.length}</span></h3><div class="pl-acc"><button class="gris" id="jgCmp">🔗 Compartir en movimiento</button><button class="gris" id="jgPdf">🖨 PDF</button>${ro ? "" : '<button class="gris" id="jgPb">📘 Crear playbook</button>'}</div>${L.map(x => `<div class="pl-ses" data-jv="${esc(x.id)}"><span class="pl-jm" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO.jugadas}</span><b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.nombre || "Jugada")}</b><span class="peq">${esc(x.carpeta || "")}</span>${ro ? "" : `<button class="gris" data-jq="${esc(x.id)}" title="Quitar de este equipo">✕</button>`}</div>`).join("")}</div>`
+    cuerpo = L.length ? `<div class="eq-card"><h3>Jugadas de ${esc(plEq())} <span class="peq">${L.length}</span></h3><div class="pl-acc"><button class="gris" id="jgCmp" title="Jugadas en movimiento y próximos eventos del calendario">🔗 Compartir con el equipo</button><button class="gris" id="jgPdf">🖨 PDF</button>${ro ? "" : '<button class="gris" id="jgPb">📘 Crear playbook</button>'}</div>${L.map(x => `<div class="pl-ses" data-jv="${esc(x.id)}"><span class="pl-jm" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO.jugadas}</span><b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.nombre || "Jugada")}</b><span class="peq">${esc(x.carpeta || "")}</span>${ro ? "" : `<button class="gris" data-jq="${esc(x.id)}" title="Quitar de este equipo">✕</button>`}</div>`).join("")}</div>`
       : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Este equipo aún no tiene jugadas</div>${ro ? "" : "Pulsa «Asignar jugadas» y elige las que trabaja este equipo."}</div>`;
   } else {
     const res = J.length ? `<div class="eq-card" style="margin-bottom:14px;"><h3>Resumen de asistencia</h3><div class="tabla-sc"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th><th>Sesiones</th><th>Asiste</th><th>Faltas</th><th>Justif.</th><th>%</th></tr></thead><tbody>${J.map(j => { const a = plPct(j.id); return `<tr><td class="nm" data-pj="${esc(j.id)}" style="cursor:pointer;">${plFoto(j, "mini")} ${eqEtq(j)}</td>${a ? `<td>${a.n}</td><td>${a.p}</td><td class="${a.f ? "bad" : ""}">${a.f}</td><td>${a.j}</td><td class="${a.pct < 60 ? "bad" : "ok"}">${a.pct}%</td>` : '<td colspan="5" class="peq">–</td>'}</tr>`; }).join("")}</tbody></table></div></div>` : "";
