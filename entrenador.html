@@ -3906,13 +3906,15 @@ function pintarCalendario(v) {
   if ($("calNuevo")) $("calNuevo").onclick = () => calForm(null, calISO(new Date()));
   calPintar();
 }
+/* categorías del calendario: las de los eventos + los equipos que creas en Plantilla (además del equipo de la FEB, que va automático) */
+function calCats() { eqAsegurar(); return [...new Set(CAL.ev.map(e => e.cat).filter(Boolean).concat((EQ.equipos || []).map(t => t.nombre).filter(Boolean)))].sort((a, b) => a.localeCompare(b, "es")); }
 function calPintar() {
   if (!$("calCuerpo")) return;
   const eq = calMiEq(); $("calEqT").textContent = eq || "Elegir equipo";
   const evs = calEventos(), y = CAL.mes.getFullYear(), m = CAL.mes.getMonth(), hoy = calISO(new Date());
   $("calTit").textContent = CAL_MESES[m] + " " + y;
   document.querySelectorAll("[data-vv]").forEach(b => b.classList.toggle("on", b.dataset.vv === CAL.vista));
-  const cats = [...new Set(CAL.ev.map(e => e.cat).filter(Boolean))].sort();
+  const cats = calCats();
   $("calFil").innerHTML = Object.keys(CAL_TIPOS).map(k => `<button class="cal-f${CAL.filtro[k] ? " on" : ""}" data-f="${k}" style="--c:${CAL_TIPOS[k].c};">${CAL_TIPOS[k].i} ${CAL_TIPOS[k].n}</button>`).join("") +
     (cats.length ? `<select id="calCat"><option value="">Todas las categorías</option>${cats.map(c => `<option${c === CAL.cat ? " selected" : ""}>${esc(c)}</option>`).join("")}</select>` : "");
   $("calFil").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { CAL.filtro[b.dataset.f] = !CAL.filtro[b.dataset.f]; calPintar(); });
@@ -3964,8 +3966,8 @@ function calDia(iso) {
 }
 function calForm(e, fecha, pre) {
   if (!puedeEscribir) return;
-  const n = !e, x = e || Object.assign({ id: idNuevo("c"), tipo: "entreno", titulo: "", fecha: fecha || calISO(new Date()), hora: "18:00", fin: "19:30", cat: (CAL.ev.slice(-1)[0] || {}).cat || "", rival: "", lugar: "", notas: "" }, pre || {});
-  const cats = [...new Set(CAL.ev.map(z => z.cat).filter(Boolean))];
+  const n = !e, x = e || Object.assign({ id: idNuevo("c"), tipo: "entreno", titulo: "", fecha: fecha || calISO(new Date()), hora: "18:00", fin: "19:30", cat: CAL.cat || (CAL.ev.slice(-1)[0] || {}).cat || plEq(), rival: "", lugar: "", notas: "" }, pre || {});
+  const cats = calCats();
   ventana(`<h3>${n ? "Nuevo evento" : "Editar evento"}</h3>
     <div class="cal-tp">${["entreno", "partido", "otro"].map(k => `<button class="gris${x.tipo === k ? " on" : ""}" data-t="${k}" style="--c:${CAL_TIPOS[k].c};">${CAL_TIPOS[k].i} ${CAL_TIPOS[k].n}</button>`).join("")}</div>
     <label>Título</label><input id="ceT" value="${esc(x.titulo)}" placeholder="Ej: Entreno cadetes, Partido vs …">
