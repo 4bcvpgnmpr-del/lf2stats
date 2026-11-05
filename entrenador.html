@@ -320,6 +320,7 @@
   .mb-t{border-collapse:collapse;width:100%;background:#fff;border-radius:12px;overflow:hidden;} .mb-t th,.mb-t td{padding:6px 8px;text-align:center;border-bottom:1px solid #eef1f3;font-size:14px;} .mb-t th{background:#f4f6f8;font-size:12px;color:#5a6672;} .mb-t td.nm{text-align:left;font-weight:700;white-space:nowrap;} .mb-t td.nm{min-width:150px;} .mb-t td.nm input{width:auto;min-height:0;margin:0 8px 0 0;vertical-align:middle;} .mb-t .aus td.nm{opacity:.45;}
   .mb-c{width:46px;height:40px;border-radius:10px;border:1.5px solid #cfd6dc;background:#fff;font-size:18px;cursor:pointer;color:#fff;} .mb-c.on{background:#e0602a;border-color:#e0602a;} .mb-t .bad{color:#c0392b;font-weight:800;} .mb-t .ok{color:#e0602a;font-weight:800;} .mb-aviso{background:#fff4d6;border:1px solid #f0c24b;color:#7a5a00;border-radius:10px;padding:8px 12px;margin:0 0 10px;font-size:13.5px;} .mb-reg{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px;} .mb-reg span{background:#fdeee6;color:#c44f1e;border-radius:999px;padding:5px 12px;font-weight:700;font-size:13px;}
   .eqp-mb{width:100%;border-collapse:collapse;font-size:11pt;} .eqp-mb th,.eqp-mb td{border:1px solid #cfd6dc;padding:6px 8px;text-align:center;} .eqp-mb th{background:#1d2630 !important;color:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;} .eqp-mb td.nm{text-align:left;font-weight:700;} .eqp-mb td.on{background:#e0602a !important;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-weight:800;}
+  .eq-tm{display:inline-flex;gap:6px;align-items:center;margin-left:14px;flex-wrap:wrap;} .eq-tm select{padding:8px 10px;border-radius:10px;border:1.5px solid #cfd6de;font-weight:700;background:#fff;}
   .eq-sets{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;} .eq-sets .on{background:#e8590c;color:#fff;border-color:#e8590c;}
   .eq-tb{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;} .eq-tb input{flex:1;min-width:140px;margin:0;font-weight:800;} .eq-tb select{width:auto;margin:0;} .eq-k{display:flex;align-items:center;gap:6px;}
   .eq-eqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;} .eq-eq{border:2px solid var(--c);border-radius:12px;overflow:hidden;background:#fff;} .eq-h{background:var(--c);padding:6px 8px;} .eq-h input{width:100%;background:transparent;border:0;color:#fff;font-weight:800;font-size:15px;margin:0;padding:2px;}
@@ -2449,12 +2450,30 @@ const EQ_COL = ["#e8590c", "#1c7ed6", "#2f9e44", "#ae3ec9", "#f08c00", "#0c8599"
 const EQ_MODOS = { q5: ["Quinteto (5)", 5], c4: ["4 contra 4", 4], c3: ["3 contra 3", 3], c2: ["2 contra 2", 2], c1: ["1 contra 1", 1] };
 const EQ_POS = ["Base", "Escolta", "Alero", "Ala-pívot", "Pívot"];
 let EQ = null;
-function eqLeer() { const r = D.archivos.find(a => a.id === "_equipos"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } return { plantilla: o.plantilla || [], sets: o.sets || [], setId: o.setId || "", mini: o.mini || [], miniId: o.miniId || "" }; }
+function eqLeer() { const r = D.archivos.find(a => a.id === "_equipos"); let o = {}; try { o = JSON.parse((r && r.nombre) || "{}"); } catch (e) { /* nada */ } 
+  let eqs = Array.isArray(o.equipos) && o.equipos.length ? o.equipos : [{ id: "e1", nombre: "Mi equipo", plantilla: o.plantilla || [], sets: o.sets || [], setId: o.setId || "", mini: o.mini || [], miniId: o.miniId || "" }];
+  const act = eqs.find(x => x.id === o.activo) || eqs[0];
+  return { plantilla: act.plantilla || [], sets: act.sets || [], setId: act.setId || "", mini: act.mini || [], miniId: act.miniId || "", equipos: eqs, activo: act.id }; }
+/* varios equipos (cadete, infantil…): cada uno con su plantilla, repartos y partidos de mini basket */
+function eqSync() { const a = EQ.equipos.find(x => x.id === EQ.activo); if (a) { a.plantilla = EQ.plantilla; a.sets = EQ.sets; a.setId = EQ.setId; a.mini = EQ.mini || []; a.miniId = EQ.miniId || ""; } }
+async function eqCambiar(id) { eqSync(); const t = EQ.equipos.find(x => x.id === id); if (!t) return; EQ.activo = id; EQ.plantilla = t.plantilla || []; EQ.sets = t.sets || []; EQ.setId = t.setId || ""; EQ.mini = t.mini || []; EQ.miniId = t.miniId || ""; EQ.sel = null; await eqGuardar(); }
+const eqTodosSets = () => { eqAsegurar(); eqSync(); return EQ.equipos.flatMap(t => (t.sets || []).map(x => ({ x, eq: t.nombre }))); };
+function eqSelHtml(ro) {
+  eqAsegurar(); const n = EQ.equipos.length;
+  return `<span class="eq-tm"><select id="eqTm" title="Equipo (cadete, infantil…)">${EQ.equipos.map(t => `<option value="${esc(t.id)}" ${t.id === EQ.activo ? "selected" : ""}>${esc(t.nombre)}</option>`).join("")}</select>${ro ? "" : '<button class="gris" id="eqTmN" title="Nuevo equipo">＋ Equipo</button><button class="gris" id="eqTmR" title="Cambiar nombre">✎</button>' + (n > 1 ? '<button class="gris" id="eqTmD" title="Borrar este equipo" style="color:#c0392b;">🗑</button>' : "")}</span>`;
+}
+function eqSelBind(repintar) {
+  const sel = $("eqTm"); if (!sel) return;
+  sel.onchange = async () => { await eqCambiar(sel.value); repintar(); };
+  if ($("eqTmN")) $("eqTmN").onclick = () => preguntar("Nuevo equipo", "Nombre (ej: Cadete, Infantil A)", "", async (nm) => { eqSync(); const t = { id: idNuevo("e"), nombre: nm, plantilla: [], sets: [], setId: "", mini: [], miniId: "" }; EQ.equipos.push(t); await eqCambiar(t.id); repintar(); });
+  if ($("eqTmR")) $("eqTmR").onclick = () => preguntar("Nombre del equipo", "Nombre", (EQ.equipos.find(x => x.id === EQ.activo) || {}).nombre || "", async (nm) => { const t = EQ.equipos.find(x => x.id === EQ.activo); if (t) t.nombre = nm; await eqGuardar(); repintar(); });
+  if ($("eqTmD")) $("eqTmD").onclick = async () => { const t = EQ.equipos.find(x => x.id === EQ.activo); if (!t || !await confirmar("¿Borrar el equipo «" + t.nombre + "» con su plantilla y sus repartos?")) return; EQ.equipos = EQ.equipos.filter(x => x !== t); await eqCambiar(EQ.equipos[0].id); repintar(); };
+}
 async function eqGuardar() {
-  const nombre = JSON.stringify({ plantilla: EQ.plantilla, sets: EQ.sets, setId: EQ.setId, mini: EQ.mini || [], miniId: EQ.miniId || "" });
+  eqSync(); const nombre = JSON.stringify({ plantilla: EQ.plantilla, sets: EQ.sets, setId: EQ.setId, mini: EQ.mini || [], miniId: EQ.miniId || "", equipos: EQ.equipos, activo: EQ.activo });
   if (await guardarFila("archivos", { id: "_equipos", nombre, tipo: "ajustes", ruta: "", mime: "", tamano: 0 })) { const r = D.archivos.find(a => a.id === "_equipos"); if (r) r.nombre = nombre; else D.archivos.push({ id: "_equipos", nombre, tipo: "ajustes" }); }
 }
-const eqJug = (id) => EQ.plantilla.find(j => j.id === id);
+const eqJug = (id) => EQ.plantilla.find(j => j.id === id) || ((EQ.equipos || []).flatMap(t => t.plantilla || []).find(j => j.id === id));
 const eqEtq = (j) => (j.num !== "" && j.num != null ? "<b>" + esc(String(j.num)) + "</b> " : "") + esc(j.nombre);
 const eqSet = () => EQ.sets.find(s => s.id === EQ.setId) || null;
 const eqBarajar = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -2501,10 +2520,11 @@ function pintarEquipos(v) {
       <div class="eq-pool" data-pool="1"><b>Sin equipo</b> <span class="peq">(${pool.length})</span><div class="eq-chips">${pool.map(j => `<span class="eq-chip ${EQ.sel && EQ.sel.id === j.id ? "sel" : ""}" data-p="${esc(j.id)}">${eqEtq(j)}</span>`).join("") || '<span class="peq">Todos asignados ✓</span>'}</div></div>
       <p class="peq" style="margin:8px 2px 0;">Toca una persona y luego un hueco para colocarla; si el hueco está ocupado se intercambian. Toca «Sin equipo» para sacarla del equipo.</p></div>`;
   }
-  v.innerHTML = `<div class="cab"><h2>Quintetos y equipos</h2><span class="esp"></span>${ro ? "" : '<button class="naranja" id="eqNuevo">＋ Nuevo reparto</button>'}</div>
+  v.innerHTML = `<div class="cab"><h2>Quintetos y equipos</h2>${eqSelHtml(ro)}<span class="esp"></span>${ro ? "" : '<button class="naranja" id="eqNuevo">＋ Nuevo reparto</button>'}</div>
     <div class="eq-sets">${EQ.sets.map(s => `<button class="gris ${s.id === EQ.setId ? "on" : ""}" data-set="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${set && !ro ? '<button class="gris" id="eqDup" title="Duplicar">⧉</button><button class="gris" id="eqDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>
     <div class="eq-grid">${plant}${tablero}</div>`;
   const guardar = async (repintar) => { await eqGuardar(); if (repintar !== false) pintarEquipos(v); };
+  eqSelBind(() => pintarEquipos(v));
   v.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { EQ.setId = b.dataset.set; EQ.sel = null; pintarEquipos(v); });
   if (ro) { const p = $("eqPdf"); if (p) p.onclick = () => imprimirEquipos(set); return; }
   $("eqNuevo").onclick = () => ventana(`<h3>Nuevo reparto</h3><label>Formato</label><select id="nrM">${Object.keys(EQ_MODOS).map(k => `<option value="${k}" ${k === "c3" ? "selected" : ""}>${EQ_MODOS[k][0]}</option>`).join("")}</select><p class="peq">Presentes ahora: ${pres.length}. Luego puedes cambiar el número de equipos.</p><div class="pie-m"><button class="gris" id="nrX">Cancelar</button><button class="naranja" id="nrOk">Crear y sortear</button></div>`) && ($("nrX").onclick = cerrarVentana, $("nrOk").onclick = async () => { const s = eqNuevoSet($("nrM").value); eqRepartir(s, false); EQ.sets.push(s); EQ.setId = s.id; EQ.sel = null; cerrarVentana(); await guardar(); });
@@ -2537,7 +2557,7 @@ function pintarEquipos(v) {
   const po = v.querySelector("[data-pool]"); po.onclick = (ev) => { if (ev.target.closest("[data-p]")) return; if (EQ.sel && EQ.sel.e >= 0) { set.equipos[EQ.sel.e].s[EQ.sel.s] = null; EQ.sel = null; guardar(); } };
 }
 const eqAsegurar = () => { if (!EQ) EQ = Object.assign(eqLeer(), { sel: null }); return EQ; };
-const repDe = (e) => { if (!e || !e.reparto) return null; eqAsegurar(); return EQ.sets.find(x => x.id === e.reparto) || null; };
+const repDe = (e) => { if (!e || !e.reparto) return null; eqAsegurar(); return EQ.sets.find(x => x.id === e.reparto) || ((eqSync(), EQ.equipos.flatMap(t => t.sets || []).find(x => x.id === e.reparto))) || null; };
 const eqBloque = (e, modo) => {   /* modo: "pv" (editable) o "pdf" */
   const r = repDe(e), col = ["#e0602a", "#2a7bb8"];
   if (!r && !e.dosEq) return "";
@@ -2569,7 +2589,7 @@ function repartoRapido(ok) {
 }
 function elegirReparto(actual, ok) {
   eqAsegurar();
-  ventana(`<h3>Vincular reparto de equipos</h3><p class="peq" style="margin:0 0 6px;">Aparecerá en el PDF dentro de este ejercicio.</p><div class="lista-sel" id="rpL" style="max-height:340px;"><label class="it" data-id=""><span style="flex:1;">— Ninguno —</span>${actual ? "" : "✓"}</label>${EQ.sets.map(x => `<label class="it" data-id="${esc(x.id)}"><span style="flex:1;">👥 <b>${esc(x.nombre)}</b></span><span class="peq">${x.equipos.length} equipos ${actual === x.id ? "✓" : ""}</span></label>`).join("") || '<div class="vacio">Aún no tienes repartos: crea uno aquí mismo.</div>'}</div><div class="pie-m"><button class="gris" id="rpX">Cerrar</button>${puedeEscribir ? '<button class="naranja" id="rpNew">👥 Crear / editar quintetos y equipos…</button>' : ""}</div>`);
+  ventana(`<h3>Vincular reparto de equipos</h3><p class="peq" style="margin:0 0 6px;">Aparecerá en el PDF dentro de este ejercicio.</p><div class="lista-sel" id="rpL" style="max-height:340px;"><label class="it" data-id=""><span style="flex:1;">— Ninguno —</span>${actual ? "" : "✓"}</label>${eqTodosSets().map(({ x, eq }) => `<label class="it" data-id="${esc(x.id)}"><span style="flex:1;">👥 <b>${esc(x.nombre)}</b>${EQ.equipos.length > 1 ? ` <span class="peq">· ${esc(eq)}</span>` : ""}</span><span class="peq">${x.equipos.length} equipos ${actual === x.id ? "✓" : ""}</span></label>`).join("") || '<div class="vacio">Aún no tienes repartos: crea uno aquí mismo.</div>'}</div><div class="pie-m"><button class="gris" id="rpX">Cerrar</button>${puedeEscribir ? '<button class="naranja" id="rpNew">👥 Crear / editar quintetos y equipos…</button>' : ""}</div>`);
   if ($("rpNew")) $("rpNew").onclick = () => { cerrarVentana(); repartoRapido(ok); };
   $("rpX").onclick = cerrarVentana; $("rpL").querySelectorAll("[data-id]").forEach(el => el.onclick = () => { cerrarVentana(); ok(el.dataset.id); });
 }
@@ -2686,7 +2706,7 @@ function imprimirLibro(r) {
   window.print();
 }
 /* ------------ mini basket: quién juega cada cuarto ------------ */
-const MB_PRE = { ext: ["Extremadura · 6 cuartos de 8′ · todas ≥ 2 cuartos", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }], c4: ["4 cuartos de 10′ · todas ≥ 1 cuarto", { cuartos: 4, min: 10, minJ: 1, maxJ: 0, pista: 5 }], libre: ["Personalizado", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }] };
+const MB_PRE = { libre: ["Personalizado", { cuartos: 6, min: 8, minJ: 2, maxJ: 0, pista: 5 }] };
 const mbJug = (pl) => eqPresentes().concat(pl.x || []);
 const mbFila = (pl, id) => { const r = (pl.g[id] = pl.g[id] || []); while (r.length < pl.r.cuartos) r.push(0); r.length = pl.r.cuartos; return r; };
 function mbAuto(pl, rehacer) {
@@ -2859,7 +2879,7 @@ function pintarMini(v) {
   const ro = !puedeEscribir, pl = (EQ.mini || []).find(x => x.id === EQ.miniId) || null, pres = pl ? mbJug(pl) : eqPresentes();
   const guardar = () => { eqGuardar(); };
   let cuerpo = "";
-  if (!pl) cuerpo = `<div class="eq-card eq-vacio"><h3>Cuartos de mini basket</h3><p class="peq">Crea un partido, elige el formato (por ejemplo Extremadura: 6 cuartos de 8′ y todas juegan al menos 2) y marca quién juega cada cuarto. «Autocompletar» reparte los cuartos por ti y respeta lo que ya hayas marcado. Las jugadoras son las presentes de «Quintetos y equipos», y puedes añadir otras a mano en cada partido.</p></div>`;
+  if (!pl) cuerpo = `<div class="eq-card eq-vacio"><h3>Cuartos de mini basket</h3><p class="peq">Crea un partido, pon las reglas de tu competición (cuartos, minutos y mínimo de cuartos por jugadora) y marca quién juega cada cuarto. «Autocompletar» reparte los cuartos por ti y respeta lo que ya hayas marcado. Las jugadoras son las presentes de «Quintetos y equipos», y puedes añadir otras a mano en cada partido.</p></div>`;
   else {
     const Q = pl.r.cuartos, P = pl.r.pista, mn = pl.r.minJ, mx = pl.r.maxJ, av = mbResumen(pl);
     const filas = EQ.plantilla.concat(pl.x || []).map(j => { const man = (pl.x || []).includes(j), r = mbFila(pl, j.id), ausente = j.pres === false, tot = ausente ? 0 : r.reduce((a, b) => a + b, 0), mal = !ausente && (tot < mn || (mx && tot > mx));
@@ -2872,9 +2892,10 @@ function pintarMini(v) {
       <div style="overflow-x:auto;"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th>${Array.from({ length: Q }, (_, q) => `<th>${q + 1}º</th>`).join("")}<th>Cuartos</th><th>Min</th></tr></thead><tbody>${filas || `<tr><td colspan="${Q + 3}" class="peq">No hay jugadoras: añádelas en «Repartos».</td></tr>`}</tbody><tfoot><tr><th style="text-align:left;">En pista</th>${pie}<th></th><th></th></tr></tfoot></table></div>
       <p class="peq" style="margin:8px 2px 0;">Toca una casilla para poner o quitar a una jugadora en ese cuarto. En rojo: cuartos sin las ${P} en pista, o jugadoras por debajo del mínimo.</p></div>`;
   }
-  v.innerHTML = `<div class="cab"><h2>🏀 Mini basket</h2><span class="esp"></span><button class="gris" id="mbVolver" title="Editar la plantilla">👥 Plantilla</button>${ro ? "" : '<button class="naranja" id="mbNuevo">＋ Nuevo partido</button>'}</div>
+  v.innerHTML = `<div class="cab"><h2>🏀 Mini basket</h2>${eqSelHtml(ro)}<span class="esp"></span><button class="gris" id="mbVolver" title="Editar la plantilla">👥 Plantilla</button>${ro ? "" : '<button class="naranja" id="mbNuevo">＋ Nuevo partido</button>'}</div>
     <div class="eq-sets">${(EQ.mini || []).map(s => `<button class="gris ${s.id === EQ.miniId ? "on" : ""}" data-mini="${esc(s.id)}">${esc(s.nombre)}</button>`).join("")}${pl && !ro ? '<button class="gris" id="mbDup" title="Duplicar">⧉</button><button class="gris" id="mbDel" title="Eliminar" style="color:#c0392b;">🗑</button>' : ""}</div>${cuerpo}`;
   $("mbVolver").onclick = () => ir("equipos");
+  eqSelBind(() => pintarMini(v));
   v.querySelectorAll("[data-mini]").forEach(b => b.onclick = () => { EQ.miniId = b.dataset.mini; pintarMini(v); });
   if (!pl) { if ($("mbNuevo")) $("mbNuevo").onclick = () => formMini(v, null); return; }
   $("mbPdf").onclick = () => imprimirMini(pl);
@@ -2896,14 +2917,13 @@ function pintarMini(v) {
   v.querySelectorAll(".mb-c").forEach(b => b.onclick = () => { const r = mbFila(pl, b.dataset.j), q = Number(b.dataset.q); r[q] = r[q] ? 0 : 1; guardar(); pintarMini(v); });
 }
 function formMini(v, pl) {
-  const r0 = pl ? pl.r : MB_PRE.ext[1];
+  const r0 = pl ? pl.r : MB_PRE.libre[1];
   ventana(`<h3>${pl ? "Reglas del partido" : "Nuevo partido de mini basket"}</h3>
-    ${pl ? "" : `<label>Nombre</label><input id="fmN" placeholder="Ej: vs Cortegada" value=""><label>Formato</label><select id="fmP">${Object.keys(MB_PRE).map(k => `<option value="${k}">${esc(MB_PRE[k][0])}</option>`).join("")}</select>`}
+    ${pl ? "" : `<label>Nombre</label><input id="fmN" placeholder="Ej: vs Cortegada" value=""><p class="peq" style="margin:8px 0 0;">Pon las reglas de tu competición (cuartos, minutos y cuántos cuartos juega cada una).</p>`}
     <div class="dos"><div><label>Nº de cuartos</label><input id="fmQ" type="number" min="1" max="12" value="${r0.cuartos}"></div><div><label>Minutos por cuarto</label><input id="fmM" type="number" min="1" max="30" value="${r0.min}"></div></div>
     <div class="dos"><div><label>Mínimo de cuartos por jugadora</label><input id="fmJ" type="number" min="0" max="12" value="${r0.minJ}"></div><div><label>Máximo (0 = sin límite)</label><input id="fmX" type="number" min="0" max="12" value="${r0.maxJ || 0}"></div></div>
     <div><label>Jugadoras en pista</label><input id="fmE" type="number" min="1" max="5" value="${r0.pista}" style="max-width:120px;"></div>
     <div class="pie-m"><button class="gris" id="fmX0">Cancelar</button><button class="naranja" id="fmOk">${pl ? "Guardar" : "Crear"}</button></div>`);
-  if (!pl) $("fmP").onchange = () => { const r = MB_PRE[$("fmP").value][1]; $("fmQ").value = r.cuartos; $("fmM").value = r.min; $("fmJ").value = r.minJ; $("fmX").value = r.maxJ; $("fmE").value = r.pista; };
   $("fmX0").onclick = cerrarVentana;
   $("fmOk").onclick = async () => {
     const n = (id, d) => { const x = parseInt($(id).value, 10); return Number.isFinite(x) ? x : d; };
