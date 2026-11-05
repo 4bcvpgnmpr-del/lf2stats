@@ -316,6 +316,7 @@
   .pe-c2{display:flex;align-items:center;} .pe-c3{display:flex;align-items:center;} .pe-c3 input{flex:1;min-width:0;} .pe-rep{flex:none;background:#e8f4f0;color:#c44f1e;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;margin-left:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .eq-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start;} .eq-card{background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:14px;} .eq-card h3{margin:0 0 8px;font-size:16px;}
   .eq-lista{max-height:60vh;overflow:auto;} .eq-jug{display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid #eef0f2;} .eq-jug:first-child{border-top:0;} .eq-jug.aus{opacity:.45;} .eq-jug input{width:auto;margin:0;} .eq-n{width:26px;text-align:right;font-weight:800;color:#e8590c;} .eq-nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .eq-st{color:#f08c00;font-size:11px;letter-spacing:-1px;}
+  .cu-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;} .cu-f{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #eef0f2;} .cu-f:first-of-type{border-top:0;} .cu-plan{font-size:26px;font-weight:800;margin:2px 0 6px;} .cu-est{display:inline-block;border-radius:999px;padding:4px 12px;font-weight:800;font-size:13px;} .cu-est.ok{background:#e6f6ee;color:#1f8a52;} .cu-est.av{background:#fff4d6;color:#7a5a00;} .cu-est.mal{background:#fdeaea;color:#c0392b;} .cu-a{display:inline-block;text-decoration:none;border:1.5px solid var(--line);border-radius:10px;padding:8px 14px;font-weight:700;font-size:14px;color:inherit;} .cu-m{display:flex;gap:6px;flex-wrap:wrap;} .cu-m span{background:#f1f3f5;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600;}
   .pl-acc{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px;}
   .pl-jm{flex:none;width:64px;height:46px;border:1px solid #d9dee3;border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:2px;} .pl-jm svg{width:100%;height:100%;display:block;} .lista-sel label.it input[data-ja]{width:auto;margin:0;}
   .pl-rej{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;} .pl-card{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e3e7ea;border-radius:14px;padding:10px 12px;cursor:pointer;} .pl-card:hover{border-color:var(--pg);box-shadow:0 2px 8px rgba(0,0,0,.06);} .pl-i{flex:1;min-width:0;} .pl-n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .pl-n b{color:#e8590c;} .pl-av{font-size:12px;color:#7a5a00;background:#fff4d6;border-radius:8px;padding:2px 8px;margin-top:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -706,6 +707,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <button data-s="imagen"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="4" width="17" height="16" rx="2.500"/><circle cx="9" cy="9.500" r="1.600"/><path d="M4 17l5-4.500 4 3.500 3-2.500 4 3.500"/></svg></span><span class="tx">Imágenes</span><span class="n" id="n-imagen"></span></button>
       <button data-s="audio"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4.500" height="6" rx="1.500"/><rect x="16.500" y="14" width="4.500" height="6" rx="1.500"/></svg></span><span class="tx">Audio</span><span class="n" id="n-audio"></span></button>
     </div>
+    <div class="grupo"><h4>Cuenta</h4><button data-s="cuenta"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.500-6.500 8-6.500s8 2.500 8 6.500"/></svg></span><span class="tx">Mi cuenta</span></button></div>
     <div class="grupo"><h4>Ayuda</h4><button type="button" onclick="bienvenida(true)"><span class="i">🚀</span><span class="tx">Empezar aquí</span></button><button type="button" onclick="window.open('ayuda.html','_blank')"><span class="i">❓</span><span class="tx">Cómo usar la app</span></button></div>
     <div class="pie" style="display:none"><a href="index.html"><span class="i">←</span><span class="tx"> Volver a estadísticas</span></a></div>
   </aside>
@@ -847,7 +849,7 @@ let VIDEO_PRO = true;
 /* Tope de espacio por cuenta con plan (en MB). El propietario no tiene tope (0). Cambia el número si quieres más o menos. */
 let TOPE_MB = 0;
 function scoutBytes() { try { const s = JSON.parse(localStorage.getItem("lf2_scouting_v1") || "{}"); let t = 0; ["equipos", "jugadoras"].forEach(k => Object.values(s[k] || {}).forEach(x => ((x && x.videos) || []).forEach(v => { if (v && v.nubeUrl) t += +v.archivoTamano || 0; }))); return t; } catch (e) { return 0; } }
-const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", plantilla: "Plantilla", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", plantilla: "Plantilla", cuenta: "Mi cuenta", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 const kv = {
@@ -940,6 +942,7 @@ function pintar() {
   if (seccion === "calendario") return pintarCalendario(v);
   if (seccion === "playbooks") return pintarPlaybooks(v);
   if (seccion === "chat") return pintarChat(v);
+  if (seccion === "cuenta") return pintarCuenta(v);
   if (seccion === "plantilla") return pintarPlantilla(v);
   if (seccion === "equipos") return pintarEquipos(v);
   if (seccion === "libro") return pintarLibro(v);
@@ -2775,6 +2778,25 @@ function plSesion(id, v) {
   const o = $("velo"), vv = v; /* al cerrar la ventana se repinta la lista */
   const mo = new MutationObserver(() => { if (!o.classList.contains("ver")) { mo.disconnect(); if (seccion === "plantilla") pintarPlantilla(vv); } }); mo.observe(o, { attributes: true, attributeFilter: ["class"] });
 }
+/* ------------ Mi cuenta: perfil, plan, espacio y accesos de quien contrata el pack de Entrenador ------------ */
+function pintarCuenta(v) {
+  const P = MI_PLAN, nomPlan = !P ? "Propietario" : (PLANES_APP[P.plan] && PLANES_APP[P.plan].n) || (P.plan ? P.plan : "Con menús a medida");
+  const en = entrenadorDe(), eq = equipoDe(), hoy = new Date(), hasta = P && P.hasta ? new Date(P.hasta + "T23:59:59") : null;
+  const dias = hasta ? Math.round((new Date(P.hasta + "T12:00:00") - new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 12)) / 864e5) : null;
+  const estado = !P ? ["Sin límite", "ok"] : !hasta ? ["Sin fecha de fin", "ok"] : dias < 0 ? ["Vencido hace " + (-dias) + " día" + (dias === -1 ? "" : "s"), "mal"] : dias <= 7 ? ["Vence en " + dias + " día" + (dias === 1 ? "" : "s"), "av"] : ["Activo hasta el " + hasta.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }), "ok"];
+  const LIM = (TOPE_MB || 1024) * 1048576, us = (D.archivos || []).filter(x => x.tipo !== "ajustes").reduce((t, x) => t + (+x.tamano || 0), 0) + scoutBytes(), pc = Math.min(100, Math.round(us / LIM * 100));
+  const menus = [...(PERM_E || new Set(Object.keys(SECCIONES)))].filter(k => SECCIONES[k] && k !== "cuenta" && k !== "inicio").map(k => SECCIONES[k]);
+  const lim = PLAN_LIM ? Object.keys(PLAN_LIM).map(k => `${PLAN_LIM[k]} ${k === "planes" ? "planes" : k}`).join(", ") : "";
+  const correo = (typeof MI_CORREO === "string" && MI_CORREO) || MI_EMAIL || "";
+  v.innerHTML = `<div class="cab"><h2>Mi cuenta</h2></div><div class="cu-g">
+    <div class="eq-card"><h3>Perfil</h3><div class="cu-f"><span class="peq">Entrenador/a</span><b>${esc(en.nombre || "—")}</b></div><div class="cu-f"><span class="peq">Equipo</span><b>${esc(eq.equipo || "—")}${eq.temporada ? " · " + esc(eq.temporada) : ""}</b></div>${correo ? `<div class="cu-f"><span class="peq">Correo</span><b>${esc(correo)}</b></div>` : ""}${puedeEscribir ? '<button class="gris" id="cuPerfil" style="margin-top:10px;">✏️ Editar nombre, equipo y escudo</button>' : ""}</div>
+    <div class="eq-card"><h3>Mi plan</h3><div class="cu-plan">${esc(nomPlan)}</div><div class="cu-est ${estado[1]}">${esc(estado[0])}</div>${P && P.pago ? `<div class="cu-f"><span class="peq">Forma de pago</span><b>${esc(P.pago)}</b></div>` : ""}${lim ? `<p class="peq" style="margin:8px 0 0;">Incluye de muestra: ${esc(lim)}.</p>` : ""}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"><a class="gris cu-a" href="precios.html" target="_blank" rel="noopener">Ver planes y precios</a></div></div>
+    <div class="eq-card"><h3>Espacio</h3><div class="cu-f"><b>${tamTxt(us) || "0 KB"}</b><span class="peq">de ${TOPE_MB ? (TOPE_MB / 1024) + " GB" : "1 GB"}</span></div><div style="height:8px;background:#e9edf0;border-radius:9px;overflow:hidden;margin-top:8px;"><div style="height:100%;width:${pc}%;background:${pc > 85 ? "#e5484d" : "#f26a21"};"></div></div><p class="peq" style="margin:8px 0 0;">Vídeos, imágenes y audios que has subido.</p></div>
+    <div class="eq-card"><h3>Menús de tu plan</h3><div class="cu-m">${menus.map(m => `<span>${esc(m)}</span>`).join("") || '<span class="peq">—</span>'}</div></div>
+  </div><div style="margin-top:16px;"><button class="gris" id="cuSal">Cerrar sesión</button></div>`;
+  if ($("cuPerfil")) $("cuPerfil").onclick = formEquipo;
+  $("cuSal").onclick = async () => { try { localStorage.removeItem("sf_solo_partido"); if (nube) await nube.auth.signOut(); } catch (x) { /* nada */ } location.href = "index.html"; };
+}
 /* ------------ libro de partidos ------------ */
 function librosPartido() {
   let loc = []; try { loc = JSON.parse(localStorage.getItem("scoutflow-libro") || "[]"); } catch (e) { loc = []; }
@@ -4180,7 +4202,7 @@ async function leerPermisosAyudante(sb, email) {
     if (q) {
       let s = q.s || [], lock = null; const ligas = J(f.ligas_auto, []).map(l => l.id);
       if (q.plan) { if (q.plan !== "premium") { if (s.length) lock = "plan"; s = []; } else if (s.length && !ligas.includes(q.liga)) { lock = "liga"; s = []; } }
-      return { e: q.e || [], s, plan: q.plan || "", gb: Number(q.gb) || 0, lock, precios: J(f.planes_precio, {}) };
+      return { e: q.e || [], s, plan: q.plan || "", gb: Number(q.gb) || 0, hasta: q.hasta || "", lock, precios: J(f.planes_precio, {}) };
     }
     const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
     if (lg.includes(yo)) return { e: ["partido"], s: [], plan: "", lock: null, precios: {} };
@@ -4196,7 +4218,7 @@ function bannerSim() {
 }
 function permisosSimulados() { try { const q = JSON.parse(sessionStorage.getItem("sf_ver_como") || "null"); return q ? { e: q.e || [], s: q.s || [], plan: q.plan || "", lock: q.lock || null, precios: q.precios || {} } : null; } catch (e) { return null; } }
 const HG_ACTIVO = false; /* importar de Hoops Geek: oculto por ahora (poner true para volver a mostrarlo) */
-let PERM_E = null, PLAN_LIM = null;
+let PERM_E = null, PLAN_LIM = null, MI_PLAN = null;
 function puedeCrear(tipo, n) {
   if (!PLAN_LIM || PLAN_LIM[tipo] == null) return true;
   if (D[tipo].length + (n == null ? 1 : n) <= PLAN_LIM[tipo]) return true;
@@ -4224,7 +4246,7 @@ async function iniciar() {
     const E = PERMS.e.filter(x => SECCIONES[x] || x === "partido");
     if (!E.length) { if (PERMS.s.length) { location.replace("index.html"); return; } pantalla("Todavía no tienes menús habilitados. Pídeselos al entrenador."); return; }
     if (E.length === 1 && E[0] === "partido") { soloPartido(data.session.user.email); return; }
-    PLAN_LIM = (PLANES_APP[PERMS.plan] && PLANES_APP[PERMS.plan].lim) || null; PERM_E = new Set(E); try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
+    PLAN_LIM = (PLANES_APP[PERMS.plan] && PLANES_APP[PERMS.plan].lim) || null; PERM_E = new Set(E.concat("cuenta")); MI_PLAN = PERMS; try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
     document.querySelectorAll("aside .grupo button[data-s]").forEach(b => { if (!PERM_E.has(b.dataset.s)) b.style.display = "none"; });
     document.querySelectorAll("aside .grupo").forEach(g => { if (![...g.querySelectorAll("button[data-s]")].some(b => b.style.display !== "none")) g.style.display = "none"; });
     if (PERMS.plan && !PERMS.s.length) {
