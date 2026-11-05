@@ -2139,7 +2139,7 @@ function formEjercicio(x) {
 /* ------------ planes de entrenamiento (creador estilo Hoops Geek) ------------ */
 const IC = {"x": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "undo": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 14L4 9l5-5\"/><path d=\"M4 9h10a6 6 0 010 12h-3\"/></svg>", "redo": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 14l5-5-5-5\"/><path d=\"M20 9H10a6 6 0 000 12h3\"/></svg>", "mas": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"5\" cy=\"12\" r=\"1.3\" fill=\"currentColor\"/><circle cx=\"12\" cy=\"12\" r=\"1.3\" fill=\"currentColor\"/><circle cx=\"19\" cy=\"12\" r=\"1.3\" fill=\"currentColor\"/></svg>", "q": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.5 9.5a2.5 2.5 0 114 2c-.8.6-1.5 1-1.5 2.2M12 17h.01\"/></svg>", "dup": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"9\" y=\"9\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M5 15V6a2 2 0 012-2h9\"/></svg>", "del": "<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3\"/></svg>", "plus": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>", "asa": "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><circle cx=\"9\" cy=\"6\" r=\"1.7\"/><circle cx=\"9\" cy=\"12\" r=\"1.7\"/><circle cx=\"9\" cy=\"18\" r=\"1.7\"/><circle cx=\"15\" cy=\"6\" r=\"1.7\"/><circle cx=\"15\" cy=\"12\" r=\"1.7\"/><circle cx=\"15\" cy=\"18\" r=\"1.7\"/></svg>", "chev": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 15l6-6 6 6\"/></svg>", "chevd": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 9l6 6 6-6\"/></svg>"};
 const hmDe = (inicio, min) => { const [h, m] = (inicio || "18:00").split(":").map(Number); const t = h * 60 + m + min; return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
-const ejDe = (e) => e.id ? D.ejercicios.find(y => y.id === e.id) : null;
+const ejDe = (e) => e.id ? (D.ejercicios.find(y => y.id === e.id) || D.jugadas.find(y => y.id === e.id) || null) : null; /* un segmento puede ser un ejercicio o una jugada */
 const tituloSeg = (e) => e.titulo != null && e.titulo !== "" ? e.titulo : (ejDe(e) ? ejDe(e).nombre : "");
 const segmentos = (d) => (d.ejercicios || []).filter(e => !e.sec);
 const minPlan = (d) => segmentos(d).reduce((a, e) => a + (Number(e.min) || 0), 0);
@@ -2265,7 +2265,7 @@ function pEd() {
     }).join("");
     cuerpo = `<div class="pe-cuerpo"><div class="pe-h"><h2>Cronograma</h2><span>${total} min</span>${total ? (() => { const g = minPorGrupo(d); return `<span style="font-size:13.5px;">${["Ataque", "Defensa", "Otros"].filter(k => g[k]).map(k => `<b style="color:${CG_COL[k]};">${k} ${g[k]}\u2032</b>`).join(" · ")}</span>`; })() : ""}</div>
       <div class="pe-lista" id="peLista">${filas || '<div class="vacio">Añade segmentos para montar la sesión.</div>'}</div>
-      ${ro ? "" : `<div class="pe-add"><span class="pe-addb"><button id="peAdd">${IC.plus.replace('width="24" height="24"','width="18" height="18"')} Añadir segmento</button><button id="peAddM" title="Más opciones">${IC.chev}</button></span><button class="gris" id="peEq" style="margin-left:8px;">👥 Quintetos y equipos</button></div>`}</div>`;
+      ${ro ? "" : `<div class="pe-add"><span class="pe-addb"><button id="peAdd">${IC.plus.replace('width="24" height="24"','width="18" height="18"')} Añadir segmento</button><button id="peAddM" title="Más opciones">${IC.chev}</button></span><button class="gris" id="peJg" style="margin-left:8px;">🏀 Añadir jugada</button><button class="gris" id="peEq" style="margin-left:8px;">👥 Quintetos y equipos</button></div>`}</div>`;
   } else if (tab === "det") {
     cuerpo = `<div class="pe-cuerpo"><div class="pe-card"><div class="dos"><div><label style="margin-top:0;">Fecha</label><input type="date" id="pdF" value="${esc(p.fecha || "")}" ${ro ? "disabled" : ""}></div><div><label style="margin-top:0;">Hora de inicio</label><input type="time" id="pdH" value="${esc(d.inicio || "18:00")}" ${ro ? "disabled" : ""}></div></div>
       <label>Carpeta</label><input id="pdC" list="dlpl" value="${esc(p.carpeta || "")}" placeholder="Sin carpeta" ${ro ? "disabled" : ""}><datalist id="dlpl">${carpetasDe("planes").map(c => `<option value="${esc(c.nombre)}">`).join("")}</datalist>
@@ -2283,11 +2283,11 @@ function pEd() {
       ${d.reflexion != null ? `<label>Reflexión</label><textarea id="pvR" style="min-height:90px;" placeholder="¿Qué funcionó? ¿Qué cambiarías?" ${ro ? "disabled" : ""}>${rtEscRaw(d.reflexion)}</textarea>` : (ro ? "" : '<div style="margin-top:14px;"><button class="gris" id="pvAddR">＋ Añadir reflexión</button></div>')}</div></div>`;
   }
   root.innerHTML = cab + cuerpo;
-  root.querySelectorAll("[data-ver]").forEach(el => el.addEventListener("click", (ev) => { ev.stopPropagation(); verEjercicio(D.ejercicios.find(y => y.id === el.dataset.ver)); }));
+  root.querySelectorAll("[data-ver]").forEach(el => el.addEventListener("click", (ev) => { ev.stopPropagation(); verEjercicio(D.ejercicios.find(y => y.id === el.dataset.ver) || D.jugadas.find(y => y.id === el.dataset.ver)); }));
   root.querySelectorAll("[data-repadd],[data-repc]").forEach(b => b.onclick = (ev) => { ev.stopPropagation(); const i = Number(b.closest(".pv-seg").dataset.i), e = lista[i]; if (!e) return; elegirReparto(e.reparto || "", (id) => { if (id) e.reparto = id; else delete e.reparto; histPlan(); pEd(); }); });
   root.querySelectorAll("input[data-eqn]").forEach(inp => inp.oninput = () => { const e = lista[Number(inp.closest(".pv-seg").dataset.i)]; if (e) { e.eqn = e.eqn || ["", ""]; e.eqn[Number(inp.dataset.eqn)] = inp.value; } });
   if ($("pvImp")) $("pvImp").onclick = () => imprimirPlan(p);
-  if (tab === "tl" || tab === "pre") pedirMiniaturas(D.ejercicios);
+  if (tab === "tl" || tab === "pre") pedirMiniaturas(D.ejercicios.concat(D.jugadas));
   // eventos
   const volcarCab = () => { p.nombre = $("peT").value; };
   $("peX").onclick = () => cerrarPlan(false);
@@ -2324,7 +2324,8 @@ function pEd() {
       const nuevoSeg = () => { lista.push({ titulo: "", min: 10, notas: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=titulo]"); if (ins.length) ins[ins.length - 1].focus(); root.querySelector(".pe-cuerpo").scrollTop = 1e6; };
       $("peAdd").onclick = nuevoSeg;
       $("peEq").onclick = () => repartoRapido(null);
-      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["👥 Quintetos y equipos…", () => repartoRapido(null)], ["🎯 Crear ejercicio nuevo", () => crearEjercicioRapido((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista.push({ id, titulo: ej.nombre, min: (ej.data && ej.data.minutos) || 10, notas: "" }); histPlan(); pEd(); })], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=sec]"); if (ins.length) ins[ins.length - 1].focus(); }]]);
+      $("peJg").onclick = () => elegirJugadaPlan((id) => { const j = D.jugadas.find(y => y.id === id); if (!j) return; lista.push({ id, titulo: j.nombre || "Jugada", min: 5, notas: "" }); histPlan(); pEd(); root.querySelector(".pe-cuerpo").scrollTop = 1e6; });
+      $("peAddM").onclick = (e) => abrirMenu(e, [["▭ Segmento vacío", nuevoSeg], ["🏀 Añadir jugada…", () => elegirJugadaPlan((id) => { const j = D.jugadas.find(y => y.id === id); if (!j) return; lista.push({ id, titulo: j.nombre || "Jugada", min: 5, notas: "" }); histPlan(); pEd(); })], ["👥 Quintetos y equipos…", () => repartoRapido(null)], ["🎯 Crear ejercicio nuevo", () => crearEjercicioRapido((id) => { const ej = D.ejercicios.find(y => y.id === id); if (!ej) return; lista.push({ id, titulo: ej.nombre, min: (ej.data && ej.data.minutos) || 10, notas: "" }); histPlan(); pEd(); })], ["🕘 Reutilizar segmentos anteriores", () => reutilizarSegmentos()], ["▬ Añadir encabezado de sección", () => { lista.push({ sec: true, titulo: "" }); histPlan(); pEd(); const ins = root.querySelectorAll(".pe-fila input[data-f=sec]"); if (ins.length) ins[ins.length - 1].focus(); }]]);
     }
   } else if (tab === "det") {
     const volc = () => { p.fecha = $("pdF").value || null; d.inicio = $("pdH").value || "18:00"; p.carpeta = $("pdC").value.trim(); d.notas = $("pdN").value; PL.sucio = true; const g = $("peG"); if (g) g.textContent = "Guardar"; };
@@ -2385,6 +2386,16 @@ function crearEjercicioRapido(ok) {
   };
   $("enG").onclick = () => crear(false); $("enP").onclick = () => crear(true);
 }
+/* elegir una jugada de la biblioteca para ponerla como segmento del plan */
+function elegirJugadaPlan(ok) {
+  const L = D.jugadas.slice().sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+  if (!L.length) { aviso("Aún no tienes jugadas. Créalas en el menú Jugadas."); return; }
+  const m = ventana(`<h3>Añadir jugada al plan</h3><input type="search" id="jpQ" placeholder="Buscar jugada…"><div class="lista-sel" id="jpL" style="max-height:380px;">${L.map(x => `<label class="it" data-id="${esc(x.id)}" data-n="${esc(plN(x.nombre + " " + (x.carpeta || "")))}"><span class="mini-s" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || "🏀"}</span><span style="flex:1;">${esc(x.nombre || "Jugada")}${x.carpeta ? ` <span class="peq">· ${esc(x.carpeta)}</span>` : ""}</span></label>`).join("")}</div><div class="pie-m"><button class="gris" id="jpX">Cancelar</button></div>`);
+  pedirMiniaturas(L);
+  $("jpX").onclick = cerrarVentana;
+  $("jpQ").oninput = () => { const q = plN($("jpQ").value); m.querySelectorAll("#jpL label").forEach(l => { l.style.display = !q || l.dataset.n.includes(q) ? "" : "none"; }); };
+  m.querySelectorAll("#jpL label").forEach(l => l.onclick = (ev) => { ev.preventDefault(); cerrarVentana(); ok(l.dataset.id); });
+}
 function elegirEjercicio(ok) {
   let q = "", cur = "";
   ventana(`<h3>Elegir ejercicio de la biblioteca</h3><input type="search" id="elQ" placeholder="Buscar en todas las carpetas…"><div id="elMig" class="peq" style="margin:8px 2px 4px;"></div><div class="lista-sel" id="elL" style="max-height:380px;"></div><div class="pie-m">${puedeEscribir ? '<button class="naranja" id="elN" style="margin-right:auto;">＋ Crear ejercicio nuevo</button>' : ""}<button class="gris" id="elX">Cerrar</button></div>`);
@@ -2428,7 +2439,7 @@ function nuevoPlanModal() {
 function dibujosDePlan(p) {
   const ids = [...new Set((p.data.ejercicios || []).filter(e => !e.sec && e.id).map(e => e.id))], out = {};
   return new Promise((ok) => {
-    const lista = ids.map(id => D.ejercicios.find(y => y.id === id)).filter(x => x && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length);
+    const lista = ids.map(id => D.ejercicios.find(y => y.id === id) || D.jugadas.find(y => y.id === id)).filter(x => x && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length);
     if (!lista.length) { ok(out); return; }
     let falta = lista.length; const fin = () => { clearTimeout(t); ok(out); }, t = setTimeout(() => ok(out), 8000);
     lista.forEach(x => pedirFases(x, "ejercicios", "imp|" + x.id + "|" + Date.now(), (svgs) => { out[x.id] = svgs || []; if (--falta <= 0) fin(); }));
