@@ -2661,7 +2661,7 @@ const plJugadas = () => { eqAsegurar(); const n = plN(plEq()); return n ? D.juga
 /* playbook con las jugadas del equipo: temporal (para compartir o sacar PDF) o guardado de verdad */
 function plPlaybook(guardado) {
   const L = plJugadas(), nom = plEq();
-  return { id: guardado ? idNuevo("pb") : "tj-" + EQ.activo, nombre: "Jugadas de " + nom, equipo: nom, temporada: "", compartido: false, carpeta: "", data: { capitulos: [{ id: idNuevo("c"), titulo: "Jugadas", items: L.map(x => ({ t: "j", id: x.id })) }] } };
+  return { id: guardado ? idNuevo("pb") : "tj-" + EQ.activo, nombre: "Jugadas de " + nom, equipo: nom, temporada: "", compartido: false, data: { capitulos: [{ id: idNuevo("c"), titulo: "Jugadas", items: L.map(x => ({ t: "j", id: x.id })) }] } };
 }
 function plAbrirPb(p) { if (!D.playbooks.some(y => y.id === p.id)) D.playbooks.push(p); seccion = "playbooks"; carpeta = ""; vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }
 async function plPonerEq(x, nombre) {
