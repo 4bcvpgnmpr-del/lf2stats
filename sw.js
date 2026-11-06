@@ -3,13 +3,15 @@
    pero SIN guardar nunca datos viejos de Google Sheets ni de la FEB.
    Estrategia: red primero, y si no hay internet, lo guardado. */
 
-const CACHE = "scoutflow-2026-11-06a";
+const CACHE = "scoutflow-2026-11-06b";
 
 const BASICOS = [
   "./",
   "./index.html",
   "./entrenador.html",
   "./pizarra.html",
+  "./ver.html",
+  "./jugadoras.html",
   "./manifest.json",
   "./icono-192.png",
   "./icono-512.png",
@@ -18,7 +20,8 @@ const BASICOS = [
 
 // Librerias externas que la app necesita para abrir sin internet
 const EXTRAS = [
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
 ];
 
 // Dominios que NUNCA se guardan en cache (datos que deben estar al dia)
@@ -45,9 +48,19 @@ self.addEventListener("install", (evento) => {
 self.addEventListener("activate", (evento) => {
   evento.waitUntil(
     caches.keys()
-      .then((claves) => Promise.all(
-        claves.filter((k) => k !== CACHE).map((k) => caches.delete(k))
-      ))
+      .then(async (claves) => {
+        /* al cambiar de version no se pierden las librerias externas ya guardadas (sin ellas la app no abre sin internet) */
+        const nueva = await caches.open(CACHE);
+        for (const k of claves.filter((k) => k !== CACHE)) {
+          try {
+            const vieja = await caches.open(k);
+            for (const r of await vieja.keys()) {
+              if (new URL(r.url).origin !== self.location.origin && !(await nueva.match(r))) { const x = await vieja.match(r); if (x) await nueva.put(r, x); }
+            }
+          } catch (e) { /* nada */ }
+        }
+        await Promise.all(claves.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+      })
       .then(() => self.clients.claim())
   );
 });

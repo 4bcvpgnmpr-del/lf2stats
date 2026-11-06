@@ -872,7 +872,7 @@ async function cargarTodo() {
   D.jugadas = j; D.playbooks = pb; D.ejercicios = ej; D.planes = pl; D.archivos = ar; D.carpetas = ca;
   D.comparte = []; if (!SOY_AYU && !OFFLINE) { try { const rc = await nube.from("ayudante_comparte").select("*"); if (!rc.error) D.comparte = rc.data || []; } catch (e) { /* sin la tabla: nada compartido */ } }
   if (OFFLINE) { const snap = await kv.get("entrenador"); if (snap) { Object.keys(D).forEach(k => { D[k] = snap[k] || []; }); puedeEscribir = false; } }
-  else if (!faltaSql) kv.put("entrenador", { jugadas: j, playbooks: pb, ejercicios: ej, planes: pl, archivos: ar, carpetas: ca, t: Date.now() });
+  else kv.put("entrenador", { jugadas: j, playbooks: pb, ejercicios: ej, planes: pl, archivos: ar, carpetas: ca, t: Date.now() });
   contadores();
 }
 function contadores() {
@@ -4260,6 +4260,8 @@ function puedeCrear(tipo, n) {
   if (D[tipo].length + (n == null ? 1 : n) <= PLAN_LIM[tipo]) return true;
   aviso("Plan Gratis: máximo " + PLAN_LIM[tipo] + " " + (tipo === "planes" ? "planes de entrenamiento" : tipo) + " de muestra. Pásate a Pro para tener más."); return false;
 }
+/* app instalable y copia para abrir sin internet: se registra también desde aquí, no solo desde Estadísticas */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }
 async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
