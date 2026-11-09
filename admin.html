@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>ScoutFlow · Administración</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#0d0d0d;--panel:#171717;--panel2:#202020;--line:#2c2c2c;--text:#f2f2f2;--muted:#9a9a9a;--accent:#f0832f;--ok:#3fbf7f;--warn:#f5c542;--bad:#e5534b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:16px calc(16px + env(safe-area-inset-right)) 60px calc(16px + env(safe-area-inset-left))}
+h1{font-size:22px;margin:0}h1 span{color:var(--accent)}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}.sp{flex:1}
+button,input,select,textarea{font:inherit;color:var(--text)}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0 14px;min-height:40px;cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:#111;font-weight:800}
+button.sm{min-height:34px;padding:0 10px;font-size:13px}
+button.bad{color:var(--bad)}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;min-height:40px}
+textarea{min-height:70px;resize:vertical}
+label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.kpi b{display:block;font-size:24px}.kpi span{color:var(--muted);font-size:12.5px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.bar input{flex:1 1 200px;width:auto}.bar select{width:auto;flex:0 0 auto}
+.list{display:flex;flex-direction:column;gap:10px}
+.cl{display:flex;flex-direction:column;gap:8px}
+.cl .r1{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cl .nm{font-weight:700;font-size:16px}
+.cl .sub{color:var(--muted);font-size:13px}
+.tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;border:1px solid var(--line);text-transform:uppercase;letter-spacing:.04em}
+.t-activo{color:var(--ok);border-color:var(--ok)}.t-prueba{color:var(--warn);border-color:var(--warn)}.t-vencido{color:var(--bad);border-color:var(--bad)}.t-baja{color:var(--muted)}
+.t-pack{color:var(--accent);border-color:var(--accent)}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.due-bad{color:var(--bad);font-weight:700}.due-warn{color:var(--warn);font-weight:700}
+.empty{color:var(--muted);text-align:center;padding:30px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;z-index:50}
+.md{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;width:min(560px,100%);margin:auto}
+.md h2{margin:0 0 4px;font-size:19px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.login{max-width:380px;margin:12vh auto 0}
+.msg{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+.pg{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
+.pg div{display:flex;justify-content:space-between;padding:2px 0}
+[hidden]{display:none!important}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="vLogin" class="login card" hidden>
+  <h1>Scout<span>Flow</span> · Admin</h1>
+  <p style="color:var(--muted);margin:6px 0 4px">Acceso solo para el propietario.</p>
+  <label>Email</label><input id="lE" type="email" autocomplete="username">
+  <label>Contraseña</label><input id="lP" type="password" autocomplete="current-password">
+  <div class="msg" id="lM"></div>
+  <button class="pri" id="lGo" style="width:100%;margin-top:6px">Entrar</button>
+</div>
+
+<div id="vNo" class="login card" hidden>
+  <h1>Sin acceso</h1>
+  <p style="color:var(--muted)">Esta cuenta no es la del propietario de ScoutFlow.</p>
+  <button id="nOut" style="width:100%">Cerrar sesión</button>
+</div>
+
+<div id="vApp" hidden>
+  <div class="top"><h1>Scout<span>Flow</span> · Clientes</h1><span class="sp"></span>
+    <button id="bCsv" class="sm">⬇ Excel (CSV)</button><button id="bNew" class="pri">＋ Cliente</button><button id="bOut" class="sm">Salir</button></div>
+  <div class="kpis" id="kp"></div>
+  <div class="bar"><input id="fQ" placeholder="Buscar por nombre, club o email…">
+    <select id="fS"><option value="">Todos los estados</option><option value="activo">Activos</option><option value="prueba">En prueba</option><option value="vencido">Vencidos</option><option value="baja">Baja</option></select>
+    <select id="fP"><option value="">Todos los packs</option><option>gratis</option><option>pro</option><option>premium</option><option>personalizado</option></select></div>
+  <div class="list" id="ls"></div>
+</div>
+
+</div>
+<div id="ov" class="ov" hidden></div>
+
+<script>
+const CONFIG={SUPABASE_URL:"https://tizmzblksovdqqnlxpli.supabase.co",SUPABASE_ANON:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo"};
+const sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hoy=()=>new Date().toISOString().slice(0,10);
+const dias=d=>d?Math.round((new Date(d+'T00:00:00')-new Date(hoy()+'T00:00:00'))/864e5):null;
+const eur=n=>(+n||0).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:2})+' €';
+const fdate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}):'—';
+let CL=[];
+
+function show(v){['vLogin','vNo','vApp'].forEach(x=>$(x).hidden=x!==v);}
+async function arranque(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){show('vLogin');return;}
+  const {data,error}=await sb.rpc('es_admin_scoutflow');
+  if(error||data!==true){show('vNo');return;}
+  show('vApp'); await cargar();
+}
+$('lGo').onclick=async()=>{
+  $('lM').textContent='';
+  const {error}=await sb.auth.signInWithPassword({email:$('lE').value.trim(),password:$('lP').value});
+  if(error){$('lM').textContent='Email o contraseña incorrectos.';return;}
+  arranque();
+};
+$('lP').addEventListener('keydown',e=>{if(e.key==='Enter')$('lGo').click();});
+const salir=async()=>{await sb.auth.signOut();location.reload();};
+$('bOut').onclick=salir;$('nOut').onclick=salir;
+
+async function cargar(){
+  const {data,error}=await sb.from('clientes').select('*').order('nombre');
+  if(error){$('ls').innerHTML='<div class="empty">No se pudo cargar: '+esc(error.message)+'<br>¿Ejecutaste el archivo admin.sql en Supabase?</div>';return;}
+  CL=data||[]; pintar();
+}
+function estadoReal(c){
+  if(c.estado==='baja')return 'baja';
+  if((c.estado==='activo'||c.estado==='prueba')&&c.proximo_cobro&&dias(c.proximo_cobro)<0)return 'vencido';
+  return c.estado||'prueba';
+}
+function pintar(){
+  const act=CL.filter(c=>estadoReal(c)==='activo'),
+        venc=CL.filter(c=>estadoReal(c)==='vencido'),
+        pron=CL.filter(c=>['activo','prueba'].includes(estadoReal(c))&&c.proximo_cobro&&dias(c.proximo_cobro)>=0&&dias(c.proximo_cobro)<=7);
+  const mes=act.reduce((a,c)=>a+(+c.importe||0),0);
+  $('kp').innerHTML=[['Activos',act.length],['Ingresos al mes',eur(mes)],['Cobran esta semana',pron.length],['Vencidos',venc.length]]
+    .map(k=>'<div class="card kpi"><b>'+k[1]+'</b><span>'+k[0]+'</span></div>').join('');
+  const q=$('fQ').value.trim().toLowerCase(),fs=$('fS').value,fp=$('fP').value;
+  const L=CL.filter(c=>(!fs||estadoReal(c)===fs)&&(!fp||c.pack===fp)&&(!q||[c.nombre,c.club,c.email,c.telefono].join(' ').toLowerCase().includes(q)))
+    .sort((a,b)=>{const o={vencido:0,prueba:1,activo:2,baja:3};return (o[estadoReal(a)]-o[estadoReal(b)])||String(a.proximo_cobro||'9').localeCompare(String(b.proximo_cobro||'9'));});
+  $('ls').innerHTML=L.length?L.map(c=>{
+    const er=estadoReal(c),d=dias(c.proximo_cobro);
+    const due=c.proximo_cobro?('<span class="'+(d<0?'due-bad':d<=7?'due-warn':'')+'">'+fdate(c.proximo_cobro)+(d<0?' · hace '+(-d)+' d':d===0?' · hoy':' · en '+d+' d')+'</span>'):'sin fecha';
+    const tel=(c.telefono||'').replace(/[^\d+]/g,'');
+    return '<div class="card cl" data-id="'+c.id+'"><div class="r1"><span class="nm">'+esc(c.nombre)+'</span><span class="tag t-pack">'+esc(c.pack)+'</span><span class="tag t-'+er+'">'+esc(er)+'</span><span class="sp"></span><b>'+eur(c.importe)+'/mes</b></div>'+
+      '<div class="sub">'+(c.tipo==='club'?'Club':'Individual')+(c.club?' · '+esc(c.club):'')+(c.liga?' · '+esc(c.liga):'')+' · '+esc(c.metodo||'')+'</div>'+
+      '<div class="sub">Próximo cobro: '+due+'</div>'+
+      '<div class="acts"><button class="sm pri" data-a="pay">✓ Cobrado</button><button class="sm" data-a="edit">✎ Editar</button>'+
+      (c.email?'<button class="sm" data-a="mail">✉ Email</button>':'')+(tel?'<button class="sm" data-a="wa">WhatsApp</button>':'')+'</div></div>';
+  }).join(''):'<div class="empty">'+(CL.length?'Nada con ese filtro.':'Aún no hay clientes. Pulsa «＋ Cliente».')+'</div>';
+}
+['fQ','fS','fP'].forEach(i=>$(i).addEventListener('input',pintar));
+$('ls').addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const c=CL.find(x=>x.id===b.closest('[data-id]').dataset.id);if(!c)return;
+  const a=b.dataset.a;
+  if(a==='edit')return ficha(c);
+  if(a==='pay')return cobrar(c);
+  if(a==='mail'){
+    const venc=c.proximo_cobro?fdate(c.proximo_cobro):'';
+    const asunto='ScoutFlow · tu suscripción';
+    const cuerpo='Hola '+c.nombre.split(' ')[0]+',\n\n'+(venc?'Tu suscripción de ScoutFlow ('+c.pack+') vence el '+venc+'.':'Te escribo por tu suscripción de ScoutFlow ('+c.pack+').')+' Son '+eur(c.importe)+' al mes.\n\nCualquier duda, aquí estoy.\n\nUn saludo';
+    location.href='mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  }
+  if(a==='wa'){
+    const tel=(c.telefono||'').replace(/[^\d]/g,'');
+    const t='Hola '+c.nombre.split(' ')[0]+', te escribo por tu suscripción de ScoutFlow'+(c.proximo_cobro?' (vence el '+fdate(c.proximo_cobro)+')':'')+'.';
+    window.open('https://wa.me/'+(tel.length===9?'34'+tel:tel)+'?text='+encodeURIComponent(t),'_blank');
+  }
+});
+
+function cerrar(){$('ov').hidden=true;$('ov').innerHTML='';}
+$('ov').addEventListener('mousedown',e=>{if(e.target===$('ov'))cerrar();});
+const opt=(v,l,sel)=>'<option value="'+v+'"'+(sel===v?' selected':'')+'>'+l+'</option>';
+async function ficha(c){
+  const n=!c; c=c||{tipo:'individual',pack:'gratis',estado:'prueba',alta:hoy(),importe:0,metodo:'bizum'};
+  let pagos=[];
+  if(!n){const r=await sb.from('pagos').select('*').eq('cliente_id',c.id).order('fecha',{ascending:false}).limit(12);pagos=r.data||[];}
+  $('ov').hidden=false;
+  $('ov').innerHTML='<div class="md"><h2>'+(n?'Cliente nuevo':esc(c.nombre))+'</h2>'+
+   '<label>Nombre</label><input id="cN" value="'+esc(c.nombre)+'">'+
+   '<div class="g2"><div><label>Email</label><input id="cE" type="email" value="'+esc(c.email)+'"></div><div><label>Teléfono</label><input id="cT" value="'+esc(c.telefono)+'"></div></div>'+
+   '<div class="g2"><div><label>Tipo</label><select id="cTi">'+opt('individual','Individual',c.tipo)+opt('club','Club',c.tipo)+'</select></div><div><label>Club</label><input id="cC" value="'+esc(c.club)+'"></div></div>'+
+   '<div class="g2"><div><label>Pack</label><select id="cP">'+['gratis','pro','premium','personalizado'].map(p=>opt(p,p,c.pack)).join('')+'</select></div><div><label>Estado</label><select id="cS">'+['prueba','activo','vencido','baja'].map(p=>opt(p,p,c.estado)).join('')+'</select></div></div>'+
+   '<div class="g2"><div><label>Importe al mes (€)</label><input id="cI" type="number" step="0.5" value="'+(c.importe||0)+'"></div><div><label>Cómo paga</label><select id="cM">'+['bizum','transferencia','efectivo','stripe'].map(p=>opt(p,p,c.metodo)).join('')+'</select></div></div>'+
+   '<div class="g2"><div><label>Alta</label><input id="cA" type="date" value="'+(c.alta||'')+'"></div><div><label>Próximo cobro</label><input id="cX" type="date" value="'+(c.proximo_cobro||'')+'"></div></div>'+
+   '<label>Liga</label><input id="cL" value="'+esc(c.liga)+'" placeholder="p. ej. Nacional Andalucía">'+
+   '<label>Notas</label><textarea id="cO">'+esc(c.notas)+'</textarea>'+
+   (pagos.length?'<div class="pg"><b>Últimos pagos</b>'+pagos.map(p=>'<div><span>'+fdate(p.fecha)+' · '+esc(p.metodo||'')+'</span><span>'+eur(p.importe)+'</span></div>').join('')+'</div>':'')+
+   '<div class="msg" id="cM2"></div>'+
+   '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+(n?'':'<button class="bad" id="cD">Borrar</button>')+'<span class="sp"></span><button id="cX2">Cancelar</button><button class="pri" id="cG">Guardar</button></div></div>';
+  $('cP').onchange=()=>{ if($('cP').value==='pro'&&!+$('cI').value) $('cI').value=10; if($('cP').value==='gratis') $('cI').value=0; };
+  $('cX2').onclick=cerrar;
+  if(!n)$('cD').onclick=async()=>{ if(!confirm('¿Borrar a «'+c.nombre+'» y sus pagos?'))return; const {error}=await sb.from('clientes').delete().eq('id',c.id); if(error){$('cM2').textContent=error.message;return;} cerrar();cargar(); };
+  $('cG').onclick=async()=>{
+    const nombre=$('cN').value.trim(); if(!nombre){$('cM2').textContent='Falta el nombre.';return;}
+    const f={nombre,email:$('cE').value.trim()||null,telefono:$('cT').value.trim()||null,tipo:$('cTi').value,club:$('cC').value.trim()||null,pack:$('cP').value,estado:$('cS').value,
+      importe:+$('cI').value||0,metodo:$('cM').value,alta:$('cA').value||null,proximo_cobro:$('cX').value||null,liga:$('cL').value.trim()||null,notas:$('cO').value.trim()||null};
+    const r=n?await sb.from('clientes').insert(f):await sb.from('clientes').update(f).eq('id',c.id);
+    if(r.error){$('cM2').textContent=r.error.message;return;} cerrar();cargar();
+  };
+}
+$('bNew').onclick=()=>ficha(null);
+
+function sumaMes(d){const x=new Date((d||hoy())+'T00:00:00');x.setMonth(x.getMonth()+1);return x.toISOString().slice(0,10);}
+function cobrar(c){
+  $('ov').hidden=false;
+  const base=(c.proximo_cobro&&dias(c.proximo_cobro)>0)?c.proximo_cobro:hoy();
+  $('ov').innerHTML='<div class="md"><h2>Registrar cobro · '+esc(c.nombre)+'</h2>'+
+   '<div class="g2"><div><label>Importe (€)</label><input id="pI" type="number" step="0.5" value="'+(c.importe||0)+'"></div><div><label>Cómo ha pagado</label><select id="pM">'+['bizum','transferencia','efectivo','stripe'].map(p=>opt(p,p,c.metodo)).join('')+'</select></div></div>'+
+   '<label>Nuevo próximo cobro</label><input id="pD" type="date" value="'+sumaMes(base)+'">'+
+   '<label>Nota (opcional)</label><input id="pN">'+
+   '<div class="msg" id="pMsg"></div><div style="display:flex;gap:8px;margin-top:12px"><span class="sp"></span><button id="pX">Cancelar</button><button class="pri" id="pG">Guardar cobro</button></div></div>';
+  $('pX').onclick=cerrar;
+  $('pG').onclick=async()=>{
+    const imp=+$('pI').value; if(!(imp>=0)){$('pMsg').textContent='Importe no válido.';return;}
+    const a=await sb.from('pagos').insert({cliente_id:c.id,importe:imp,metodo:$('pM').value,nota:$('pN').value.trim()||null,fecha:hoy()});
+    if(a.error){$('pMsg').textContent=a.error.message;return;}
+    const b=await sb.from('clientes').update({estado:'activo',proximo_cobro:$('pD').value||null}).eq('id',c.id);
+    if(b.error){$('pMsg').textContent=b.error.message;return;}
+    cerrar();cargar();
+  };
+}
+$('bCsv').onclick=()=>{
+  const cols=['nombre','email','telefono','tipo','club','pack','estado','importe','metodo','alta','proximo_cobro','liga','notas'];
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const csv='﻿'+cols.join(';')+'\n'+CL.map(c=>cols.map(k=>q(c[k])).join(';')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='clientes-scoutflow-'+hoy()+'.csv';a.click();
+};
+arranque();
+</script>
+</body>
+</html>
