@@ -57,6 +57,22 @@
 
   .caja{background:var(--white);border:1.5px solid var(--wood-line);border-radius:15px;
         padding:18px;margin-bottom:16px;box-shadow:0 3px 12px var(--sombra);}
+
+  .resumen-orden{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#f4f1ea;border-radius:10px;padding:10px;margin:0 0 12px;font-size:12.5px;}
+  .resumen-orden .ro-t{font-weight:800;color:var(--ink-soft);margin-right:2px;}
+  .resumen-orden .ro-c{background:var(--white);border:1px solid var(--wood-line);border-radius:99px;padding:3px 10px;font-weight:700;}
+  .resumen-orden .ro-c:first-of-type{background:var(--orange);color:#fff;border-color:var(--orange);}
+  details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  details>summary::-webkit-details-marker{display:none;}
+  details>summary .sum-t{font-size:17px;font-weight:800;}
+  details>summary .sum-s{font-size:12px;color:var(--ink-soft);}
+  details[open]>summary .sum-s{display:none;}
+  .tv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tv-op{display:flex;gap:10px;align-items:flex-start;background:#f4f1ea;border:1.5px solid transparent;border-radius:12px;padding:12px;margin:0;font-weight:700;font-size:14px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer;}
+  .tv-op input{width:20px;height:20px;flex:none;margin:1px 0 0;padding:0;}
+  .tv-op:has(input:checked){border-color:var(--orange);background:#fff4ea;}
+  .tv-op small{font-weight:400;opacity:.75;display:block;margin-top:2px;}
+  @media(max-width:520px){.tv-grid{grid-template-columns:1fr;}}
   .caja h2{font-size:17px;margin-bottom:3px;}
   .caja .expl{font-size:13px;color:var(--ink-soft);margin:0 0 14px;}
 
@@ -222,20 +238,36 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <div id="avisoTemporada"></div>
     </div>
 
-    <!-- Orden de la app de las jugadoras -->
+    <!-- Pestañas de la app de las jugadoras -->
     <div class="caja">
-      <h2>Que ven primero y en que orden</h2>
-      <p class="expl">Ordena las pestañas de su app con las flechas. La primera que dejes visible es la que se
-        abre al entrar. Puedes ocultar las que no uses.</p>
-      <label>Pestañas</label>
+      <h2>1 · Pestañas de su app</h2>
+      <p class="expl">Ordénalas con las flechas. La primera que dejes visible es la que se abre al entrar. Quita la marca a las que no uses.</p>
+      <div id="resumenOrden" class="resumen-orden"></div>
       <div id="ordenPestanas"></div>
-      <label style="margin-top:12px;">Orden de los apartados dentro de "El rival" y "Mi equipo"</label>
-      <div id="ordenSecciones"></div>
-      <label style="margin-top:12px;">Partido que ven en "Después del partido"</label>
+    </div>
+
+    <!-- Apartados dentro de El rival y Mi equipo -->
+    <div class="caja">
+      <details>
+        <summary><span class="sum-t">2 · Apartados de «El rival» y «Mi equipo»</span><span class="sum-s">Tocar para ordenar</span></summary>
+        <p class="expl" style="margin-top:10px">El orden en que salen los apartados dentro de esas dos pestañas.</p>
+        <div id="ordenSecciones"></div>
+      </details>
+    </div>
+
+    <!-- Partido de Después del partido -->
+    <div class="caja">
+      <h2>3 · Partido de «Después del partido»</h2>
+      <p class="expl">Qué partido ven en esa pestaña.</p>
       <select id="selPartidoDespues"><option value="">El último partido jugado (automático)</option></select>
       <div id="avisoPartido"></div>
       <div id="avisoOrden"></div>
-      <label style="margin-top:12px;">Modo TV: qué pueden ver las jugadoras (a pantalla completa en su app)</label>
+    </div>
+
+    <!-- Modo TV -->
+    <div class="caja">
+      <h2>4 · Modo TV</h2>
+      <p class="expl">Qué pueden ver las jugadoras a pantalla completa en su app. Si no marcas ninguno, el botón «Modo TV» no aparece.</p>
       <div id="tvJugCfg"></div>
       <div id="avisoTvJug"></div>
     </div>
@@ -676,7 +708,7 @@ async function cargarTvJug() {
   const caja = $("tvJugCfg"); if (!caja) return;
   let modos = ["nuestro"];
   try { const { data } = await sb.from("ajustes").select("valor").eq("clave", "tv_jugadoras").limit(1); if (data && data.length) { const v = JSON.parse(data[0].valor || "{}"); if (Array.isArray(v.modos)) modos = v.modos; } } catch (e) { /* por defecto */ }
-  caja.innerHTML = TV_JUG_MODOS.map(([id, t, d]) => `<label style="display:flex;gap:10px;align-items:flex-start;background:#f4f1ea;border-radius:10px;padding:10px;margin:6px 0;font-weight:700;font-size:14px;"><input type="checkbox" data-tvm="${id}" ${modos.includes(id) ? "checked" : ""} style="margin-top:3px;"><span>${t}<br><small style="font-weight:400;opacity:.75;">${d}</small></span></label>`).join("") + `<p class="expl" style="margin-top:6px;">Si no marcas ninguno, el botón «Modo TV» no aparece en su app. No sale nunca la probabilidad de victoria.</p>`;
+  caja.innerHTML = '<div class="tv-grid">' + TV_JUG_MODOS.map(([id, t, d]) => `<label class="tv-op"><input type="checkbox" data-tvm="${id}" ${modos.includes(id) ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`).join("") + "</div>" + `<p class="expl" style="margin-top:6px;">Si no marcas ninguno, el botón «Modo TV» no aparece en su app. No sale nunca la probabilidad de victoria.</p>`;
   caja.querySelectorAll("input[data-tvm]").forEach(i => i.addEventListener("change", async () => {
     const sel = [...caja.querySelectorAll("input[data-tvm]:checked")].map(x => x.dataset.tvm);
     const { error } = await sb.from("ajustes").upsert({ clave: "tv_jugadoras", valor: JSON.stringify({ modos: sel }), actualizado: new Date().toISOString() });
@@ -1312,6 +1344,7 @@ function pintarOrdenApp() {
       <button class="boton fina gris" data-mov="${clave}|${esc(id)}|1" ${n === lista.length - 1 ? "disabled" : ""}>↓</button></div>`;
   }).join("");
   $("ordenPestanas").innerHTML = fila(ordenApp.pestanas, PESTANAS_APP, "pestanas", true);
+  { const rs = document.getElementById("resumenOrden"); if (rs) rs.innerHTML = '<span class="ro-t">Así lo ven:</span>' + ordenApp.pestanas.filter(id => !ordenApp.ocultas.includes(id)).map(id => '<span class="ro-c">' + esc((PESTANAS_APP.find(b => b.id === id) || {}).t || id) + '</span>').join(" › "); }
   $("ordenSecciones").innerHTML = fila(ordenApp.secciones, SECCIONES_APP, "secciones", false);
   document.querySelectorAll("[data-mov]").forEach(b => b.addEventListener("click", () => {
     const [clave, id, d] = b.getAttribute("data-mov").split("|");
