@@ -3882,7 +3882,8 @@ async function calGuardar() {
 const CAL_SHEET = "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94";
 const calNorm = (n) => String(n || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(p => p && !["CB", "BC", "CD", "CLUB", "BALONCESTO", "BASKET", "FEMENINO", "FEM", "SAD", "DE", "DEL", "LA", "EL", "LAS", "LOS"].includes(p)).join(" ");
 const calMismo = (a, b) => { const x = calNorm(a), y = calNorm(b); return !!x && !!y && (x === y || x.startsWith(y) || y.startsWith(x)); };
-const calMiEq = () => { try { return localStorage.getItem(LSK("lf2_mi_equipo")) || ""; } catch (e) { return ""; } };
+let SIN_STATS = false; /* cuenta sin Estadísticas: no usa los equipos de la liga */
+const calMiEq = () => { if (SIN_STATS) return ""; try { return localStorage.getItem(LSK("lf2_mi_equipo")) || ""; } catch (e) { return ""; } };
 function calHoja(pestana) {
   return new Promise((res, rej) => {
     const cb = "__calCb" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), s = document.createElement("script");
@@ -3898,6 +3899,7 @@ function calHoja(pestana) {
   });
 }
 async function calCargarFeb(forzar) {
+  if (SIN_STATS) { CAL.feb = []; CAL.febEstado = "ok"; return; }
   if (CAL.feb && !forzar) return;
   CAL.febEstado = "cargando";
   let tem = "2026"; try { tem = localStorage.getItem(LSK("lf2_temporada")) || "2026"; } catch (e) { /* nada */ }
@@ -3985,6 +3987,7 @@ function pintarCalendario(v) {
 function calCats() { eqAsegurar(); return [...new Set(CAL.ev.map(e => e.cat).filter(Boolean).concat((EQ.equipos || []).map(t => t.nombre).filter(Boolean)))].sort((a, b) => a.localeCompare(b, "es")); }
 function calPintar() {
   if (!$("calCuerpo")) return;
+  if ($("calEq")) $("calEq").style.display = SIN_STATS ? "none" : "";
   const eq = calMiEq(); $("calEqT").textContent = eq || "Elegir equipo";
   const evs = calEventos(), y = CAL.mes.getFullYear(), m = CAL.mes.getMonth(), hoy = calISO(new Date());
   $("calTit").textContent = CAL_MESES[m] + " " + y;
@@ -4076,6 +4079,7 @@ function calForm(e, fecha, pre) {
   };
 }
 function calElegirEquipo() {
+  if (SIN_STATS) return;
   const lista = []; (CAL.feb || []).flatMap(p => [p.local, p.visitante]).map(t => String(t || "").replace(/\s+/g, " ").trim()).filter(Boolean).forEach(t => { const i = lista.findIndex(u => calMismo(u, t)); if (i < 0) lista.push(t); else if (t.length < lista[i].length) lista[i] = t; });
   lista.sort((a, b) => a.localeCompare(b, "es")); const eq = calMiEq();
   ventana(`<h3>Mi equipo en la FEB</h3><p class="peq" style="margin:0 0 6px;">Sus partidos (fecha, hora y resultado) aparecen solos en el calendario.</p>
@@ -4300,6 +4304,7 @@ async function iniciar() {
       pie ? pie.parentNode.insertBefore(g, pie) : document.querySelector("aside").appendChild(g);
       $("btnLockStats").onclick = () => { const pr = (PERMS.precios || {}).premium; aviso(PERMS.lock === "liga" ? "Tu liga todavía no está automatizada: te avisaremos cuando esté lista." : "Las estadísticas están en el plan Premium" + (pr ? " (" + pr + ")" : "") + ". Pídelo al entrenador."); };
     }
+    if (!PERMS.s.length) SIN_STATS = true;
     if (!PERMS.s.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="estadisticas"]{display:none !important;}'; document.head.appendChild(st); }
     seccion = E.find(x => x !== "partido") || "jugadas";
   } else { try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ } }
