@@ -10820,7 +10820,8 @@ async function leerPermisosAyudante(sb, email) {
     if (q) {
       let s = q.s || [], lock = null; const ligas = J(f.ligas_auto, []).map(l => l.id);
       if (q.plan) { if (q.plan !== "premium") { if (s.length) lock = "plan"; s = []; } else if (s.length && !ligas.includes(q.liga)) { lock = "liga"; s = []; } }
-      return { e: q.e || [], s, plan: q.plan || "", gb: Number(q.gb) || 0, lock, precios: J(f.planes_precio, {}) };
+      const lgn = (J(f.ligas_auto, []).find(l => l.id === q.liga) || {}).nombre || "";
+      return { e: q.e || [], s, plan: q.plan || "", gb: Number(q.gb) || 0, lock, liga: q.liga || "", ligaNombre: lgn, precios: J(f.planes_precio, {}) };
     }
     const lg = String(f.ayudantes_partido || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean);
     if (lg.includes(yo)) return { e: ["partido"], s: [], plan: "", lock: null, precios: {} };
@@ -10881,6 +10882,16 @@ async function verificarAcceso() {
   if (PERMS && !PERMS.s.length) {
     if (PERMS.e.length) { location.replace("entrenador.html" + (PERMS.e.length === 1 && PERMS.e[0] === "partido" ? "#partido" : "")); return; }
     mostrarPuerta("Todavía no tienes menús habilitados. Pídeselos al entrenador.", "mal"); return;
+  }
+  /* un cliente solo ve la liga que tiene asignada (no puede cambiar a otra) */
+  if (PERMS && PERMS.plan && PERMS.liga) {
+    const nz = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "");
+    const a = [nz(PERMS.liga), nz(PERMS.ligaNombre)];
+    const L = LIGAS.find(x => a.includes(nz(x.id)) || a.includes(nz(x.n))) || LIGAS.find(x => a.some(t => t && (nz(x.n).includes(t) || t.includes(nz(x.id)))));
+    if (L) {
+      if (L.id !== ligaActiva) { try { localStorage.setItem(LSK("lf2_liga"), L.id); } catch (e) { /* nada */ } location.replace(location.pathname + "?liga=" + L.id + location.hash); return; }
+      const sl = document.getElementById("selLiga"); if (sl) { sl.innerHTML = '<option value="' + L.id + '">' + L.n + "</option>"; sl.disabled = true; }
+    }
   }
   TOPE_MB = topeDe(PERMS);
   ROL_APP = PERMS ? "ayudante" : await resolverRolApp(sb, user);
