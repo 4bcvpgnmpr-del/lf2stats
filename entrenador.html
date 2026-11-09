@@ -848,10 +848,14 @@ const WORKER_VIDEOS = "https://scoutflow-videos.4bcvpgnmpr.workers.dev";
 let VIDEO_PRO = true;
 /* Tope de espacio por cuenta con plan (en MB). El propietario no tiene tope (0). Cambia el número si quieres más o menos. */
 let TOPE_MB = 0;
-function scoutBytes() { try { const s = JSON.parse(localStorage.getItem("lf2_scouting_v1") || "{}"); let t = 0; ["equipos", "jugadoras"].forEach(k => Object.values(s[k] || {}).forEach(x => ((x && x.videos) || []).forEach(v => { if (v && v.nubeUrl) t += +v.archivoTamano || 0; }))); return t; } catch (e) { return 0; } }
+function scoutBytes() { try { const s = JSON.parse(localStorage.getItem(LSK("lf2_scouting_v1")) || "{}"); let t = 0; ["equipos", "jugadoras"].forEach(k => Object.values(s[k] || {}).forEach(x => ((x && x.videos) || []).forEach(v => { if (v && v.nubeUrl) t += +v.archivoTamano || 0; }))); return t; } catch (e) { return 0; } }
 const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", plantilla: "Plantilla", cuenta: "Mi cuenta", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
 
 /* copia local (IndexedDB) para abrir sin internet */
+/* la copia sin conexión es de cada cuenta: así otra cuenta en el mismo navegador nunca ve los datos de la anterior */
+/* ajustes personales del navegador: las cuentas de clientes y ayudantes guardan los suyos aparte, para no ver lo del propietario */
+const LSK = (k) => { try { if (MI_PLAN || SOY_AYU) return k + "|" + String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); } catch (x) { /* nada */ } return k; };
+const snapK = () => { let e = ""; try { e = String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); } catch (x) { /* nada */ } return "entrenador|" + e; };
 const kv = {
   _db() { return this._p || (this._p = new Promise((ok, no) => { try { const r = indexedDB.open("scoutflow-offline", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } })); },
   async put(k, v) { try { const db = await this._db(); await new Promise((ok, no) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = ok; t.onerror = () => no(t.error); }); } catch (e) { /* sin copia local */ } },
@@ -871,8 +875,8 @@ async function cargarTodo() {
   const [j, pb, ej, pl, ar, ca] = await Promise.all([leer("jugadas"), leer("playbooks"), leer("ejercicios"), leer("planes"), leer("archivos", "creada"), leer("carpetas", "creada")]);
   D.jugadas = j; D.playbooks = pb; D.ejercicios = ej; D.planes = pl; D.archivos = ar; D.carpetas = ca;
   D.comparte = []; if (!SOY_AYU && !OFFLINE) { try { const rc = await nube.from("ayudante_comparte").select("*"); if (!rc.error) D.comparte = rc.data || []; } catch (e) { /* sin la tabla: nada compartido */ } }
-  if (OFFLINE) { const snap = await kv.get("entrenador"); if (snap) { Object.keys(D).forEach(k => { D[k] = snap[k] || []; }); puedeEscribir = false; } }
-  else kv.put("entrenador", { jugadas: j, playbooks: pb, ejercicios: ej, planes: pl, archivos: ar, carpetas: ca, t: Date.now() });
+  if (OFFLINE) { const snap = await kv.get(snapK()); if (snap) { Object.keys(D).forEach(k => { D[k] = snap[k] || []; }); puedeEscribir = false; } }
+  else kv.put(snapK(), { jugadas: j, playbooks: pb, ejercicios: ej, planes: pl, archivos: ar, carpetas: ca, t: Date.now() });
   contadores();
 }
 function contadores() {
@@ -3412,7 +3416,7 @@ const opcionesPartido = (o, eq) => { const l = eq ? o.filter(p => calMismo(p.loc
 async function cargarEscudos() {
   CAL.escudos = {};
   try {
-    let tem = "2026"; try { tem = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
+    let tem = "2026"; try { tem = localStorage.getItem(LSK("lf2_temporada")) || "2026"; } catch (e) { /* nada */ }
     const filas = await calHoja("Equipos" + (tem === "2025" ? "" : "_" + tem));
     filas.forEach(r => { const n = r.Equipo || r.equipo, u = r.EscudoURL || r.Escudo || ""; if (n && u) CAL.escudos[calNorm(n)] = u; });
   } catch (e) { /* sin escudos: se ponen iniciales */ }
@@ -3429,7 +3433,7 @@ function centroVideo() {
   if (!todos.length) { aviso("Aún no hay vídeos"); return; }
   let listas = leerListas(), listaAct = "", sel = new Set(), actual = "", orden = { k: "fecha", d: -1 };
   const F = { q: "", equipo: "", jugadora: "", categoria: "", partido: "", resultado: "", fav: "" };
-  let panel = "listas", OPP = null, soloVid = true, maxP = 60, eqsSel = new Set((() => { try { return JSON.parse(localStorage.getItem("cv_eqs") || "[]"); } catch (e) { return []; } })());
+  let panel = "listas", OPP = null, soloVid = true, maxP = 60, eqsSel = new Set((() => { try { return JSON.parse(localStorage.getItem(LSK("cv_eqs")) || "[]"); } catch (e) { return []; } })());
   const mmss = (s) => s == null || !isFinite(s) ? "—" : Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
   const fch = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }); };
   const txt = (x) => x.m.nota || x.nombre;
@@ -3506,7 +3510,7 @@ function centroVideo() {
     $c("cvLsB").innerHTML = `<div class="cvPh"><button class="${soloVid ? "on" : ""}" data-sv="1">Con vídeo</button><button class="${soloVid ? "" : "on"}" data-sv="0">Todos los partidos</button><span class="e"></span><button data-p="" class="${F.partido === "" ? "on" : ""}">Ver todos los clips (${todos.length})</button>${sin ? `<button data-p="-" class="${F.partido === "-" ? "on" : ""}">Sin partido (${sin})</button>` : ""}</div>
       <div class="cvPh"><select id="cvEqAdd"><option value="">＋ Elegir equipos…</option>${miEq ? `<option value="__mi">★ Mi equipo (${esc(miEq)})</option>` : ""}${todosEq.filter(t => !eqsAct.includes(t)).map(t => `<option>${esc(t)}</option>`).join("")}</select>${eqsAct.map(t => `<button class="on" data-eqx="${esc(t)}">${esc(t)} ✕</button>`).join("")}${eqsAct.length ? '<button data-eqx="*">Quitar todos</button>' : '<span style="font-size:12px;color:#8b95a3;align-self:center">Sin elegir: se ven los partidos de todos los equipos</span>'}</div>
       ${lst.length ? lst.map(fila).join("") + (totalP > lst.length ? `<div style="padding:10px;text-align:center"><button class="cvMas" style="border:1px solid #2c3744;background:#18212b;color:#e6ebf1;border-radius:6px;padding:7px 14px;font-weight:700">Ver más (${totalP - lst.length})</button></div>` : "") : '<p style="padding:14px;color:#8b95a3;font-size:13px">' + (soloVid ? "Ningún vídeo tiene partido todavía. Marca clips en la tabla y usa «Asignar a un partido»." : "No hay partidos.") + "</p>"}`;
-    const guardaEq = () => { try { localStorage.setItem("cv_eqs", JSON.stringify([...eqsSel])); } catch (e) { /* nada */ } maxP = 60; pintaPartidos(); };
+    const guardaEq = () => { try { localStorage.setItem(LSK("cv_eqs"), JSON.stringify([...eqsSel])); } catch (e) { /* nada */ } maxP = 60; pintaPartidos(); };
     $c("cvEqAdd").onchange = (e) => { const v = e.target.value; if (!v) return; if (v === "__mi") eqsSel.add(OPP.map(p => [p.local, p.visitante]).flat().find(t => calMismo(t, miEq)) || miEq); else eqsSel.add(v); guardaEq(); };
     $c("cvLsB").querySelectorAll("[data-eqx]").forEach(b => b.onclick = () => { if (b.dataset.eqx === "*") eqsSel.clear(); else eqsSel.delete(b.dataset.eqx); guardaEq(); });
     const mas = $c("cvLsB").querySelector(".cvMas"); if (mas) mas.onclick = () => { maxP += 60; pintaPartidos(); };
@@ -3664,7 +3668,7 @@ function centroVideo() {
     h.querySelectorAll("[data-hp]").forEach(b => b.onclick = () => abreVista({ partido: b.dataset.hp }, !!b.dataset.rep));
     h.querySelectorAll("[data-hv]").forEach(b => b.onclick = () => { homeVid = b.dataset.hv === "1"; homeMax = 40; pintaHome(); });
     h.querySelectorAll("[data-hsin]").forEach(b => b.onclick = () => abreVista({ partido: "-" }, false));
-    const gE = () => { try { localStorage.setItem("cv_eqs", JSON.stringify([...eqsSel])); } catch (e) { /* nada */ } homeMax = 40; pintaHome(); };
+    const gE = () => { try { localStorage.setItem(LSK("cv_eqs"), JSON.stringify([...eqsSel])); } catch (e) { /* nada */ } homeMax = 40; pintaHome(); };
     const se = h.querySelector("#cvHeq"); if (se) se.onchange = (e) => { const v = e.target.value; if (!v) return; if (v === "__mi") { const miEq = calMiEq(); eqsSel.add(OPP.map(p => [p.local, p.visitante]).flat().find(t => calMismo(t, miEq)) || miEq); } else eqsSel.add(v); gE(); };
     h.querySelectorAll("[data-hex]").forEach(b => b.onclick = () => { if (b.dataset.hex === "*") eqsSel.clear(); else eqsSel.delete(b.dataset.hex); gE(); });
     const mas = h.querySelector(".cvHmas"); if (mas) mas.onclick = () => { homeMax += 40; pintaHome(); };
@@ -3711,7 +3715,7 @@ function centroVideo() {
   pintaPanel(); pintaFiltros(); pintaTabla(); pintaHome();
 }
 function pintarArchivos(v, tipo) {
-  derivarArch(); const PRO = tipo === "video" && VIDEO_PRO; v.classList.toggle("vcomp", PRO); const OCV = PRO && (() => { try { return localStorage.getItem("sf_vid_oculta") !== "0"; } catch (e) { return true; } })(); v.classList.remove("vsin");
+  derivarArch(); const PRO = tipo === "video" && VIDEO_PRO; v.classList.toggle("vcomp", PRO); const OCV = PRO && (() => { try { return localStorage.getItem(LSK("sf_vid_oculta")) !== "0"; } catch (e) { return true; } })(); v.classList.remove("vsin");
   const MV = PRO ? metaVideos() : {}, filtrando = PRO && (fvid.equipo || fvid.jugadora || fvid.categoria), cumpleFv = (a) => { const m = MV[a.id] || {}; return (!fvid.equipo || m.equipo === fvid.equipo) && (!fvid.jugadora || m.jugadora === fvid.jugadora) && (!fvid.categoria || m.categoria === fvid.categoria); };
   const q = busqueda.toLowerCase(), enCarp = new Set(D[tipo].filter(x => (x.carpeta || "") === carpeta).map(x => x.id)), cars = (q || filtrando) ? [] : carpetasDe(tipo).sort((x, y) => x.nombre.localeCompare(y.nombre, "es"));
   const ocultosHasta = OCV && !q && !filtrando && !carpeta;
@@ -3750,7 +3754,7 @@ function pintarArchivos(v, tipo) {
   v.querySelectorAll(".tarj [data-vp]").forEach(t => { const a = D.archivos.find(y => y.id === t.closest(".tarj").dataset.id), vd = t.querySelector("video"); t.onclick = () => listaReproduccion([{ url: pubUrl(a), nombre: a.nombre, m: MV[a.id] || {} }]); vd.addEventListener("loadedmetadata", () => { const d = Math.round(vd.duration || 0); if (d) t.querySelector(".vdur").textContent = Math.floor(d / 60) + ":" + String(d % 60).padStart(2, "0"); }); });
   v.querySelectorAll(".tarj [data-mm]").forEach(b => b.onclick = (e) => { const el = b.closest(".tarj"), go = (k) => () => { const x = el.querySelector('[data-a="' + k + '"]'); if (x) x.click(); }; abrirMenu(e, [["🔗 Copiar enlace", go("copiar")], ["↗ Abrir en pestaña nueva", go("abrir")], ["🖊 Analizar", go("ana")]].concat(puedeEscribir ? [["-"], ["📁 Mover a carpeta", go("mov")], ["✏️ Renombrar", go("ren")], ["🗑 Borrar", go("del"), "peligro"]] : [])); });
   v.querySelectorAll("[data-fv]").forEach(sel => sel.onchange = () => { fvid[sel.dataset.fv] = sel.value; pintarArchivos(v, tipo); });
-  if ($("fvOc")) $("fvOc").onclick = () => { try { localStorage.setItem("sf_vid_oculta", OCV ? "0" : "1"); } catch (e) { /* nada */ } pintarArchivos(v, tipo); };
+  if ($("fvOc")) $("fvOc").onclick = () => { try { localStorage.setItem(LSK("sf_vid_oculta"), OCV ? "0" : "1"); } catch (e) { /* nada */ } pintarArchivos(v, tipo); };
   if ($("bCentro")) $("bCentro").onclick = centroVideo;
   if ($("fvPlay")) $("fvPlay").onclick = () => listaReproduccion(lista.map(a => ({ url: pubUrl(a), nombre: a.nombre, m: MV[a.id] || {} })));
   if ($("fvQ")) $("fvQ").onclick = () => { fvid = { equipo: "", jugadora: "", categoria: "" }; pintarArchivos(v, tipo); };
@@ -3876,7 +3880,7 @@ async function calGuardar() {
 const CAL_SHEET = "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94";
 const calNorm = (n) => String(n || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter(p => p && !["CB", "BC", "CD", "CLUB", "BALONCESTO", "BASKET", "FEMENINO", "FEM", "SAD", "DE", "DEL", "LA", "EL", "LAS", "LOS"].includes(p)).join(" ");
 const calMismo = (a, b) => { const x = calNorm(a), y = calNorm(b); return !!x && !!y && (x === y || x.startsWith(y) || y.startsWith(x)); };
-const calMiEq = () => { try { return localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { return ""; } };
+const calMiEq = () => { try { return localStorage.getItem(LSK("lf2_mi_equipo")) || ""; } catch (e) { return ""; } };
 function calHoja(pestana) {
   return new Promise((res, rej) => {
     const cb = "__calCb" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), s = document.createElement("script");
@@ -3894,7 +3898,7 @@ function calHoja(pestana) {
 async function calCargarFeb(forzar) {
   if (CAL.feb && !forzar) return;
   CAL.febEstado = "cargando";
-  let tem = "2026"; try { tem = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
+  let tem = "2026"; try { tem = localStorage.getItem(LSK("lf2_temporada")) || "2026"; } catch (e) { /* nada */ }
   const suf = tem === "2025" ? "" : "_" + tem;
   try {
     const f = await calHoja("Resultados" + suf);
@@ -4077,7 +4081,7 @@ function calElegirEquipo() {
     ${lista.length ? "" : '<p class="peq">No se pudo leer la lista de equipos todavía. Cierra y vuelve a probar en unos segundos.</p>'}
     <div class="pie-m"><button class="gris" id="ceqX">Cancelar</button><button class="naranja" id="ceqG">Guardar</button></div>`);
   $("ceqX").onclick = cerrarVentana;
-  $("ceqG").onclick = () => { try { localStorage.setItem("lf2_mi_equipo", $("ceqS").value); } catch (e) { /* nada */ } cerrarVentana(); calPintar(); };
+  $("ceqG").onclick = () => { try { localStorage.setItem(LSK("lf2_mi_equipo"), $("ceqS").value); } catch (e) { /* nada */ } cerrarVentana(); calPintar(); };
 }
 function calIcs() {
   const ev = calEventos(), z = (s) => String(s || "").replace(/[\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
@@ -4209,7 +4213,7 @@ function djMenu(ev) { if (!detalleActual) return; const { tipo, x } = detalleAct
 /* ------------ arranque ------------ */
 function pantalla(msg, enlace) { $("main").innerHTML = `<div class="vacio" style="padding-top:60px;font-size:16px;">${msg}${enlace ? `<p><a href="index.html" style="color:var(--orange);font-weight:800;">${enlace}</a></p>` : ""}</div>`; }
 async function cargarOffline() {
-  const snap = await kv.get("entrenador"); OFFLINE = true; puedeEscribir = false;
+  const snap = await kv.get(snapK()); OFFLINE = true; puedeEscribir = false;
   if (snap) Object.keys(D).forEach(k => { D[k] = snap[k] || []; });
   window.addEventListener("online", () => location.reload());
   contadores(); const h = (location.hash || "").replace("#", ""); if (SECCIONES[h] && (!PERM_E || PERM_E.has(h))) seccion = h; if (h === "partido" && PERM_E && PERM_E.has("partido")) abrirPartido(); pintar();
@@ -4267,7 +4271,7 @@ async function iniciar() {
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
   $("cajon").addEventListener("mousedown", (e) => { if (e.target === $("cajon")) $("cajon").classList.remove("ver"); });
   document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => { if (b.dataset.s === "partido") { abrirPartido(); if (esMovil()) document.body.classList.remove("menu-ab"); } else ir(b.dataset.s); }));
-  const hayCopia = !!(await kv.get("entrenador"));
+  const hayCopia = !!(await kv.get(snapK()));
   if (!nube) { if (flagSoloPartido()) { soloPartido(""); return; } if (hayCopia) { window.addEventListener("online", () => location.reload()); OFFLINE = true; D.jugadas = []; await cargarOffline(); return; } pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
   let data = null; try { data = (await nube.auth.getSession()).data; } catch (e) { /* sin red */ }
   if (!data || !data.session) { if (flagSoloPartido() && !navigator.onLine) { soloPartido(""); return; } if (hayCopia && !navigator.onLine) { await cargarOffline(); return; } pantalla("Entra con tu cuenta en la app de estadísticas para usar el Entrenador.", "← Ir a la app"); return; }
@@ -4276,6 +4280,7 @@ async function iniciar() {
     if (r && r.data === false) { pantalla("Esta sección es solo para entrenadores."); return; }
   } catch (e) { /* si falla la comprobacion, las reglas de la base de datos protegen igualmente */ }
   let PERMS = null;
+  try { localStorage.setItem("sf_ult_email", String(data.session.user.email || "").toLowerCase()); } catch (e) { /* nada */ }
   try { PERMS = await leerPermisosAyudante(nube, data.session.user.email); } catch (e) { /* sin red */ }
   let SIM = false; if (!PERMS) { const q = permisosSimulados(); if (q) { PERMS = q; SIM = true; } }
   if (SIM) bannerSim();
