@@ -41,10 +41,14 @@ label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .login{max-width:380px;margin:12vh auto 0}
 .msg{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+.lnk{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px;padding:0 6px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.tb{background:none;border:0;border-bottom:3px solid transparent;border-radius:0;color:var(--muted);font-weight:700;min-height:42px}.tb.on{color:var(--text);border-bottom-color:var(--accent)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.lg{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px}
 .pg{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
 .pg div{display:flex;justify-content:space-between;padding:2px 0}
 [hidden]{display:none!important}
-@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+@media(max-width:640px){.g3{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -66,13 +70,31 @@ label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
 </div>
 
 <div id="vApp" hidden>
-  <div class="top"><h1>Scout<span>Flow</span> · Clientes</h1><span class="sp"></span>
-    <button id="bCsv" class="sm">⬇ Excel (CSV)</button><button id="bNew" class="pri">＋ Cliente</button><button id="bOut" class="sm">Salir</button></div>
+  <div class="top"><h1>Scout<span>Flow</span> · Admin</h1><span class="sp"></span>
+    <a class="lnk" href="panel.html">Mi equipo y accesos →</a><button id="bOut" class="sm">Salir</button></div>
+  <div class="tabs"><button class="tb on" data-tab="cli">Clientes y cobros</button><button class="tb" data-tab="pla">Planes y ligas</button></div>
+  <div id="tCli">
+  <div class="top" style="margin-bottom:10px"><span class="sp"></span><button id="bCsv" class="sm">⬇ Excel (CSV)</button><button id="bNew" class="pri">＋ Cliente</button></div>
   <div class="kpis" id="kp"></div>
   <div class="bar"><input id="fQ" placeholder="Buscar por nombre, club o email…">
     <select id="fS"><option value="">Todos los estados</option><option value="activo">Activos</option><option value="prueba">En prueba</option><option value="vencido">Vencidos</option><option value="baja">Baja</option></select>
     <select id="fP"><option value="">Todos los packs</option><option>gratis</option><option>pro</option><option>premium</option><option>personalizado</option></select></div>
   <div class="list" id="ls"></div>
+  </div>
+  <div id="tPla" hidden>
+    <div class="card">
+      <b>Precios de los planes</b>
+      <p class="sub" style="color:var(--muted);font-size:13px;margin:4px 0 0">Gratis: de muestra (5 jugadas, 5 ejercicios, 3 planes de entrenamiento). Pro: todo el Entrenador. Premium: Pro + Estadísticas (solo si su liga está automatizada). El precio es solo un texto que ven cuando algo está bloqueado; el cobro lo haces tú.</p>
+      <div class="g3" id="prBox"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <b>Ligas con estadísticas automáticas</b>
+      <p class="sub" style="color:var(--muted);font-size:13px;margin:4px 0 8px">Las que tienes cargadas en la hoja. Un cliente Premium solo ve Estadísticas si su liga está aquí.</p>
+      <div id="lgBox"></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><input id="lgN" placeholder="Ej. Liga Femenina 2"><button class="pri" id="lgAdd" style="flex:none">Añadir liga</button></div>
+    </div>
+    <div class="msg" id="plMsg" style="margin-top:10px"></div>
+  </div>
 </div>
 
 </div>
@@ -215,6 +237,32 @@ $('bCsv').onclick=()=>{
   const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
   const csv='﻿'+cols.join(';')+'\n'+CL.map(c=>cols.map(k=>q(c[k])).join(';')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='clientes-scoutflow-'+hoy()+'.csv';a.click();
+};
+/* ---- Planes y ligas (mismos datos que usa la app: ajustes.planes_precio y ajustes.ligas_auto) ---- */
+let PRE={},LIG=[];
+document.querySelectorAll('.tb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tb').forEach(x=>x.classList.toggle('on',x===b));$('tCli').hidden=b.dataset.tab!=='cli';$('tPla').hidden=b.dataset.tab!=='pla';if(b.dataset.tab==='pla')cargarPlanes();});
+const aviso=(t,ok)=>{const m=$('plMsg');m.style.color=ok?'var(--ok)':'var(--bad)';m.textContent=t;};
+async function cargarPlanes(){
+  const {data,error}=await sb.from('ajustes').select('clave,valor').in('clave',['planes_precio','ligas_auto']);
+  if(error){aviso('No se pudo cargar: '+error.message,false);return;}
+  const f={};(data||[]).forEach(x=>f[x.clave]=x.valor);
+  try{PRE=JSON.parse(f.planes_precio||'{}')||{};}catch(e){PRE={};}
+  try{LIG=JSON.parse(f.ligas_auto||'[]')||[];}catch(e){LIG=[];}
+  pintarPlanes();
+}
+function pintarPlanes(){
+  const ph={gratis:'0 €',pro:'10 €/mes',premium:'19 €/mes'};
+  $('prBox').innerHTML=[['gratis','Gratis'],['pro','Pro'],['premium','Premium']].map(p=>'<div><label>'+p[1]+' · precio</label><input data-pr="'+p[0]+'" placeholder="'+ph[p[0]]+'" value="'+esc(PRE[p[0]]||'')+'"></div>').join('');
+  $('lgBox').innerHTML=LIG.length?LIG.map((l,i)=>'<div class="lg"><span>'+esc(l.nombre)+'</span><button class="sm bad" data-lx="'+i+'">Quitar</button></div>').join(''):'<div class="empty" style="padding:10px">Todavía no hay ninguna liga.</div>';
+  document.querySelectorAll('[data-pr]').forEach(i=>i.onchange=async()=>{PRE[i.dataset.pr]=i.value.trim();const {error}=await guarda('planes_precio',PRE);aviso(error?'No se pudo guardar: '+error.message:'Precio guardado.',!error);});
+  document.querySelectorAll('[data-lx]').forEach(b=>b.onclick=async()=>{LIG.splice(+b.dataset.lx,1);const {error}=await guarda('ligas_auto',LIG);aviso(error?'No se pudo guardar: '+error.message:'Ligas guardadas.',!error);pintarPlanes();});
+}
+const guarda=(k,v)=>sb.from('ajustes').upsert({clave:k,valor:JSON.stringify(v),actualizado:new Date().toISOString()});
+$('lgAdd').onclick=async()=>{
+  const n=$('lgN').value.trim();if(!n)return;
+  const id=n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  if(!id||LIG.some(l=>l.id===id))return;
+  LIG.push({id,nombre:n});const {error}=await guarda('ligas_auto',LIG);aviso(error?'No se pudo guardar: '+error.message:'Liga añadida.',!error);$('lgN').value='';pintarPlanes();
 };
 arranque();
 </script>
