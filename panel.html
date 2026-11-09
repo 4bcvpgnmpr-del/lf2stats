@@ -171,6 +171,7 @@
   .dlg{background:#fff;color:#1f2933;border-radius:16px;padding:22px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.28);} .dlg p{margin:0 0 10px;font-size:15.5px;line-height:1.45;font-weight:600;} .dlg p.sec{font-weight:400;font-size:14px;color:#66717d;}
   .dlg-b{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;} .dlg-b button{padding:10px 18px;border:1px solid #e4e7eb;background:#fff;color:#1f2933;border-radius:10px;font-weight:600;font-family:inherit;font-size:14px;cursor:pointer;}
   .dlg-b .dlg-p{background:#d64545;border-color:#d64545;color:#fff;} .dlg-b .dlg-ok{background:#e0602a;border-color:#e0602a;color:#fff;}
+  body.modo-cli .grupo-panel[data-grupo="tests"], body.modo-cli .grupo-panel[data-grupo="tiro"], body.modo-cli #menuPanel button[data-grupo="tests"], body.modo-cli #menuPanel button[data-grupo="tiro"], body.modo-cli .solo-prop { display: none !important; }
 </style>
 <style id="sfTemaCss">
 html.oscuro{filter:invert(1) hue-rotate(180deg);background:#fff}
@@ -372,6 +373,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
         <div id="avisoPegar"></div>
       </details>
 
+      <div class="solo-prop">
       <h3 class="sub">3 · Asientos de entrenador <span class="asiento ent" id="contEnt"></span></h3>
       <p class="expl" style="margin:0 0 8px;">Quien tenga asiento de entrenador entra a este panel y puede mandar y quitar cosas.
         Las jugadoras solo ven su app. Con «⚙ Menús» eliges qué menús ve cada ayudante (de Entrenador y de Estadísticas); solo lee, no cambia nada.</p>
@@ -384,6 +386,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <h3 class="sub" style="margin-top:22px;">Clientes, cobros, planes, precios y ligas</h3>
       <p class="expl" style="margin:0 0 8px;">Esto ya se gestiona en el panel de administración: clientes, cobros y renovaciones, precios de los planes y ligas con estadísticas automáticas.</p>
       <a class="boton" href="admin.html" style="display:inline-block;text-decoration:none;">Abrir administración →</a>
+      </div>
     </div>
 
     </div>
@@ -612,6 +615,10 @@ async function salir() { if (sb) await sb.auth.signOut(); location.reload(); }
 const sfEmail = () => { try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^sb-.*-auth-token$/.test(k)) { const o = JSON.parse(localStorage.getItem(k) || "null"); const u = o && (o.user || (o.currentSession && o.currentSession.user)); if (u && u.email) return String(u.email).toLowerCase(); } } } catch (x) { /* nada */ } try { return String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); } catch (x) { return ""; } };
 const LSK = (k) => { try { const e = sfEmail(); return (!e || localStorage.getItem("sf_prop") === e) ? k : k + "|" + e; } catch (x) { return k; } };
 async function sfIdent(cli) { try { const { data } = await cli.auth.getSession(); const e = data && data.session && String(data.session.user.email || "").toLowerCase(); if (!e) return false; localStorage.setItem("sf_ult_email", e); const r = await cli.rpc("es_propietario"); if (r && !r.error) { const antes = localStorage.getItem("sf_prop"); if (r.data === true) localStorage.setItem("sf_prop", e); else if (antes === e) localStorage.removeItem("sf_prop"); return localStorage.getItem("sf_prop") !== antes; } } catch (x) { /* sin red: se queda como estaba */ } return false; }
+/* Modo cliente (plan Premium): ve solo SUS jugadoras; sus ajustes se guardan con su correo detras de «|» */
+let MODO_CLI = false, MI_CORREO = "", SHEET_LIGA = "lf2";
+const SHEETS_LIGA = { lf2: "1xu9dPT5RYAcEsH0MYdBJbLNLW4u7ajXNF3Kr9GGBT94", challenge: "1saNjPCuhOY_FB5OdPHmft0OtJiqL5cBaOBhBo6R1Nzo" };
+const AKEY = (k) => MODO_CLI ? k + "|" + MI_CORREO : k;
 async function entrar(sesion) {
   await sfIdent(sb);
   $("pantallaEntrar").hidden = true;
@@ -625,8 +632,30 @@ async function entrar(sesion) {
     const prop = pr && pr.length ? String(pr[0].valor || "").toLowerCase() : "";
     const yo = String((sesion.user && sesion.user.email) || "").toLowerCase();
     if (prop && prop !== yo) {
-      $("pantallaPanel").innerHTML = `<div class="vacio" style="margin:30px 16px;">Este panel es solo para el entrenador principal. Tu asiento de ayudante te deja ver Inicio, Mi equipo y el rival en la app.</div>`;
-      return;
+      let cli = null, ligaId = "lf2";
+      try {
+        const rr = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ligas_auto"]);
+        const ff = {}; (rr.data || []).forEach(x => { ff[x.clave] = x.valor; });
+        const pp = JSON.parse(ff.permisos_ayudantes || "{}") || {};
+        const q = pp[yo];
+        if (q && q.plan === "premium") {
+          cli = q;
+          const lg = (JSON.parse(ff.ligas_auto || "[]") || []).find(l => l.id === q.liga);
+          const nz = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "");
+          const cand = [nz(q.liga), nz(lg && lg.nombre)];
+          if (cand.some(t => t && (t.includes("challenge")))) ligaId = "challenge";
+        }
+      } catch (e) { cli = null; }
+      if (!cli) {
+        $("pantallaPanel").innerHTML = `<div class="vacio" style="margin:30px 16px;">Este panel es solo para el entrenador principal y para el plan Premium. Tu asiento te deja ver tus menús en la app.</div>`;
+        return;
+      }
+      MODO_CLI = true; MI_CORREO = yo; SHEET_LIGA = ligaId;
+      CONFIG.SHEET_ID = SHEETS_LIGA[ligaId] || CONFIG.SHEET_ID;
+      document.body.classList.add("modo-cli");
+      mostrarGrupoPanel("jugadoras");
+      // la app de jugadoras de este cliente usa la misma liga que él
+      sb.from("ajustes").upsert({ clave: AKEY("liga"), valor: ligaId, actualizado: new Date().toISOString() }).then(() => {}, () => {});
     }
   } catch (e) { /* si no se puede comprobar, sigue */ }
   const { data: soy } = await sb.rpc("es_entrenador");
@@ -635,13 +664,13 @@ async function entrar(sesion) {
       Tu correo no esta dado de alta como entrenador, asi que no podras guardar nada.
       Anadelo a la tabla <b>entrenadores</b> en Supabase.</div>`;
   }
-  cargarJugadoras().then(cargarTestsPanel);
+  cargarJugadoras().then(() => { if (!MODO_CLI) cargarTestsPanel(); });
   cargarTemporada().then(cargarSelectorPartido);
   cargarTvJug();
   cargarOrdenApp();
   cargarInformes();
   prepararAccesos();
-  cargarEntrenadores();
+  if (!MODO_CLI) cargarEntrenadores();
 }
 
 /* Menu del panel: un grupo a la vez, y se acuerda del ultimo */
@@ -674,7 +703,7 @@ async function cargarTemporada() {
   const sel = $("selTemporadaVen");
   sel.innerHTML = TEMPORADAS.map(t =>
     `<option value="${esc(t.id)}">${esc(t.etiqueta)}</option>`).join("");
-  const { data } = await sb.from("ajustes").select("*").eq("clave", "temporada").limit(1);
+  const { data } = await sb.from("ajustes").select("*").eq("clave", AKEY("temporada")).limit(1);
   if (data && data.length) sel.value = data[0].valor || "2026";
 }
 
@@ -689,7 +718,7 @@ async function cargarSelectorPartido() {
     const antes = CONFIG.TEMPORADA; CONFIG.TEMPORADA = (tv === "2025") ? "" : "_" + tv;
     const res = await leerPestana("Resultados");
     CONFIG.TEMPORADA = antes;
-    const { data } = await sb.from("ajustes").select("valor").eq("clave", "partido_despues").limit(1);
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", AKEY("partido_despues")).limit(1);
     const actual = data && data.length ? String(data[0].valor || "") : "";
     const filas = ((res && res.filas) || []).filter(r => r.PartidoID && r.Jugado === "Si" && nombre && (mismoEquipo(r.Local, nombre) || mismoEquipo(r.Visitante, nombre)));
     const fechaOrd = (t) => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(String(t || "")); return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0; };
@@ -701,7 +730,7 @@ async function cargarSelectorPartido() {
     sel.value = actual;
     if (sel.value !== actual) sel.value = "";
     sel.onchange = async () => {
-      const { error } = await sb.from("ajustes").upsert({ clave: "partido_despues", valor: sel.value, actualizado: new Date().toISOString() });
+      const { error } = await sb.from("ajustes").upsert({ clave: AKEY("partido_despues"), valor: sel.value, actualizado: new Date().toISOString() });
       avisar("avisoPartido", error ? "No se ha podido guardar: " + error.message : (sel.value ? "Guardado. Verán este partido." : "Guardado. Verán siempre el último partido jugado."), error ? "mal" : "ok");
     };
   } catch (e) { /* si falla, se queda el automatico */ }
@@ -712,11 +741,11 @@ const TV_JUG_MODOS = [["nuestro", "📊 Datos de nuestro equipo", "Temporada, cl
 async function cargarTvJug() {
   const caja = $("tvJugCfg"); if (!caja) return;
   let modos = ["nuestro"];
-  try { const { data } = await sb.from("ajustes").select("valor").eq("clave", "tv_jugadoras").limit(1); if (data && data.length) { const v = JSON.parse(data[0].valor || "{}"); if (Array.isArray(v.modos)) modos = v.modos; } } catch (e) { /* por defecto */ }
+  try { const { data } = await sb.from("ajustes").select("valor").eq("clave", AKEY("tv_jugadoras")).limit(1); if (data && data.length) { const v = JSON.parse(data[0].valor || "{}"); if (Array.isArray(v.modos)) modos = v.modos; } } catch (e) { /* por defecto */ }
   caja.innerHTML = '<div class="tv-grid">' + TV_JUG_MODOS.map(([id, t, d]) => `<label class="tv-op"><input type="checkbox" data-tvm="${id}" ${modos.includes(id) ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`).join("") + "</div>" + `<p class="expl" style="margin-top:6px;">Si no marcas ninguno, el botón «Modo TV» no aparece en su app. No sale nunca la probabilidad de victoria.</p>`;
   caja.querySelectorAll("input[data-tvm]").forEach(i => i.addEventListener("change", async () => {
     const sel = [...caja.querySelectorAll("input[data-tvm]:checked")].map(x => x.dataset.tvm);
-    const { error } = await sb.from("ajustes").upsert({ clave: "tv_jugadoras", valor: JSON.stringify({ modos: sel }), actualizado: new Date().toISOString() });
+    const { error } = await sb.from("ajustes").upsert({ clave: AKEY("tv_jugadoras"), valor: JSON.stringify({ modos: sel }), actualizado: new Date().toISOString() });
     avisar("avisoTvJug", error ? "No se ha podido guardar: " + error.message : (sel.length ? "Guardado. Verán el Modo TV con " + sel.length + " apartado" + (sel.length === 1 ? "" : "s") + "." : "Guardado. El Modo TV no aparece en su app."), error ? "mal" : "ok");
   }));
 }
@@ -724,7 +753,7 @@ async function cargarTvJug() {
 async function guardarTemporada() {
   const valor = $("selTemporadaVen").value;
   const { error } = await sb.from("ajustes")
-    .upsert({ clave: "temporada", valor, actualizado: new Date().toISOString() });
+    .upsert({ clave: AKEY("temporada"), valor, actualizado: new Date().toISOString() });
   if (error) {
     avisar("avisoTemporada", "No se ha podido guardar: " + error.message
       + " (¿has ejecutado el script del paso 4?)", "mal");
@@ -742,7 +771,8 @@ const huecosJug = () => maxJug > 0 ? Math.max(0, maxJug - jugadoras.length) : In
 const msgTopeJug = () => `Has llegado al máximo de ${maxJug} jugadoras (asientos) de tu plan. Quita alguna o pide ampliarlo.`;
 const errTopeJug = (e) => /ASIENTOS_JUGADORAS/.test((e && e.message) || "") ? msgTopeJug() : null;
 async function cargarJugadoras() {
-  try { const r = await sb.from("ajustes").select("valor").eq("clave", "max_jugadoras").limit(1); maxJug = r && r.data && r.data.length ? (parseInt(r.data[0].valor, 10) || 0) : 0; } catch (e) { maxJug = 0; }
+  try { const r = await sb.from("ajustes").select("valor").eq("clave", AKEY("max_jugadoras")).limit(1); maxJug = r && r.data && r.data.length ? (parseInt(r.data[0].valor, 10) || 0) : 0; } catch (e) { maxJug = 0; }
+  if (MODO_CLI) maxJug = 15;
   const caja = $("listaJugadoras");
   const { data, error } = await sb.from("jugadoras").select("*").order("nombre");
   if (error) { caja.innerHTML = `<div class="vacio">${esc(error.message)}</div>`; return; }
@@ -973,11 +1003,11 @@ async function miEquipoGuardado() {
   let nombre = "";
   try { nombre = localStorage.getItem(LSK("lf2_mi_equipo")) || ""; } catch (e) { /* nada */ }
   if (!nombre) {
-    const { data } = await sb.from("ajustes").select("valor").eq("clave", "mi_equipo").limit(1);
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", AKEY("mi_equipo")).limit(1);
     if (data && data.length) nombre = data[0].valor || "";
   } else {
     // se guarda tambien en la nube para tenerlo en otros aparatos
-    sb.from("ajustes").upsert({ clave: "mi_equipo", valor: nombre, actualizado: new Date().toISOString() }).then(() => {}, () => {});
+    sb.from("ajustes").upsert({ clave: AKEY("mi_equipo"), valor: nombre, actualizado: new Date().toISOString() }).then(() => {}, () => {});
   }
   return nombre;
 }
@@ -1019,7 +1049,7 @@ function pintarAccesos() {
   $("asientosResumen").innerHTML = `
     <div class="as j"><b>${jugadoras.length}${maxJug ? " / " + maxJug : ""}</b>asientos de jugadora${maxJug && jugadoras.length >= maxJug ? " · completo" : ""}</div>
     <div class="as c"><b>${conCorreo}</b>con correo puesto</div>
-    <div class="as e"><b id="resEnt">${entrenadoresCuenta === null ? "–" : entrenadoresCuenta}</b>asientos de entrenador</div>`;
+    <div class="as e solo-prop"><b id="resEnt">${entrenadoresCuenta === null ? "–" : entrenadoresCuenta}</b>asientos de entrenador</div>`;
   if (!jugadoras.length) {
     caja.innerHTML = `<div class="vacio">Todavia no hay jugadoras. Elige tu equipo arriba y pulsa «Traer mi plantilla completa».</div>`;
     return;
@@ -1328,7 +1358,7 @@ function completarOrden(lista, base) {
 }
 async function cargarOrdenApp() {
   try {
-    const { data } = await sb.from("ajustes").select("valor").eq("clave", "orden_app").limit(1);
+    const { data } = await sb.from("ajustes").select("valor").eq("clave", AKEY("orden_app")).limit(1);
     if (data && data.length && data[0].valor) {
       const o = JSON.parse(data[0].valor);
       ordenApp.pestanas = completarOrden(o.pestanas, PESTANAS_APP);
@@ -1368,7 +1398,7 @@ function pintarOrdenApp() {
 }
 async function guardarOrdenApp() {
   const { error } = await sb.from("ajustes").upsert({
-    clave: "orden_app", valor: JSON.stringify(ordenApp), actualizado: new Date().toISOString() });
+    clave: AKEY("orden_app"), valor: JSON.stringify(ordenApp), actualizado: new Date().toISOString() });
   if (error) { avisar("avisoOrden", "No se ha podido guardar: " + error.message, "mal"); return; }
   avisar("avisoOrden", "Guardado. Lo veran asi la proxima vez que abran la app.", "ok");
 }
@@ -1794,7 +1824,7 @@ $("accEquipo").addEventListener("change", async () => {
   if (!e) return;
   $("accEquipoNombre").textContent = e;
   try { localStorage.setItem(LSK("lf2_mi_equipo"), e); } catch (x) { /* nada */ }
-  sb.from("ajustes").upsert({ clave: "mi_equipo", valor: e, actualizado: new Date().toISOString() }).then(() => {}, () => {});
+  sb.from("ajustes").upsert({ clave: AKEY("mi_equipo"), valor: e, actualizado: new Date().toISOString() }).then(() => {}, () => {});
   $("accEquipoElegir").hidden = true;
 });
 $("swNumeros").addEventListener("change", guardarQueVe);

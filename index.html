@@ -10895,7 +10895,7 @@ async function verificarAcceso() {
   }
   TOPE_MB = topeDe(PERMS);
   ROL_APP = PERMS ? "ayudante" : await resolverRolApp(sb, user);
-  if (PERMS && ROL_APP === "ayudante") { VISTAS_AYUDANTE.length = 0; VISTAS_AYUDANTE.push(...PERMS.s, "equipo-detail", "jugadora-detail", "partido-detail", "scouting"); if (!PERMS.e.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="entrenador"]{display:none !important;}'; document.head.appendChild(st); } }
+  if (PERMS && ROL_APP === "ayudante") { VISTAS_AYUDANTE.length = 0; VISTAS_AYUDANTE.push(...PERMS.s, "equipo-detail", "jugadora-detail", "partido-detail", "scouting"); if (PERMS.plan === "premium" && !SIM) VISTAS_AYUDANTE.push("mis-jugadoras"); if (!PERMS.e.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="entrenador"]{display:none !important;}'; document.head.appendChild(st); } }
   const ERES_PROPIETARIO = ROL_APP === "propietario";
   let simulando = false;
   try { simulando = ERES_PROPIETARIO && sessionStorage.getItem("sf_ver_como_ayudante") === "1"; } catch (e) {}
@@ -10957,7 +10957,7 @@ document.addEventListener("click", (e) => { const b = e.target.closest && e.targ
 
 function aplicarRolAyudante() {
   const ocultar = () => {
-    const bp = document.getElementById("btnPanelApp"); if (bp) bp.style.display = "none";
+    const bp = document.getElementById("btnPanelApp"); if (bp && !VISTAS_AYUDANTE.includes("mis-jugadoras")) bp.style.display = "none";
     document.querySelectorAll("#mainNav button, #btnPanelApp").forEach(b => {
       if (!VISTAS_AYUDANTE.includes(b.getAttribute("data-view"))) b.style.display = "none";
     });
