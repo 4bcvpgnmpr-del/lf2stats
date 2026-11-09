@@ -2163,6 +2163,9 @@ const filaNube = (j) => ({ id: j.id, nombre: j.nombre || "", tipo: j.tipo || "",
 const deFilaEj = (r) => { const d = r.data || {}; ORIG[r.id] = d; return normalizar(Object.assign(jugadaNueva("cinco"), clonar(d.diagrama || {}), { id: r.id, nombre: r.nombre || "", carpeta: r.carpeta || "", tags: d.tags || [], notas: d.descripcion || "", tipo: d.categoria || "Otro", minutos: d.minutos || 0, actualizada: r.actualizada })); };
 const deFila = (r) => (PROP[r.id] = r.propietario || "", normalizar(Object.assign({}, r.data, { id: r.id, favorita: !!r.favorita, compartida: !!r.compartida, actualizada: r.actualizada })));
 
+/* Datos personales del navegador (equipo elegido, temporada…): el propietario conserva los de siempre y cada cliente o ayudante tiene los suyos aparte */
+const LSK = (k) => { try { const e = String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); return (e && localStorage.getItem("sf_prop") === e) ? k : k + "|" + e; } catch (x) { return k; } };
+async function sfIdent(cli) { try { const { data } = await cli.auth.getSession(); const e = data && data.session && String(data.session.user.email || "").toLowerCase(); if (!e) return; localStorage.setItem("sf_ult_email", e); const r = await cli.rpc("es_propietario"); if (r && !r.error) { if (r.data === true) localStorage.setItem("sf_prop", e); else if (localStorage.getItem("sf_prop") === e) localStorage.removeItem("sf_prop"); } } catch (x) { /* sin red: se queda como estaba */ } }
 async function iniciarNube() {
   motivoLocal = "";
   try {
@@ -2170,6 +2173,7 @@ async function iniciarNube() {
     nube = window.supabase.createClient(SB.url, SB.anon);
     const { data } = await nube.auth.getSession();
     if (!data || !data.session) { motivoLocal = "no has entrado con tu cuenta"; return; }
+    await sfIdent(nube);
     const { error } = await nube.from(TABLA).select("id").limit(1);
     if (error) { motivoLocal = "falta ejecutar jugadas.sql en Supabase (" + error.message + ")"; return; }
     modoNube = true;
@@ -3018,7 +3022,7 @@ function iniciarPartido() {
       sc.onerror = () => { fin(); ko(new Error("e")); }; document.body.appendChild(sc);
     });
     const miEquipoPlantilla = async () => {
-      let eq = "", te = "2026"; try { eq = localStorage.getItem("lf2_mi_equipo") || ""; te = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
+      let eq = "", te = "2026"; try { eq = localStorage.getItem(LSK("lf2_mi_equipo")) || ""; te = localStorage.getItem(LSK("lf2_temporada")) || "2026"; } catch (e) { /* nada */ }
       const n = normEq(eq); if (!n) return null;
       const ck = "partido_miequipo_" + n + "_" + te;
       try {
@@ -3072,7 +3076,7 @@ function iniciarPartido() {
       const eqs = d.equipos || []; if (eqs.length < 2) throw new Error("La FEB aún no da datos de jugadoras");
       let mi = -1; try { const g = localStorage.getItem("scoutflow-feb-mi-" + d.id); mi = g === "0" ? 0 : g === "1" ? 1 : -1; } catch (e) { mi = -1; }
       if (mi < 0) {
-        let eq = ""; try { eq = localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { /* nada */ }
+        let eq = ""; try { eq = localStorage.getItem(LSK("lf2_mi_equipo")) || ""; } catch (e) { /* nada */ }
         const cand = [eq, M.n[0]].map(normEq).filter(Boolean);
         eqs.forEach((t, i) => { const n = normEq(t.nombre); if (mi < 0 && n && cand.some(c => c === n || c.includes(n) || n.includes(c))) mi = i; });
         if (mi < 0) mi = confirm("¿«" + eqs[0].nombre + "» es tu equipo?\n\nAceptar = sí · Cancelar = el otro") ? 0 : 1;
@@ -3124,7 +3128,7 @@ function iniciarPartido() {
     };
     /* ---- traer el equipo rival (plantilla de la hoja de la FEB): salen dorsal y nombre ---- */
     const traerRival = async () => {
-      let te = "2026"; try { te = localStorage.getItem("lf2_temporada") || "2026"; } catch (e) { /* nada */ }
+      let te = "2026"; try { te = localStorage.getItem(LSK("lf2_temporada")) || "2026"; } catch (e) { /* nada */ }
       let filas = []; aviso("Buscando equipos…");
       try { filas = await sheetTab("Plantillas", TEMPS[te] != null ? TEMPS[te] : "_2026"); } catch (e) { aviso("No se pudo leer la plantilla (¿sin conexión?)"); return; }
       const col = (f, re) => { const k = Object.keys(f).find(x => re.test(String(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim())); return k ? f[k] : ""; };

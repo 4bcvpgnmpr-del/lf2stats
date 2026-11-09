@@ -608,7 +608,11 @@ async function pedirEnlace() {
 
 async function salir() { if (sb) await sb.auth.signOut(); location.reload(); }
 
+/* Datos personales del navegador (equipo elegido, temporada…): el propietario conserva los de siempre y cada cliente o ayudante tiene los suyos aparte */
+const LSK = (k) => { try { const e = String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); return (e && localStorage.getItem("sf_prop") === e) ? k : k + "|" + e; } catch (x) { return k; } };
+async function sfIdent(cli) { try { const { data } = await cli.auth.getSession(); const e = data && data.session && String(data.session.user.email || "").toLowerCase(); if (!e) return; localStorage.setItem("sf_ult_email", e); const r = await cli.rpc("es_propietario"); if (r && !r.error) { if (r.data === true) localStorage.setItem("sf_prop", e); else if (localStorage.getItem("sf_prop") === e) localStorage.removeItem("sf_prop"); } } catch (x) { /* sin red: se queda como estaba */ } }
 async function entrar(sesion) {
+  await sfIdent(sb);
   $("pantallaEntrar").hidden = true;
   $("pantallaPanel").hidden = false;
   $("pieVersion").textContent = "v" + VERSION;
@@ -966,7 +970,7 @@ function equipoDePlantillas(nombre, lista) {
 }
 async function miEquipoGuardado() {
   let nombre = "";
-  try { nombre = localStorage.getItem("lf2_mi_equipo") || ""; } catch (e) { /* nada */ }
+  try { nombre = localStorage.getItem(LSK("lf2_mi_equipo")) || ""; } catch (e) { /* nada */ }
   if (!nombre) {
     const { data } = await sb.from("ajustes").select("valor").eq("clave", "mi_equipo").limit(1);
     if (data && data.length) nombre = data[0].valor || "";
@@ -1788,7 +1792,7 @@ $("accEquipo").addEventListener("change", async () => {
   const e = $("accEquipo").value;
   if (!e) return;
   $("accEquipoNombre").textContent = e;
-  try { localStorage.setItem("lf2_mi_equipo", e); } catch (x) { /* nada */ }
+  try { localStorage.setItem(LSK("lf2_mi_equipo"), e); } catch (x) { /* nada */ }
   sb.from("ajustes").upsert({ clave: "mi_equipo", valor: e, actualizado: new Date().toISOString() }).then(() => {}, () => {});
   $("accEquipoElegir").hidden = true;
 });
