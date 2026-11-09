@@ -608,9 +608,10 @@ async function pedirEnlace() {
 
 async function salir() { if (sb) await sb.auth.signOut(); location.reload(); }
 
-/* Datos personales del navegador (equipo elegido, temporada…): el propietario conserva los de siempre y cada cliente o ayudante tiene los suyos aparte */
-const LSK = (k) => { try { const e = String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); return (e && localStorage.getItem("sf_prop") === e) ? k : k + "|" + e; } catch (x) { return k; } };
-async function sfIdent(cli) { try { const { data } = await cli.auth.getSession(); const e = data && data.session && String(data.session.user.email || "").toLowerCase(); if (!e) return; localStorage.setItem("sf_ult_email", e); const r = await cli.rpc("es_propietario"); if (r && !r.error) { if (r.data === true) localStorage.setItem("sf_prop", e); else if (localStorage.getItem("sf_prop") === e) localStorage.removeItem("sf_prop"); } } catch (x) { /* sin red: se queda como estaba */ } }
+/* Datos personales del navegador (equipo elegido, temporada, scouting…): el propietario conserva los de siempre y cada cliente o ayudante tiene los suyos aparte */
+const sfEmail = () => { try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^sb-.*-auth-token$/.test(k)) { const o = JSON.parse(localStorage.getItem(k) || "null"); const u = o && (o.user || (o.currentSession && o.currentSession.user)); if (u && u.email) return String(u.email).toLowerCase(); } } } catch (x) { /* nada */ } try { return String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); } catch (x) { return ""; } };
+const LSK = (k) => { try { const e = sfEmail(); return (!e || localStorage.getItem("sf_prop") === e) ? k : k + "|" + e; } catch (x) { return k; } };
+async function sfIdent(cli) { try { const { data } = await cli.auth.getSession(); const e = data && data.session && String(data.session.user.email || "").toLowerCase(); if (!e) return false; localStorage.setItem("sf_ult_email", e); const r = await cli.rpc("es_propietario"); if (r && !r.error) { const antes = localStorage.getItem("sf_prop"); if (r.data === true) localStorage.setItem("sf_prop", e); else if (antes === e) localStorage.removeItem("sf_prop"); return localStorage.getItem("sf_prop") !== antes; } } catch (x) { /* sin red: se queda como estaba */ } return false; }
 async function entrar(sesion) {
   await sfIdent(sb);
   $("pantallaEntrar").hidden = true;

@@ -2296,6 +2296,10 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
 </footer>
 
 <script>
+/* Datos personales del navegador (equipo elegido, temporada, scouting…): el propietario conserva los de siempre y cada cliente o ayudante tiene los suyos aparte */
+const sfEmail = () => { try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^sb-.*-auth-token$/.test(k)) { const o = JSON.parse(localStorage.getItem(k) || "null"); const u = o && (o.user || (o.currentSession && o.currentSession.user)); if (u && u.email) return String(u.email).toLowerCase(); } } } catch (x) { /* nada */ } try { return String(localStorage.getItem("sf_ult_email") || "").toLowerCase(); } catch (x) { return ""; } };
+const LSK = (k) => { try { const e = sfEmail(); return (!e || localStorage.getItem("sf_prop") === e) ? k : k + "|" + e; } catch (x) { return k; } };
+async function sfIdent(cli) { try { const { data } = await cli.auth.getSession(); const e = data && data.session && String(data.session.user.email || "").toLowerCase(); if (!e) return false; localStorage.setItem("sf_ult_email", e); const r = await cli.rpc("es_propietario"); if (r && !r.error) { const antes = localStorage.getItem("sf_prop"); if (r.data === true) localStorage.setItem("sf_prop", e); else if (antes === e) localStorage.removeItem("sf_prop"); return localStorage.getItem("sf_prop") !== antes; } } catch (x) { /* sin red: se queda como estaba */ } return false; }
 /* ============================================================
    CONFIGURACION
    ============================================================ */
@@ -2308,7 +2312,7 @@ const LIGAS = [
 ];
 let ligaActiva = "lf2";
 try {
-  const l = localStorage.getItem("lf2_liga"), ch = localStorage.getItem("lf2_sheet_challenge");
+  const l = localStorage.getItem(LSK("lf2_liga")), ch = localStorage.getItem("lf2_sheet_challenge");
   if (ch) LIGAS[1].sheet = ch;
   if (l && LIGAS.some(x => x.id === l && x.sheet)) ligaActiva = l;
 } catch (e) { /* se usa la LF2 */ }
@@ -2357,7 +2361,7 @@ if (MODO_PARTIDO) {
 
 let temporadaActiva = TEMPORADAS[0].id;
 try {
-  const guardada = localStorage.getItem("lf2_temporada");
+  const guardada = localStorage.getItem(LSK("lf2_temporada"));
   if (guardada && TEMPORADAS.some(t => t.id === guardada)) temporadaActiva = guardada;
 } catch (e) { /* sin guardar, se usa la mas reciente */ }
 if ((MODO_PARTIDO || MODO_TV) && TEMPORADAS.some(t => t.id === PARAMS_URL.get("temp"))) temporadaActiva = PARAMS_URL.get("temp");
@@ -4500,10 +4504,10 @@ const TV_TIT = { calendario: "Calendario y resultados", "rival-calendario": "Cal
   rival: "Portada del rival", "rival-forma": "Su forma", "rival-cara": "Cara a cara", "rival-numeros": "Sus números", "rival-kpi": "Fuertes y débiles", "rival-indicadores": "Sus indicadores", "rival-jug": "Jugadoras a vigilar", "rival-plantilla": "Toda su plantilla", "rival-lideres": "Sus líderes", "mapa-rival": "Su mapa de tiro", "rival-zonas": "Sus zonas de tiro", "rival-cuartos": "Sus cuartos", "rival-quintetos": "Sus quintetos", "rival-claves": "Claves del partido", "rival-duelo": "Último duelo", "rival-video": "Vídeo de scouting",
   "jug-ficha": "Ficha", "jug-metas": "Sus metas", "jug-numeros": "Todos sus números", "jug-partidos": "Partido a partido", "jug-evolucion": "Cómo ha cambiado", "jug-resumen": "Frente a su plantilla", "jug-grupo": "Frente al grupo", "jug-grupo-resumen": "Destaca y a mejorar", "jug-mapa": "Mapa de tiro", "jug-zonas": "Tiro por zonas", "jug-video": "Vídeos" };
 function tvTitulo(sl) { return sl.tit || TV_TIT[sl.id] || String(sl.id || "").replace(/^jug-mapa:/, "Mapa de tiro · ") || "Diapositiva"; }
-function tvOcultasLeer() { try { return new Set(JSON.parse(localStorage.getItem("tv_ocultas") || "[]")); } catch (e) { return new Set(); } }
-function tvOcultasGuardar(set) { try { localStorage.setItem("tv_ocultas", JSON.stringify([...set])); } catch (e) { /* nada */ } }
-function tvOrdenLeer() { try { return JSON.parse(localStorage.getItem("tv_orden") || "[]"); } catch (e) { return []; } }
-function tvOrdenGuardar(a) { try { localStorage.setItem("tv_orden", JSON.stringify(a || [])); } catch (e) { /* nada */ } }
+function tvOcultasLeer() { try { return new Set(JSON.parse(localStorage.getItem(LSK("tv_ocultas")) || "[]")); } catch (e) { return new Set(); } }
+function tvOcultasGuardar(set) { try { localStorage.setItem(LSK("tv_ocultas"), JSON.stringify([...set])); } catch (e) { /* nada */ } }
+function tvOrdenLeer() { try { return JSON.parse(localStorage.getItem(LSK("tv_orden")) || "[]"); } catch (e) { return []; } }
+function tvOrdenGuardar(a) { try { localStorage.setItem(LSK("tv_orden"), JSON.stringify(a || [])); } catch (e) { /* nada */ } }
 function tvAplicarOrden(S) {
   const ord = tvOrdenLeer(); if (!ord.length) return S; const pos = new Map(ord.map((id, i) => [id, i])), idx = [];
   S.forEach((x, i) => { if (x.id && pos.has(x.id)) idx.push(i); });
@@ -7539,7 +7543,7 @@ let scouting = { equipos: {}, jugadoras: {}, actualizado: "" };
 
 function scoutCargar() {
   try {
-    const crudo = localStorage.getItem(SCOUT_KEY);
+    const crudo = localStorage.getItem(LSK(SCOUT_KEY));
     if (crudo) scouting = Object.assign({ equipos: {}, jugadoras: {} }, JSON.parse(crudo));
   } catch (e) { /* si no se puede leer, se empieza vacio */ }
 }
@@ -7600,7 +7604,7 @@ async function scoutNubeInit(sb, email) {
       else if ((nube.actualizado || "") > (scouting.actualizado || "")) { scouting = Object.assign({ equipos: {}, jugadoras: {} }, nube); cambio = true; }
       else if ((nube.actualizado || "") < (scouting.actualizado || "")) subir = true;
     }
-    try { localStorage.setItem(SCOUT_KEY, JSON.stringify(scouting)); localStorage.setItem(marca, "1"); } catch (e) { /* nada */ }
+    try { localStorage.setItem(LSK(SCOUT_KEY), JSON.stringify(scouting)); localStorage.setItem(marca, "1"); } catch (e) { /* nada */ }
     scoutSync.listo = true; scoutSync.error = "";
     if (subir) await scoutNubeSubir(); else scoutTvPublicar();
     if (cambio) location.reload();
@@ -7617,7 +7621,7 @@ function scoutGuardar() {
   scouting.actualizado = new Date().toISOString();
   clearTimeout(scoutSync.tm); scoutSync.tm = setTimeout(scoutNubeSubir, 1500);
   try {
-    localStorage.setItem(SCOUT_KEY, JSON.stringify(scouting));
+    localStorage.setItem(LSK(SCOUT_KEY), JSON.stringify(scouting));
     return true;
   } catch (e) {
     alert("No se ha podido guardar en este navegador. Descarga una copia de seguridad para no perder lo escrito.");
@@ -7750,7 +7754,7 @@ async function videoComprimir(archivo) {
 const WORKER_VIDEOS = "https://scoutflow-videos.4bcvpgnmpr.workers.dev";
 /* Tope de espacio por cuenta con plan (MB): 1 GB gratis y 10 GB de pago, sumando vídeos de scouting y archivos de Entrenador. El propietario no tiene tope. */
 let TOPE_MB = 0;
-function scoutBytes() { try { const s = JSON.parse(localStorage.getItem("lf2_scouting_v1") || "{}"); let t = 0; ["equipos", "jugadoras"].forEach(k => Object.values(s[k] || {}).forEach(x => ((x && x.videos) || []).forEach(v => { if (v && v.nubeUrl) t += +v.archivoTamano || 0; }))); return t; } catch (e) { return 0; } }
+function scoutBytes() { try { const s = JSON.parse(localStorage.getItem(LSK("lf2_scouting_v1")) || "{}"); let t = 0; ["equipos", "jugadoras"].forEach(k => Object.values(s[k] || {}).forEach(x => ((x && x.videos) || []).forEach(v => { if (v && v.nubeUrl) t += +v.archivoTamano || 0; }))); return t; } catch (e) { return 0; } }
 async function videoNubeSubir(id, archivo) {
   try {
     if (archivo && archivo.size > 20 * 1024 * 1024) { try { archivo = await videoComprimir(archivo); } catch (e) { videoAviso(""); return { error: "no pude comprimirlo: " + (e.message || e) }; } if (archivo.size > 50 * 1024 * 1024) return { error: "aun comprimido pesa " + Math.round(archivo.size / 1048576) + " MB y la nube admite menos (máx. 50 MB): es muy largo, recórtalo o usa un enlace" }; }
@@ -8189,7 +8193,7 @@ let cargandoPartidosInforme = false;
    por otra imagen, que se guarda en este navegador.
    ============================================================ */
 let fotosPropias = {};
-try { fotosPropias = JSON.parse(localStorage.getItem("lf2_fotos") || "{}"); }
+try { fotosPropias = JSON.parse(localStorage.getItem(LSK("lf2_fotos")) || "{}"); }
 catch (e) { fotosPropias = {}; }
 
 function claveFoto(nombre, equipo) {
@@ -8205,7 +8209,7 @@ function fotoJugadora(nombre, equipo, original) {
 function guardarFotoPropia(nombre, equipo, url) {
   const k = claveFoto(nombre, equipo);
   if (url) fotosPropias[k] = url; else delete fotosPropias[k];
-  try { localStorage.setItem("lf2_fotos", JSON.stringify(fotosPropias)); } catch (e) { /* sin guardar */ }
+  try { localStorage.setItem(LSK("lf2_fotos"), JSON.stringify(fotosPropias)); } catch (e) { /* sin guardar */ }
 }
 
 function clavesNombre(txt, equipo) {
@@ -10866,6 +10870,7 @@ async function verificarAcceso() {
   const { data: ses } = await sb.auth.getSession();
   const user = ses && ses.session && ses.session.user;
   if (!user) { mostrarPuerta(""); return; }
+  if (await sfIdent(sb)) { location.reload(); return; }
   const { data: soy, error } = await sb.rpc("es_entrenador");
   if (error || soy !== true) { mostrarPuerta("Tu correo (" + user.email + ") no tiene asiento de entrenador.", "mal"); return; }
   // permisos por ayudante (los pone el propietario en el Panel)
@@ -12964,7 +12969,7 @@ function dashboardMiEquipo(nombre, partidos, jugados, pendientes, proximo) {
 /* Cada liga recuerda su propio "mi equipo": elegir uno en la Challenge no cambia el de la LF2 */
 const CLAVE_MI_EQUIPO = ligaActiva === "lf2" ? "lf2_mi_equipo" : "lf2_mi_equipo_" + ligaActiva;
 let miEquipo = "";
-try { miEquipo = localStorage.getItem(CLAVE_MI_EQUIPO) || ""; } catch (e) { miEquipo = ""; }
+try { miEquipo = localStorage.getItem(LSK(CLAVE_MI_EQUIPO)) || ""; } catch (e) { miEquipo = ""; }
 if (!miEquipo && scouting && scouting.miEquipo && scouting.miEquipo[ligaActiva]) miEquipo = scouting.miEquipo[ligaActiva];
 if (miEquipo && !((scouting.miEquipo || {})[ligaActiva])) { scouting.miEquipo = Object.assign({}, scouting.miEquipo || {}, { [ligaActiva]: miEquipo }); scoutGuardar(); }
 
@@ -12977,7 +12982,7 @@ function pintarTarjetaEquipo() {
 }
 function guardarMiEquipo(nombre) {
   miEquipo = nombre;
-  try { localStorage.setItem(CLAVE_MI_EQUIPO, nombre); } catch (e) { /* sin guardar, no pasa nada */ }
+  try { localStorage.setItem(LSK(CLAVE_MI_EQUIPO), nombre); } catch (e) { /* sin guardar, no pasa nada */ }
   try { scouting.miEquipo = Object.assign({}, scouting.miEquipo || {}, { [ligaActiva]: nombre }); scoutGuardar(); } catch (e) { /* nada */ }   // se sincroniza con la tablet
   pintarTarjetaEquipo();
   try { pintarHeroInicio(); } catch (e) { /* nada */ }
@@ -16037,7 +16042,7 @@ const PLANTILLA_PLAN = {
 function claveplan(nombre) { return normalizarEquipo(equipoOficial(nombre)); }
 
 function leerPlanes() {
-  try { return JSON.parse(localStorage.getItem("lf2_plan") || "{}"); }
+  try { return JSON.parse(localStorage.getItem(LSK("lf2_plan")) || "{}"); }
   catch (e) { return {}; }
 }
 
@@ -16051,7 +16056,7 @@ function guardarPlan(nombre, prioridades) {
   const todos = leerPlanes();
   if (prioridades && prioridades.length) todos[claveplan(nombre)] = prioridades;
   else delete todos[claveplan(nombre)];
-  try { localStorage.setItem("lf2_plan", JSON.stringify(todos)); } catch (e) { /* sin guardar */ }
+  try { localStorage.setItem(LSK("lf2_plan"), JSON.stringify(todos)); } catch (e) { /* sin guardar */ }
 }
 
 // Propuesta automatica a partir de las metricas peor situadas
@@ -16270,7 +16275,7 @@ const BLOQUES_INFORME = [
 ];
 
 let informeBloques = [];
-try { informeBloques = JSON.parse(localStorage.getItem("lf2_informe") || "[]"); }
+try { informeBloques = JSON.parse(localStorage.getItem(LSK("lf2_informe")) || "[]"); }
 catch (e) { informeBloques = []; }
 
 const esperarMs = (ms) => new Promise(r => setTimeout(r, ms));
@@ -16383,11 +16388,11 @@ function pintarListaInforme() {
 }
 
 function guardarInforme() {
-  try { localStorage.setItem("lf2_informe", JSON.stringify(informeBloques)); } catch (e) {}
+  try { localStorage.setItem(LSK("lf2_informe"), JSON.stringify(informeBloques)); } catch (e) {}
   pintarListaInforme();
 }
 
-function planEnPdf() { try { return localStorage.getItem("lf2_plan_pdf") !== "0"; } catch (e) { return true; } }
+function planEnPdf() { try { return localStorage.getItem(LSK("lf2_plan_pdf")) !== "0"; } catch (e) { return true; } }
 function aplicarPlanPdf() {
   const on = planEnPdf();
   document.body.classList.toggle("sin-plan-pdf", !on);
@@ -16395,7 +16400,7 @@ function aplicarPlanPdf() {
 }
 document.addEventListener("change", (e) => {
   if (e.target && e.target.classList && e.target.classList.contains("chk-plan-pdf")) {
-    try { localStorage.setItem("lf2_plan_pdf", e.target.checked ? "1" : "0"); } catch (x) {}
+    try { localStorage.setItem(LSK("lf2_plan_pdf"), e.target.checked ? "1" : "0"); } catch (x) {}
     aplicarPlanPdf();
   }
 });
@@ -16753,20 +16758,20 @@ function prepararConstructorInformes() {
     const nombre = prompt("Nombre de la plantilla:", document.getElementById("infTitulo").value || "Mi informe");
     if (!nombre) return;
     let plantillas = {};
-    try { plantillas = JSON.parse(localStorage.getItem("lf2_informe_plantillas") || "{}"); } catch (e) {}
+    try { plantillas = JSON.parse(localStorage.getItem(LSK("lf2_informe_plantillas")) || "{}"); } catch (e) {}
     plantillas[nombre] = {
       titulo: document.getElementById("infTitulo").value,
       subtitulo: document.getElementById("infSubtitulo").value,
       autor: document.getElementById("infAutor").value,
       bloques: informeBloques,
     };
-    try { localStorage.setItem("lf2_informe_plantillas", JSON.stringify(plantillas)); } catch (e) {}
+    try { localStorage.setItem(LSK("lf2_informe_plantillas"), JSON.stringify(plantillas)); } catch (e) {}
     document.getElementById("infEstado").textContent = `Plantilla "${nombre}" guardada.`;
   });
 
   document.getElementById("infCargar").addEventListener("click", () => {
     let plantillas = {};
-    try { plantillas = JSON.parse(localStorage.getItem("lf2_informe_plantillas") || "{}"); } catch (e) {}
+    try { plantillas = JSON.parse(localStorage.getItem(LSK("lf2_informe_plantillas")) || "{}"); } catch (e) {}
     const nombres = Object.keys(plantillas);
     if (!nombres.length) { document.getElementById("infEstado").textContent = "Todavia no has guardado ninguna plantilla."; return; }
     const elegida = prompt("Plantillas guardadas:\n\n" + nombres.map((n, i) => (i + 1) + ") " + n).join("\n") +
@@ -17413,7 +17418,7 @@ function prepararSelectorLiga() {
       if (!id) { sel.value = ligaActiva; return; }
       try { localStorage.setItem("lf2_sheet_challenge", id); } catch (e) { /* nada */ }
     }
-    try { localStorage.setItem("lf2_liga", l.id); } catch (e) { /* nada */ }
+    try { localStorage.setItem(LSK("lf2_liga"), l.id); } catch (e) { /* nada */ }
     location.reload();   // hay muchas tablas en memoria: no se mezclan dos ligas
   });
 }
@@ -17429,7 +17434,7 @@ function prepararSelectorTemporada() {
     const nueva = sel.value;
     if (nueva === temporadaActiva) return;
     temporadaActiva = nueva;
-    try { localStorage.setItem("lf2_temporada", nueva); } catch (e) { /* nada */ }
+    try { localStorage.setItem(LSK("lf2_temporada"), nueva); } catch (e) { /* nada */ }
     // Recargar la pagina es lo mas limpio: hay muchas tablas en memoria y
     // mezclar dos temporadas daria numeros falsos.
     location.reload();
@@ -17465,7 +17470,7 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
           Ver la temporada ${escapeHtml(t.etiqueta)}</button>`).join(" ")}
       </div>`);
       inicio.querySelectorAll("[data-ir-temporada]").forEach(b => b.addEventListener("click", () => {
-        try { localStorage.setItem("lf2_temporada", b.getAttribute("data-ir-temporada")); } catch (e) { /* nada */ }
+        try { localStorage.setItem(LSK("lf2_temporada"), b.getAttribute("data-ir-temporada")); } catch (e) { /* nada */ }
         location.reload();
       }));
     }
@@ -17604,8 +17609,8 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
   const sg = (v) => (v > 0 ? "+" : "") + fmtNum(v);
   const EST = { tipo: "rival", valor: "", secs: [], ctx: null, notas: {}, activo: false };
   const LS = "lf2_ip_";
-  const lsGet = (k, d) => { try { const v = localStorage.getItem(LS + k); return v === null ? d : v; } catch (e) { return d; } };
-  const lsSet = (k, v) => { try { localStorage.setItem(LS + k, v); } catch (e) { /* nada */ } };
+  const lsGet = (k, d) => { try { const v = localStorage.getItem(LSK(LS + k)); return v === null ? d : v; } catch (e) { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(LSK(LS + k), v); } catch (e) { /* nada */ } };
 
   /* ---------- Componentes ---------- */
   const kpi = (et, val, sub, tono) => `<div class="ip-kpi ${tono || ""}"><span>${esc(et)}</span><b>${esc(val)}</b><em>${esc(sub || "")}</em></div>`;
