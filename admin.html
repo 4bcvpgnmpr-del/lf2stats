@@ -195,20 +195,22 @@ async function ficha(c){
    '<div class="g2"><div><label>Pack</label><select id="cP">'+['gratis','pro','premium','personalizado'].map(p=>opt(p,p,c.pack)).join('')+'</select></div><div><label>Estado</label><select id="cS">'+['prueba','activo','vencido','baja'].map(p=>opt(p,p,c.estado)).join('')+'</select></div></div>'+
    '<div class="g2"><div><label>Importe al mes (€)</label><input id="cI" type="number" step="0.5" value="'+(c.importe||0)+'"></div><div><label>Cómo paga</label><select id="cM">'+['bizum','transferencia','efectivo','stripe'].map(p=>opt(p,p,c.metodo)).join('')+'</select></div></div>'+
    '<div class="g2"><div><label>Alta</label><input id="cA" type="date" value="'+(c.alta||'')+'"></div><div><label>Próximo cobro</label><input id="cX" type="date" value="'+(c.proximo_cobro||'')+'"></div></div>'+
-   '<label>Liga</label><input id="cL" value="'+esc(c.liga)+'" placeholder="p. ej. Nacional Andalucía">'+
+   '<label>Liga</label><input id="cL" value="'+esc(c.liga)+'" placeholder="p. ej. LF2 (para el pack Premium)">'+
+   '<label style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px;color:var(--text)"><input type="checkbox" id="cAp" '+(c.app_activa?'checked':'')+' style="width:20px;height:20px;min-height:0;flex:none;margin-top:1px"><span><b>Activar en la app de entrenador</b><br><span style="color:var(--muted);font-size:12.5px">Le abre los menús de su pack con el email de arriba. Se renueva solo al cobrar. Si está en baja o lo desmarcas, pierde el acceso.</span></span></label>'+
    '<label>Notas</label><textarea id="cO">'+esc(c.notas)+'</textarea>'+
    (pagos.length?'<div class="pg"><b>Últimos pagos</b>'+pagos.map(p=>'<div><span>'+fdate(p.fecha)+' · '+esc(p.metodo||'')+'</span><span>'+eur(p.importe)+'</span></div>').join('')+'</div>':'')+
    '<div class="msg" id="cM2"></div>'+
    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+(n?'':'<button class="bad" id="cD">Borrar</button>')+'<span class="sp"></span><button id="cX2">Cancelar</button><button class="pri" id="cG">Guardar</button></div></div>';
   $('cP').onchange=()=>{ if($('cP').value==='pro'&&!+$('cI').value) $('cI').value=10; if($('cP').value==='gratis') $('cI').value=0; };
   $('cX2').onclick=cerrar;
-  if(!n)$('cD').onclick=async()=>{ if(!confirm('¿Borrar a «'+c.nombre+'» y sus pagos?'))return; const {error}=await sb.from('clientes').delete().eq('id',c.id); if(error){$('cM2').textContent=error.message;return;} cerrar();cargar(); };
+  if(!n)$('cD').onclick=async()=>{ if(!confirm('¿Borrar a «'+c.nombre+'» y sus pagos?'))return; const {error}=await sb.from('clientes').delete().eq('id',c.id); if(error){$('cM2').textContent=error.message;return;} await syncApp(Object.assign({},c,{app_activa:false}),c.email||''); cerrar();cargar(); };
   $('cG').onclick=async()=>{
     const nombre=$('cN').value.trim(); if(!nombre){$('cM2').textContent='Falta el nombre.';return;}
     const f={nombre,email:$('cE').value.trim()||null,telefono:$('cT').value.trim()||null,tipo:$('cTi').value,club:$('cC').value.trim()||null,pack:$('cP').value,estado:$('cS').value,
-      importe:+$('cI').value||0,metodo:$('cM').value,alta:$('cA').value||null,proximo_cobro:$('cX').value||null,liga:$('cL').value.trim()||null,notas:$('cO').value.trim()||null};
+      importe:+$('cI').value||0,metodo:$('cM').value,alta:$('cA').value||null,proximo_cobro:$('cX').value||null,liga:$('cL').value.trim()||null,notas:$('cO').value.trim()||null,app_activa:$('cAp').checked};
     const r=n?await sb.from('clientes').insert(f):await sb.from('clientes').update(f).eq('id',c.id);
-    if(r.error){$('cM2').textContent=r.error.message;return;} cerrar();cargar();
+    if(r.error){$('cM2').textContent=r.error.message;return;}
+    const w=await syncApp(Object.assign({},c,f),n?'':(c.email||'')); cerrar();cargar(); if(w) aviso2(w);
   };
 }
 $('bNew').onclick=()=>ficha(null);
@@ -229,7 +231,7 @@ function cobrar(c){
     if(a.error){$('pMsg').textContent=a.error.message;return;}
     const b=await sb.from('clientes').update({estado:'activo',proximo_cobro:$('pD').value||null}).eq('id',c.id);
     if(b.error){$('pMsg').textContent=b.error.message;return;}
-    cerrar();cargar();
+    const c2=Object.assign({},c,{estado:'activo',proximo_cobro:$('pD').value||null}); const w=await syncApp(c2,''); cerrar();cargar(); if(w) aviso2(w);
   };
 }
 $('bCsv').onclick=()=>{
@@ -264,6 +266,39 @@ $('lgAdd').onclick=async()=>{
   if(!id||LIG.some(l=>l.id===id))return;
   LIG.push({id,nombre:n});const {error}=await guarda('ligas_auto',LIG);aviso(error?'No se pudo guardar: '+error.message:'Liga añadida.',!error);$('lgN').value='';pintarPlanes();
 };
+/* ---- Enlace con la app de entrenador: escribe en los mismos datos que usa «⚙ Menús» (ajustes.permisos_ayudantes + entrenadores) ---- */
+const PLANES_APP = { gratis: { gb: 1, n: "Gratis", e: ["inicio", "calendario", "plantilla", "jugadas", "ejercicios", "planes"], s: [], lim: { jugadas: 5, ejercicios: 5, planes: 3 } }, pro: { gb: 10, n: "Pro", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "plantilla", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: [] }, premium: { gb: 20, n: "Premium", e: ["inicio", "calendario", "jugadas", "playbooks", "ejercicios", "planes", "plantilla", "equipos", "libro", "mini", "video", "imagen", "audio", "partido"], s: ["inicio", "mi-equipo", "clasificacion", "equipos", "jugadoras", "rankings", "estadisticas", "quintetos", "fichajes", "comparador", "resultados", "records", "informes"] } };
+function aviso2(t){let d=$('toast2');if(!d){d=document.createElement('div');d.id='toast2';d.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99;background:#2a2a2a;border:1px solid var(--accent);border-radius:12px;padding:12px 16px;max-width:90vw;font-size:14px';document.body.appendChild(d);}d.textContent=t;d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,6000);}
+const slug=n=>String(n||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+async function syncApp(c,emailAnt){
+  try{
+    const email=String(c.email||'').trim().toLowerCase(), ant=String(emailAnt||'').trim().toLowerCase();
+    const r=await sb.from('ajustes').select('clave,valor').in('clave',['permisos_ayudantes','ligas_auto']);
+    if(r.error) return 'No se pudo conectar con la app: '+r.error.message;
+    const f={};(r.data||[]).forEach(x=>f[x.clave]=x.valor);
+    let perms={};try{perms=JSON.parse(f.permisos_ayudantes||'{}')||{};}catch(e){}
+    let ligas=[];try{ligas=JSON.parse(f.ligas_auto||'[]')||[];}catch(e){}
+    let col='email';
+    const t=await sb.from('entrenadores').select('*').limit(1);
+    if(t.data&&t.data[0]) col=('email' in t.data[0])?'email':(Object.keys(t.data[0]).find(k=>/mail|correo/i.test(k))||'email');
+    let msg='';
+    const quitar=async(em)=>{ if(em&&perms[em]&&perms[em].via==='admin'){ delete perms[em]; await sb.from('entrenadores').delete().eq(col,em); return true; } return false; };
+    if(ant&&ant!==email) await quitar(ant);
+    const quiere=!!c.app_activa&&email&&['gratis','pro','premium'].includes(c.pack)&&c.estado!=='baja';
+    if(quiere){
+      if(perms[email]&&perms[email].via!=='admin') return 'Ese email ya tiene permisos puestos a mano en «⚙ Menús»; no lo he tocado.';
+      const pl=PLANES_APP[c.pack];
+      const lg=ligas.find(l=>l.id===slug(c.liga)||String(l.nombre||'').toLowerCase()===String(c.liga||'').trim().toLowerCase());
+      perms[email]={e:pl.e,s:pl.s,plan:c.pack,liga:lg?lg.id:'',hasta:c.proximo_cobro||'',pago:c.metodo||'',gb:0,via:'admin'};
+      const ex=await sb.from('entrenadores').select('*').eq(col,email).limit(1);
+      if(!(ex.data&&ex.data.length)){ const i=await sb.from('entrenadores').insert({[col]:email}); if(i.error) return 'No se pudo dar el acceso: '+i.error.message; }
+      msg='Activado en la app: '+email+' · '+c.pack+(c.pack==='premium'&&!lg?' (¡falta su liga en «Planes y ligas» para ver Estadísticas!)':'')+'.';
+    } else { if(await quitar(email)) msg='Acceso a la app quitado a '+email+'.'; }
+    const u=await sb.from('ajustes').upsert({clave:'permisos_ayudantes',valor:JSON.stringify(perms),actualizado:new Date().toISOString()});
+    if(u.error) return 'No se pudo guardar el acceso: '+u.error.message;
+    return msg;
+  }catch(e){ return 'Error al enlazar con la app: '+(e&&e.message||e); }
+}
 arranque();
 </script>
 </body>
