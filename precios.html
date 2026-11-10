@@ -46,9 +46,8 @@ footer a{color:var(--tinta)}
   <div class="extra" style="margin:22px 0 0;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px 16px;color:var(--tinta)"><b>Cómo se paga:</b> pulsa "Pedir este plan" y te escribimos por WhatsApp. Pagas por <b>Bizum al <span id="bz"></span></b> poniendo tu correo de ScoutFlow en el concepto, y en menos de 24 horas te activamos el plan.</div>
   <h2>Para clubes</h2>
   <div class="club" id="clubes"></div>
-  <div class="extra">Entrenador extra: <b>70 €/año</b> · Alta del club (instalación propia): <b>150 € una vez</b></div>
 </main>
-<footer>Precios sin IVA (+21 %). Pago seguro con Stripe. <a href="#" id="gestionar">Gestionar o cancelar mi suscripción</a> · <a href="condiciones.html">Condiciones</a> · <a href="privacidad.html">Privacidad</a></footer>
+<footer>Precios por entrenador, sin IVA (+21 %). <a href="#" id="gestionar">Gestionar o cancelar mi suscripción</a> · <a href="condiciones.html">Condiciones</a> · <a href="privacidad.html">Privacidad</a></footer>
 
 <script>
 /* ===== CONFIGURA AQUÍ ===== */
@@ -56,27 +55,18 @@ const CONTACTO = "hola@tudominio.com";
 const WHATSAPP = "34600000000";                              // tu WhatsApp con prefijo y sin +, p. ej. 34612345678
 const BIZUM = "600 000 000";                                 // el número al que te pagan por Bizum                       // correo de ventas para los planes Club
 const PORTAL_STRIPE = "";                                    // enlace del portal de clientes de Stripe (Settings > Billing > Customer portal)
-const ENLACES = {                                            // un "Payment Link" de Stripe por plan y periodo
-  entrenador:        { mes: "", anio: "" },
-  stats:             { mes: "", anio: "" },
-  entrenador_stats:  { mes: "", anio: "" },
-  video:             { mes: "", anio: "" },
-  todo:              { mes: "", anio: "" },
-  club_basico:       { anio: "" },
-  club_completo:     { anio: "" },
+const ENLACES = {                                            // un "Payment Link" de Stripe por plan y periodo (vacío = se pide por WhatsApp)
+  pro:      { mes: "", anio: "" },
+  premium:  { mes: "", anio: "" },
 };
 /* ========================== */
 const PLANES = [
-  { id: "gratis", n: "Gratis", d: "Para empezar a probar", mes: 0, anio: 0, l: ["Jugadas y ejercicios (con límite)", "Planes de entrenamiento"] },
-  { id: "entrenador", n: "Entrenador", d: "Tu libro de jugadas y entrenamientos", mes: 10, anio: 99, l: ["Jugadas y playbooks sin límite", "Ejercicios y planes de entrenamiento", "Pizarra animada en 2D", "Modo partido", "Comparte con tus jugadoras"] },
-  { id: "stats", n: "Stats", d: "Scouting y estadísticas de la liga", mes: 15, anio: 149, l: ["Estadísticas y rankings de la liga", "Informes de rival en PDF", "Quintetos, tríos y parejas", "Mapas de tiro", "Comparador y fichajes"] },
-  { id: "entrenador_stats", n: "Entrenador + Stats", d: "Lo más completo para tu equipo", mes: 22, anio: 219, rec: true, l: ["Todo Entrenador", "Todo Stats", "Ahorras 3 € al mes"] },
-  { id: "video", n: "Vídeo", d: "El editor de vídeo para analizar", mes: 12, anio: 119, l: ["Editor de vídeo con tracking", "Dibujo sobre el vídeo y figuras", "Jugadas 2D/3D dentro del vídeo", "Exporta tus montajes"] },
-  { id: "todo", n: "Todo", d: "Entrenador + Stats + Vídeo", mes: 32, anio: 319, l: ["Los tres productos", "Un solo pago", "Ahorras 17 € al mes"] },
+  { id: "gratis", n: "Gratis", d: "Para empezar a probar", mes: 0, anio: 0, l: ["Calendario y plantilla", "Hasta 5 jugadas y 5 ejercicios", "Hasta 3 planes de entrenamiento", "1 GB de espacio"] },
+  { id: "pro", n: "Pro", d: "Todo el Entrenador, sin límites", mes: 19, anio: 190, l: ["Jugadas, playbooks y ejercicios sin límite", "Planes de entrenamiento y calendario", "Modo partido y libro de partidos", "Quintetos y mini basket", "Vídeos, imágenes y audio (10 GB)"] },
+  { id: "premium", n: "Premium", d: "Entrenador + Estadísticas + tus jugadoras", mes: 39, anio: 390, rec: true, l: ["Todo lo de Pro", "Estadísticas automáticas de tu liga", "Rankings, comparador, quintetos e informes", "Modo TV para ver con tus jugadoras", "App y panel para hasta 15 jugadoras", "20 GB de espacio"] },
 ];
 const CLUBES = [
-  { id: "club_basico", n: "Club Básico", d: "Entrenador + Stats para todo el club", anio: 590, l: ["5 entrenadores incluidos", "Jugadoras ilimitadas", "Instalación propia con vuestros datos", "Soporte directo"] },
-  { id: "club_completo", n: "Club Completo", d: "Todo, vídeo incluido", anio: 890, l: ["5 entrenadores incluidos", "Entrenador + Stats + Vídeo", "Jugadoras ilimitadas", "Instalación propia con vuestros datos", "Soporte directo"] },
+  { id: "club", n: "Club", d: "Varios equipos y entrenadores", l: ["Varios equipos y categorías", "Cada entrenador con su cuenta", "Ayuda para ponerlo en marcha", "Precio según el tamaño del club"] },
 ];
 let per = "mes";
 const $ = (s) => document.querySelector(s);
@@ -87,7 +77,7 @@ function enlace(id) {
   return u + (c ? (u.includes("?") ? "&" : "?") + "prefilled_email=" + encodeURIComponent(c) + "&client_reference_id=" + encodeURIComponent(c) : "");
 }
 function btn(p) {
-  if (p.id === "gratis") return `<a class="btn sec" href="index.html">Entrar gratis</a>`;
+  if (p.id === "gratis") return `<a class="btn sec" href="entrenador.html">Entrar gratis</a>`;
   const u = enlace(p.id);
   if (u) return `<a class="btn" href="${u}">Suscribirme</a>`;
   const c = $("#correo").value.trim(), txt = `Hola, quiero el plan ${p.n} (${p[per]} € ${per === "mes" ? "al mes" : "al año"}).` + (c ? ` Mi correo en ScoutFlow: ${c}` : "");
@@ -102,10 +92,9 @@ function pintar() {
       <ul>${p.l.map((x) => `<li>${x}</li>`).join("")}</ul>${btn(p)}</div>`;
   }).join("");
   $("#clubes").innerHTML = CLUBES.map((p) => {
-    const u = (ENLACES[p.id] || {}).anio ? (ENLACES[p.id].anio + "?prefilled_email=" + encodeURIComponent($("#correo").value.trim())) : "";
-    return `<div class="card"><h3>${p.n}</h3><div class="d">${p.d}</div><div class="precio">${p.anio} €<small> /año</small></div><div class="nota">+ alta 150 € una vez</div>
+    return `<div class="card"><h3>${p.n}</h3><div class="d">${p.d}</div><div class="precio" style="font-size:28px">A medida</div><div class="nota">&nbsp;</div>
       <ul>${p.l.map((x) => `<li>${x}</li>`).join("")}</ul>
-      <a class="btn sec" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola, me interesa el plan " + p.n + " para mi club.")}" target="_blank" rel="noopener">Hablar con ventas</a></div>`;
+      <a class="btn sec" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola, me interesa ScoutFlow para mi club.")}" target="_blank" rel="noopener">Hablar con ventas</a></div>`;
   }).join("");
 }
 document.querySelectorAll("#sw button").forEach((b) => b.onclick = () => { per = b.dataset.p; document.querySelectorAll("#sw button").forEach((x) => x.classList.toggle("on", x === b)); pintar(); });
