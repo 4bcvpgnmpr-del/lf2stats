@@ -3406,7 +3406,7 @@ function pintarHeroInicio() {
   let pos = "";
   if (clasificacion && clasificacion.rows) {
     const obj = normalizarEquipo(equipoOficial(miEquipo)), r = clasificacion.rows.find(x => normalizarEquipo(equipoOficial(cellText(x, "Equipo"))) === obj);
-    if (r) pos = cellText(r, "Clas") || cellText(r, "Pos") || cellText(r, "Posicion") || "";
+    if (r) pos = cellText(r, "Po") || cellText(r, "Clas") || cellText(r, "Pos") || cellText(r, "Posicion") || "";
   }
   const nombreMio = miEquipo, esc1 = (n) => { const u = escudoUrlFor(n); return `<span class="hero-esc">${u ? `<img src="${escapeAttr(u)}" alt="" onerror="this.remove()">` : "🏀"}</span>`; };
   let izq;
@@ -17714,7 +17714,7 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
     try {
       const obj = normalizarEquipo(oficial);
       const r = clasificacion && clasificacion.rows ? clasificacion.rows.find(x => normalizarEquipo(equipoOficial(cellText(x, "Equipo"))) === obj) : null;
-      if (r) c.pos = cellText(r, "Clas") || cellText(r, "Pos") || cellText(r, "Posicion") || "";
+      if (r) c.pos = cellText(r, "Po") || cellText(r, "Clas") || cellText(r, "Pos") || cellText(r, "Posicion") || "";
     } catch (e) { /* sin clasificacion */ }
     try {
       if (produccionCalculo) c.prod = produccionCalculo.lista.filter(j => normalizarEquipo(equipoOficial(j.equipo)) === normalizarEquipo(oficial)).sort((a, b) => (b.per ?? -99) - (a.per ?? -99));
