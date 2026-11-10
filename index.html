@@ -3122,7 +3122,41 @@ function showView(id, esVuelta) {
   }
   if (id === "records") cargarRecords();
   if (id === "guia") renderGuia();
+  __anotarVista(id, esVuelta);
 }
+
+/* ---- La pantalla se recuerda en la dirección: al recargar o pulsar Atrás vuelves a donde estabas ---- */
+const __HASH0 = location.hash;
+let __vp = "", __listo = false, __restaurando = false;
+const __DET = { "equipo-detail": (n) => showEquipoDetail(n), "jugadora-detail": (n) => showJugadoraDetail(n), "partido-detail": (n) => showPartidoDetail(n) };
+const __navOff = () => !!(MODO_PARTIDO || MODO_TV);
+function __hashVista(id) { return "#/" + encodeURIComponent(id) + (__DET[id] && __vp ? "/" + encodeURIComponent(__vp) : ""); }
+function __anotarVista(id, esVuelta) {
+  if (!__listo || __restaurando || __navOff()) return;
+  if (location.hash && !location.hash.startsWith("#/")) return;       // no tocar enlaces de acceso (magic link, recuperar clave…)
+  const h = __hashVista(id); if (location.hash === h) return;
+  try { if (esVuelta || !location.hash) history.replaceState(null, "", h); else history.pushState(null, "", h); } catch (e) { /* nada */ }
+}
+function __restaurarVista(hash) {
+  const m = /^#\/([^/]+)(?:\/(.+))?$/.exec(hash || "");
+  if (!m) return false;
+  let id = "", par = "";
+  try { id = decodeURIComponent(m[1]); par = m[2] ? decodeURIComponent(m[2]) : ""; } catch (e) { return false; }
+  if (!VIEWS.includes(id) || id === "mis-jugadoras" && !document.getElementById("view-mis-jugadoras")) return false;
+  __restaurando = true;
+  try {
+    if (__DET[id]) { if (par) { __vp = par; __DET[id](par); } else showView("inicio", true); }
+    else showView(id, true);
+  } catch (e) { try { showView("inicio", true); } catch (x) { /* nada */ } }
+  __restaurando = false;
+  return true;
+}
+window.addEventListener("popstate", () => { if (__navOff() || !__listo) return; if (location.hash && !location.hash.startsWith("#/")) return; __restaurarVista(location.hash || "#/inicio"); });
+["showEquipoDetail", "showJugadoraDetail", "showPartidoDetail", "mostrarEquipoSoloPlantilla"].forEach((n) => {
+  const f = window[n]; if (typeof f !== "function") return;
+  window[n] = function (a) { __vp = a == null ? "" : String(a); return f.apply(this, arguments); };
+});
+setTimeout(() => { __listo = true; }, 40000);
 
 function volverAtras(porDefecto) {
   const anterior = historialVistas.pop();
@@ -17496,6 +17530,8 @@ Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
   datosLiga = { equipos, jugadoras, rankingExtra: { ...rankingExtra } };
   prepararBarraGrupos();
   renderTodo();
+  if (!__navOff() && /^#\//.test(__HASH0)) __restaurarVista(__HASH0);
+  __listo = true; try { __anotarVista(vistaActual || "inicio", true); } catch (e) { /* nada */ }
 
   if (MODO_TV) iniciarTVJugadoras();
 
