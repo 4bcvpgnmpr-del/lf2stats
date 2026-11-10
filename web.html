@@ -35,7 +35,7 @@ section.s{padding:68px 0}
 section.s.alt{background:var(--alt)}
 .s h2{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 10px;letter-spacing:-.5px;text-align:center}
 .s .lead{color:var(--mut);text-align:center;max-width:620px;margin:0 auto 38px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:22px}
 .card i{font-style:normal;font-size:26px;background:var(--ac2);border-radius:12px;display:inline-grid;place-items:center;width:48px;height:48px;margin-bottom:12px}
 .card h3{margin:0 0 6px;font-size:19px}.card p{margin:0;color:var(--mut);font-size:15.5px}
@@ -51,17 +51,14 @@ section.s.alt{background:var(--alt)}
 .app{display:block;text-decoration:none;background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:20px;transition:.15s}
 .app:hover{border-color:var(--ac);transform:translateY(-2px)}
 .app b{display:block;font-size:18px;margin:4px 0}.app span{color:var(--mut);font-size:15px}
-.tres{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.ap{background:var(--card);border:1px solid var(--ln);border-radius:18px;padding:26px;display:flex;flex-direction:column}
-.ap .ic{font-size:30px;background:var(--ac2);width:56px;height:56px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px}
-.ap h3{margin:0;font-size:22px}.ap .d{color:var(--mut);margin:4px 0 10px}
-.ap ul{padding:0;list-style:none;margin:0 0 16px;flex:1}.ap li{padding:4px 0 4px 26px;position:relative;font-size:15.5px}.ap li:before{content:"✓";position:absolute;left:0;color:var(--ac);font-weight:800}
-.ap .nt{background:var(--ac2);border-radius:10px;padding:10px 12px;font-size:14px;margin:0 0 14px}
-.pl{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;max-width:960px;margin:0 auto}
+.pl{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;max-width:1080px;margin:0 auto}
 .plan{background:var(--card);border:1.5px solid var(--ln);border-radius:18px;padding:26px;display:flex;flex-direction:column}
+.plan.top{border-color:var(--ac);position:relative}
+.plan.top:before{content:"El más completo";position:absolute;top:-12px;left:22px;background:var(--ac);color:#fff;font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px}
 .plan h3{margin:0 0 4px;font-size:21px}.plan .pr{font-size:30px;font-weight:800;margin:10px 0}.plan .pr small{font-size:14px;font-weight:500;color:var(--mut)}
 .plan ul{padding:0;list-style:none;margin:6px 0 20px;flex:1}.plan li{padding:4px 0 4px 26px;position:relative;font-size:15.5px}
 .plan li:before{content:"✓";position:absolute;left:0;color:var(--ac);font-weight:800}
+.plan .an{color:var(--mut);font-size:14px;margin:-4px 0 10px}.plan .sub{color:var(--mut);font-size:14.5px;margin:0}
 .nota{text-align:center;color:var(--mut);font-size:14px;margin-top:16px}
 details{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:14px 18px;margin:0 0 10px;max-width:760px;margin-inline:auto}
 summary{cursor:pointer;font-weight:600}details p{margin:10px 0 0;color:var(--mut)}
@@ -76,7 +73,7 @@ footer{padding:26px 0;text-align:center;color:var(--mut);font-size:14px;border-t
 <header><div class="w">
   <a class="logo" href="#">Scout<span>Flow</span></a>
   <nav>
-    <a href="#funciones">Funciones</a><a href="#apps">Las 3 apps</a><a href="#precios">Precios</a><a href="#faq">Preguntas</a>
+    <a href="#funciones">Funciones</a><a href="#apps">Las apps</a><a href="#precios">Precios</a><a href="#faq">Preguntas</a>
     <a class="btn" href="#contacto">Probar</a>
   </nav>
 </div></header>
@@ -84,9 +81,9 @@ footer{padding:26px 0;text-align:center;color:var(--mut);font-size:14px;border-t
 <div class="hero"><div class="w">
   <small>🏀 Hecho por un entrenador, para entrenadores</small>
   <h1>Tu banquillo, tus jugadas y tus datos. <em>En un solo sitio.</em></h1>
-  <p>Dibuja una jugada en la pizarra, añádele su vídeo y míralas como prefieras: en la pizarra, en vídeo o las dos a la vez. Y llévala al partido.</p>
+  <p>Dibuja jugadas, llévalas al partido, anota las estadísticas en vivo y comparte todo con tu cuerpo técnico y tus jugadoras.</p>
   <div class="cta"><a class="btn" href="#contacto">Quiero probarlo</a><a class="btn o" href="#funciones">Ver qué hace</a></div>
-  <div class="show"><video src="tutoriales/12-jugada-pizarra-y-video.mp4" autoplay muted loop playsinline controls></video></div>
+  <div class="show"><video src="tutoriales/1-modo-partido.mp4" autoplay muted loop playsinline controls></video></div>
 </div></div>
 
 <section class="s alt" id="funciones"><div class="w">
@@ -106,13 +103,13 @@ footer{padding:26px 0;text-align:center;color:var(--mut);font-size:14px;border-t
   <div class="split">
     <div class="tx"><h3>Jugadas que se entienden a la primera</h3>
       <p>Del dibujo al banquillo sin pasos de por medio.</p>
-      <ul><li>Mírala en la pizarra, en vídeo o las dos a la vez</li><li>Plantillas listas: 5 fuera, Horns, Caja, Flex…</li><li>Carpetas, etiquetas y favoritas</li><li>Playbooks en PDF listos para imprimir</li></ul></div>
+      <ul><li>Plantillas listas: 5 fuera, Horns, Caja, Flex…</li><li>Carpetas, etiquetas y favoritas</li><li>Playbooks en PDF listos para imprimir</li></ul></div>
     <div class="vid"><video src="tutoriales/7-editor-jugadas.mp4" muted loop playsinline controls preload="metadata"></video></div>
   </div>
   <div class="split r">
     <div class="tx"><h3>El partido, bajo control</h3>
       <p>Menús para BLOB, SLOB y jugadas del rival, y el cronómetro del vestuario que no se para.</p>
-      <ul><li>Marca cada jugada como acertada o fallada</li><li>Faltas propias y del rival</li><li>Rival con nombres desde la FEB</li></ul></div>
+      <ul><li>✓ o ✗ en cada jugada para saber qué funciona</li><li>Faltas propias y del rival</li><li>Rival con nombres desde la FEB</li></ul></div>
     <div class="vid"><video src="tutoriales/2-jugadas-partido.mp4" muted loop playsinline controls preload="metadata"></video></div>
   </div>
   <div class="split">
@@ -124,95 +121,57 @@ footer{padding:26px 0;text-align:center;color:var(--mut);font-size:14px;border-t
 </div></section>
 
 <section class="s alt" id="apps"><div class="w">
-  <h2>Tres apps. Elige las que necesitas.</h2>
-  <p class="lead">Cada una funciona por separado, y juntas se complementan.</p>
-  <div class="tres">
-    <div class="ap"><span class="ic">🧑‍🏫</span><h3>Entrenador</h3><p class="d">La app del banquillo y del día a día.</p>
-      <ul><li>Editor de jugadas y playbooks</li><li>Modo partido y libro de partidos</li><li>Calendario, ejercicios y planes</li><li>Equipos y mini basket</li><li>Ayudantes con su propia cuenta</li><li>Panel y app para tus jugadoras</li></ul>
-      <a class="btn" href="#contacto">Quiero Entrenador</a></div>
-    <div class="ap"><span class="ic">📊</span><h3>Estadísticas</h3><p class="d">Datos, rivales e informes de tu liga.</p>
-      <ul><li>Estadísticas de tu equipo y de los rivales</li><li>Plantillas, líderes y mapas de tiro</li><li>Informe visual del rival en PDF</li><li>Estadísticas en vivo en el Modo partido</li></ul>
-      <div class="nt">⚠️ Solo disponible si los datos de tu liga se pueden automatizar. Dime cuál es tu liga y lo compruebo.</div>
-      <a class="btn" href="#contacto">Consultar mi liga</a></div>
-    <div class="ap"><span class="ic">🎬</span><h3>Editor de vídeo</h3><p class="d">Monta los vídeos de tus partidos y jugadas.</p>
-      <ul><li>Corta los clips que te interesan</li><li>Mezcla clips de distintos vídeos</li><li>Exportación rápida a MP4</li><li>Listo para enviar a tus jugadoras</li></ul>
-      <a class="btn" href="#contacto">Quiero el Editor</a></div>
+  <h2>Un ecosistema, varias apps</h2>
+  <p class="lead">Cada persona del club entra en lo suyo.</p>
+  <div class="apps">
+    <a class="app" href="entrenador.html"><span>🧑‍🏫</span><b>Entrenador</b><span>Jugadas, planes, calendario y Modo partido.</span></a>
+    <a class="app" href="index.html"><span>📊</span><b>Estadísticas</b><span>Datos de tu liga, rivales e informes (Premium).</span></a>
+    <a class="app" href="panel.html"><span>🛠️</span><b>Panel</b><span>Tus jugadoras, lo que ven y lo que les mandas (Premium).</span></a>
+    <a class="app" href="jugadoras.html"><span>🏃‍♀️</span><b>Jugadoras</b><span>Sus números, jugadas, vídeos y mensajes.</span></a>
   </div>
-  <p class="nota">¿Tu liga no se puede automatizar? Entrenador y Editor de vídeo funcionan igual, con las estadísticas anotadas a mano.</p>
 </div></section>
 
 <section class="s" id="precios"><div class="w">
   <h2>Precios</h2>
-  <p class="lead">Cada app se contrata por separado. Valores de ejemplo: pon aquí los tuyos antes de publicar.</p>
+  <p class="lead">Empieza gratis y sube de plan cuando lo necesites. Pagas por entrenador, sin letra pequeña.</p>
   <div class="pl">
-    <div class="plan"><h3>🧑‍🏫 Entrenador</h3><div class="pr">XX €<small> /mes</small></div>
-      <ul><li>Todo el apartado de entrenador</li><li>Ayudantes con su cuenta</li><li>App de jugadoras</li></ul>
+    <div class="plan"><h3>Gratis</h3><div class="pr">0 €</div><p class="sub">Para probar la app</p>
+      <ul><li>Calendario y plantilla</li><li>Hasta 5 jugadas y 5 ejercicios</li><li>Hasta 3 planes de entrenamiento</li><li>1 GB de espacio</li></ul>
+      <a class="btn o" href="#contacto">Empezar</a></div>
+    <div class="plan"><h3>Pro</h3><div class="pr">19 €<small> /mes</small></div><div class="an">o 190 € al año · 2 meses gratis</div>
+      <ul><li>Todo el Entrenador, sin límites</li><li>Jugadas, playbooks y ejercicios</li><li>Modo partido y libro de partidos</li><li>Quintetos y mini basket</li><li>Vídeos, imágenes y audio (10 GB)</li></ul>
+      <a class="btn o" href="#contacto">Empezar</a></div>
+    <div class="plan top"><h3>Premium</h3><div class="pr">39 €<small> /mes</small></div><div class="an">o 390 € al año · 2 meses gratis</div>
+      <ul><li>Todo lo de Pro</li><li>Estadísticas automáticas de tu liga</li><li>Rankings, comparador, quintetos e informes</li><li>Modo TV para ver con tus jugadoras</li><li>App y panel para hasta 15 jugadoras</li><li>20 GB de espacio</li></ul>
       <a class="btn" href="#contacto">Empezar</a></div>
-    <div class="plan"><h3>📊 Estadísticas</h3><div class="pr">XX €<small> /mes</small></div>
-      <ul><li>Datos de tu liga automatizados</li><li>Fichas e informes de rivales</li><li>Se conecta con el Modo partido</li></ul>
-      <a class="btn o" href="#contacto">Consultar mi liga</a></div>
-    <div class="plan"><h3>🎬 Editor de vídeo</h3><div class="pr">XX €<small> /mes</small></div>
-      <ul><li>Montaje con clips</li><li>Exportación rápida</li><li>Listo para enviar a tus jugadoras</li></ul>
-      <a class="btn" href="#contacto">Empezar</a></div>
+    <div class="plan"><h3>Club</h3><div class="pr">A medida</div><p class="sub">Varios equipos y entrenadores</p>
+      <ul><li>Varios equipos y categorías</li><li>Cada entrenador con su cuenta</li><li>Ayuda para ponerlo en marcha</li></ul>
+      <a class="btn o" href="#contacto">Hablemos</a></div>
   </div>
-  <p class="nota">¿Más de un equipo o un club entero? Escríbeme y lo hablamos.</p>
+  <p class="nota">Precios por entrenador, IVA no incluido. Las estadísticas automáticas están disponibles ahora en Liga Femenina 2 y LF Challenge, y vamos sumando ligas.</p>
 </div></section>
 
 <section class="s alt" id="faq"><div class="w">
   <h2>Preguntas frecuentes</h2><p class="lead"></p>
-  <details><summary>¿Por qué Estadísticas no está disponible en todas las ligas?</summary><p>Porque depende de que los datos de la liga se puedan traer automáticamente. Si tu liga lo permite, activamos la app; si no, usas Entrenador con estadísticas a mano.</p></details>
-  <details><summary>¿Puedo contratar solo una app?</summary><p>Sí. Entrenador, Estadísticas y Editor de vídeo se contratan por separado.</p></details>
   <details><summary>¿Necesito instalar algo?</summary><p>No. Funciona desde el navegador del móvil, la tablet o el ordenador.</p></details>
   <details><summary>¿Funciona sin conexión en el pabellón?</summary><p>El Modo partido usa las jugadas guardadas en el aparato y sube los datos cuando vuelve la red.</p></details>
   <details><summary>¿Mi ayudante ve mis jugadas?</summary><p>Cada ayudante tiene su cuenta y su espacio. Tú decides qué jugadas y carpetas compartes con él.</p></details>
   <details><summary>¿Ven las jugadoras todo lo mío?</summary><p>No. Solo ven lo que tú marcas para ellas.</p></details>
   <details><summary>¿De dónde salen los datos de la FEB?</summary><p>De las estadísticas públicas de baloncesto en vivo de la FEB, con el enlace del partido o el equipo.</p></details>
+  <details><summary>¿Veo los datos de otros entrenadores?</summary><p>No. Cada entrenador tiene sus jugadas, su equipo, su calendario y sus jugadoras por separado. Nadie ve lo tuyo salvo lo que tú compartas.</p></details>
+  <details><summary>¿Qué liga ven mis estadísticas?</summary><p>La de tu equipo. Ahora mismo están automatizadas Liga Femenina 2 y LF Challenge. Si tu liga no está, puedes usar el plan Pro y te avisamos cuando la añadamos.</p></details>
+  <details><summary>¿Cómo se paga?</summary><p>Por ahora el pago se hace a mano (Bizum o transferencia). Te lo explico al darte de alta.</p></details>
   <details><summary>¿Hay vídeos para aprender?</summary><p>Sí, hay una guía con vídeos de cada apartado, dentro de la propia app.</p></details>
 </div></section>
 
 <div class="fin" id="contacto"><div class="w">
   <h2>¿Lo probamos con tu equipo?</h2>
-  <p>Escríbeme y te preparo una cuenta de prueba.</p>
+  <p>Escríbeme y te preparo una cuenta de prueba, sin compromiso.</p>
   <a class="btn" href="mailto:TU-CORREO@EJEMPLO.COM?subject=Quiero%20probar%20ScoutFlow">Escribir ahora</a>
 </div></div>
 
-<footer><div class="w">© <span id="y"></span> ScoutFlow · <a href="ayuda.html">Guía de uso</a> · <a href="privacidad.html">Privacidad</a> · <a href="condiciones.html">Condiciones</a></div></footer>
+<footer><div class="w">© <span id="y"></span> ScoutFlow · <a href="ayuda.html">Guía de uso</a></div></footer>
 <script>document.getElementById('y').textContent=new Date().getFullYear();
 document.querySelectorAll('.split video').forEach(v=>{const o=new IntersectionObserver(e=>e.forEach(x=>{x.isIntersecting?v.play().catch(()=>{}):v.pause()}),{threshold:.5});o.observe(v)});</script>
-<script>
-/* Transmitir a la tele: icono dentro del reproductor (AirPlay / Chromecast) */
-(function () {
-  if (!("remote" in HTMLVideoElement.prototype)) return;
-  const ICO = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>';
-  const b = document.createElement("button"); b.type = "button"; b.title = "Transmitir a la tele"; b.setAttribute("aria-label", "Transmitir a la tele"); b.innerHTML = ICO;
-  b.style.cssText = "position:fixed;z-index:2147483000;display:none;width:38px;height:38px;align-items:center;justify-content:center;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;cursor:pointer;padding:0";
-  const m = document.createElement("div");
-  m.style.cssText = "position:fixed;z-index:2147483000;display:none;max-width:260px;padding:7px 10px;border-radius:8px;background:rgba(0,0,0,.85);color:#fff;font:13px system-ui,sans-serif";
-  let cur = null, t = null;
-  const ok = (v) => v && v.tagName === "VIDEO" && v.hasAttribute("controls") && !/^(blob|data):/.test(v.currentSrc || v.src || "");
-  function poner(v) {
-    if (!ok(v)) return; cur = v; v.setAttribute("x-webkit-airplay", "allow"); v.removeAttribute("disableRemotePlayback");
-    const r = v.getBoundingClientRect(); if (r.width < 120 || r.height < 80) return;
-    b.style.left = Math.max(4, r.right - 46) + "px"; b.style.top = Math.max(4, r.top + 8) + "px"; b.style.display = "flex";
-    clearTimeout(t); t = setTimeout(() => { if (!v.paused || !b.matches(":hover")) b.style.display = "none"; m.style.display = "none"; }, 3200);
-  }
-  function mira(e) { const v = e.target && e.target.tagName === "VIDEO" ? e.target : (e.target === b ? cur : null); if (v) poner(v); }
-  ["mousemove", "pointerdown", "touchstart"].forEach(n => document.addEventListener(n, mira, { passive: true, capture: true }));
-  b.addEventListener("pointerdown", (e) => e.stopPropagation());
-  b.onclick = (e) => {
-    e.preventDefault(); e.stopPropagation(); if (!cur) return; m.style.display = "none";
-    let p; try { p = cur.remote.prompt(); } catch (x) { p = Promise.reject(x); }
-    p.catch((x) => {
-      const n = (x && x.name) || "error";
-      m.textContent = n === "NotFoundError" ? "No encuentro ninguna tele o Chromecast en tu wifi (tienen que estar en la misma red)." : "No se pudo abrir (" + n + "). Prueba: clic derecho sobre el vídeo → «Transmitir…», o menú ⋮ de Chrome → Guardar y compartir → Transmitir.";
-      const r = b.getBoundingClientRect(); m.style.left = Math.max(4, r.right - 260) + "px"; m.style.top = (r.bottom + 6) + "px"; m.style.display = "block"; setTimeout(() => { m.style.display = "none"; }, 5000);
-    });
-  };
-  document.addEventListener("DOMContentLoaded", () => { document.body.appendChild(b); document.body.appendChild(m); });
-  if (document.body) { document.body.appendChild(b); document.body.appendChild(m); }
-})();
-</script>
-
-
 </body>
 </html>
