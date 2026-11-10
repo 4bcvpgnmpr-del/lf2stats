@@ -253,7 +253,7 @@ async function cargarPlanes(){
   pintarPlanes();
 }
 function pintarPlanes(){
-  const ph={gratis:'0 €',pro:'10 €/mes',premium:'19 €/mes'};
+  const ph={gratis:'0 €',pro:'19 €/mes',premium:'39 €/mes'};
   $('prBox').innerHTML=[['gratis','Gratis'],['pro','Pro'],['premium','Premium']].map(p=>'<div><label>'+p[1]+' · precio</label><input data-pr="'+p[0]+'" placeholder="'+ph[p[0]]+'" value="'+esc(PRE[p[0]]||'')+'"></div>').join('');
   $('lgBox').innerHTML=LIG.length?LIG.map((l,i)=>'<div class="lg"><span>'+esc(l.nombre)+'</span><button class="sm bad" data-lx="'+i+'">Quitar</button></div>').join(''):'<div class="empty" style="padding:10px">Todavía no hay ninguna liga.</div>';
   document.querySelectorAll('[data-pr]').forEach(i=>i.onchange=async()=>{PRE[i.dataset.pr]=i.value.trim();const {error}=await guarda('planes_precio',PRE);aviso(error?'No se pudo guardar: '+error.message:'Precio guardado.',!error);});
