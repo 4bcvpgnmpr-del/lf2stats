@@ -1191,7 +1191,7 @@ function pintarCarpetas(v, tipo) {
     soltarEn(el, tipo, nombre);
     el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ car: nombre })); e.dataTransfer.effectAllowed = "move"; el.classList.add("arrastrando"); });
     el.addEventListener("dragend", () => el.classList.remove("arrastrando"));
-    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, carpetaAjena(tipo, nombre) ? [["📂 Abrir", () => { carpeta = nombre; pintar(); }]] : [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["📁 Mover…", () => elegirDestinoCarpeta(tipo, nombre)]].concat(tipo === "jugadas" && !SOY_AYU && puedeEscribir ? [["👥 Compartir carpeta con ayudantes…", () => compartirAyudantes("carpeta", nombre, nombre)]] : [], [["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]])); });
+    const b = el.querySelector("[data-mc]"); if (b) b.addEventListener("click", (e) => { e.stopPropagation(); abrirMenu(e, carpetaAjena(tipo, nombre) ? [["📂 Abrir", () => { carpeta = nombre; pintar(); }]] : [["📂 Abrir", () => { carpeta = nombre; pintar(); }], ["✏️ Renombrar", () => renombrarCarpeta(tipo, nombre)], ["📁 Mover…", () => elegirDestinoCarpeta(tipo, nombre)]].concat(tipo === "jugadas" && puedeEscribir ? [["🔗 Compartir carpeta con un enlace…", () => { if (!jugadasDeCarpeta(nombre).length) { aviso("Esta carpeta no tiene jugadas"); return; } compartirEnlace("carpeta", { id: "car|" + nombre, nombre: ultimo(nombre), ruta: nombre }); }]] : [], tipo === "jugadas" && !SOY_AYU && puedeEscribir ? [["👥 Compartir carpeta con ayudantes…", () => compartirAyudantes("carpeta", nombre, nombre)]] : [], [["🗑 Eliminar carpeta", () => borrarCarpeta(tipo, nombre), "pel"]])); });
   });
   v.querySelectorAll("[data-id]").forEach(el => {
     const x = D[tipo].find(y => y.id === el.dataset.id);
@@ -1279,7 +1279,15 @@ function abrirFiltro(v, tipo) {
 /* ------------ enlaces para compartir (solo lectura) ------------ */
 const TK_K = (id) => "ent_enlace_" + id;
 const enlaceDe = (t) => new URL("ver.html?c=" + t, location.href).href;
+function jugadasDeCarpeta(ruta) { return (D.jugadas || []).filter(j => !ajena(j) && j.carpeta && enRama(j.carpeta, ruta)); }
 function datosCompartir(tipo, x) {
+  if (tipo === "carpeta") {
+    /* una carpeta se comparte como un "playbook" de solo lectura: un capítulo por subcarpeta, cada jugada con su animación */
+    const g = {}; jugadasDeCarpeta(x.ruta).forEach(j => { const sub = j.carpeta === x.ruta ? "" : j.carpeta.slice(x.ruta.length + 1); (g[sub] = g[sub] || []).push(j); });
+    const claves = Object.keys(g).sort((a, b) => a === "" ? -1 : b === "" ? 1 : a.localeCompare(b, "es"));
+    const caps = claves.map(k => ({ titulo: k || x.nombre, items: g[k].sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es")).map(j => { const d = diagDe(j) || null; return { t: "j", nombre: j.nombre || "", notas: (d && d.notas) || (j.data && j.data.notas) || "", diagrama: d && d.pasos && d.pasos.length ? d : null }; }) }));
+    return { t: "playbook", d: { equipo: "", temporada: "", notas: "", capitulos: caps, eventos: [] } };
+  }
   if (tipo === "playbooks") {
     const caps = pbCaps(x).map((c, ci) => ({ titulo: pbTit(c, ci), items: c.items.map(it => {
       if (it.t === "txt") return { t: "txt", txt: it.txt || "" };
