@@ -47,13 +47,13 @@ footer a{color:var(--tinta)}
   <h2>Para clubes</h2>
   <div class="club" id="clubes"></div>
 </main>
-<footer>Precios por entrenador, sin IVA (+21 %). <a href="#" id="gestionar">Gestionar o cancelar mi suscripción</a> · <a href="condiciones.html">Condiciones</a> · <a href="privacidad.html">Privacidad</a></footer>
+<footer>Precios por entrenador, sin IVA (+21 %). <a href="#" id="gestionar">Gestionar o cancelar mi suscripción</a> · Escríbenos a <a href="mailto:contacto@scoutflow.es">contacto@scoutflow.es</a> · <a href="condiciones.html">Condiciones</a> · <a href="privacidad.html">Privacidad</a></footer>
 
 <script>
 /* ===== CONFIGURA AQUÍ ===== */
-const CONTACTO = "hola@tudominio.com";
-const WHATSAPP = "34600000000";                              // tu WhatsApp con prefijo y sin +, p. ej. 34612345678
-const BIZUM = "600 000 000";                                 // el número al que te pagan por Bizum                       // correo de ventas para los planes Club
+const CONTACTO = "contacto@scoutflow.es";
+const WHATSAPP = "34600891627";                              // tu WhatsApp con prefijo y sin +, p. ej. 34612345678
+const BIZUM = "600 891 627";                                 // el número al que te pagan por Bizum                       // correo de ventas para los planes Club
 const PORTAL_STRIPE = "";                                    // enlace del portal de clientes de Stripe (Settings > Billing > Customer portal)
 const ENLACES = {                                            // un "Payment Link" de Stripe por plan y periodo (vacío = se pide por WhatsApp)
   pro:      { mes: "", anio: "" },
@@ -99,7 +99,7 @@ function pintar() {
 }
 document.querySelectorAll("#sw button").forEach((b) => b.onclick = () => { per = b.dataset.p; document.querySelectorAll("#sw button").forEach((x) => x.classList.toggle("on", x === b)); pintar(); });
 $("#correo").addEventListener("input", pintar);
-$("#gestionar").onclick = (e) => { e.preventDefault(); if (PORTAL_STRIPE) location.href = PORTAL_STRIPE; else alert("Escríbenos a " + CONTACTO + " y gestionamos tu suscripción."); };
+$("#gestionar").onclick = (e) => { e.preventDefault(); if (PORTAL_STRIPE) location.href = PORTAL_STRIPE; else location.href = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent("Hola, quiero gestionar o cancelar mi suscripción de ScoutFlow."); };
 $("#bz").textContent = BIZUM;
 pintar();
 </script>
