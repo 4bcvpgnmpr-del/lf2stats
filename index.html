@@ -12743,6 +12743,82 @@ function showScouting(nombre) {
   asegurarPartidosParaInforme(() => { if (vistaActual === "scouting") renderScouting(); });
 }
 
+/* ============================================================
+   VIDEOTECA DE SCOUTING: todos los scoutings y vídeos en una lista, con buscador, tamaños, ver, copiar enlace y borrar
+   ============================================================ */
+const VT = { q: "", filtro: "todos", orden: "peso", sel: new Set() };
+function vtFilas() {
+  const out = [];
+  [["equipos", "Equipo"], ["jugadoras", "Jugadora"]].forEach(([t, lab]) => Object.keys(scouting[t] || {}).forEach(k => {
+    const f = scouting[t][k] || {}, nombre = f.nombre || k;
+    (f.videos || []).forEach(v => { if (v) out.push({ t, lab, k, nombre, v, id: v.id }); });
+  }));
+  return out;
+}
+function vtEstado(v) { return v.nubeUrl ? "nube" : (v.origen === "local" ? "local" : "enlace"); }
+function abrirVideoteca() {
+  const $ = (id) => document.getElementById(id);
+  let ov = document.getElementById("vtOv"); if (ov) ov.remove();
+  ov = document.createElement("div"); ov.id = "vtOv";
+  ov.style.cssText = "position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto;";
+  document.body.appendChild(ov);
+  const cerrar = () => { ov.remove(); try { if (vistaActual === "scouting") renderScouting(); } catch (e) { /* nada */ } };
+  const pintar = () => {
+    const todas = vtFilas(), q = VT.q.trim().toLowerCase();
+    const nubeB = todas.filter(r => vtEstado(r.v) === "nube").reduce((t, r) => t + (+r.v.archivoTamano || 0), 0), localB = todas.filter(r => vtEstado(r.v) === "local").reduce((t, r) => t + (+r.v.archivoTamano || 0), 0);
+    const nEq = Object.keys(scouting.equipos || {}).length, nJu = Object.keys(scouting.jugadoras || {}).length;
+    let filas = todas.filter(r => (!q || (r.nombre + " " + (r.v.titulo || "") + " " + (r.v.nota || "") + " " + (r.v.archivoNombre || "") + " " + (r.v.etiquetas || []).join(" ")).toLowerCase().includes(q))
+      && (VT.filtro === "todos" || (VT.filtro === "equipos" && r.t === "equipos") || (VT.filtro === "jugadoras" && r.t === "jugadoras") || vtEstado(r.v) === VT.filtro));
+    filas.sort((a, b) => VT.orden === "peso" ? (+b.v.archivoTamano || 0) - (+a.v.archivoTamano || 0) : (a.nombre + (a.v.titulo || "")).localeCompare(b.nombre + (b.v.titulo || ""), "es"));
+    const est = { nube: ["☁ En la nube", "#1f8a4c"], local: ["💻 Solo en este navegador", "#c2570c"], enlace: ["🔗 Enlace", "#51647a"] };
+    const fichas = [];
+    [["equipos", "Equipo"], ["jugadoras", "Jugadora"]].forEach(([t, lab]) => Object.keys(scouting[t] || {}).forEach(k => { const f = scouting[t][k] || {}; if ((f.notas || []).length || (f.videos || []).length) fichas.push({ t, lab, k, nombre: f.nombre || k, n: (f.notas || []).length, v: (f.videos || []).length, b: (f.videos || []).reduce((s, v) => s + ((v && v.nubeUrl && +v.archivoTamano) || 0), 0) }); }));
+    fichas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    ov.innerHTML = `<div style="background:#fff;color:#16263b;border-radius:14px;width:min(980px,100%);padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.4);">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><h2 style="margin:0;font-size:22px;">📚 Videoteca de scouting</h2><span style="flex:1"></span><button class="btn-partido" id="vtX" style="background:#51647a;">Cerrar</button></div>
+      <p class="hint" style="margin:6px 0 12px;"><b>${nEq}</b> equipos y <b>${nJu}</b> jugadores/as con scouting · <b>${todas.length}</b> vídeos · en la nube: <b>${tamanoLegible(nubeB) || "0 KB"}</b>${localB ? " · solo en este navegador: <b>" + tamanoLegible(localB) + "</b>" : ""}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <input id="vtQ" placeholder="Buscar equipo, jugador/a, título, nota…" value="${escapeAttr(VT.q)}" style="flex:1;min-width:200px;padding:9px 12px;border:1px solid #dfe5ec;border-radius:9px;font:inherit;">
+        <select id="vtF"><option value="todos">Todos</option><option value="equipos">Solo equipos</option><option value="jugadoras">Solo jugadores/as</option><option value="nube">En la nube</option><option value="local">Solo en este navegador</option><option value="enlace">Enlaces</option></select>
+        <select id="vtO"><option value="peso">Más pesados primero</option><option value="az">Por nombre</option></select>
+        <button class="btn-partido" id="vtBorrar" style="background:#e5484d;" ${VT.sel.size ? "" : "disabled"}>🗑 Borrar marcados (${VT.sel.size})</button>
+      </div>
+      <div style="max-height:46vh;overflow:auto;border:1px solid #dfe5ec;border-radius:10px;">
+        ${filas.length ? filas.map(r => { const e = est[vtEstado(r.v)], tam = +r.v.archivoTamano || 0; return `<div style="display:flex;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #eef2f6;flex-wrap:wrap;">
+          <input type="checkbox" data-vs="${escapeAttr(r.id)}" ${VT.sel.has(r.id) ? "checked" : ""}>
+          <div style="flex:1;min-width:200px;"><b>${escapeHtml(r.v.titulo || r.v.archivoNombre || "Vídeo sin título")}</b><div class="hint" style="margin:2px 0 0;">${r.lab === "Equipo" ? "Equipo" : "Jugador/a"}: ${escapeHtml(r.nombre)}${r.v.nota ? " · " + escapeHtml(String(r.v.nota).slice(0, 80)) : ""}</div></div>
+          <span style="font-size:12px;color:${e[1]};font-weight:700;">${e[0]}</span><span style="min-width:64px;text-align:right;font-weight:700;">${tam ? tamanoLegible(tam) : "—"}</span>
+          <button class="btn-partido" data-vver="${escapeAttr(r.id)}" style="padding:5px 10px;">▶ Ver</button>
+          ${vtEstado(r.v) !== "local" ? `<button class="btn-partido" data-vcop="${escapeAttr(r.id)}" style="padding:5px 10px;background:#1d3248;">Copiar enlace</button>` : ""}
+          ${r.t === "equipos" ? `<button class="btn-partido" data-vabr="${escapeAttr(r.id)}" style="padding:5px 10px;background:#1d3248;">Abrir scouting</button>` : ""}
+          <button class="btn-partido" data-vdel="${escapeAttr(r.id)}" style="padding:5px 10px;background:#e5484d;">🗑</button></div>`; }).join("") : `<p class="hint" style="padding:14px;">${todas.length ? "Ningún vídeo coincide." : "Todavía no hay vídeos de scouting."}</p>`}
+      </div>
+      <h3 style="margin:16px 0 6px;font-size:16px;">Scoutings hechos (${fichas.length})</h3>
+      <div style="max-height:24vh;overflow:auto;border:1px solid #dfe5ec;border-radius:10px;">${fichas.length ? fichas.map(f => `<div style="display:flex;gap:10px;align-items:center;padding:7px 12px;border-bottom:1px solid #eef2f6;flex-wrap:wrap;"><div style="flex:1;min-width:180px;"><b>${escapeHtml(f.nombre)}</b> <span class="hint">${f.lab === "Equipo" ? "equipo" : "jugador/a"}</span></div><span class="hint">${f.n} nota${f.n === 1 ? "" : "s"} · ${f.v} vídeo${f.v === 1 ? "" : "s"}${f.b ? " · " + tamanoLegible(f.b) : ""}</span>${f.t === "equipos" ? `<button class="btn-partido" data-fab="${escapeAttr(f.k)}" style="padding:4px 10px;background:#1d3248;">Abrir</button>` : ""}</div>`).join("") : '<p class="hint" style="padding:12px;">Aún no has hecho ningún scouting.</p>'}</div>
+    </div>`;
+    $("vtX").onclick = cerrar; $("vtF").value = VT.filtro; $("vtO").value = VT.orden;
+    $("vtQ").oninput = (e) => { VT.q = e.target.value; const p = e.target.selectionStart; pintar(); const n = $("vtQ"); n.focus(); try { n.setSelectionRange(p, p); } catch (er) { /* nada */ } };
+    $("vtF").onchange = (e) => { VT.filtro = e.target.value; pintar(); }; $("vtO").onchange = (e) => { VT.orden = e.target.value; pintar(); };
+    ov.querySelectorAll("[data-vs]").forEach(c => c.onchange = () => { if (c.checked) VT.sel.add(c.dataset.vs); else VT.sel.delete(c.dataset.vs); pintar(); });
+    const fila = (id) => vtFilas().find(r => r.id === id);
+    ov.querySelectorAll("[data-vver]").forEach(b => b.onclick = async () => { const r = fila(b.dataset.vver); if (!r) return; const v = r.v, est2 = vtEstado(v);
+      if (est2 === "nube") window.open(v.nubeUrl, "_blank", "noopener"); else if (est2 === "enlace") window.open(v.url, "_blank", "noopener");
+      else { try { const bl = await videoArchivoLeer(v.id); if (bl) window.open(URL.createObjectURL(bl), "_blank"); else alert("El archivo no está en este navegador."); } catch (e) { alert("No se pudo abrir el archivo."); } } });
+    ov.querySelectorAll("[data-vcop]").forEach(b => b.onclick = async () => { const r = fila(b.dataset.vcop); if (!r) return; const u = r.v.nubeUrl || r.v.url || ""; try { await navigator.clipboard.writeText(u); b.textContent = "¡Copiado!"; } catch (e) { prompt("Copia el enlace:", u); } });
+    ov.querySelectorAll("[data-vabr]").forEach(b => b.onclick = () => { const r = fila(b.dataset.vabr); if (!r) return; equipoScouting = r.nombre; ov.remove(); showView("scouting"); renderScouting(); });
+    ov.querySelectorAll("[data-fab]").forEach(b => b.onclick = () => { const f = (scouting.equipos || {})[b.dataset.fab]; equipoScouting = (f && f.nombre) || b.dataset.fab; ov.remove(); showView("scouting"); renderScouting(); });
+    const borrar = async (ids) => {
+      const rs = ids.map(fila).filter(Boolean); if (!rs.length) return;
+      const peso = rs.reduce((t, r) => t + (+r.v.archivoTamano || 0), 0);
+      if (!confirm("¿Borrar " + (rs.length === 1 ? "el vídeo «" + (rs[0].v.titulo || rs[0].v.archivoNombre || "sin título") + "»" : rs.length + " vídeos") + "?" + (peso ? "\nLiberas " + tamanoLegible(peso) + "." : "") + "\nTambién se borra de la nube y no se puede deshacer.")) return;
+      for (const r of rs) { const f = (scouting[r.t] || {})[r.k]; if (!f) continue; if (r.v.origen === "local") { try { await videoArchivoBorrar(r.v.id); } catch (e) { /* nada */ } } if (r.v.nubeRuta) { try { await videoNubeBorrar(r.v.nubeRuta); } catch (e) { /* nada */ } } f.videos = (f.videos || []).filter(x => x.id !== r.v.id); VT.sel.delete(r.id); }
+      scoutGuardar(); pintar();
+    };
+    ov.querySelectorAll("[data-vdel]").forEach(b => b.onclick = () => borrar([b.dataset.vdel]));
+    $("vtBorrar").onclick = () => borrar([...VT.sel]);
+  };
+  pintar();
+}
 function renderScouting() {
   const box = document.getElementById("scoutingContent");
   if (!box) return;
@@ -12764,6 +12840,7 @@ function renderScouting() {
           ${lista.map(e => `<option value="${escapeAttr(e)}" ${normalizarEquipo(e) === normalizarEquipo(nombre) ? "selected" : ""}>${escapeHtml(e)}</option>`).join("")}
         </select>
         <button class="btn-partido" id="btnPerfilDesdeScouting">Ver perfil del equipo</button>
+        <button class="btn-partido" id="btnVideoteca" style="background:#1d3248;">📚 Videoteca</button>
       </div>
     </div>
 
@@ -12797,6 +12874,7 @@ function renderScouting() {
 
   const sel = document.getElementById("selEquipoScouting");
   if (sel) sel.addEventListener("change", () => { equipoScouting = sel.value; renderScouting(); });
+  const bvt = document.getElementById("btnVideoteca"); if (bvt) bvt.addEventListener("click", abrirVideoteca);
   const perfil = document.getElementById("btnPerfilDesdeScouting");
   if (perfil) perfil.addEventListener("click", () => showEquipoDetail(nombre));
   const btnDesc = document.getElementById("btnDescargarScout");
