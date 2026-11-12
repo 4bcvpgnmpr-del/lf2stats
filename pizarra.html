@@ -730,11 +730,14 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
     <div class="panel-ed" id="pVid">
       <div class="card">
         <h2>Vídeos de la jugada</h2>
-        <p class="hint" style="margin-top:0;">Enlaces de YouTube o Vimeo, o un archivo de vídeo (.mp4). Los verán las jugadoras junto a la jugada.</p>
+        <p class="hint" style="margin-top:0;">Lo más cómodo y que no gasta tu espacio: pega el enlace de YouTube o Vimeo. También puedes subir un vídeo desde tu ordenador (máx. 100 MB). Los verán las jugadoras junto a la jugada.</p>
         <div class="fila" style="margin-top:8px;">
           <div style="flex:3;min-width:220px;"><input id="vidUrl" placeholder="Pega el enlace del vídeo"></div>
           <div style="flex:2;"><input id="vidTitulo" placeholder="Título (opcional)"></div>
           <button class="naranja" id="btnAddVid" style="flex:none;">＋ Añadir</button>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="gris" id="btnSubVid" style="flex:none;">⬆ Subir un vídeo de mi ordenador</button><input type="file" id="fileVid" accept="video/*" style="display:none;"><span class="hint" id="subVidEst" style="margin:0;">Ocupa espacio de tu plan; con un enlace no.</span>
         </div>
       </div>
       <div id="listaVid"></div>
@@ -1469,7 +1472,7 @@ function videoHtml(u) {
   if (m) return `<div class="marco-vid"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen loading="lazy" allow="accelerometer; encrypted-media; picture-in-picture"></iframe></div>`;
   m = /vimeo\.com\/(?:video\/)?(\d+)/.exec(u);
   if (m) return `<div class="marco-vid"><iframe src="https://player.vimeo.com/video/${m[1]}" allowfullscreen loading="lazy"></iframe></div>`;
-  if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return `<div class="marco-vid"><video controls playsinline src="${esc(u)}"></video></div>`;
+  if (/\.(mp4|webm|mov)(\?|$)/i.test(u) || u.startsWith("https://scoutflow-videos.")) return `<div class="marco-vid"><video controls playsinline src="${esc(u)}"></video></div>`;
   return `<a href="${esc(u)}" target="_blank" rel="noopener" style="font-weight:800;">🔗 Abrir el enlace</a>`;
 }
 const videosHtml = (j) => (j.videos || []).map(v => `<div style="margin-top:12px;">${v.titulo ? `<b style="display:block;margin-bottom:5px;">${esc(v.titulo)}</b>` : ""}${videoHtml(v.url)}</div>`).join("");
@@ -2037,6 +2040,27 @@ function anadirVideo() {
   const url = $("vidUrl").value.trim(); if (!url) { aviso("Pega el enlace del vídeo."); return; }
   snap(); jugada.videos = jugada.videos || []; jugada.videos.push({ url, titulo: $("vidTitulo").value.trim() });
   $("vidUrl").value = ""; $("vidTitulo").value = ""; pintarVid(); guardarBorrador();
+}
+const WORKER_VIDEOS = "https://scoutflow-videos.4bcvpgnmpr.workers.dev";
+async function subirVideoPc(f) {
+  const est = $("subVidEst");
+  if (!f) return;
+  if (!modoNube || !nube) { aviso("Para subir un vídeo tienes que haber entrado con tu cuenta."); return; }
+  if (f.size > 100 * 1024 * 1024) { aviso("«" + f.name + "» pesa más de 100 MB: usa un enlace de YouTube o Vimeo."); return; }
+  try {
+    est.textContent = "Subiendo… 0 %";
+    const id = "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), limpio = f.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_"), ruta = "video/" + id + "-" + limpio;
+    const t = (await nube.auth.getSession()).data.session.access_token;
+    const r = await new Promise((res) => { const x = new XMLHttpRequest(); x.open("PUT", WORKER_VIDEOS + "/" + encodeURI(ruta)); x.setRequestHeader("Authorization", "Bearer " + t); x.setRequestHeader("Content-Type", f.type || "video/mp4");
+      x.upload.onprogress = (e) => { if (e.lengthComputable) est.textContent = "Subiendo… " + Math.round(e.loaded / e.total * 100) + " % (no cierres esta ventana)"; };
+      x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch (e) { /* nada */ } res({ ok: x.status >= 200 && x.status < 300, j, status: x.status }); };
+      x.onerror = () => res(null); x.send(f); });
+    if (!r || !r.ok || !r.j.url) throw new Error((r && r.j && r.j.error) || (r ? "error " + r.status : "sin conexión"));
+    const { error } = await nube.from("archivos").upsert({ id, nombre: f.name, tipo: "video", ruta: r.j.url, mime: f.type, tamano: f.size });
+    if (error) throw new Error(error.message);
+    snap(); jugada.videos = jugada.videos || []; jugada.videos.push({ url: r.j.url, titulo: $("vidTitulo").value.trim() || f.name.replace(/\.[^.]+$/, "") });
+    $("vidTitulo").value = ""; pintarVid(); guardarBorrador(); est.textContent = "✓ Vídeo subido y añadido a la jugada."; aviso("Vídeo subido");
+  } catch (e) { est.textContent = "No se pudo subir: " + e.message; aviso("No se pudo subir el vídeo"); }
 }
 function pintarSalida() {
   volcarCampos();
@@ -3480,6 +3504,8 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
   ["nombre", "notas"].forEach(id => $(id).addEventListener("focus", snap));
   ["chkFav", "chkComp"].forEach(id => $(id).addEventListener("change", () => { snap(); volcarCampos(); guardarBorrador(); }));
   $("btnAddVid").addEventListener("click", anadirVideo);
+  $("btnSubVid").addEventListener("click", () => $("fileVid").click());
+  $("fileVid").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; await subirVideoPc(f); });
   $("btnGuardar").addEventListener("click", guardar);
   const nuevaJugada = (form) => {
     volcarCampos();
