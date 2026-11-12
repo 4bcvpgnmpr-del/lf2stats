@@ -7,8 +7,8 @@
 <meta name="description" content="Estadisticas, scouting y analisis de la Liga Femenina 2 de baloncesto.">
 <meta name="theme-color" content="#e0602a">
 <link rel="manifest" href="manifest.json?v=2">
-<link rel="icon" type="image/png" sizes="192x192" href="icono-192.png?v=2">
-<link rel="apple-touch-icon" href="icono-180.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="sf-192.png">
+<link rel="apple-touch-icon" href="sf-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -10520,11 +10520,11 @@ function portadaSFHtml(o) {
   let centro;
   if (eqs.length >= 2) centro = col(eqs[0], "na") + hex + col(eqs[1], "az");
   else if (eqs.length === 1) centro = col(eqs[0], "un");
-  else centro = `<div class="t un"><div class="ci"><img src="icono-192.png" alt="" onerror="this.outerHTML='<b>SF</b>'"></div></div>`;
+  else centro = `<div class="t un"><div class="ci"><img src="sf-192.png" alt="" onerror="this.outerHTML='<b>SF</b>'"></div></div>`;
   return `<div class="sfp"><div class="gr"></div><div class="bd b1"></div><div class="bd b2"></div><div class="ln"></div><div class="c1"></div><div class="c2"></div>
     <div class="tx"><small>SCOUTING &amp; ANALYTICS</small><h1>${esc(o.t1 || "Informe")}<b>${esc(o.t2 || "")}</b></h1><div class="sb">${esc(o.sub || "")}</div></div>
     <div class="eq">${centro}</div>
-    <div class="ft"><div class="lg"><img src="icono-192.png" alt="" onerror="this.remove()"><div><b>Scout<i>Flow</i></b><span>SPORTS ANALYTICS</span></div></div><div class="fe">${esc(fecha)}</div></div></div>`;
+    <div class="ft"><div class="lg"><img src="sf-192.png" alt="" onerror="this.remove()"><div><b>Scout<i>Flow</i></b><span>SPORTS ANALYTICS</span></div></div><div class="fe">${esc(fecha)}</div></div></div>`;
 }
 function portadaRivalHtml(dat, nombre) {
   const temp = (document.getElementById("selTemporada") || {}).value || "", mio = dat.mio;
