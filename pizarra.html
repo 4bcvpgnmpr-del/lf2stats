@@ -251,8 +251,11 @@
   .pc .caja-pista{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;background:transparent !important;border:0 !important;}
   .pc .caja-pista svg{width:100% !important;height:100% !important;max-height:none !important;}
   .pc h3,.pc .hint,.pc .leyenda,.pc .leyenda li{color:#e8edf4 !important;}
-  .pc .leyenda{max-height:22vh;overflow:auto;font-size:14px;}
-  .pc .reprod{margin-top:8px;flex:none;} .pc #mvNotas,.pc #mvVideos,.pc #vsNotas,.pc #vsVideos{display:none;}
+  .pc .leyenda{max-height:26vh;overflow:auto;font-size:17px;background:transparent !important;border:0 !important;flex:none;padding:0 !important;} .pc .leyenda ul,.pc .leyenda ol{margin:0;padding-left:0;list-style:none;}
+  .pc .leyenda li,.pc .leyenda li *{background:rgba(255,255,255,.14) !important;color:#fff !important;font-size:18px !important;}
+  .pc .leyenda li{border-radius:8px;padding:6px 10px;margin:3px 0;}
+  .pc .reprod{margin-top:8px;flex:none;} .pc #mvVideos,.pc #vsVideos{display:none;}
+  #notasAni{display:none;} .pc #mvNotas,.pc #vsNotas,.pc #notasAni{display:block;flex:none;color:#e8edf4 !important;font-size:17px;max-height:24vh;overflow:auto;margin:8px 4px 0;white-space:pre-wrap;} .pc #mvNotas:empty,.pc #vsNotas:empty,.pc #notasAni:empty{display:none;}
 
   .panel-ops{margin:0 0 10px;} .panel-ops .tabs-op{display:flex;gap:6px;flex-wrap:wrap;} .panel-ops .tabs-op button{padding:7px 12px;border-radius:999px;font-size:13px;font-weight:700;background:#eef1f3;color:var(--ink);border:1.5px solid #dfe3e8;} .panel-ops .tabs-op button.on{background:#e0602a;border-color:#e0602a;color:#fff;} .panel-ops .tabs-op button.mas{background:#fff;border-style:dashed;}
   .panel-ops .fila-op{display:flex;gap:6px;margin-top:8px;align-items:center;} .panel-ops .fila-op input{flex:1;min-width:0;}
@@ -694,6 +697,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
         <div id="cajaAni">
           <div class="caja-pista" id="pistaAni"></div>
           <div class="leyenda" id="leyendaAni"></div>
+          <p class="hint" id="notasAni"></p>
           <div class="reprod">
             <input type="range" id="scrub" min="0" max="1000" value="0" step="1" aria-label="Posición de la animación">
             <div class="linea-tiempo" id="lineaTiempo"></div>
@@ -2491,6 +2495,7 @@ function salirPC() {
 }
 function entrarPC(el) {
   if (pcActivo) salirPC();
+  if (el.id === "cajaAni") { try { volcarCampos(); $("notasAni").textContent = String(jugada.notas || "").trim(); } catch (e) { /* nada */ } }
   el.classList.add("pc"); document.body.classList.add("hay-pc"); pcActivo = el;
   try { if (el.requestFullscreen) { pcApi = true; const r = el.requestFullscreen(); if (r && r.catch) r.catch(() => { pcApi = false; }); } } catch (e) { pcApi = false; }
 }
