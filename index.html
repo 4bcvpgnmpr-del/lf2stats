@@ -7988,8 +7988,8 @@ function scoutingPanelHtml(tipo, nombre) {
       <div class="scout-botones"><button class="btn-partido scout-guardar-video">Guardar video</button>
         <button class="btn-partido scout-cancelar" style="background:var(--ink-soft);">Cancelar</button></div>
       <p class="hint">Para que un video de Google Drive se vea aqui, tiene que estar compartido con "cualquiera con el enlace".
-      Los videos que subes de tu ordenador se guardan <b>solo en este navegador</b>: no viajan a internet, y no se veran
-      si abres la app en otro ordenador o movil.</p>
+      Los videos que subes de tu ordenador tambien se suben a tu nube, asi que los ves desde el movil o cualquier otro ordenador
+      con tu cuenta. Espera a que termine la subida (veras el porcentaje); si falla, el video queda solo en este navegador.</p>
     </div>`;
 
   // Columna derecha: lo que este abierto
@@ -8124,7 +8124,7 @@ function wireScouting(contenedor, alGuardar) {
     videoArchivoGuardar(id, archivo).then(async () => {
       btnVideo.textContent = "Subiendo a la nube...";
       const rn = await videoNubeSubir(id, archivo), extra = { url: "", origen: "local", archivoNombre: archivo.name, archivoTamano: archivo.size };
-      if (rn && rn.url) { extra.nubeRuta = rn.ruta; extra.nubeUrl = rn.url; }
+      if (rn && rn.url) { extra.nubeRuta = rn.ruta; extra.nubeUrl = rn.url; } else if (rn && rn.error) alert("El vídeo se ha guardado solo en este navegador (no se verá en otros dispositivos): " + rn.error);
       anadir(extra);
     }).catch(() => {
       btnVideo.disabled = false;
