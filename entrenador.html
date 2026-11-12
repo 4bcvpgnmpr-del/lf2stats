@@ -2716,12 +2716,34 @@ const plJugadas = () => { eqAsegurar(); const n = plN(plEq()); return n ? D.juga
 /* playbook con las jugadas del equipo: temporal (para compartir o sacar PDF) o guardado de verdad */
 function plPlaybook(guardado) {
   const L = plJugadas(), nom = plEq();
-  return { id: guardado ? idNuevo("pb") : "tj-" + EQ.activo, nombre: "Jugadas de " + nom, equipo: nom, temporada: "", compartido: false, eventosComp: guardado ? [] : plEventos(), data: { capitulos: [{ id: idNuevo("c"), titulo: "Jugadas", items: L.map(x => ({ t: "j", id: x.id })) }] } };
+  return { id: guardado ? idNuevo("pb") : "tj-" + EQ.activo, nombre: "Jugadas de " + nom, equipo: nom, temporada: "", compartido: false, eventosComp: guardado ? [] : plEventos(), data: { capitulos: plCapitulos(L) } };
+}
+const plGrupo = (x) => String((x.data && x.data.grupo) || "").trim();
+/* una carpeta del equipo (bandas, fondos, sistemas…) = un capítulo del enlace/playbook */
+function plCapitulos(L) {
+  const G = {}; L.forEach(x => { (G[plGrupo(x)] = G[plGrupo(x)] || []).push(x); });
+  return Object.keys(G).sort((a, b) => !a ? 1 : !b ? -1 : a.localeCompare(b, "es")).map(g => ({ id: idNuevo("c"), titulo: g || "Jugadas", items: G[g].map(x => ({ t: "j", id: x.id })) }));
+}
+async function plPonerGrupo(x, g) {
+  const d = clonar(x.data || {}); if (g) d.grupo = g; else delete d.grupo;
+  const { error } = await nube.from("jugadas").update({ data: d }).eq("id", x.id);
+  if (error) { aviso("No se pudo guardar: " + error.message); return false; }
+  x.data = d; return true;
+}
+const PLCAL_DEF = { r: "semana", ent: true, par: true, otr: true };
+function plCalOpc() { try { return Object.assign({}, PLCAL_DEF, JSON.parse(localStorage.getItem("sf_plcal") || "{}")); } catch (e) { return Object.assign({}, PLCAL_DEF); } }
+function plCalDlg(seguir) {
+  const o = plCalOpc(), R = [["semana", "Solo esta semana"], ["7", "Próximos 7 días"], ["14", "Próximas 2 semanas"], ["30", "Próximo mes"], ["90", "Todo (3 meses)"], ["ninguno", "No enseñar calendario"]];
+  const m = ventana(`<h3>¿Qué calendario ven las jugadoras?</h3><p class="peq" style="margin:0 0 8px;">Elige qué días aparecen en el enlace.</p>${R.map(([k, t]) => `<label style="display:flex;gap:8px;align-items:center;margin:6px 0;text-transform:none;letter-spacing:0;font-size:15px;"><input type="radio" name="pcR" value="${k}" ${o.r === k ? "checked" : ""}> ${t}</label>`).join("")}<p class="peq" style="margin:12px 0 4px;"><b>Qué tipo de eventos:</b></p><label style="display:flex;gap:8px;align-items:center;margin:4px 0;text-transform:none;letter-spacing:0;font-size:15px;"><input type="checkbox" id="pcE" ${o.ent ? "checked" : ""}> 🎯 Entrenamientos</label><label style="display:flex;gap:8px;align-items:center;margin:4px 0;text-transform:none;letter-spacing:0;font-size:15px;"><input type="checkbox" id="pcP" ${o.par ? "checked" : ""}> 🏆 Partidos</label><label style="display:flex;gap:8px;align-items:center;margin:4px 0;text-transform:none;letter-spacing:0;font-size:15px;"><input type="checkbox" id="pcO" ${o.otr ? "checked" : ""}> 📌 Otros</label><div class="pie-m"><button class="gris" id="pcX">Cancelar</button><button class="naranja" id="pcOk">Continuar</button></div>`);
+  $("pcX").onclick = cerrarVentana;
+  $("pcOk").onclick = () => { const r = m.querySelector("[name=pcR]:checked"); const n = { r: r ? r.value : "semana", ent: $("pcE").checked, par: $("pcP").checked, otr: $("pcO").checked }; try { localStorage.setItem("sf_plcal", JSON.stringify(n)); } catch (e) { /* nada */ } cerrarVentana(); seguir(); };
 }
 /* próximos eventos del equipo (calendario) para el enlace de las jugadoras: solo fecha, hora, lugar y título */
 function plEventos() {
-  if (CAL.ev === null) CAL.ev = calLeer(); const n = plN(plEq()), hoy = calISO(new Date()), lim = calISO(new Date(Date.now() + 90 * 864e5));
-  return CAL.ev.filter(e => e.cat && plN(e.cat) === n && e.fecha >= hoy && e.fecha <= lim).sort((a, b) => (a.fecha + (a.hora || "")).localeCompare(b.fecha + (b.hora || ""))).slice(0, 20).map(e => ({ fecha: e.fecha, hora: e.hora || "", fin: e.fin || "", titulo: e.titulo || "", lugar: e.lugar || "" }));
+  if (CAL.ev === null) CAL.ev = calLeer(); const o = plCalOpc(); if (o.r === "ninguno") return [];
+  const n = plN(plEq()), hoy = calISO(new Date()), dow = (new Date().getDay() + 6) % 7, dias = o.r === "semana" ? 6 - dow : (Number(o.r) || 90) - (o.r === "semana" ? 0 : 1), lim = calISO(new Date(Date.now() + dias * 864e5));
+  const tipoOk = (e) => e.tipo === "entreno" || e.tipo === "plan" ? o.ent : (e.tipo === "partido" || e.tipo === "feb") ? o.par : o.otr;
+  return CAL.ev.filter(e => e.cat && plN(e.cat) === n && e.fecha >= hoy && e.fecha <= lim && tipoOk(e)).sort((a, b) => (a.fecha + (a.hora || "")).localeCompare(b.fecha + (b.hora || ""))).slice(0, 20).map(e => ({ fecha: e.fecha, hora: e.hora || "", fin: e.fin || "", titulo: e.titulo || "", lugar: e.lugar || "" }));
 }
 function plAbrirPb(p) { if (!D.playbooks.some(y => y.id === p.id)) D.playbooks.push(p); seccion = "playbooks"; carpeta = ""; vistaDetalle = { tipo: "playbook", id: p.id }; pintar(); }
 async function plPonerEq(x, nombre) {
@@ -2756,7 +2778,7 @@ function plAsignar(v) {
 function pintarPlantilla(v) {
   eqAsegurar(); const ro = !puedeEscribir, J = EQ.plantilla, A = plAsis();
   const tab = PLT.tab;
-  const cab = `<div class="cab"><h2>Plantilla</h2>${eqSelHtml(ro)}<span class="esp"></span>${ro ? "" : (tab === "jug" ? '<button class="gris" id="plPeg">📋 Pegar lista</button><button class="naranja" id="plNew">＋ Añadir jugadora</button>' : tab === "jgd" ? '<button class="naranja" id="jgAs">＋ Asignar jugadas</button>' : '<button class="naranja" id="asNew">＋ Nueva sesión</button>')}</div>
+  const cab = `<div class="cab"><h2>Plantilla</h2>${eqSelHtml(ro)}<span class="esp"></span>${ro ? "" : (tab === "jug" ? '<button class="gris" id="plPeg">📋 Pegar lista</button><button class="naranja" id="plNew">＋ Añadir jugadora</button>' : tab === "jgd" ? '<button class="gris" id="jgNew">📁 Nueva carpeta</button><button class="naranja" id="jgAs">＋ Asignar jugadas</button>' : '<button class="naranja" id="asNew">＋ Nueva sesión</button>')}</div>
     <div class="eq-sets"><button class="gris ${tab === "jug" ? "on" : ""}" data-pt="jug">👤 Jugadoras (${J.length})</button><button class="gris ${tab === "asi" ? "on" : ""}" data-pt="asi">✅ Asistencia (${A.length})</button><button class="gris ${tab === "jgd" ? "on" : ""}" data-pt="jgd">🏀 Jugadas (${plJugadas().length})</button></div>`;
   let cuerpo = "";
   if (tab === "jug") {
@@ -2764,7 +2786,7 @@ function pintarPlantilla(v) {
       : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Aún no tienes jugadoras</div>${ro ? "" : "Añádelas una a una o pega la lista de nombres. Con la ficha puedes guardar foto, fecha de nacimiento, teléfono y notas."}</div>`;
   } else if (tab === "jgd") {
     const L = plJugadas();
-    cuerpo = L.length ? `<div class="eq-card"><h3>Jugadas de ${esc(plEq())} <span class="peq">${L.length}</span></h3><div class="pl-acc"><button class="gris" id="jgCmp" title="Jugadas en movimiento y próximos eventos del calendario">🔗 Compartir con el equipo</button><button class="gris" id="jgPdf">🖨 PDF</button>${ro ? "" : '<button class="gris" id="jgPb">📘 Crear playbook</button>'}</div>${L.map(x => `<div class="pl-ses" data-jv="${esc(x.id)}"><span class="pl-jm" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO.jugadas}</span><b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.nombre || "Jugada")}</b><span class="peq">${esc(x.carpeta || "")}</span>${ro ? "" : `<button class="gris" data-jq="${esc(x.id)}" title="Quitar de este equipo">✕</button>`}</div>`).join("")}</div>`
+    cuerpo = L.length ? `<div class="eq-card"><h3>Jugadas de ${esc(plEq())} <span class="peq">${L.length}</span></h3><div class="pl-acc"><button class="gris" id="jgCmp" title="Jugadas en movimiento y próximos eventos del calendario">🔗 Compartir con el equipo</button><button class="gris" id="jgPdf">🖨 PDF</button>${ro ? "" : '<button class="gris" id="jgPb">📘 Crear playbook</button>'}</div>${(() => { const G = {}; L.forEach(x => { (G[plGrupo(x)] = G[plGrupo(x)] || []).push(x); }); const ks = Object.keys(G).sort((a, b) => !a ? 1 : !b ? -1 : a.localeCompare(b, "es")), con = ks.some(Boolean); return ks.map(g => (con ? `<div class="peq" style="font-weight:800;padding:10px 4px 4px;">📁 ${esc(g || "Sin carpeta")} (${G[g].length})</div>` : "") + G[g].map(x => `<div class="pl-ses" data-jv="${esc(x.id)}"><span class="pl-jm" data-mini="${esc(x.id)}">${MINIS[x.id + "|" + x.actualizada] || ICONO.jugadas}</span><b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.nombre || "Jugada")}</b><span class="peq">${esc(x.carpeta || "")}</span>${ro ? "" : `<button class="gris" data-jg="${esc(x.id)}" title="Mover a una carpeta">📁</button><button class="gris" data-jq="${esc(x.id)}" title="Quitar de este equipo">✕</button>`}</div>`).join("")).join(""); })()}</div>`
       : `<div class="vacio"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">Este equipo aún no tiene jugadas</div>${ro ? "" : "Pulsa «Asignar jugadas» y elige las que trabaja este equipo."}</div>`;
   } else {
     const res = J.length ? `<div class="eq-card" style="margin-bottom:14px;"><h3>Resumen de asistencia</h3><div class="tabla-sc"><table class="mb-t"><thead><tr><th style="text-align:left;">Jugadora</th><th>Sesiones</th><th>Asiste</th><th>Faltas</th><th>Justif.</th><th>%</th></tr></thead><tbody>${J.map(j => { const a = plPct(j.id); return `<tr><td class="nm" data-pj="${esc(j.id)}" style="cursor:pointer;">${plFoto(j, "mini")} ${eqEtq(j)}</td>${a ? `<td>${a.n}</td><td>${a.p}</td><td class="${a.f ? "bad" : ""}">${a.f}</td><td>${a.j}</td><td class="${a.pct < 60 ? "bad" : "ok"}">${a.pct}%</td>` : '<td colspan="5" class="peq">–</td>'}</tr>`; }).join("")}</tbody></table></div></div>` : "";
@@ -2778,10 +2800,22 @@ function pintarPlantilla(v) {
   v.querySelectorAll("[data-pt]").forEach(b => b.onclick = () => { PLT.tab = b.dataset.pt; pintarPlantilla(v); });
   v.querySelectorAll("[data-pj]").forEach(b => b.onclick = () => plFicha(b.dataset.pj, v));
   v.querySelectorAll("[data-as]").forEach(b => b.onclick = () => plSesion(b.dataset.as, v));
-  v.querySelectorAll("[data-jv]").forEach(b => b.onclick = (ev) => { if (ev.target.closest("[data-jq]")) return; const x = D.jugadas.find(y => y.id === b.dataset.jv); if (x) verJugada(x); });
+  v.querySelectorAll("[data-jv]").forEach(b => b.onclick = (ev) => { if (ev.target.closest("[data-jq],[data-jg]")) return; const x = D.jugadas.find(y => y.id === b.dataset.jv); if (x) verJugada(x); });
   if ($("jgPdf")) $("jgPdf").onclick = () => { const p = plPlaybook(false); plAbrirPb(p); aviso("Preparando el PDF con los dibujos…"); setTimeout(() => { const r = $("pbLect"); if (r) imprimirPb(r); }, 2200); };
   if (ro) return;
-  if ($("jgCmp")) $("jgCmp").onclick = () => compartirEnlace("playbooks", plPlaybook(false));
+  if ($("jgCmp")) $("jgCmp").onclick = () => plCalDlg(() => compartirEnlace("playbooks", plPlaybook(false)));
+  if ($("jgNew")) $("jgNew").onclick = () => {
+    const LL = plJugadas(); const m = ventana(`<h3>Nueva carpeta de jugadas</h3><p class="peq" style="margin:0 0 6px;">Por ejemplo: Bandas, Fondos, Sistemas. Ponle nombre y marca las jugadas que van dentro.</p><input id="gnN" placeholder="Nombre de la carpeta" style="margin:0 0 6px;"><div class="lista-sel" style="max-height:44vh;">${LL.map(x => `<label class="it"><input type="checkbox" data-gn="${esc(x.id)}"><span style="flex:1;min-width:0;">${esc(x.nombre || "Jugada")}${plGrupo(x) ? ` <span class="peq">📁 ${esc(plGrupo(x))}</span>` : ""}</span></label>`).join("")}</div><div class="pie-m"><button class="gris" id="gnX">Cancelar</button><button class="naranja" id="gnOk">Crear</button></div>`);
+    $("gnX").onclick = cerrarVentana;
+    $("gnOk").onclick = async () => { const g = $("gnN").value.trim(); if (!g) { aviso("Ponle un nombre a la carpeta."); return; } const ids = [...m.querySelectorAll("[data-gn]:checked")].map(c => c.dataset.gn); for (const id of ids) { const x = D.jugadas.find(y => y.id === id); if (x && !(await plPonerGrupo(x, g))) return; } cerrarVentana(); aviso(ids.length ? "Carpeta creada ✓" : "Marca al menos una jugada para crear la carpeta"); pintarPlantilla(v); };
+  };
+  v.querySelectorAll("[data-jg]").forEach(b => b.onclick = (ev) => {
+    ev.stopPropagation(); const x = D.jugadas.find(y => y.id === b.dataset.jg); if (!x) return; const gs = [...new Set(plJugadas().map(plGrupo).filter(Boolean))].sort((a, c) => a.localeCompare(c, "es"));
+    const m = ventana(`<h3>Mover «${esc(x.nombre || "Jugada")}»</h3>${gs.map(g => `<button class="gris" data-gm="${esc(g)}" style="display:block;width:100%;text-align:left;margin:4px 0;${plGrupo(x) === g ? "font-weight:800;" : ""}">📁 ${esc(g)}</button>`).join("")}<input id="gmN" placeholder="…o escribe una carpeta nueva" style="margin:8px 0 4px;"><div class="pie-m"><button class="gris" id="gmQ">Sin carpeta</button><button class="gris" id="gmX">Cancelar</button><button class="naranja" id="gmOk">Mover</button></div>`);
+    const ir = async (g) => { if (await plPonerGrupo(x, g)) { cerrarVentana(); pintarPlantilla(v); } };
+    $("gmX").onclick = cerrarVentana; $("gmQ").onclick = () => ir(""); $("gmOk").onclick = () => { const g = $("gmN").value.trim(); if (g) ir(g); else aviso("Escribe el nombre o elige una carpeta."); };
+    m.querySelectorAll("[data-gm]").forEach(c => c.onclick = () => ir(c.dataset.gm));
+  });
   if ($("jgPb")) $("jgPb").onclick = async () => { const p = plPlaybook(true); if (await guardarFila("playbooks", p)) { await cargarTodo(); aviso("Playbook creado ✓"); plAbrirPb(D.playbooks.find(y => y.id === p.id) || p); } };
   v.querySelectorAll("[data-jq]").forEach(b => b.onclick = async () => { const x = D.jugadas.find(y => y.id === b.dataset.jq); if (x && await plPonerEq(x, "")) pintarPlantilla(v); });
   if ($("jgAs")) $("jgAs").onclick = () => plAsignar(v);
