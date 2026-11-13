@@ -1099,7 +1099,7 @@ function filtrar(tipo, plano) {
   const hace7 = Date.now() - 7 * 864e5, mins = (x) => Number(x.data && x.data.minutos) || 0;
   return D[tipo].filter(x => (plano || (x.carpeta || "") === carpeta) && (!q || textoDe(tipo, x).includes(q)) && filtroTags.every(t => tagsDe(x).includes(t)) && (!filtroTipo || valorTipo(tipo, x) === filtroTipo)
     && (!fx.fav || x.favorita || (x.data && x.data.favorita)) && (!fx.comp || x.compartida) && (!fx.sinTag || !tagsDe(x).length) && (!fx.rec || new Date(x.actualizada || 0).getTime() >= hace7)
-    && (!fx.equipo || (x.data && x.data.equipo) === fx.equipo) && (!fx.temp || (x.data && x.data.temporada) === fx.temp)
+    && (!fx.equipo || String((x.data && x.data.equipo) || "").trim().toLowerCase() === String(fx.equipo).trim().toLowerCase()) && (!fx.temp || (x.data && x.data.temporada) === fx.temp)
     && (!fx.dur || (fx.dur === "c" ? mins(x) > 0 && mins(x) < 10 : fx.dur === "m" ? mins(x) >= 10 && mins(x) <= 20 : mins(x) > 20)));
 }
 const hayFiltro = () => !!(busqueda || filtroTags.length || filtroTipo || Object.values(fx).some(Boolean));
@@ -1141,7 +1141,7 @@ function pintarCarpetas(v, tipo) {
   const nuevoTxt = tipo === "jugadas" ? "Nueva jugada" : tipo === "ejercicios" ? "Nuevo ejercicio" : "Nuevo plan";
   const ORDENES = { recientes: "Más recientes", antiguas: "Más antiguas", az: "Título, A a Z", za: "Título, Z a A" };
   let h = `<div class="cab"><h2>${SECCIONES[tipo]}</h2>${PLAN_LIM && PLAN_LIM[tipo] != null ? `<span class="peq" style="background:#fff4e6;color:#c2570c;border-radius:999px;padding:4px 10px;font-weight:800;">Muestra: ${D[tipo].length}/${PLAN_LIM[tipo]}</span>` : ""}${carpeta ? `<span class="miga"><a data-a="raiz">${SECCIONES[tipo]}</a>${carpeta.split("/").map((s, i, a) => ` › ${i === a.length - 1 ? SVG_CARPETA(16) + " " + esc(s) : `<a data-r="${esc(a.slice(0, i + 1).join("/"))}">${esc(s)}</a>`}`).join("")}</span>` : ""}<span class="esp"></span>${tipo === "jugadas" ? '<button class="gris" id="bPartido" title="Pizarra en vivo para el banquillo">🏟 Modo partido</button>' : ""}${puedeEscribir ? `<span class="split"><button class="naranja" id="bNuevo">＋ ${nuevoTxt}</button><button class="naranja" id="bMas" title="Más opciones">▾</button></span>` : ""}</div>
-    <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}"><span class="esp"></span>
+    <div class="barra"><input type="search" id="bq" placeholder="Buscar…" value="${esc(busqueda)}">${tipo === "jugadas" ? (() => { const mp = new Map(); try { eqAsegurar(); (EQ.equipos || []).forEach(t => t.nombre && mp.set(String(t.nombre).trim().toLowerCase(), t.nombre)); } catch (e) { /* sin equipos */ } D.jugadas.forEach(x => { const q = x.data && x.data.equipo; if (q) mp.set(String(q).trim().toLowerCase(), mp.get(String(q).trim().toLowerCase()) || q); }); const eqs = [...mp.values()].sort((a, b) => a.localeCompare(b, "es")); return eqs.length ? `<select id="bEq" title="Ver solo las jugadas de un equipo" style="width:auto;max-width:200px;flex:none;"><option value="">👥 Todos los equipos</option>${eqs.map(t => `<option value="${esc(t)}" ${fx.equipo && String(fx.equipo).trim().toLowerCase() === String(t).trim().toLowerCase() ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>` : ""; })() : ""}<span class="esp"></span>
       ${tipo === "planes" ? '<button class="gris" id="bTemp" title="Entrenamiento 1, 2, 3… de la temporada">🗓 Sesiones</button><button class="gris" id="bCarga" title="Cuánto trabajas de ataque, defensa…">📊 Control de carga</button>' : ""}
       <button class="gris" id="bIr" title="Ir a una carpeta">📂 Carpetas</button>
       <button class="gris" id="bFiltro">☰ Filtro${nFiltros ? ` <span class="bola">${nFiltros}</span>` : ""}</button>
@@ -1181,6 +1181,7 @@ function pintarCarpetas(v, tipo) {
   $("bOrden").onclick = (e) => abrirMenu(e, Object.keys(ORDENES).map(k => [(k === ordenar ? "✓ " : "　") + ORDENES[k], () => { ordenar = k; redib(); }]));
   $("vRej").onclick = () => { vistaLista = false; try { localStorage.setItem("ent_vista", "rejilla"); } catch (e) { /* nada */ } redib(); };
   $("vLis").onclick = () => { vistaLista = true; try { localStorage.setItem("ent_vista", "lista"); } catch (e) { /* nada */ } redib(); };
+  if ($("bEq")) $("bEq").onchange = (e) => { if (e.target.value) fx.equipo = e.target.value; else delete fx.equipo; redib(); };
   const lf = $("limpiaF"); if (lf) lf.onclick = () => { busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; redib(); };
   v.querySelectorAll(".act").forEach(a => a.onclick = () => { if (a.dataset.q === "b") busqueda = ""; else if (a.dataset.q === "t") filtroTipo = ""; else if (a.dataset.q === "x") delete fx[a.dataset.k]; else filtroTags = filtroTags.filter(t => t !== a.dataset.t); redib(); });
   if ($("bNuevo")) $("bNuevo").onclick = () => nuevoElemento(tipo);
