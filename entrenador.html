@@ -4491,7 +4491,7 @@ async function iniciar() {
     const E = PERMS.e.filter(x => SECCIONES[x] || x === "partido");
     if (!E.length) { if (PERMS.s.length) { location.replace("index.html"); return; } pantalla("Todavía no tienes menús habilitados. Pídeselos al entrenador."); return; }
     if (E.length === 1 && E[0] === "partido") { soloPartido(data.session.user.email); return; }
-    PLAN_LIM = (PLANES_APP[PERMS.plan] && PLANES_APP[PERMS.plan].lim) || null; PERM_E = new Set(E.concat("cuenta")); MI_PLAN = PERMS; try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
+    PLAN_LIM = (PLANES_APP[PERMS.plan] && PLANES_APP[PERMS.plan].lim) || null; PERM_E = new Set(E.concat("cuenta", "comunidad")); MI_PLAN = PERMS; try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ }
     document.querySelectorAll("aside .grupo button[data-s]").forEach(b => { if (!PERM_E.has(b.dataset.s)) b.style.display = "none"; });
     document.querySelectorAll("aside .grupo").forEach(g => { if (![...g.querySelectorAll("button[data-s]")].some(b => b.style.display !== "none")) g.style.display = "none"; });
     if (PERMS.plan && !PERMS.s.length) {
