@@ -1512,7 +1512,7 @@ async function compartirAyudantes(kind, ref, nombre) {
   };
 }
 /* ===== COMUNIDAD: jugadas y ejercicios que publican los entrenadores para que otros los copien ===== */
-const COM = { items: null, tipo: "jugadas", q: "", cat: "", orden: "rec", mias: false, err: "" };
+const COM = { items: null, tipo: "jugadas", q: "", cat: "", orden: "rec", mias: false, err: "", tags: new Set() };
 const comYo = () => String((window.__sfEmail || MI_EMAIL || "")).toLowerCase();
 async function comCargar() {
   COM.err = "";
@@ -1529,7 +1529,8 @@ async function pintarComunidad(v) {
   const yo = comYo(), txt = COM.q.trim().toLowerCase();
   const base = COM.items.filter(x => x.tipo === COM.tipo);
   const cats = [...new Set(base.map(x => x.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
-  let L = base.filter(x => (!COM.cat || x.categoria === COM.cat) && (!COM.mias || x.autor === yo) && (!txt || (x.nombre + " " + x.descripcion + " " + x.categoria + " " + x.autor_nombre).toLowerCase().includes(txt)));
+  let L = base.filter(x => (!COM.cat || x.categoria === COM.cat) && (!COM.mias || x.autor === yo) && [...COM.tags].every(t => tagsDe(x).includes(t)) && (!txt || (x.nombre + " " + x.descripcion + " " + x.categoria + " " + x.autor_nombre + " " + tagsDe(x).join(" ")).toLowerCase().includes(txt)));
+  const tagsVis = [...new Set(L.flatMap(tagsDe).concat([...COM.tags]))].sort((a, b) => a.localeCompare(b, "es"));
   if (COM.orden === "cop") L = L.slice().sort((a, b) => b.copias - a.copias);
   const chip = (k, t, on) => `<button class="gris" data-ct="${k}" style="${on ? "background:var(--ink);color:#fff;border-color:var(--ink);" : ""}">${t}</button>`;
   let h = `<div class="cab"><h2>Comunidad</h2><span class="esp"></span><button class="naranja" id="comPub">🌍 Publicar algo mío</button></div>
@@ -1538,7 +1539,8 @@ async function pintarComunidad(v) {
       <input type="search" id="comQ" placeholder="Buscar sistema, autor…" value="${esc(COM.q)}" style="flex:1;min-width:180px;">
       ${cats.length ? `<select id="comC" style="width:auto;flex:none;"><option value="">Todas las categorías</option>${cats.map(c => `<option ${c === COM.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>` : ""}
       <select id="comO" style="width:auto;flex:none;"><option value="rec" ${COM.orden === "rec" ? "selected" : ""}>Más recientes</option><option value="cop" ${COM.orden === "cop" ? "selected" : ""}>Más copiadas</option></select>
-      <label style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;letter-spacing:0;font-size:14px;"><input type="checkbox" id="comM" ${COM.mias ? "checked" : ""} style="width:18px;height:18px;margin:0;"> Solo lo mío</label></div>`;
+      <label style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;letter-spacing:0;font-size:14px;"><input type="checkbox" id="comM" ${COM.mias ? "checked" : ""} style="width:18px;height:18px;margin:0;"> Solo lo mío</label></div>
+    ${cats.length || tagsVis.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;">${cats.map(c => `<a href="#" class="tag" data-cc="${esc(c)}" style="${COM.cat === c ? "background:var(--ink);color:#fff;" : "background:#fff4e6;color:#c2570c;"}">📂 ${esc(c)}</a>`).join("")}${tagsVis.map(t => `<a href="#" class="tag" data-ctg="${esc(t)}" style="${estiloTag(t)}${COM.tags.has(t) ? "outline:2px solid var(--ink);" : ""}">🏷 ${esc(t)}</a>`).join("")}</div>` : ""}`;
   h += L.length ? `<div class="rejilla">${L.map(x => `<div class="tj" data-cid="${esc(x.id)}" style="cursor:default;"><div class="vista mini" data-mini="${esc(x.id)}" ${x.tipo === "jugadas" ? `data-cver="${esc(x.id)}" style="cursor:pointer;" title="Ver animada"` : ""}>${MINIS[x.id + "|" + x.actualizada] || ICONO[x.tipo]}</div>
       <div class="cu"><div class="nom"><span class="t" title="${esc(x.nombre)}">${esc(x.nombre || "(sin nombre)")}</span></div>
       <div class="peq">${x.categoria ? esc(x.categoria) + " · " : ""}por ${esc(x.autor_nombre || "un entrenador")} · ⎘ ${x.copias}</div>
@@ -1548,9 +1550,11 @@ async function pintarComunidad(v) {
   v.innerHTML = h;
   pedirMiniaturas(L);
   const redo = () => pintarComunidad(v);
-  v.querySelectorAll("[data-ct]").forEach(b => b.onclick = () => { COM.tipo = b.dataset.ct; COM.cat = ""; redo(); });
+  v.querySelectorAll("[data-ct]").forEach(b => b.onclick = () => { COM.tipo = b.dataset.ct; COM.cat = ""; COM.tags.clear(); redo(); });
   $("comQ").oninput = (e) => { COM.q = e.target.value; const p = e.target.selectionStart; redo(); const n = $("comQ"); n.focus(); try { n.setSelectionRange(p, p); } catch (er) { /* nada */ } };
   if ($("comC")) $("comC").onchange = (e) => { COM.cat = e.target.value; redo(); };
+  v.querySelectorAll("[data-cc]").forEach(a => a.onclick = (e) => { e.preventDefault(); COM.cat = COM.cat === a.dataset.cc ? "" : a.dataset.cc; redo(); });
+  v.querySelectorAll("[data-ctg]").forEach(a => a.onclick = (e) => { e.preventDefault(); const t = a.dataset.ctg; if (COM.tags.has(t)) COM.tags.delete(t); else COM.tags.add(t); redo(); });
   $("comO").onchange = (e) => { COM.orden = e.target.value; redo(); };
   $("comM").onchange = (e) => { COM.mias = e.target.checked; redo(); };
   $("comPub").onclick = () => comElegirPropio(COM.tipo);
@@ -1563,10 +1567,34 @@ async function pintarComunidad(v) {
 function comElegirPropio(tipo) {
   const L = (D[tipo] || []).filter(x => !ajena(x)).sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
   if (!L.length) { aviso("Aún no tienes " + tipo + " para publicar."); return; }
-  const m = ventana(`<h3>¿Qué ${SINGULAR[tipo]} quieres publicar?</h3><input id="cpQ" placeholder="Buscar…" style="margin:0 0 6px;"><div class="lista-sel" style="max-height:50vh;">${L.map(x => `<label class="it" data-n="${esc(String(x.nombre || "").toLowerCase() + " " + String(x.carpeta || "").toLowerCase())}"><input type="radio" name="cpR" value="${esc(x.id)}"><span style="flex:1;min-width:0;">${esc(x.nombre || "(sin nombre)")}${x.carpeta ? ` <span class="peq">📁 ${esc(x.carpeta)}</span>` : ""}</span></label>`).join("")}</div><div class="pie-m"><button class="gris" id="cpX">Cancelar</button><button class="naranja" id="cpOk">Siguiente</button></div>`);
-  $("cpQ").oninput = () => { const q = $("cpQ").value.trim().toLowerCase(); m.querySelectorAll("label.it").forEach(l => { l.style.display = !q || l.dataset.n.includes(q) ? "" : "none"; }); };
+  const TAGS = [...new Set(L.flatMap(tagsDe))].sort((a, b) => a.localeCompare(b, "es"));
+  let car = "", sel = null; const ftags = new Set();
+  const m = ventana(`<h3>¿Qué ${SINGULAR[tipo]} quieres publicar?</h3><input id="cpQ" placeholder="Buscar carpeta, ${SINGULAR[tipo]} o etiqueta…" style="margin:0 0 6px;"><div id="cpT" style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px;"></div><div class="peq" id="cpM" style="margin:0 0 6px;"></div><div class="lista-sel" id="cpL" style="max-height:46vh;"></div><div class="pie-m"><button class="gris" id="cpX">Cancelar</button><button class="naranja" id="cpOk">Siguiente</button></div>`);
+  const fila = (x, conCar) => `<label class="it"><input type="radio" name="cpR" value="${esc(x.id)}" ${sel === x.id ? "checked" : ""}><span style="flex:1;min-width:0;">${esc(x.nombre || "(sin nombre)")}${conCar && x.carpeta ? ` <span class="peq">📁 ${esc(x.carpeta)}</span>` : ""}${tagsDe(x).length ? " " + tagsDe(x).map(t => `<span class="tag" style="${estiloTag(t)}font-size:11px;padding:1px 7px;">${esc(t)}</span>`).join(" ") : ""}</span></label>`;
+  const pintar = () => {
+    const q = $("cpQ").value.trim().toLowerCase(), caja = $("cpL"), mg = $("cpM");
+    /* etiquetas: las de lo que se ve ahora (en la carpeta abierta, o todas si se busca) */
+    const vis = q || ftags.size ? L : L.filter(x => !car || x.carpeta === car || String(x.carpeta || "").startsWith(car + "/"));
+    const tv = [...new Set(vis.flatMap(tagsDe))].filter(t => TAGS.includes(t)).sort((a, b) => a.localeCompare(b, "es"));
+    $("cpT").innerHTML = tv.length ? tv.map(t => `<a href="#" class="tag ${ftags.has(t) ? "on" : ""}" data-ft="${esc(t)}" style="${estiloTag(t)}${ftags.has(t) ? "outline:2px solid var(--ink);" : ""}">🏷 ${esc(t)}</a>`).join("") : "";
+    if (q || ftags.size) {
+      const carps = q ? rutasCarpetas(tipo).filter(c => c.nombre.toLowerCase().includes(q)) : [];
+      const r = L.filter(x => (!q || (x.nombre + " " + (x.carpeta || "") + " " + tagsDe(x).join(" ")).toLowerCase().includes(q)) && [...ftags].every(t => tagsDe(x).includes(t)));
+      mg.textContent = r.length + " resultado" + (r.length === 1 ? "" : "s");
+      caja.innerHTML = carps.map(c => `<div class="it" data-car="${esc(c.nombre)}" style="cursor:pointer;display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);"><span>📁</span><b style="flex:1;">${esc(c.nombre)}</b><span class="peq">${c.n}</span><span>›</span></div>`).join("") + (r.map(x => fila(x, true)).join("") || (carps.length ? "" : '<div class="peq" style="padding:12px;">Nada coincide.</div>'));
+    } else {
+      const subs = carpetasDe(tipo, car).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")), aqui = L.filter(x => (x.carpeta || "") === car);
+      mg.innerHTML = car ? `<a href="#" id="cpU" style="font-weight:800;">‹ Atrás</a> · 📁 <b>${esc(car)}</b>` : "Elige una carpeta:";
+      caja.innerHTML = subs.map(c => `<div class="it" data-car="${esc(c.ruta)}" style="cursor:pointer;display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);"><span style="font-size:18px;">📁</span><b style="flex:1;min-width:0;">${esc(c.nombre)}</b><span class="peq">${c.n} ${tipo}</span><span>›</span></div>`).join("") + aqui.map(x => fila(x, false)).join("") || '<div class="peq" style="padding:12px;">Carpeta vacía.</div>';
+      if ($("cpU")) $("cpU").onclick = (e) => { e.preventDefault(); car = padreDe(car); pintar(); };
+    }
+    caja.querySelectorAll("[data-car]").forEach(d => d.onclick = () => { car = d.dataset.car; $("cpQ").value = ""; ftags.clear(); pintar(); caja.scrollTop = 0; });
+    caja.querySelectorAll("[name=cpR]").forEach(r => r.onchange = () => { sel = r.value; });
+    $("cpT").querySelectorAll("[data-ft]").forEach(a => a.onclick = (e) => { e.preventDefault(); const t = a.dataset.ft; if (ftags.has(t)) ftags.delete(t); else ftags.add(t); pintar(); });
+  };
+  $("cpQ").oninput = pintar; pintar();
   $("cpX").onclick = cerrarVentana;
-  $("cpOk").onclick = () => { const r = m.querySelector("[name=cpR]:checked"); if (!r) { aviso("Elige una."); return; } const x = D[tipo].find(y => y.id === r.value); cerrarVentana(); if (x) comPublicar(tipo, x); };
+  $("cpOk").onclick = () => { if (!sel) { aviso("Elige una."); return; } const x = D[tipo].find(y => y.id === sel); cerrarVentana(); if (x) comPublicar(tipo, x); };
 }
 function comPublicar(tipo, x) {
   let firma = ""; try { firma = localStorage.getItem("sf_com_firma") || ""; } catch (e) { /* nada */ }
@@ -1574,6 +1602,7 @@ function comPublicar(tipo, x) {
   ventana(`<h3>Publicar en la comunidad</h3><p class="peq" style="margin:0 0 8px;">Todos los entrenadores de ScoutFlow podrán verlo y copiarlo. Tu original no cambia y puedes quitarlo cuando quieras.</p>
     <label>Nombre</label><input id="cbN" value="${esc(x.nombre || "")}">
     <label>Categoría</label><input id="cbC" value="${esc(cat0)}" placeholder="Ej. Saque de banda, Sistema, Calentamiento…">
+    <label>Etiquetas (separadas por comas)</label><input id="cbT" value="${esc(tagsDe(x).join(", "))}" placeholder="Ej. zona, ATO, pick and roll">
     <label>Descripción (opcional)</label><textarea id="cbD" rows="3" placeholder="Para qué sirve, contra qué defensa…">${esc(String(desc0).slice(0, 600))}</textarea>
     <label>Tu nombre como autor</label><input id="cbA" value="${esc(firma)}" placeholder="Ej. Emiliano M. (CB Móstoles)">
     <div class="pie-m"><button class="gris" id="cbX">Cancelar</button><button class="naranja" id="cbOk">🌍 Publicar</button></div>`);
@@ -1582,6 +1611,7 @@ function comPublicar(tipo, x) {
     const nom = $("cbN").value.trim(), firmaN = $("cbA").value.trim(); if (!nom) { aviso("Ponle un nombre."); return; }
     try { localStorage.setItem("sf_com_firma", firmaN); } catch (e) { /* nada */ }
     const d = clonar(x.data || {}); ["equipo", "grupo", "temporada", "favorita", "compartida"].forEach(k => { delete d[k]; }); if (tipo === "jugadas") { d.nombre = nom; delete d.id; }
+    d.tags = [...new Set($("cbT").value.split(",").map(t => t.trim()).filter(Boolean))].slice(0, 12);
     const fila = { id: idNuevo("c"), tipo, nombre: nom, categoria: $("cbC").value.trim(), descripcion: $("cbD").value.trim(), autor_nombre: firmaN, data: d };
     const { error } = await nube.from("comunidad").insert(fila);
     if (error) { aviso(/relation|does not exist|schema cache/i.test(error.message) ? "Falta activar la comunidad: ejecuta comunidad.sql en Supabase." : "No se pudo publicar: " + error.message); return; }
