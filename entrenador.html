@@ -172,6 +172,44 @@
   .selbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#e9f7f2;border:1.5px solid #f6c3a8;border-radius:12px;padding:8px 12px;margin-bottom:12px;} .selbar .esp{flex:1;}
   .fila.sobre,.tj.sobre,.miga a.sobre{background:#d6f3e8 !important;outline:2.5px dashed #e0602a;outline-offset:-3px;border-radius:8px;}
   .arrastrando{opacity:.4;}
+  .com{max-width:1180px;}
+  .com-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 18px;}
+  .com-hero h2{margin:0 0 4px;font-size:28px;letter-spacing:-.02em;} .com-hero p{margin:0;color:var(--soft);max-width:560px;line-height:1.45;}
+  .com-tabs{display:inline-flex;background:var(--suave);border-radius:12px;padding:4px;margin:0 0 14px;gap:2px;}
+  .com-tabs button{border:0;background:transparent;color:var(--soft);padding:8px 16px;border-radius:9px;font-weight:700;font-size:14.5px;cursor:pointer;}
+  .com-tabs button span{font-weight:600;opacity:.6;margin-left:4px;font-size:12.5px;} .com-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,30,45,.12);}
+  .com-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px;}
+  .com-q{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:0 12px;color:var(--soft);} .com-q:focus-within{border-color:var(--orange);}
+  .com-q input{border:0 !important;outline:0;background:transparent;padding:10px 0 !important;margin:0 !important;flex:1;font:inherit;box-shadow:none !important;}
+  .com-tools select{width:auto;margin:0;border-radius:11px;}
+  .com-mio{display:flex;align-items:center;gap:7px;margin:0;padding:9px 13px;border:1.5px solid var(--line);border-radius:11px;background:#fff;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;color:var(--ink);}
+  .com-mio input{width:16px;height:16px;margin:0;accent-color:var(--orange);} .com-mio.on{border-color:var(--orange);background:#fff6f0;}
+  .com-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;margin:0 0 6px;scrollbar-width:none;} .com-chips::-webkit-scrollbar{display:none;}
+  .com-chips a{flex:none;padding:6px 13px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;}
+  .com-chips a.t{color:var(--soft);} .com-chips a:hover{border-color:var(--ink);} .com-chips a.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .com-chips i{flex:none;width:1px;background:var(--line);margin:4px 4px;}
+  .com-meta{font-size:12.5px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 10px;}
+  .com-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;}
+  .com-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s;}
+  .com-card:hover{box-shadow:0 10px 28px rgba(20,30,45,.10);transform:translateY(-2px);}
+  .com-img{position:relative;aspect-ratio:4/3;background:#fbfaf7;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:8px;}
+  .com-img{overflow:hidden;} .com-img[data-cver]{cursor:pointer;} .com-img > svg{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);display:block;} .com-ph{font-size:40px;opacity:.35;}
+  .com-play{position:absolute;right:10px;bottom:10px;width:34px;height:34px;border-radius:50%;background:rgba(27,36,50,.82);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0;transition:opacity .15s;}
+  .com-card:hover .com-play{opacity:1;}
+  .com-del{position:absolute;top:8px;right:8px;width:28px;height:28px;padding:0;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:var(--soft);box-shadow:0 1px 4px rgba(0,0,0,.15);cursor:pointer;opacity:0;transition:opacity .15s;font-size:13px;}
+  .com-card:hover .com-del{opacity:1;} .com-del:hover{color:#e5484d;}
+  @media (hover:none){.com-play,.com-del{opacity:1;}}
+  .com-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .com-cat{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--orange);}
+  .com-body h3{margin:0;font-size:16px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .com-desc{margin:0;color:var(--soft);font-size:13px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .com-tg{display:flex;gap:5px;flex-wrap:wrap;} .com-tg span{font-size:11.5px;color:var(--soft);background:var(--suave);padding:2px 8px;border-radius:999px;}
+  .com-foot{display:flex;align-items:center;gap:9px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line);}
+  .com-av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
+  .com-au{flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .com-au small{display:block;font-weight:500;color:var(--soft);font-size:11.5px;}
+  .com-cp{flex:none;padding:7px 16px !important;font-size:13.5px !important;}
+  .com-vacio{text-align:center;padding:54px 20px;border:1.5px dashed var(--line);border-radius:16px;color:var(--soft);} .com-vacio div{font-size:38px;opacity:.5;} .com-vacio b{display:block;color:var(--ink);font-size:17px;margin:8px 0 4px;} .com-vacio p{margin:0;}
+  @media (max-width:600px){.com-hero h2{font-size:23px;} .com-q{flex-basis:100%;} .com-tools select{flex:1;} .com-grid{grid-template-columns:1fr 1fr;gap:10px;} .com-body{padding:10px;} .com-body h3{font-size:14.5px;} .com-desc,.com-tg{display:none;} .com-foot{flex-wrap:wrap;} .com-cp{width:100%;}}
   .tj{position:relative;background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;} .tj:hover{border-color:#e0602a;}
   .mini-l{flex:none;width:136px;height:124px;border-radius:10px;overflow:hidden;border:1px solid #d9dee3;padding:3px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;} .mini-l svg{width:100%;height:100%;display:block;}
   .fila.c-jug:not(.cabt){padding-top:7px;padding-bottom:7px;}
@@ -1532,28 +1570,33 @@ async function pintarComunidad(v) {
   let L = base.filter(x => (!COM.cat || x.categoria === COM.cat) && (!COM.mias || x.autor === yo) && [...COM.tags].every(t => tagsDe(x).includes(t)) && (!txt || (x.nombre + " " + x.descripcion + " " + x.categoria + " " + x.autor_nombre + " " + tagsDe(x).join(" ")).toLowerCase().includes(txt)));
   const tagsVis = [...new Set(L.flatMap(tagsDe).concat([...COM.tags]))].sort((a, b) => a.localeCompare(b, "es"));
   if (COM.orden === "cop") L = L.slice().sort((a, b) => b.copias - a.copias);
-  const chip = (k, t, on) => `<button class="gris" data-ct="${k}" style="${on ? "background:var(--ink);color:#fff;border-color:var(--ink);" : ""}">${t}</button>`;
-  let h = `<div class="cab"><h2>Comunidad</h2><span class="esp"></span><button class="naranja" id="comPub">🌍 Publicar algo mío</button></div>
-    <p class="peq" style="margin:-4px 0 12px;">Sistemas, jugadas y ejercicios que comparten otros entrenadores. Copia los que te gusten a tus carpetas y edítalos como quieras.</p>
-    <div class="barra" style="flex-wrap:wrap;gap:8px;">${chip("jugadas", "🏀 Jugadas", COM.tipo === "jugadas")}${chip("ejercicios", "🎯 Ejercicios", COM.tipo === "ejercicios")}
-      <input type="search" id="comQ" placeholder="Buscar sistema, autor…" value="${esc(COM.q)}" style="flex:1;min-width:180px;">
-      ${cats.length ? `<select id="comC" style="width:auto;flex:none;"><option value="">Todas las categorías</option>${cats.map(c => `<option ${c === COM.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>` : ""}
-      <select id="comO" style="width:auto;flex:none;"><option value="rec" ${COM.orden === "rec" ? "selected" : ""}>Más recientes</option><option value="cop" ${COM.orden === "cop" ? "selected" : ""}>Más copiadas</option></select>
-      <label style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;letter-spacing:0;font-size:14px;"><input type="checkbox" id="comM" ${COM.mias ? "checked" : ""} style="width:18px;height:18px;margin:0;"> Solo lo mío</label></div>
-    ${cats.length || tagsVis.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;">${cats.map(c => `<a href="#" class="tag" data-cc="${esc(c)}" style="${COM.cat === c ? "background:var(--ink);color:#fff;" : "background:#fff4e6;color:#c2570c;"}">📂 ${esc(c)}</a>`).join("")}${tagsVis.map(t => `<a href="#" class="tag" data-ctg="${esc(t)}" style="${estiloTag(t)}${COM.tags.has(t) ? "outline:2px solid var(--ink);" : ""}">🏷 ${esc(t)}</a>`).join("")}</div>` : ""}`;
-  h += L.length ? `<div class="rejilla">${L.map(x => `<div class="tj" data-cid="${esc(x.id)}" style="cursor:default;"><div class="vista mini" data-mini="${esc(x.id)}" ${x.tipo === "jugadas" ? `data-cver="${esc(x.id)}" style="cursor:pointer;" title="Ver animada"` : ""}>${MINIS[x.id + "|" + x.actualizada] || ICONO[x.tipo]}</div>
-      <div class="cu"><div class="nom"><span class="t" title="${esc(x.nombre)}">${esc(x.nombre || "(sin nombre)")}</span></div>
-      <div class="peq">${x.categoria ? esc(x.categoria) + " · " : ""}por ${esc(x.autor_nombre || "un entrenador")} · ⎘ ${x.copias}</div>
-      ${x.descripcion ? `<div class="peq" style="white-space:pre-wrap;max-height:3.6em;overflow:hidden;">${esc(x.descripcion)}</div>` : ""}
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${x.tipo === "jugadas" ? `<button class="gris" data-cver="${esc(x.id)}" style="padding:6px 10px;">▶ Ver</button>` : ""}<button class="naranja" data-ccop="${esc(x.id)}" style="padding:6px 10px;">⎘ Copiar a mis ${x.tipo === "jugadas" ? "jugadas" : "ejercicios"}</button>${x.autor === yo || COM.admin ? `<button class="gris" data-cdel="${esc(x.id)}" title="Quitar de la comunidad" style="padding:6px 10px;">🗑</button>` : ""}</div></div></div>`).join("")}</div>`
-    : `<p class="peq" style="padding:20px 0;">${base.length ? "Nada coincide con tu búsqueda." : "Todavía no hay " + (COM.tipo === "jugadas" ? "jugadas" : "ejercicios") + " publicados. ¡Sé el primero! Pulsa «Publicar algo mío» o, en cualquier " + SINGULAR[COM.tipo] + ", el menú ⋮ → «Publicar en la comunidad»."}</p>`;
+  const nJ = COM.items.filter(x => x.tipo === "jugadas").length, nE = COM.items.filter(x => x.tipo === "ejercicios").length;
+  const ini = (n) => esc((String(n || "E").trim()[0] || "E").toUpperCase());
+  let h = `<div class="com">
+    <div class="com-hero"><div><h2>Comunidad</h2><p>Sistemas, jugadas y ejercicios compartidos por entrenadores de ScoutFlow. Cópialos a tus carpetas y adáptalos a tu equipo.</p></div>
+      <button class="naranja" id="comPub">＋ Publicar</button></div>
+    <div class="com-tabs"><button data-ct="jugadas" class="${COM.tipo === "jugadas" ? "on" : ""}">Jugadas <span>${nJ}</span></button><button data-ct="ejercicios" class="${COM.tipo === "ejercicios" ? "on" : ""}">Ejercicios <span>${nE}</span></button></div>
+    <div class="com-tools"><div class="com-q"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="comQ" placeholder="Buscar por nombre, autor o etiqueta" value="${esc(COM.q)}"></div>
+      <select id="comO"><option value="rec" ${COM.orden === "rec" ? "selected" : ""}>Más recientes</option><option value="cop" ${COM.orden === "cop" ? "selected" : ""}>Más copiadas</option></select>
+      <label class="com-mio ${COM.mias ? "on" : ""}"><input type="checkbox" id="comM" ${COM.mias ? "checked" : ""}> Mis publicaciones</label></div>
+    ${cats.length || tagsVis.length ? `<div class="com-chips"><a href="#" data-cc="" class="${!COM.cat && !COM.tags.size ? "on" : ""}">Todo</a>${cats.map(c => `<a href="#" data-cc="${esc(c)}" class="${COM.cat === c ? "on" : ""}">${esc(c)}</a>`).join("")}${tagsVis.length && cats.length ? '<i></i>' : ""}${tagsVis.map(t => `<a href="#" data-ctg="${esc(t)}" class="t ${COM.tags.has(t) ? "on" : ""}">#${esc(t)}</a>`).join("")}</div>` : ""}
+    ${L.length ? `<div class="com-meta">${L.length} ${L.length === 1 ? SINGULAR[COM.tipo] : COM.tipo}</div><div class="com-grid">${L.map(x => `<article class="com-card">
+      <div class="com-img" data-mini="${esc(x.id)}" ${x.tipo === "jugadas" ? `data-cver="${esc(x.id)}" title="Ver animada"` : ""}>${MINIS[x.id + "|" + x.actualizada] || `<span class="com-ph">${ICONO[x.tipo]}</span>`}${x.tipo === "jugadas" ? '<span class="com-play">▶</span>' : ""}</div>
+      ${x.autor === yo || COM.admin ? `<button class="com-del" data-cdel="${esc(x.id)}" title="Quitar de la comunidad">✕</button>` : ""}
+      <div class="com-body">${x.categoria ? `<div class="com-cat">${esc(x.categoria)}</div>` : ""}<h3 title="${esc(x.nombre)}">${esc(x.nombre || "(sin nombre)")}</h3>
+        ${x.descripcion ? `<p class="com-desc">${esc(x.descripcion)}</p>` : ""}
+        ${tagsDe(x).length ? `<div class="com-tg">${tagsDe(x).slice(0, 4).map(t => `<span>#${esc(t)}</span>`).join("")}</div>` : ""}
+        <div class="com-foot"><span class="com-av">${ini(x.autor_nombre)}</span><span class="com-au">${esc(x.autor_nombre || "Entrenador")}<small>${x.copias} ${x.copias === 1 ? "copia" : "copias"}</small></span>
+          <button class="naranja com-cp" data-ccop="${esc(x.id)}">Copiar</button></div></div></article>`).join("")}</div>`
+    : `<div class="com-vacio"><div>${ICONO[COM.tipo]}</div><b>${base.length ? "No hay resultados" : "Aún no hay " + COM.tipo + " publicados"}</b><p>${base.length ? "Prueba con otra búsqueda o quita algún filtro." : "Sé el primero en compartir: pulsa «Publicar» o usa el menú ⋮ de cualquier " + SINGULAR[COM.tipo] + "."}</p></div>`}
+  </div>`;
   v.innerHTML = h;
   pedirMiniaturas(L);
   const redo = () => pintarComunidad(v);
   v.querySelectorAll("[data-ct]").forEach(b => b.onclick = () => { COM.tipo = b.dataset.ct; COM.cat = ""; COM.tags.clear(); redo(); });
   $("comQ").oninput = (e) => { COM.q = e.target.value; const p = e.target.selectionStart; redo(); const n = $("comQ"); n.focus(); try { n.setSelectionRange(p, p); } catch (er) { /* nada */ } };
   if ($("comC")) $("comC").onchange = (e) => { COM.cat = e.target.value; redo(); };
-  v.querySelectorAll("[data-cc]").forEach(a => a.onclick = (e) => { e.preventDefault(); COM.cat = COM.cat === a.dataset.cc ? "" : a.dataset.cc; redo(); });
+  v.querySelectorAll("[data-cc]").forEach(a => a.onclick = (e) => { e.preventDefault(); if (!a.dataset.cc) { COM.cat = ""; COM.tags.clear(); } else COM.cat = COM.cat === a.dataset.cc ? "" : a.dataset.cc; redo(); });
   v.querySelectorAll("[data-ctg]").forEach(a => a.onclick = (e) => { e.preventDefault(); const t = a.dataset.ctg; if (COM.tags.has(t)) COM.tags.delete(t); else COM.tags.add(t); redo(); });
   $("comO").onchange = (e) => { COM.orden = e.target.value; redo(); };
   $("comM").onchange = (e) => { COM.mias = e.target.checked; redo(); };
