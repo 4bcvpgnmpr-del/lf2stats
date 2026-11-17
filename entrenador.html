@@ -693,6 +693,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
     <div class="grupo"><h4>Jugadas</h4>
       <button data-s="jugadas"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Jugadas</span><span class="n" id="n-jugadas"></span></button>
       <button data-s="playbooks"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.500-1.500-6-1.500-9 .5-3-2-6.500-2-9-.5z"/><path d="M12 6v13.500"/></svg></span><span class="tx">Playbooks</span><span class="n" id="n-playbooks"></span></button>
+      <button data-s="comunidad"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"/></svg></span><span class="tx">Comunidad</span></button>
     </div>
     <div class="grupo"><h4>Planificación</h4>
       <button data-s="calendario"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4"/></svg></span><span class="tx">Calendario</span></button>
@@ -857,7 +858,7 @@ function usoDetalle() {
   r.total = r.img + r.vid + r.aud + r.otros + r.scout; return r;
 }
 const avisoGB = () => { try { const v = parseFloat(localStorage.getItem("sf_aviso_gb")); return v > 0 ? v : 10; } catch (e) { return 10; } };
-const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", plantilla: "Plantilla", cuenta: "Mi cuenta", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" };
+const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", plantilla: "Plantilla", cuenta: "Mi cuenta", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" , comunidad: "Comunidad" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 /* la copia sin conexión es de cada cuenta: así otra cuenta en el mismo navegador nunca ve los datos de la anterior */
@@ -955,6 +956,7 @@ function pintar() {
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
   if (seccion === "calendario") return pintarCalendario(v);
   if (seccion === "playbooks") return pintarPlaybooks(v);
+  if (seccion === "comunidad") return pintarComunidad(v);
   if (seccion === "chat") return pintarChat(v);
   if (seccion === "cuenta") return pintarCuenta(v);
   if (seccion === "plantilla") return pintarPlantilla(v);
@@ -1226,7 +1228,7 @@ function pedirMiniaturas(items) {
       if (ev.data.visorListo && ev.source === marcoMini.contentWindow) { marcoMiniListo = true; colaMini.splice(0).forEach(f => f()); }
       if (ev.data.miniaturasListas) {
         Object.keys(ev.data.miniaturasListas).forEach(k => { if (ev.data.miniaturasListas[k]) MINIS[k] = ev.data.miniaturasListas[k]; });
-        document.querySelectorAll("[data-mini]").forEach(el => { const x = D.jugadas.concat(D.ejercicios).find(y => y.id === el.dataset.mini); const s = x && MINIS[x.id + "|" + x.actualizada]; if (s && !el.querySelector("svg")) el.innerHTML = s; });
+        document.querySelectorAll("[data-mini]").forEach(el => { const x = D.jugadas.concat(D.ejercicios, COM.items || []).find(y => y.id === el.dataset.mini); const s = x && MINIS[x.id + "|" + x.actualizada]; if (s && !el.querySelector("svg")) el.innerHTML = s; });
       }
     });
   }
@@ -1414,6 +1416,7 @@ function opcionesElemento(tipo, x) {
   if (puedeEscribir && (dib || tipo === "planes")) o.push(["🔗 Compartir…", () => compartirEnlace(tipo, x)]);
   if (tipo === "jugadas" && !SOY_AYU && D.comparte && puedeEscribir) o.push(["👥 Compartir con ayudantes…", () => compartirAyudantes("jugada", x.id, x.nombre)]);
   if (dib) o.push(["⬇ Descargar PDF", () => pdfElemento(tipo, x)]);
+  if (dib && puedeEscribir && !OFFLINE) o.push(["🌍 Publicar en la comunidad…", () => comPublicar(tipo, x)]);
   o.push(["🏷 Etiquetas…", () => editarTags(tipo, [x])], ["-"], ["📁 Mover a carpeta…", () => moverACarpeta(tipo, [x])], ["⧉ Copiar", () => duplicar(tipo, x)], ["-"], ["🗑 Eliminar", () => borrarElemento(tipo, x), "pel"]);
   return o;
 }
@@ -1506,6 +1509,97 @@ async function compartirAyudantes(kind, ref, nombre) {
       else if (!cb.checked && ya) { const { error } = await nube.from("ayudante_comparte").delete().eq("ayudante", a).eq("kind", k).eq("ref", r); if (error) fallo = error.message; }
     }
     cerrarVentana(); aviso(fallo ? "No se pudo guardar: " + fallo + " (¿ejecutaste ayudantes_cuentas.sql?)" : "Listo ✓"); await cargarTodo(); pintar();
+  };
+}
+/* ===== COMUNIDAD: jugadas y ejercicios que publican los entrenadores para que otros los copien ===== */
+const COM = { items: null, tipo: "jugadas", q: "", cat: "", orden: "rec", mias: false, err: "" };
+const comYo = () => String((window.__sfEmail || MI_EMAIL || "")).toLowerCase();
+async function comCargar() {
+  COM.err = "";
+  try { const { data: se } = await nube.auth.getSession(); window.__sfEmail = se && se.session ? String(se.session.user.email || "").toLowerCase() : ""; } catch (e) { /* nada */ }
+  const r = await nube.from("comunidad").select("*").order("creado", { ascending: false }).limit(500);
+  if (r.error) { COM.items = []; COM.err = /relation|does not exist|schema cache/i.test(r.error.message) ? "falta" : r.error.message; return; }
+  try { const ra = await nube.rpc("es_propietario"); COM.admin = !SOY_AYU && !!(ra && !ra.error && ra.data === true); } catch (e) { COM.admin = false; }
+  COM.items = (r.data || []).map(f => ({ id: "com-" + f.id, cid: f.id, tipo: f.tipo, nombre: f.nombre, descripcion: f.descripcion || "", categoria: f.categoria || "", autor: f.autor || "", autor_nombre: f.autor_nombre || "", copias: f.copias || 0, creado: f.creado, actualizada: f.creado, data: f.data || {} }));
+}
+async function pintarComunidad(v) {
+  if (OFFLINE) { v.innerHTML = '<div class="cab"><h2>Comunidad</h2></div><p class="peq">La comunidad necesita internet.</p>'; return; }
+  if (COM.items === null) { v.innerHTML = '<div class="cab"><h2>Comunidad</h2></div><p class="peq">Cargando…</p>'; await comCargar(); if (seccion !== "comunidad") return; }
+  if (COM.err === "falta") { v.innerHTML = '<div class="cab"><h2>Comunidad</h2></div><p class="peq">Falta activar la comunidad en la nube: ejecuta <b>comunidad.sql</b> una vez en Supabase.</p>'; return; }
+  const yo = comYo(), txt = COM.q.trim().toLowerCase();
+  const base = COM.items.filter(x => x.tipo === COM.tipo);
+  const cats = [...new Set(base.map(x => x.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  let L = base.filter(x => (!COM.cat || x.categoria === COM.cat) && (!COM.mias || x.autor === yo) && (!txt || (x.nombre + " " + x.descripcion + " " + x.categoria + " " + x.autor_nombre).toLowerCase().includes(txt)));
+  if (COM.orden === "cop") L = L.slice().sort((a, b) => b.copias - a.copias);
+  const chip = (k, t, on) => `<button class="gris" data-ct="${k}" style="${on ? "background:var(--ink);color:#fff;border-color:var(--ink);" : ""}">${t}</button>`;
+  let h = `<div class="cab"><h2>Comunidad</h2><span class="esp"></span><button class="naranja" id="comPub">🌍 Publicar algo mío</button></div>
+    <p class="peq" style="margin:-4px 0 12px;">Sistemas, jugadas y ejercicios que comparten otros entrenadores. Copia los que te gusten a tus carpetas y edítalos como quieras.</p>
+    <div class="barra" style="flex-wrap:wrap;gap:8px;">${chip("jugadas", "🏀 Jugadas", COM.tipo === "jugadas")}${chip("ejercicios", "🎯 Ejercicios", COM.tipo === "ejercicios")}
+      <input type="search" id="comQ" placeholder="Buscar sistema, autor…" value="${esc(COM.q)}" style="flex:1;min-width:180px;">
+      ${cats.length ? `<select id="comC" style="width:auto;flex:none;"><option value="">Todas las categorías</option>${cats.map(c => `<option ${c === COM.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>` : ""}
+      <select id="comO" style="width:auto;flex:none;"><option value="rec" ${COM.orden === "rec" ? "selected" : ""}>Más recientes</option><option value="cop" ${COM.orden === "cop" ? "selected" : ""}>Más copiadas</option></select>
+      <label style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;letter-spacing:0;font-size:14px;"><input type="checkbox" id="comM" ${COM.mias ? "checked" : ""} style="width:18px;height:18px;margin:0;"> Solo lo mío</label></div>`;
+  h += L.length ? `<div class="rejilla">${L.map(x => `<div class="tj" data-cid="${esc(x.id)}" style="cursor:default;"><div class="vista mini" data-mini="${esc(x.id)}" ${x.tipo === "jugadas" ? `data-cver="${esc(x.id)}" style="cursor:pointer;" title="Ver animada"` : ""}>${MINIS[x.id + "|" + x.actualizada] || ICONO[x.tipo]}</div>
+      <div class="cu"><div class="nom"><span class="t" title="${esc(x.nombre)}">${esc(x.nombre || "(sin nombre)")}</span></div>
+      <div class="peq">${x.categoria ? esc(x.categoria) + " · " : ""}por ${esc(x.autor_nombre || "un entrenador")} · ⎘ ${x.copias}</div>
+      ${x.descripcion ? `<div class="peq" style="white-space:pre-wrap;max-height:3.6em;overflow:hidden;">${esc(x.descripcion)}</div>` : ""}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${x.tipo === "jugadas" ? `<button class="gris" data-cver="${esc(x.id)}" style="padding:6px 10px;">▶ Ver</button>` : ""}<button class="naranja" data-ccop="${esc(x.id)}" style="padding:6px 10px;">⎘ Copiar a mis ${x.tipo === "jugadas" ? "jugadas" : "ejercicios"}</button>${x.autor === yo || COM.admin ? `<button class="gris" data-cdel="${esc(x.id)}" title="Quitar de la comunidad" style="padding:6px 10px;">🗑</button>` : ""}</div></div></div>`).join("")}</div>`
+    : `<p class="peq" style="padding:20px 0;">${base.length ? "Nada coincide con tu búsqueda." : "Todavía no hay " + (COM.tipo === "jugadas" ? "jugadas" : "ejercicios") + " publicados. ¡Sé el primero! Pulsa «Publicar algo mío» o, en cualquier " + SINGULAR[COM.tipo] + ", el menú ⋮ → «Publicar en la comunidad»."}</p>`;
+  v.innerHTML = h;
+  pedirMiniaturas(L);
+  const redo = () => pintarComunidad(v);
+  v.querySelectorAll("[data-ct]").forEach(b => b.onclick = () => { COM.tipo = b.dataset.ct; COM.cat = ""; redo(); });
+  $("comQ").oninput = (e) => { COM.q = e.target.value; const p = e.target.selectionStart; redo(); const n = $("comQ"); n.focus(); try { n.setSelectionRange(p, p); } catch (er) { /* nada */ } };
+  if ($("comC")) $("comC").onchange = (e) => { COM.cat = e.target.value; redo(); };
+  $("comO").onchange = (e) => { COM.orden = e.target.value; redo(); };
+  $("comM").onchange = (e) => { COM.mias = e.target.checked; redo(); };
+  $("comPub").onclick = () => comElegirPropio(COM.tipo);
+  const de = (id) => COM.items.find(y => y.id === id);
+  v.querySelectorAll("[data-cver]").forEach(b => b.onclick = () => { const x = de(b.dataset.cver); if (x) verJugada(x); });
+  v.querySelectorAll("[data-ccop]").forEach(b => b.onclick = () => { const x = de(b.dataset.ccop); if (x) comCopiar(x); });
+  v.querySelectorAll("[data-cdel]").forEach(b => b.onclick = async () => { const x = de(b.dataset.cdel); if (!x || !await confirmar("¿Quitar «" + x.nombre + "» de la comunidad? Las copias que ya hicieron otros no se borran.")) return;
+    const { error } = await nube.from("comunidad").delete().eq("id", x.cid); if (error) { aviso("No se pudo quitar: " + error.message); return; } COM.items = COM.items.filter(y => y !== x); aviso("Quitado de la comunidad"); redo(); });
+}
+function comElegirPropio(tipo) {
+  const L = (D[tipo] || []).filter(x => !ajena(x)).sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+  if (!L.length) { aviso("Aún no tienes " + tipo + " para publicar."); return; }
+  const m = ventana(`<h3>¿Qué ${SINGULAR[tipo]} quieres publicar?</h3><input id="cpQ" placeholder="Buscar…" style="margin:0 0 6px;"><div class="lista-sel" style="max-height:50vh;">${L.map(x => `<label class="it" data-n="${esc(String(x.nombre || "").toLowerCase() + " " + String(x.carpeta || "").toLowerCase())}"><input type="radio" name="cpR" value="${esc(x.id)}"><span style="flex:1;min-width:0;">${esc(x.nombre || "(sin nombre)")}${x.carpeta ? ` <span class="peq">📁 ${esc(x.carpeta)}</span>` : ""}</span></label>`).join("")}</div><div class="pie-m"><button class="gris" id="cpX">Cancelar</button><button class="naranja" id="cpOk">Siguiente</button></div>`);
+  $("cpQ").oninput = () => { const q = $("cpQ").value.trim().toLowerCase(); m.querySelectorAll("label.it").forEach(l => { l.style.display = !q || l.dataset.n.includes(q) ? "" : "none"; }); };
+  $("cpX").onclick = cerrarVentana;
+  $("cpOk").onclick = () => { const r = m.querySelector("[name=cpR]:checked"); if (!r) { aviso("Elige una."); return; } const x = D[tipo].find(y => y.id === r.value); cerrarVentana(); if (x) comPublicar(tipo, x); };
+}
+function comPublicar(tipo, x) {
+  let firma = ""; try { firma = localStorage.getItem("sf_com_firma") || ""; } catch (e) { /* nada */ }
+  const cat0 = tipo === "jugadas" ? (x.tipo || "") : ((x.data && x.data.categoria) || ""), desc0 = tipo === "ejercicios" ? ((x.data && x.data.descripcion) || "") : ((x.data && x.data.notas) || "");
+  ventana(`<h3>Publicar en la comunidad</h3><p class="peq" style="margin:0 0 8px;">Todos los entrenadores de ScoutFlow podrán verlo y copiarlo. Tu original no cambia y puedes quitarlo cuando quieras.</p>
+    <label>Nombre</label><input id="cbN" value="${esc(x.nombre || "")}">
+    <label>Categoría</label><input id="cbC" value="${esc(cat0)}" placeholder="Ej. Saque de banda, Sistema, Calentamiento…">
+    <label>Descripción (opcional)</label><textarea id="cbD" rows="3" placeholder="Para qué sirve, contra qué defensa…">${esc(String(desc0).slice(0, 600))}</textarea>
+    <label>Tu nombre como autor</label><input id="cbA" value="${esc(firma)}" placeholder="Ej. Emiliano M. (CB Móstoles)">
+    <div class="pie-m"><button class="gris" id="cbX">Cancelar</button><button class="naranja" id="cbOk">🌍 Publicar</button></div>`);
+  $("cbX").onclick = cerrarVentana;
+  $("cbOk").onclick = async () => {
+    const nom = $("cbN").value.trim(), firmaN = $("cbA").value.trim(); if (!nom) { aviso("Ponle un nombre."); return; }
+    try { localStorage.setItem("sf_com_firma", firmaN); } catch (e) { /* nada */ }
+    const d = clonar(x.data || {}); ["equipo", "grupo", "temporada", "favorita", "compartida"].forEach(k => { delete d[k]; }); if (tipo === "jugadas") { d.nombre = nom; delete d.id; }
+    const fila = { id: idNuevo("c"), tipo, nombre: nom, categoria: $("cbC").value.trim(), descripcion: $("cbD").value.trim(), autor_nombre: firmaN, data: d };
+    const { error } = await nube.from("comunidad").insert(fila);
+    if (error) { aviso(/relation|does not exist|schema cache/i.test(error.message) ? "Falta activar la comunidad: ejecuta comunidad.sql en Supabase." : "No se pudo publicar: " + error.message); return; }
+    cerrarVentana(); COM.items = null; aviso("Publicado en la comunidad 🌍"); if (seccion === "comunidad") pintar();
+  };
+}
+function comCopiar(x) {
+  const tipo = x.tipo; if (!puedeEscribir) { aviso("Tu cuenta es de solo lectura."); return; } if (!puedeCrear(tipo)) return;
+  const cs = rutasCarpetas(tipo).map(c => c.nombre).sort((a, b) => a.localeCompare(b, "es"));
+  const m = ventana(`<h3>Copiar «${esc(x.nombre)}»</h3><label>¿En qué carpeta de tus ${tipo}?</label><div class="lista-sel" style="max-height:40vh;"><label class="it"><input type="radio" name="ccD" value="" checked><span>📂 Sin carpeta</span></label>${cs.map(c => `<label class="it"><input type="radio" name="ccD" value="${esc(c)}"><span>📁 ${esc(c)}</span></label>`).join("")}</div><input id="ccN" placeholder="…o escribe una carpeta nueva (ej. Sistemas)" style="margin:8px 0 0;"><div class="pie-m"><button class="gris" id="ccX">Cancelar</button><button class="naranja" id="ccOk">⎘ Copiar</button></div>`);
+  $("ccX").onclick = cerrarVentana;
+  $("ccOk").onclick = async () => {
+    const nueva = $("ccN").value.trim().split("/").map(limpiaNombre).filter(Boolean).join("/"), r = m.querySelector("[name=ccD]:checked"), car = nueva || (r ? r.value : "");
+    const id = idNuevo(tipo[0]), d = clonar(x.data || {});
+    const fila = tipo === "jugadas" ? { id, nombre: x.nombre, tipo: x.categoria || "", carpeta: car, favorita: false, compartida: false, data: Object.assign(d, { id, nombre: x.nombre, compartida: false }) } : { id, nombre: x.nombre, carpeta: car, data: d };
+    if (!await guardarFila(TABLA_DE[tipo], fila)) return;
+    try { await nube.rpc("comunidad_copia", { p_id: x.cid }); x.copias++; } catch (e) { /* el contador no es importante */ }
+    cerrarVentana(); await cargarTodo(); aviso("Copiada a tus " + tipo + (car ? " › " + car : "") + " ✓"); if (seccion === "comunidad") pintar();
   };
 }
 async function duplicar(tipo, x) {
