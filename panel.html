@@ -687,6 +687,7 @@ document.querySelectorAll("#menuPanel button").forEach(b => b.addEventListener("
 (function () {
   let g = "jugadoras";
   try { g = localStorage.getItem("lf2_panel_grupo") || g; } catch (e) { /* nada */ }
+  if (location.hash === "#tests") g = "tests";
   if (!document.querySelector('.grupo-panel[data-grupo="' + g + '"]')) g = "jugadoras";
   mostrarGrupoPanel(g);
 })();
