@@ -51,6 +51,18 @@
   .tabla th,.tabla td{padding:8px 10px;border-bottom:1px solid #eee;text-align:left;} .tabla th{background:#f3f0fa;}
   .lista-t{display:flex;flex-direction:column;gap:8px;width:min(560px,100%);} .lista-t button{background:#fff;color:#1a1030;text-align:left;padding:14px 16px;border-radius:12px;font-weight:800;font-size:17px;} .lista-t small{display:block;color:#777;font-weight:600;font-size:13px;}
   @media (max-width:700px){ .ops{grid-template-columns:1fr;} .medio{padding:6px 14px;} }
+  .fila-t{display:flex;gap:8px;align-items:stretch;} .fila-t .jugar{flex:1;} .fila-t .jugar:disabled{opacity:.55;}
+  .mini{background:#ffffff26;color:#fff;border-radius:10px;padding:0 12px;font-size:18px;} .mini:hover{background:#ffffff40;}
+  .ed{width:min(760px,100%);margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:12px;}
+  .ed-cab{display:grid;grid-template-columns:1fr 180px;gap:10px;} .ed label{display:flex;flex-direction:column;gap:4px;font-weight:800;font-size:13px;color:var(--suave);}
+  .ed input[type=text],.ed #edTit,.ed select,.ed textarea{font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:0;background:#fff;color:#1a1030;width:100%;}
+  .ed textarea{resize:vertical;font-weight:700;}
+  .ed-p{background:#ffffff14;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .ed-n{display:flex;justify-content:space-between;align-items:center;} .ed-n .mini{padding:4px 10px;font-size:15px;}
+  .ed-ops{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .ed .ed-op{flex-direction:row;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;color:#fff;font-size:18px;}
+  .ed-op input[type=radio]{width:22px;height:22px;flex:none;accent-color:#fff;margin:0;} .ed-op span{flex:none;} .ed-op input[type=text]{padding:8px 10px;font-size:15px;}
+  @media (max-width:600px){ .ed-cab,.ed-ops{grid-template-columns:1fr;} }
   #salir{position:fixed;left:12px;bottom:12px;z-index:50;background:#ffffff26;color:#fff;font-weight:800;font-size:14px;padding:8px 14px;border-radius:999px;backdrop-filter:blur(4px);} #salir:hover{background:#ffffff40;}
   @media print{ #salir{display:none;} }
 </style></head><body>
@@ -68,16 +80,89 @@ const canal = (cod) => sb.channel("vivo-" + cod, { config: { broadcast: { self: 
 const H = { test: null, preg: [], cod: "", ch: null, jug: {}, i: -1, fase: "lobby", fin: 0, ini: 0, resp: {}, timer: null, hist: [] };
 async function hostInicio() {
   const { data: ses } = await sb.auth.getSession();
-  if (!ses || !ses.session) { APP.innerHTML = `<div class="centro">${LOGO}<p>Entra primero en ScoutFlow con tu cuenta de entrenador y vuelve a abrir esta página.</p><a class="btn nar" href="panel.html" style="text-decoration:none;">Ir al Panel</a></div>`; return; }
-  let q = sb.from("tests").select("*").order("creado", { ascending: false });
-  const { data, error } = await q;
-  if (error) { APP.innerHTML = `<div class="centro">${LOGO}<p class="err">${esc(error.message)}</p></div>`; return; }
-  const T = (data || []).filter(t => (t.preguntas || []).some(p => (p.texto || "").trim()));
+  if (!ses || !ses.session) { APP.innerHTML = `<div class="centro">${LOGO}<p>Entra primero en ScoutFlow con tu cuenta de entrenador y vuelve a abrir esta página.</p><a class="btn nar" href="entrenador.html" style="text-decoration:none;">Ir a ScoutFlow</a></div>`; return; }
+  APP.innerHTML = `<div class="centro">${LOGO}<p class="peq">Cargando tests…</p></div>`;
+  let T = [];
+  const rv = await sb.from("tests_vivo").select("*").order("creado", { ascending: false });
+  if (!rv.error) T = (rv.data || []).map(t => ({ ...t, propio: true }));
+  const rc = await sb.rpc("mi_club");                      /* solo tú y tus ayudantes veis también los del Panel */
+  if (!rc.error && rc.data === "") {
+    const rp = await sb.from("tests").select("*").order("creado", { ascending: false });
+    if (!rp.error) T = T.concat((rp.data || []).map(t => ({ ...t, panel: true })));
+  }
+  T = T.filter(t => (t.preguntas || []).some(p => (p.texto || "").trim()) || t.propio);
+  H.lista = T;
   const id = P.get("test");
-  if (id && T.some(t => t.id === id)) return hostPreparar(T.find(t => t.id === id));
-  APP.innerHTML = `<div class="centro">${LOGO}<h1 style="margin:0;">¿Qué test jugamos?</h1><p class="peq" style="margin:0;">Los tests se crean en el Panel › Tests. Abre esta pantalla en la tele o el proyector.</p><div class="lista-t">${T.map(t => `<button data-t="${esc(t.id)}">${esc(t.titulo || "Test")}<small>${(t.preguntas || []).filter(p => (p.texto || "").trim()).length} preguntas</small></button>`).join("") || '<p class="peq">No tienes tests con preguntas. Créalos en el Panel › Tests.</p>'}</div></div>`;
+  const tId = id && T.find(x => x.id === id); if (tId && (tId.preguntas || []).length) return hostPreparar(tId);
+  const nP = (t) => (t.preguntas || []).filter(p => (p.texto || "").trim()).length;
+  const fila = (t) => `<div class="fila-t"><button class="jugar" data-t="${esc(t.id)}" ${nP(t) ? "" : "disabled"}>${esc(t.titulo || "Test")}<small>${nP(t)} pregunta${nP(t) === 1 ? "" : "s"}${t.panel ? " · del Panel" : ""}</small></button>${t.propio ? `<button class="mini" data-ed="${esc(t.id)}" title="Editar">✏️</button><button class="mini" data-bo="${esc(t.id)}" title="Borrar">🗑</button>` : ""}</div>`;
+  APP.innerHTML = `<div class="centro">${LOGO}<h1 style="margin:0;">¿Qué test jugamos?</h1><p class="peq" style="margin:0;">Abre esta pantalla en la tele o el proyector. Los jugadores entran desde el móvil.</p>
+    <button class="btn nar" id="nuevoT">➕ Crear test nuevo</button>
+    <div class="lista-t">${T.map(fila).join("") || '<p class="peq">Todavía no tienes tests. Crea el primero con el botón de arriba.</p>'}</div>
+    ${rv.error ? `<p class="err" style="font-size:13px;">Para crear tests aquí falta un paso en la base de datos (tests_vivo.sql).</p>` : ""}</div>`;
+  $("nuevoT").onclick = () => edAbrir(null);
   APP.querySelectorAll("[data-t]").forEach(b => b.onclick = () => hostPreparar(T.find(t => t.id === b.dataset.t)));
+  APP.querySelectorAll("[data-ed]").forEach(b => b.onclick = () => edAbrir(T.find(t => t.id === b.dataset.ed)));
+  APP.querySelectorAll("[data-bo]").forEach(b => b.onclick = async () => {
+    const t = T.find(x => x.id === b.dataset.bo); if (!confirm(`¿Borrar el test "${t.titulo}"?`)) return;
+    const r = await sb.from("tests_vivo").delete().eq("id", t.id); if (r.error) return alert("No se ha podido borrar: " + r.error.message); hostInicio();
+  });
   const bs = $("salir"); bs.hidden = false; bs.textContent = "✕ Volver"; bs.onclick = () => { if (window.opener) window.close(); location.href = "entrenador.html"; };
+}
+
+/* ---------- crear / editar test (sin necesidad de Panel) ---------- */
+const ED = { id: null, titulo: "", seg: 20, preg: [] };
+const edVacia = () => ({ texto: "", opciones: ["", "", "", ""], correcta: 0 });
+function edAbrir(t) {
+  ED.id = t ? t.id : null; ED.titulo = t ? (t.titulo || "") : ""; ED.seg = t ? (t.segundos || 20) : 20;
+  ED.preg = t && (t.preguntas || []).length ? t.preguntas.map(p => { const o = (p.opciones || []).slice(0, 4); while (o.length < 4) o.push(""); return { texto: p.texto || "", opciones: o, correcta: p.correcta || 0 }; }) : [edVacia()];
+  edPintar();
+  const bs = $("salir"); bs.hidden = false; bs.textContent = "✕ Volver"; bs.onclick = () => { if (confirm("¿Salir sin guardar?")) hostInicio(); };
+}
+function edLeer() {
+  ED.titulo = $("edTit").value; ED.seg = parseInt($("edSeg").value, 10) || 20;
+  APP.querySelectorAll(".ed-p").forEach((c, i) => {
+    const p = ED.preg[i]; p.texto = c.querySelector(".ed-tx").value;
+    c.querySelectorAll(".ed-op input[type=text]").forEach((x, k) => p.opciones[k] = x.value);
+    const r = c.querySelector(".ed-op input[type=radio]:checked"); p.correcta = r ? +r.value : 0;
+  });
+}
+function edPintar() {
+  APP.innerHTML = `<div class="ed">${LOGO}
+    <h1 style="margin:4px 0 0;">${ED.id ? "Editar test" : "Nuevo test"}</h1>
+    <div class="ed-cab"><label>Título<input id="edTit" value="${esc(ED.titulo)}" placeholder="Ej.: Sistema 'Cuernos'"></label>
+      <label>Segundos por pregunta<select id="edSeg">${[10, 15, 20, 30, 45, 60].map(n => `<option ${n === ED.seg ? "selected" : ""}>${n}</option>`).join("")}</select></label></div>
+    <p class="peq" style="margin:0;">Escribe cada pregunta y marca el círculo de la respuesta correcta. Mínimo 2 opciones.</p>
+    ${ED.preg.map((p, i) => `<div class="ed-p"><div class="ed-n"><b>Pregunta ${i + 1}</b>${ED.preg.length > 1 ? `<button class="mini" data-q="${i}" title="Quitar">🗑</button>` : ""}</div>
+      <textarea class="ed-tx" rows="2" placeholder="¿Qué hace el base cuando…?">${esc(p.texto)}</textarea>
+      <div class="ed-ops">${p.opciones.map((o, k) => `<label class="ed-op c${k}"><input type="radio" name="c${i}" value="${k}" ${p.correcta === k ? "checked" : ""}><span>${FIG[k]}</span><input type="text" value="${esc(o)}" placeholder="Opción ${k + 1}${k > 1 ? " (opcional)" : ""}"></label>`).join("")}</div></div>`).join("")}
+    <button class="btn claro" id="edMas">➕ Añadir pregunta</button>
+    <p class="err" id="edErr"></p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding-bottom:60px;"><button class="btn" id="edCan">Cancelar</button><button class="btn nar" id="edOk">💾 Guardar</button></div></div>`;
+  $("edMas").onclick = () => { edLeer(); ED.preg.push(edVacia()); edPintar(); const l = APP.querySelectorAll(".ed-tx"); l[l.length - 1].focus(); };
+  APP.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { edLeer(); ED.preg.splice(+b.dataset.q, 1); edPintar(); });
+  $("edCan").onclick = () => hostInicio();
+  $("edOk").onclick = edGuardar;
+}
+async function edGuardar() {
+  edLeer(); const err = $("edErr"); err.textContent = "";
+  if (!ED.titulo.trim()) { err.textContent = "Ponle un título."; return; }
+  const preg = [];
+  for (let i = 0; i < ED.preg.length; i++) {
+    const p = ED.preg[i];
+    if (!p.texto.trim() && p.opciones.every(o => !o.trim())) continue;
+    if (!p.texto.trim()) { err.textContent = `A la pregunta ${i + 1} le falta el texto.`; return; }
+    if (!(p.opciones[p.correcta] || "").trim()) { err.textContent = `En la pregunta ${i + 1} la respuesta marcada como correcta está vacía.`; return; }
+    const ops = []; let nc = 0; p.opciones.forEach((o, k) => { if (o.trim()) { if (k === p.correcta) nc = ops.length; ops.push(o.trim()); } });
+    if (ops.length < 2) { err.textContent = `La pregunta ${i + 1} necesita al menos 2 opciones.`; return; }
+    preg.push({ texto: p.texto.trim(), opciones: ops, correcta: nc });
+  }
+  if (!preg.length) { err.textContent = "Añade al menos una pregunta."; return; }
+  const fila = { titulo: ED.titulo.trim(), segundos: ED.seg, preguntas: preg };
+  $("edOk").disabled = true;
+  const r = ED.id ? await sb.from("tests_vivo").update(fila).eq("id", ED.id) : await sb.from("tests_vivo").insert(fila);
+  if (r.error) { $("edOk").disabled = false; err.textContent = /tests_vivo|relation|schema cache/i.test(r.error.message) ? "Falta un paso en la base de datos: ejecuta tests_vivo.sql en Supabase." : "No se ha podido guardar: " + r.error.message; return; }
+  hostInicio();
 }
 function hostPreparar(t) {
   H.test = t; H.preg = (t.preguntas || []).filter(p => (p.texto || "").trim()).map(p => ({ texto: p.texto.trim(), opciones: (p.opciones || []).map(o => String(o || "").trim()).filter(Boolean), correcta: p.correcta || 0, seg: p.seg || t.segundos || 20 }));
