@@ -10928,11 +10928,18 @@ async function verificarAcceso() {
   const user = ses && ses.session && ses.session.user;
   if (!user) { mostrarPuerta(""); return; }
   if (await sfIdent(sb)) { location.reload(); return; }
-  const { data: soy, error } = await sb.rpc("es_entrenador");
-  if (error || soy !== true) { mostrarPuerta("Tu correo (" + user.email + ") no tiene asiento de entrenador.", "mal"); return; }
+  /* sin conexión: se usa el último acceso comprobado en este aparato (la app se puede usar con los datos guardados) */
+  const CK = "sf_acceso|" + String(user.email || "").toLowerCase();
+  const sinRedA = (e) => !navigator.onLine || /fetch|network|load failed|timeout/i.test(String((e && e.message) || e || ""));
+  let soy = null, error = null; try { const r = await sb.rpc("es_entrenador"); soy = r.data; error = r.error; } catch (e) { error = e; }
+  let guardado = null; try { guardado = JSON.parse(localStorage.getItem(CK) || "null"); } catch (e) { guardado = null; }
+  const OFF = !!(error && sinRedA(error));
+  if (OFF && !guardado) { mostrarPuerta("Sin conexión. Entra una vez con internet en este aparato y después podrás usar la app sin conexión.", "mal"); return; }
+  if (!OFF && (error || soy !== true)) { try { localStorage.removeItem(CK); } catch (e) { /* nada */ } mostrarPuerta("Tu correo (" + user.email + ") no tiene asiento de entrenador.", "mal"); return; }
   // permisos por ayudante (los pone el propietario en el Panel)
   let PERMS = null;
-  try { PERMS = await leerPermisosAyudante(sb, user.email); } catch (e) { /* sin lista: sigue */ }
+  if (OFF) PERMS = guardado.perms || null;
+  else { try { PERMS = await leerPermisosAyudante(sb, user.email); } catch (e) { /* sin lista: sigue */ } }
   let SIM = false; if (!PERMS) { const q = permisosSimulados(); if (q) { PERMS = q; SIM = true; } }
   if (SIM) bannerSim();
   if (PERMS && !PERMS.s.length) {
@@ -10950,7 +10957,9 @@ async function verificarAcceso() {
     }
   }
   TOPE_MB = topeDe(PERMS);
-  ROL_APP = PERMS ? "ayudante" : await resolverRolApp(sb, user);
+  ROL_APP = PERMS ? "ayudante" : OFF ? (guardado.rol || "ayudante") : await resolverRolApp(sb, user);
+  if (!OFF && !SIM) { try { localStorage.setItem(CK, JSON.stringify({ perms: PERMS, rol: ROL_APP, t: Date.now() })); } catch (e) { /* nada */ } }
+  if (OFF) setTimeout(() => { try { const b = document.createElement("div"); b.textContent = "📴 Sin conexión: estás viendo los últimos datos guardados en este aparato."; b.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#16263b;color:#fff;padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;z-index:99998;box-shadow:0 6px 20px #0005;"; document.body.appendChild(b); setTimeout(() => b.remove(), 6000); } catch (e) { /* nada */ } }, 800);
   if (PERMS && ROL_APP === "ayudante") { VISTAS_AYUDANTE.length = 0; VISTAS_AYUDANTE.push(...PERMS.s, "equipo-detail", "jugadora-detail", "partido-detail", "scouting"); if (PERMS.plan === "premium" && !SIM) VISTAS_AYUDANTE.push("mis-jugadoras"); if (!PERMS.e.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="entrenador"]{display:none !important;}'; document.head.appendChild(st); } }
   const ERES_PROPIETARIO = ROL_APP === "propietario";
   let simulando = false;
