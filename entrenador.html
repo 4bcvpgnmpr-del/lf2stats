@@ -3109,7 +3109,7 @@ function librosPartido() {
   return [...m.values()].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
 }
 const LB0 = () => ({ reb: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0 });
-function lbSuma(o, v) { const r = LB0(); ["h1", "h2"].forEach(h => { if (v !== "tot" && v !== h) return; const d = o[h]; if (d) Object.keys(r).forEach(k => r[k] += d[k] || 0); }); return r; }
+function lbSuma(o, v) { const r = LB0(); if (v === "tot" && o.tot) { Object.keys(r).forEach(k => r[k] = o.tot[k] || 0); return r; } if (/^q\d$/.test(v)) { const d = (o.q || {})[v]; if (d) Object.keys(r).forEach(k => r[k] = d[k] || 0); return r; } ["h1", "h2"].forEach(h => { if (v !== "tot" && v !== h) return; const d = o[h]; if (d) Object.keys(r).forEach(k => r[k] += d[k] || 0); }); return r; }
 function lbTabla(titulo, filas, v, conFaltas) {
   const tot = LB0(); let fT = 0;
   const f = filas.map(j => { const o = lbSuma(j, v); Object.keys(tot).forEach(k => tot[k] += o[k]); fT += j.f || 0; return { j, o }; });
@@ -3164,7 +3164,9 @@ function libroHtml(r, imp) {
     barra("Tiros libres", pct(A.tlm, A.tla), pct(B.tlm, B.tla), pc(A.tlm, A.tla) + " <small>" + A.tlm + "/" + A.tla + "</small>", pc(B.tlm, B.tla) + " <small>" + B.tlm + "/" + B.tla + "</small>") +
     barra("eFG%", parseInt(efg(A)) || 0, parseInt(efg(B)) || 0, efg(A), efg(B)) : "";
   /* parciales por mitad */
-  const par = (r.jug || []).length || hayRiv ? `<div class="lb-sec">Parciales (según las estadísticas anotadas)</div><table class="lb-t"><thead><tr><th></th><th>1ª mitad</th><th>2ª mitad</th><th>Total</th></tr></thead><tbody><tr><td><b>${esc(nom[0])}</b></td><td>${pts(A1)}</td><td>${pts(A2)}</td><td><b>${pts(A)}</b></td></tr>${hayRiv ? `<tr><td><b>${esc(nom[1])}</b></td><td>${pts(B1)}</td><td>${pts(B2)}</td><td><b>${pts(B)}</b></td></tr>` : ""}</tbody></table>` : "";
+  const mitOk = !r.sinMitades && (pts(A1) + pts(B1) + A1.reb + B1.reb + A1.t2a + B1.t2a > 0);   /* si la 1ª mitad está vacía, el partido se trajo entero al final: no se separa */
+  const par = r.parc && r.parc.length ? `<div class="lb-sec">Parciales por cuarto</div><table class="lb-t"><thead><tr><th></th>${r.parc.map(c => `<th>${c.n > 4 ? "Pr." : c.n + "º"}</th>`).join("")}<th>Total</th></tr></thead><tbody><tr><td><b>${esc(nom[0])}</b></td>${r.parc.map(c => `<td>${c.a}</td>`).join("")}<td><b>${r.p[0]}</b></td></tr><tr><td><b>${esc(nom[1])}</b></td>${r.parc.map(c => `<td>${c.b}</td>`).join("")}<td><b>${r.p[1]}</b></td></tr></tbody></table>`
+    : !mitOk ? "" : (r.jug || []).length || hayRiv ? `<div class="lb-sec">Parciales (según las estadísticas anotadas)</div><table class="lb-t"><thead><tr><th></th><th>1ª mitad</th><th>2ª mitad</th><th>Total</th></tr></thead><tbody><tr><td><b>${esc(nom[0])}</b></td><td>${pts(A1)}</td><td>${pts(A2)}</td><td><b>${pts(A)}</b></td></tr>${hayRiv ? `<tr><td><b>${esc(nom[1])}</b></td><td>${pts(B1)}</td><td>${pts(B2)}</td><td><b>${pts(B)}</b></td></tr>` : ""}</tbody></table>` : "";
   /* destacadas */
   const jl = (r.jug || []).map(j => { const o = lbSuma(j, "tot"); return { j, o, p: pts(o) }; });
   const top = (k, fn) => { const b = jl.slice().sort((x, y) => fn(y) - fn(x))[0]; return b && fn(b) > 0 ? b : null; };
@@ -3180,14 +3182,15 @@ function libroHtml(r, imp) {
   const jg = r.jgs && r.jgs.length ? (() => { let e = 0, ok = 0; r.jgs.forEach(g => { e += g.veces; ok += g.ok; });
     return `<div class="lb-sec">Jugadas ejecutadas · efectividad global ${e ? Math.round(100 * ok / e) : 0}% (${ok}/${e})</div><table class="lb-t"><thead><tr><th class="l">Jugada</th><th>Veces</th><th>Efectivas</th><th class="l" style="width:34%">Efectividad</th></tr></thead><tbody>${r.jgs.map(g => { const q = g.veces ? Math.round(100 * g.ok / g.veces) : 0; return `<tr><td class="l"><b>${esc(g.nombre)}</b></td><td>${g.veces}</td><td>${g.ok}</td><td class="l"><div class="lb-ef"><i class="${q >= 60 ? "ok" : q >= 40 ? "md" : "mal"}" style="width:${q}%"></i><span>${q}%</span></div></td></tr>`; }).join("")}</tbody></table>`; })() : "";
   /* detalle por mitad (plegable en pantalla, abierto en el PDF) */
-  const vs = [["h1", "1ª mitad"], ["h2", "2ª mitad"]];
+  const conQ = ["q1", "q2", "q3", "q4", "q5"].filter(c => (r.jug || []).concat(r.riv || []).some(j => j.q && j.q[c] && Object.values(j.q[c]).some(x => x > 0)));
+  const vs = conQ.length > 1 ? conQ.map(c => [c, c === "q5" ? "Prórroga" : c.slice(1) + "º cuarto"]) : [["h1", "1ª mitad"], ["h2", "2ª mitad"]];
   const det = vs.map(([v, t]) => `<div class="lb-sec">${t}</div>${lbTabla(esc(nom[0]), r.jug || [], v, false)}${hayRiv ? lbTabla(esc(nom[1]), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), v, false) : ""}`).join("");
   const rivT = hayRiv ? `<div class="lb-sec">${esc(nom[1])} · total</div>${lbTabla(esc(nom[1]), (r.riv || []).map(x => Object.assign({ f: 0 }, x)), "tot", false)}` : "";
   return `<div class="lb">
     <div class="lb-cab"><div class="lb-eq"><small>LOCAL</small><b>${esc(nom[0])}</b></div><div class="lb-sc"><span>${r.p[0]}</span><i>–</i><span>${r.p[1]}</span></div><div class="lb-eq d"><small>RIVAL</small><b>${esc(nom[1])}</b></div></div>
     <div class="lb-sub"><span class="lb-res" style="background:${res[1]}">${res[0]}${r.p[0] !== r.p[1] ? " por " + Math.abs(r.p[0] - r.p[1]) : ""}</span><span>${fechaTxt(r.fecha)}</span></div>
     ${destH}${comp}${par}${tj}${rivT}${jg}
-    <details class="lb-det" ${imp ? "open" : ""}><summary>Detalle por mitades</summary>${det}</details></div>`;
+    ${conQ.length > 1 || mitOk ? `<details class="lb-det" ${imp ? "open" : ""}><summary>Detalle por ${conQ.length > 1 ? "cuartos" : "mitades"}</summary>${det}</details>` : `<p class="peq" style="margin:12px 0 0;">Este partido se trajo de la FEB ya terminado: la FEB solo da el total, por eso no hay detalle por cuartos. Para tenerlo, deja el modo partido abierto con ⏱ Auto durante el partido.</p>`}</div>`;
 }
 function pintarLibro(v) {
   const L = librosPartido();

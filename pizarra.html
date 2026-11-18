@@ -2869,7 +2869,7 @@ function iniciarPartido() {
     /* siguiente rival: si el calendario abre el partido con otro rival, se empieza un partido nuevo */
     (() => { const pidP = PARAMS.get("pid") || "", rivP = PARAMS.get("rival") || ""; if (!pidP && !rivP) return;
       const nuevo = pidP ? M.pid !== pidP : M.n[1] !== rivP; if (!nuevo) return;
-      M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.fr = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.febC = {}; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; M.hayRo = false;
+      M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.fr = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.febC = {}; M.febBase = 0; M.parc = null; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; M.hayRo = false;
       M.n[1] = rivP || "Rivales"; M.pid = pidP;
       try { if (pidP) localStorage.setItem("scoutflow-feb-partido", pidP); else localStorage.removeItem("scoutflow-feb-partido"); } catch (e) { /* nada */ }
       try { localStorage.setItem(CL, JSON.stringify(M)); } catch (e) { /* nada */ } })();
@@ -3120,7 +3120,7 @@ function iniciarPartido() {
     const ESV = { eq: 0, v: "auto", corr: false, res: false, man: (() => { try { return localStorage.getItem("scoutflow-partido-manual") !== "0"; } catch (e) { return true; } })() }, UND = [];
     /* se anota por cuartos (q1…q4, q5 = prórroga); las mitades se calculan sumando cuartos */
     const mitad = () => "q" + Math.min(5, Math.max(1, M.per || 1));
-    const CLV = { h1: ["h1", "q1", "q2"], h2: ["h2", "q3", "q4", "q5"], tot: ["h1", "h2", "q1", "q2", "q3", "q4", "q5"] };
+    const CLV = { h1: ["h1", "q1", "q2"], h2: ["h2", "q3", "q4", "q5"], tot: ["h1", "h2", "q1", "q2", "q3", "q4", "q5", "qx"] };   /* qx = lo que la FEB dio ya acumulado sin poder separarlo por cuartos */
     const clavesV = (v) => CLV[v] || [v];
     const cero = () => ({ reb: 0, ro: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, as: 0, rob: 0, tap: 0, fr: 0 });
     const vista = () => (ESV.v === "auto" ? mitad() : ESV.v);
@@ -3148,14 +3148,17 @@ function iniciarPartido() {
       /* cuarto en juego según la FEB; se guarda lo acumulado al final de cada cuarto para separar por cuartos */
       const qn = Math.min(5, Math.max(1, parseInt(d.cuartos && d.cuartos.length ? d.cuartos[d.cuartos.length - 1].n : M.per) || M.per || 1));
       if (qn !== M.per) { M.per = qn; pintarM(); }
-      M.febC = M.febC || {}; let sin = 0, n = 0;
+      M.febC = M.febC || {}; if (!M.febBase) M.febBase = qn; let sin = 0, n = 0;
+      /* marcador y parciales por cuarto, tal cual los da la FEB */
+      const ptsA = Number(eqs[mi].pts) || 0, ptsB = Number(eqs[1 - mi].pts) || 0; if (ptsA || ptsB) M.p = [ptsA, ptsB];
+      if (d.cuartos && d.cuartos.length) M.parc = d.cuartos.map(c => ({ n: c.n, a: mi === 0 ? c.a : c.b, b: mi === 0 ? c.b : c.a }));
       const num = (...xs) => { for (const x of xs) if (x !== undefined && x !== null && x !== "") return Number(x) || 0; return 0; };
       const poner = (k, p) => {
         if (p.ro !== undefined) M.hayRo = true;
         const tot = { reb: num(p.reb), ro: num(p.ro), per: num(p.per), t2m: num(p.t2m), t2a: num(p.t2a), t3m: num(p.t3m), t3a: num(p.t3a), tlm: num(p.tlm), tla: num(p.tla), as: num(p.as, p.ast, p.asis), rob: num(p.rob, p.br, p.robos), tap: num(p.tap, p.tp, p.tapones), fr: num(p.fr, p.frec, p.fRec) };
         (M.febC[qn] = M.febC[qn] || {})[k] = tot;
         const es = {}; let prev = nzero();
-        for (let q = 1; q <= qn; q++) { const snap = M.febC[q] && M.febC[q][k]; if (!snap) continue; const o = nzero(); Object.keys(o).forEach(f => o[f] = Math.max(0, (snap[f] || 0) - (prev[f] || 0))); es["q" + q] = o; prev = snap; }
+        for (let q = 1; q <= qn; q++) { const snap = M.febC[q] && M.febC[q][k]; if (!snap) continue; const o = nzero(); Object.keys(o).forEach(f => o[f] = Math.max(0, (snap[f] || 0) - (prev[f] || 0))); es[q === M.febBase && q > 1 ? "qx" : "q" + q] = o; prev = snap; }
         M.es[k] = es; n++;
       };
       /* sin plantilla (p. ej. el ayudante en su móvil): se usa la de la FEB */
@@ -3169,7 +3172,8 @@ function iniciarPartido() {
       if (eqs[1 - mi].nombre) { M.n[1] = eqs[1 - mi].nombre; const ii = panel.querySelector("[data-n=\"1\"]"); if (ii) ii.value = M.n[1]; }
       guardarM(); pintarPl(); pintarM();
       const q = d.cuartos && d.cuartos.length ? " · cuarto " + d.cuartos[d.cuartos.length - 1].n : "";
-      FEB.msg = "📡 FEB actualizada " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "");
+      const avisoQ = M.febBase > 1 ? " · ⚠️ lo jugado hasta el " + (M.febBase === 5 ? "final" : M.febBase + "º cuarto") + " llegó junto: solo cuenta en el Total (para separar por cuartos, deja el modo partido abierto con ⏱ Auto durante el partido)" : "";
+      FEB.msg = "📡 FEB actualizada " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "") + avisoQ;
     };
     const febTraer = async (callado) => {
       let id = ""; try { id = localStorage.getItem("scoutflow-feb-partido") || ""; } catch (e) { /* nada */ }
@@ -3352,15 +3356,15 @@ function iniciarPartido() {
     $("mpMan").onclick = () => { const v = prompt("Tiempo en minutos (ej. 10, o 2:30 para 2 min 30 s):", "10"); if (v == null) return; const m = String(v).trim().match(/^(\d+)(?:[:.,](\d{1,2}))?$/); if (!m) { aviso("Tiempo no válido"); return; } const sec = v.includes(":") ? Number(m[1]) * 60 + Number(m[2] || 0) : Number(m[1]) * 60 + (m[2] ? Math.round(Number("0." + m[2]) * 60) : 0); if (sec > 0) iniciarT(sec); };
 
     /* ---- guardar el partido en el libro ---- */
-    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.febC = {}; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; M.fr = {}; M.hayRo = false; M.n[1] = "Rivales"; M.pid = ""; try { localStorage.removeItem("scoutflow-feb-partido"); } catch (e) { /* nada */ } { const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = "Rivales"; } UND.length = 0; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
+    const reiniciaTodo = () => { M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.febC = {}; M.febBase = 0; M.parc = null; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; M.fr = {}; M.hayRo = false; M.n[1] = "Rivales"; M.pid = ""; try { localStorage.removeItem("scoutflow-feb-partido"); } catch (e) { /* nada */ } { const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = "Rivales"; } UND.length = 0; guardarM(); pintarM(); pintarJg(); pintarHoy(); };
     $("mpGu").onclick = async () => {
       const act = (k) => { const h1 = suma(k, "h1"), h2 = suma(k, "h2"), q = {}; ["q1", "q2", "q3", "q4", "q5"].forEach(c => { if ((M.es[k] || {})[c]) q[c] = suma(k, c); }); return { h1, h2, q, hay: Object.values(h1).concat(Object.values(h2)).some(x => x > 0) }; };
       const ids = new Set(PLT.map(j => j.id).concat(Object.keys(M.es).filter(k => k.indexOf("rv") !== 0)).concat(Object.keys(M.fj || {})));
-      const jug = [...ids].map(k => { const j = PLT.find(x => x.id === k), a = act(k), f = (M.fj || {})[k] || 0; const t = suma(k, "tot"), pts = t.t2m * 2 + t.t3m * 3 + t.tlm; return a.hay || f ? { id: k, nombre: j ? j.nombre : k, num: j ? j.num : "", f, h1: a.h1, h2: a.h2, q: a.q, val: valor(t, pts, f) } : null; }).filter(Boolean);
-      const riv = Object.keys(M.es).filter(k => k.indexOf("rv") === 0).map(k => { const a = act(k); return a.hay ? { k, nombre: k === "rv" ? "Equipo" : rvT(k.slice(2)), h1: a.h1, h2: a.h2 } : null; }).filter(Boolean);
+      const jug = [...ids].map(k => { const j = PLT.find(x => x.id === k), a = act(k), f = (M.fj || {})[k] || 0; const t = suma(k, "tot"), pts = t.t2m * 2 + t.t3m * 3 + t.tlm, hay = a.hay || Object.values(t).some(x => x > 0); return hay || f ? { id: k, nombre: j ? j.nombre : k, num: j ? j.num : "", f, h1: a.h1, h2: a.h2, q: a.q, tot: t, val: valor(t, pts, f) } : null; }).filter(Boolean);
+      const riv = Object.keys(M.es).filter(k => k.indexOf("rv") === 0).map(k => { const a = act(k), t = suma(k, "tot"); return a.hay || Object.values(t).some(x => x > 0) ? { k, nombre: k === "rv" ? "Equipo" : rvT(k.slice(2)), h1: a.h1, h2: a.h2, q: a.q, tot: t } : null; }).filter(Boolean);
       if (!jug.length && !riv.length && !M.p[0] && !M.p[1] && !Object.keys(M.jg).length) { aviso("No hay nada que guardar todavía"); return; }
       const jgs = Object.entries(M.jg).map(([id, g]) => ({ id, nombre: g.n, veces: g.e, ok: g.ok })).sort((a, b) => b.veces - a.veces);
-      const rec = { id: "pt" + Date.now().toString(36), fecha: new Date().toISOString(), n: M.n.slice(), p: M.p.slice(), per: M.per, jug, riv, jgs };
+      const rec = { id: "pt" + Date.now().toString(36), fecha: new Date().toISOString(), n: M.n.slice(), p: M.p.slice(), per: M.per, jug, riv, jgs, parc: M.parc || null, sinMitades: M.febBase > 2 };
       let lib = []; try { lib = JSON.parse(localStorage.getItem("scoutflow-libro") || "[]"); } catch (e) { lib = []; }
       lib.unshift(rec); try { localStorage.setItem("scoutflow-libro", JSON.stringify(lib.slice(0, 60))); } catch (e) { /* nada */ }
       let nubeOk = false; if (modoNube) { try { const r = await nube.from("archivos").upsert({ id: rec.id, nombre: JSON.stringify(rec), tipo: "partido", ruta: "partido" }); nubeOk = !r.error; } catch (e) { /* sin red o sin permiso */ } }
@@ -3371,7 +3375,7 @@ function iniciarPartido() {
     panel.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { const [k, d] = b.dataset.f.split(":").map(Number); M.f[k] = Math.max(0, M.f[k] + d); guardarM(); pintarM(); });
     panel.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.p); M.f = [0, 0]; guardarM(); pintarM(); });
     panel.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { M.n[Number(i.dataset.n)] = i.value; guardarM(); });
-    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.febC = {}; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; M.fr = {}; M.hayRo = false; M.n[1] = "Rivales"; M.pid = ""; try { localStorage.removeItem("scoutflow-feb-partido"); } catch (e) { /* nada */ } { const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = "Rivales"; } guardarM(); pintarM(); pintarJg(); pintarHoy(); };
+    $("mpCero").onclick = () => { if (!confirm("¿Poner el marcador a cero?")) return; M.p = [0, 0]; M.f = [0, 0]; M.per = 1; M.fj = {}; M.es = {}; M.rvn = []; M.rvNom = {}; M.febH1 = {}; M.febC = {}; M.febBase = 0; M.parc = null; M.jg = {}; M.jl = []; M.jx = []; M.jv = []; M.fr = {}; M.hayRo = false; M.n[1] = "Rivales"; M.pid = ""; try { localStorage.removeItem("scoutflow-feb-partido"); } catch (e) { /* nada */ } { const ii = panel.querySelector('[data-n="1"]'); if (ii) ii.value = "Rivales"; } guardarM(); pintarM(); pintarJg(); pintarHoy(); };
     $("mpX").onclick = () => { panel.classList.remove("ver"); pintarT(); };
     panel.addEventListener("pointerdown", (e) => { if (e.target === panel) { panel.classList.remove("ver"); pintarT(); } });
     $("ptMarc").onclick = $("ptMarcF").onclick = () => { panel.classList.add("ver"); pill.style.display = "none"; pintarJg(); };
