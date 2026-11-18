@@ -211,6 +211,44 @@
   .com-cp{flex:none;padding:7px 16px !important;font-size:13.5px !important;}
   .com-vacio{text-align:center;padding:54px 20px;border:1.5px dashed var(--line);border-radius:16px;color:var(--soft);} .com-vacio div{font-size:38px;opacity:.5;} .com-vacio b{display:block;color:var(--ink);font-size:17px;margin:8px 0 4px;} .com-vacio p{margin:0;}
   @media (max-width:600px){.com-hero h2{font-size:23px;} .com-q{flex-basis:100%;} .com-tools select{flex:1;} .com-grid{grid-template-columns:1fr 1fr;gap:10px;} .com-body{padding:10px;} .com-body h3{font-size:14.5px;} .com-desc,.com-tg{display:none;} .com-foot{flex-wrap:wrap;} .com-cp{width:100%;}}
+  .tp{max-width:1200px;display:flex;flex-direction:column;gap:16px;}
+  .tp-vacio{text-align:center;padding:50px 20px;border:1.5px dashed var(--line);border-radius:18px;max-width:640px;margin:20px auto;} .tp-vacio b{display:block;font-size:20px;margin:8px 0;} .tp-vacio p{color:var(--soft);line-height:1.5;margin:0 0 16px;}
+  .tp-hero{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;}
+  .tp-hero>div:first-child{flex:1;min-width:260px;} .tp-sup{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--orange);} .tp-hero h2{margin:2px 0 6px;font-size:26px;letter-spacing:-.02em;}
+  .tp-now{color:var(--soft);font-size:14.5px;} .tp-now b{color:var(--ink);} .tp-prog{height:8px;background:var(--suave);border-radius:99px;overflow:hidden;margin-top:12px;max-width:520px;} .tp-prog i{display:block;height:100%;background:var(--orange);border-radius:99px;}
+  .tp-acc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;} .tp-acc select{width:auto;margin:0;}
+  .tp-sec{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px;min-width:0;}
+  .tp-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;} .tp-h h3{margin:0;font-size:17px;flex:1;min-width:max-content;}
+  .tp-g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} @media (max-width:900px){.tp-g2{grid-template-columns:1fr;}}
+  .tp-tl{position:relative;padding:18px 0 22px;} .tp-tl-m{position:relative;height:16px;} .tp-tl-m span{position:absolute;top:0;font-size:10.5px;font-weight:800;color:var(--soft);letter-spacing:.05em;border-left:1px solid var(--line);padding-left:4px;height:78px;}
+  .tp-tl-b{position:relative;height:44px;background:var(--suave);border-radius:10px;margin-top:4px;} .tp-tl-e{position:absolute;top:0;bottom:0;border-radius:8px;display:flex;align-items:center;padding:0 8px;overflow:hidden;cursor:pointer;color:#fff;font-weight:800;font-size:12.5px;border:2px solid #fff;} .tp-tl-e span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .tp-tl-e:hover{filter:brightness(1.08);}
+  .tp-tl-v{padding:12px;color:var(--soft);font-size:13px;}
+  .tp-tl-p{position:relative;height:16px;margin-top:6px;} .tp-tl-p i{position:absolute;top:3px;width:10px;height:10px;border-radius:50%;margin-left:-5px;border:2px solid #fff;box-shadow:0 0 0 1px #0002;}
+  .tp-tl-h{position:absolute;top:10px;bottom:0;width:2px;background:#e8403a;margin-left:-1px;} .tp-tl-h span{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#e8403a;color:#fff;font-size:9.5px;font-weight:900;padding:1px 5px;border-radius:4px;}
+  .tp-obs{display:flex;flex-direction:column;gap:6px;} .tp-ob{display:flex;align-items:flex-start;gap:8px;text-align:left;background:var(--suave);border:0;border-radius:10px;padding:8px 10px;font-weight:600;font-size:14px;color:var(--ink);cursor:pointer;width:100%;line-height:1.35;} .tp-d{flex:none;display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid #868e96;margin-top:2px;box-sizing:border-box;} .medio .tp-d{border-color:#f59f00;background:linear-gradient(90deg,#f59f00 50%,transparent 50%);} .ok .tp-d{border-color:#2b8a3e;background:#2b8a3e;}
+  .tp-cnt span{display:inline-flex;align-items:center;gap:5px;font-weight:800;} .tp-cnt .tp-d{margin:0;} .tp-ley{display:inline-flex;align-items:center;gap:4px;} .tp-ley .tp-d{width:11px;height:11px;margin:0;}
+  .tp-ob.medio{background:#fff4e0;} .tp-ob.ok{background:#e6f6ea;} .tp-ob.ok{text-decoration:line-through;text-decoration-color:#2b8a3e88;}
+  .tp-ob:disabled{cursor:default;opacity:1;}
+  .tp-cnt{font-size:14px;display:flex;gap:10px;} .tp-add{display:flex;gap:8px;margin-top:10px;} .tp-add input{margin:0;flex:1;}
+  .tp-tabs{display:inline-flex;background:var(--suave);border-radius:10px;padding:3px;gap:2px;} .tp-tabs button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font-weight:700;font-size:13px;color:var(--soft);} .tp-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px #0002;}
+  .tp-br{display:grid;grid-template-columns:120px 1fr 64px;gap:10px;align-items:center;margin:0 0 7px;font-size:13.5px;} .tp-br span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;} .tp-br div{height:10px;background:var(--suave);border-radius:99px;overflow:hidden;} .tp-br i{display:block;height:100%;background:var(--orange);border-radius:99px;} .tp-br b{text-align:right;font-variant-numeric:tabular-nums;}
+  .tp-ets{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+  .tp-et{border:1px solid var(--line);border-top:5px solid var(--c);border-radius:14px;padding:12px 14px;} .tp-et.act{box-shadow:0 0 0 2px var(--c);}
+  .tp-et-h{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;margin-bottom:6px;} .tp-et-h b{font-size:16px;display:block;} .tp-et-h small{color:var(--soft);font-size:12.5px;} .tp-et-h button{padding:6px 10px;}
+  .tp-og{margin-top:8px;display:flex;flex-direction:column;gap:4px;} .tp-og>small{font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--soft);text-transform:uppercase;} .tp-og .tp-ob{padding:6px 9px;font-size:13px;}
+  .tp-ws{display:flex;flex-direction:column;gap:6px;max-height:640px;overflow:auto;}
+  .tp-w{display:grid;grid-template-columns:150px minmax(180px,1.4fr) 1fr 1fr 70px;gap:10px;align-items:center;padding:9px 10px 9px 14px;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;background:#fff;}
+  .tp-w.cab{position:sticky;top:0;z-index:1;border:0;background:var(--suave);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);padding:7px 10px 7px 19px;}
+  .tp-w.act{background:#fff6f0;box-shadow:0 0 0 2px var(--orange);} .tp-w.pas{opacity:.72;}
+  .tp-w-n b{display:block;font-size:14px;} .tp-w-n small{color:var(--soft);font-size:12px;display:block;} .tp-w-e{display:inline-block;margin-top:3px;font-size:11px;font-weight:800;color:var(--c);}
+  .tp-foco{margin:0 !important;padding:7px 10px !important;font-size:14px !important;border-radius:9px !important;} .tp-w-f small{display:block;color:var(--soft);font-size:12px;margin-top:3px;}
+  .tp-w-p,.tp-w-e2{display:flex;flex-direction:column;gap:3px;font-size:13px;min-width:0;} .tp-par{font-weight:600;} .tp-par.g{color:#2b8a3e;} .tp-par.p{color:#c92a2a;}
+  .tp-w-e2 a{color:var(--ink);text-decoration:none;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .tp-w-e2 a:hover{color:var(--orange);} .tp-w-e2 .tp-np{color:var(--orange);font-size:12.5px;opacity:.8;}
+  .tp-w-m{text-align:right;} .tp-w-m b{display:block;font-size:15px;} .tp-w-m small{display:block;color:var(--soft);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  @media (max-width:820px){ .tp-w{grid-template-columns:1fr 1fr;} .tp-w.cab{display:none;} .tp-w-f{grid-column:1/-1;order:3;} .tp-w-m{text-align:left;} .tp-br{grid-template-columns:90px 1fr 54px;} .tp-hero h2{font-size:22px;} }
+  .tp-cl{width:30px;height:30px;border-radius:50%;padding:0;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);} .tp-cl.on{box-shadow:0 0 0 3px var(--ink);}
+  #hojaImp .tp-pl{margin:0;padding-left:16px;font-size:9.5pt;} #hojaImp .tp-pe{padding:4px 0 4px 10px;margin:0 0 8px;break-inside:avoid;} #hojaImp .tp-p3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;} #hojaImp .tp-p3 small{font-size:7.5pt;font-weight:800;color:#888;}
+  #hojaImp .tp-pt{width:100%;border-collapse:collapse;font-size:8.5pt;} #hojaImp .tp-pt th,#hojaImp .tp-pt td{border-bottom:1px solid #ddd;padding:3px 5px;text-align:left;vertical-align:top;} #hojaImp .tp-pt th{background:#f1f3f5;}
   .tj{position:relative;background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;} .tj:hover{border-color:#e0602a;}
   .mini-l{flex:none;width:136px;height:124px;border-radius:10px;overflow:hidden;border:1px solid #d9dee3;padding:3px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;} .mini-l svg{width:100%;height:100%;display:block;}
   .fila.c-jug:not(.cabt){padding-top:7px;padding-bottom:7px;}
@@ -735,6 +773,7 @@ window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscu
       <button data-s="comunidad"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"/></svg></span><span class="tx">Comunidad</span></button>
     </div>
     <div class="grupo"><h4>Planificación</h4>
+      <button data-s="temporada"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/><rect x="5" y="4" width="7" height="4" rx="1" fill="currentColor" opacity=".25"/><rect x="10" y="10" width="9" height="4" rx="1" fill="currentColor" opacity=".25"/><rect x="4" y="16" width="5" height="4" rx="1" fill="currentColor" opacity=".25"/></svg></span><span class="tx">Temporada</span></button>
       <button data-s="calendario"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4"/></svg></span><span class="tx">Calendario</span></button>
       <button data-s="ejercicios"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><span class="tx">Ejercicios</span><span class="n" id="n-ejercicios"></span></button>
       <button data-s="planes"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.500" y="5" width="17" height="15.500" rx="2.500"/><path d="M3.500 10h17M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.01M8 17.500h2M12 17.500h2"/></svg></span><span class="tx">Planes de entreno</span><span class="n" id="n-planes"></span></button>
@@ -897,7 +936,7 @@ function usoDetalle() {
   r.total = r.img + r.vid + r.aud + r.otros + r.scout; return r;
 }
 const avisoGB = () => { try { const v = parseFloat(localStorage.getItem("sf_aviso_gb")); return v > 0 ? v : 10; } catch (e) { return 10; } };
-const SECCIONES = { inicio: "Inicio", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", plantilla: "Plantilla", cuenta: "Mi cuenta", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" , comunidad: "Comunidad" };
+const SECCIONES = { inicio: "Inicio", temporada: "Planificación de temporada", calendario: "Calendario", jugadas: "Jugadas", playbooks: "Playbooks", ejercicios: "Ejercicios", planes: "Planes de entrenamiento", plantilla: "Plantilla", cuenta: "Mi cuenta", equipos: "Quintetos y equipos", mini: "Mini basket", tiro: "Tiro (competición)", chat: "Equipo técnico", libro: "Libro de partidos", video: "Vídeos", imagen: "Imágenes", audio: "Audio" , comunidad: "Comunidad" };
 
 /* copia local (IndexedDB) para abrir sin internet */
 /* la copia sin conexión es de cada cuenta: así otra cuenta en el mismo navegador nunca ve los datos de la anterior */
@@ -994,6 +1033,7 @@ function pintar() {
   if (seccion === "inicio") return pintarInicio(v);
   if (seccion === "jugadas" || seccion === "ejercicios" || seccion === "planes") return pintarCarpetas(v, seccion);
   if (seccion === "calendario") return pintarCalendario(v);
+  if (seccion === "temporada") return pintarTemporada(v);
   if (seccion === "playbooks") return pintarPlaybooks(v);
   if (seccion === "comunidad") return pintarComunidad(v);
   if (seccion === "chat") return pintarChat(v);
@@ -4197,6 +4237,184 @@ function calResultado(p) { if (!p.jugado || p.pl === "" || p.pv === "") return n
 const calIc = (e) => e.tipo === "feb" ? (e.casa ? "🏠" : "🚌") : CAL_TIPOS[e.tipo].i;
 const calChip = (e) => { const t = CAL_TIPOS[e.tipo], r = e.feb ? calResultado(e.feb) : null;
   return `<div class="cal-ch" data-e="${esc(e.id)}" style="--c:${t.c};" title="${esc((e.hora ? e.hora + " · " : "") + e.titulo + (e.cat ? " · " + e.cat : ""))}"><span>${e.hora ? '<b>' + esc(e.hora) + '</b> ' : ""}${calIc(e)} ${esc(e.titulo)}</span>${r ? `<i class="${r.gano ? "g" : "p"}">${r.txt}</i>` : ""}</div>`; };
+
+/* ===================== PLANIFICACIÓN DE TEMPORADA =====================
+   temporada → objetivos generales → etapas (con objetivos técnicos/tácticos/físicos) → semanas (foco, partidos, planes)
+   se guarda en «archivos» (tipo "temporada"), como los equipos */
+const TP = { sel: null, ver: "todas", et: "" };
+const TP_COL = ["#e0602a", "#2f80ed", "#2f9e83", "#7b61ff", "#d6336c", "#f59f00", "#0c8599", "#495057"];
+const TP_EST = { pend: ["Pendiente", "○", "#868e96"], medio: ["A medias", "~", "#f59f00"], ok: ["Conseguido", "✓", "#2b8a3e"] };
+const tpIso = (d) => calISO(d), tpD = (s) => { const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const tpLunes = (s) => { const d = tpD(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return tpIso(d); };
+const tpMas = (s, n) => { const d = tpD(s); d.setDate(d.getDate() + n); return tpIso(d); };
+const tpCorta = (s) => { const d = tpD(s); return d.getDate() + " " + ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][d.getMonth()]; };
+const tpLista = () => D.archivos.filter(a => a.tipo === "temporada").map(a => { try { return Object.assign(JSON.parse(a.nombre || "{}"), { id: a.id }); } catch (e) { return null; } }).filter(Boolean).sort((a, b) => String(b.inicio).localeCompare(String(a.inicio)));
+async function tpGuardar(t) {
+  const o = Object.assign({}, t); delete o.id; const nombre = JSON.stringify(o);
+  if (!await guardarFila("archivos", { id: t.id, nombre, tipo: "temporada", ruta: "", mime: "", tamano: 0 })) return false;
+  const r = D.archivos.find(a => a.id === t.id); if (r) r.nombre = nombre; else D.archivos.push({ id: t.id, nombre, tipo: "temporada", ruta: "", mime: "", tamano: 0 });
+  return true;
+}
+function tpEjemplo(nombre, ini, fin, equipo) {
+  const L = (s) => s.split("|").map(t => ({ id: idNuevo("o"), t, e: "pend" }));
+  const a = ini, dic = (Number(ini.slice(0, 4))) + "-12-21", ene = (Number(ini.slice(0, 4)) + 1) + "-01-07", mar = (Number(ini.slice(0, 4)) + 1) + "-03-31";
+  const pre = tpMas(a, 27);
+  const et = [
+    { n: "Pretemporada", i: a, f: pre, tec: "Fundamentos individuales: bote, pase y tiro|Finalizaciones con las dos manos", tac: "Conceptos básicos de ataque (espacios, cortes)|Defensa individual: posición y ayudas", fis: "Base aeróbica|Fuerza general y prevención de lesiones" },
+    { n: "1ª vuelta", i: tpMas(pre, 1), f: tpMas(dic, -1), tec: "Tiro tras bote y en movimiento|Pase contra presión", tac: "Sistemas de ataque principales|Transición defensiva|Defensa del bloqueo directo", fis: "Velocidad y cambios de ritmo|Mantenimiento de fuerza" },
+    { n: "Navidad", i: dic, f: tpMas(ene, -1), tec: "Recuperar ritmo de tiro", tac: "Repaso de sistemas", fis: "Descanso activo|Mantener condición" },
+    { n: "2ª vuelta", i: ene, f: mar, tec: "Lectura de ventajas (1x1, 2x2)|Tiros libres bajo fatiga", tac: "Ajustes según rival (scouting)|Situaciones especiales: saques y final de partido", fis: "Potencia|Recuperación entre partidos" },
+    { n: "Fase final", i: tpMas(mar, 1), f: fin, tec: "Afinar el tiro", tac: "Pocos sistemas y muy bien ejecutados|Plan de partido para cada rival", fis: "Puesta a punto|Cargas bajas" },
+  ].filter(e => e.i <= fin).map((e, k) => ({ id: idNuevo("e"), nombre: e.n, ini: e.i, fin: e.f > fin ? fin : e.f, color: TP_COL[k % TP_COL.length], tec: L(e.tec), tac: L(e.tac), fis: L(e.fis), notas: "" }));
+  return { id: "_temp_" + Date.now().toString(36), nombre, equipo: equipo || "", inicio: ini, fin, objetivos: L("Defender fuerte y con ayudas|Correr el contraataque|Que todo el equipo progrese y juegue|Clasificarnos para la fase final"), etapas: et, semanas: {} };
+}
+function tpForm(t, nueva) {
+  const y = new Date().getMonth() >= 6 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+  const ini0 = (t && t.inicio) || y + "-09-01", fin0 = (t && t.fin) || (y + 1) + "-05-31", eqs = (() => { try { eqAsegurar(); return (EQ.equipos || []).map(q => q.nombre).filter(Boolean); } catch (e) { return []; } })();
+  ventana(`<h3>${nueva ? "Nueva temporada" : "Editar temporada"}</h3>
+    <label>Nombre</label><input id="tfN" value="${esc((t && t.nombre) || "Temporada " + y + "/" + String(y + 1).slice(2))}">
+    <label>Equipo</label><input id="tfE" list="tfEl" value="${esc((t && t.equipo) || calMiEq() || "")}" placeholder="Ej. Cadete A"><datalist id="tfEl">${eqs.map(q => `<option value="${esc(q)}">`).join("")}</datalist>
+    <div class="dos"><div><label>Empieza</label><input id="tfI" type="date" value="${ini0}"></div><div><label>Termina</label><input id="tfF" type="date" value="${fin0}"></div></div>
+    ${nueva ? `<label style="display:flex;gap:10px;align-items:center;margin:14px 0 0;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;text-transform:none;letter-spacing:0;font-size:14.5px;font-weight:600;"><input type="checkbox" id="tfX" checked style="width:18px;height:18px;margin:0;"> Empezar con una plantilla de ejemplo (etapas y objetivos que luego cambias)</label>` : ""}
+    <div class="pie-m">${!nueva ? '<button class="gris" id="tfB" style="margin-right:auto;color:#c92a2a;">🗑 Borrar</button>' : ""}<button class="gris" id="tfC">Cancelar</button><button class="naranja" id="tfG">${nueva ? "Crear" : "Guardar"}</button></div>`);
+  $("tfC").onclick = cerrarVentana;
+  if ($("tfB")) $("tfB").onclick = async () => { if (!await confirmar("¿Borrar la temporada «" + t.nombre + "» y toda su planificación?")) return; if (await borrarFila("archivos", t.id)) { D.archivos = D.archivos.filter(a => a.id !== t.id); TP.sel = null; cerrarVentana(); pintar(); } };
+  $("tfG").onclick = async () => {
+    const n = $("tfN").value.trim() || "Temporada", i = $("tfI").value, f = $("tfF").value; if (!i || !f || f <= i) { aviso("Revisa las fechas."); return; }
+    let x; if (nueva) x = $("tfX").checked ? tpEjemplo(n, i, f, $("tfE").value.trim()) : { id: "_temp_" + Date.now().toString(36), nombre: n, equipo: $("tfE").value.trim(), inicio: i, fin: f, objetivos: [], etapas: [], semanas: {} };
+    else x = Object.assign(t, { nombre: n, equipo: $("tfE").value.trim(), inicio: i, fin: f });
+    if (await tpGuardar(x)) { TP.sel = x.id; cerrarVentana(); aviso(nueva ? "Temporada creada ✓" : "Guardado"); pintar(); }
+  };
+}
+function tpFormEtapa(t, e) {
+  const nueva = !e; e = e || { id: idNuevo("e"), nombre: "", ini: t.inicio, fin: t.fin, color: TP_COL[(t.etapas || []).length % TP_COL.length], tec: [], tac: [], fis: [], notas: "" };
+  const ls = (a) => (a || []).map(o => o.t).join("\n");
+  const m = ventana(`<h3>${nueva ? "Nueva etapa" : "Editar etapa"}</h3>
+    <label>Nombre</label><input id="teN" value="${esc(e.nombre)}" placeholder="Ej. Pretemporada, 1ª vuelta…">
+    <div class="dos"><div><label>Desde</label><input id="teI" type="date" value="${e.ini}"></div><div><label>Hasta</label><input id="teF" type="date" value="${e.fin}"></div></div>
+    <label>Color</label><div style="display:flex;gap:8px;flex-wrap:wrap;">${TP_COL.map(c => `<button type="button" class="tp-cl ${c === e.color ? "on" : ""}" data-c="${c}" style="background:${c};"></button>`).join("")}</div>
+    <label>🏀 Objetivos técnicos <small style="text-transform:none;letter-spacing:0;font-weight:500;">(uno por línea)</small></label><textarea id="teT" rows="3">${esc(ls(e.tec))}</textarea>
+    <label>🧠 Objetivos tácticos</label><textarea id="teA" rows="3">${esc(ls(e.tac))}</textarea>
+    <label>💪 Objetivos físicos</label><textarea id="teS" rows="2">${esc(ls(e.fis))}</textarea>
+    <label>Notas</label><textarea id="teO" rows="2">${esc(e.notas || "")}</textarea>
+    <div class="pie-m">${!nueva ? '<button class="gris" id="teB" style="margin-right:auto;color:#c92a2a;">🗑 Borrar etapa</button>' : ""}<button class="gris" id="teC">Cancelar</button><button class="naranja" id="teG">Guardar</button></div>`);
+  let col = e.color; m.querySelectorAll(".tp-cl").forEach(b => b.onclick = () => { col = b.dataset.c; m.querySelectorAll(".tp-cl").forEach(x => x.classList.toggle("on", x === b)); });
+  const lineas = (txt, ant) => txt.split("\n").map(x => x.trim()).filter(Boolean).map(t2 => (ant || []).find(o => o.t === t2) || { id: idNuevo("o"), t: t2, e: "pend" });
+  $("teC").onclick = cerrarVentana;
+  if ($("teB")) $("teB").onclick = async () => { if (!await confirmar("¿Borrar la etapa «" + e.nombre + "»?")) return; t.etapas = t.etapas.filter(x => x.id !== e.id); if (await tpGuardar(t)) { cerrarVentana(); pintar(); } };
+  $("teG").onclick = async () => {
+    const i = $("teI").value, f = $("teF").value; if (!$("teN").value.trim()) { aviso("Ponle nombre a la etapa."); return; } if (!i || !f || f < i) { aviso("Revisa las fechas."); return; }
+    Object.assign(e, { nombre: $("teN").value.trim(), ini: i, fin: f, color: col, tec: lineas($("teT").value, e.tec), tac: lineas($("teA").value, e.tac), fis: lineas($("teS").value, e.fis), notas: $("teO").value.trim() });
+    if (nueva) t.etapas.push(e); t.etapas.sort((a, b) => a.ini.localeCompare(b.ini));
+    if (await tpGuardar(t)) { cerrarVentana(); pintar(); }
+  };
+}
+/* semanas de la temporada con su etapa, partidos, planes y minutos por categoría */
+function tpSemanas(t) {
+  if (CAL.ev === null) CAL.ev = calLeer();
+  let evs = []; try { evs = calEventos().filter(x => x.tipo === "feb" || x.tipo === "partido"); } catch (e) { evs = []; }
+  const eqN = String(t.equipo || "").trim().toLowerCase();
+  const out = []; let l = tpLunes(t.inicio), n = 0;
+  while (l <= t.fin && n < 60) {
+    n++; const d = tpMas(l, 6), et = (t.etapas || []).find(e => e.ini <= d && e.fin >= l) || null;
+    const par = evs.filter(x => x.fecha >= l && x.fecha <= d && (!eqN || x.tipo === "feb" || !x.cat || String(x.cat).trim().toLowerCase() === eqN));
+    const planes = D.planes.filter(p => p.fecha && String(p.fecha).slice(0, 10) >= l && String(p.fecha).slice(0, 10) <= d && (!eqN || !((p.data || {}).equipo) || String(p.data.equipo).trim().toLowerCase() === eqN));
+    const cats = {}; let min = 0;
+    planes.forEach(p => ((p.data || {}).ejercicios || []).forEach(s2 => { if (s2.sec) return; const ej = ejDe(s2), c = (ej && ej.data && ej.data.categoria) || "Otros", mm = Number(s2.min) || 0; cats[c] = (cats[c] || 0) + mm; min += mm; }));
+    out.push({ n, l, d, et, par, planes, cats, min, w: (t.semanas || {})[l] || {} });
+    l = tpMas(l, 7);
+  }
+  return out;
+}
+function pintarTemporada(v) {
+  const L = tpLista();
+  if (!L.length) { v.innerHTML = `<div class="cab"><h2>Planificación de temporada</h2></div><div class="tp-vacio"><div style="font-size:44px;">🗓️</div><b>Planifica tu temporada</b><p>Divide la temporada en etapas con sus objetivos, pon el foco de cada semana y mira qué partidos y entrenamientos tocan. Todo enlazado con tu calendario y tus planes.</p>${puedeEscribir ? '<button class="naranja" id="tpN">＋ Crear temporada</button>' : '<p class="peq">Todavía no hay ninguna temporada creada.</p>'}</div>`; if ($("tpN")) $("tpN").onclick = () => tpForm(null, true); return; }
+  const t = L.find(x => x.id === TP.sel) || L[0]; TP.sel = t.id; t.etapas = t.etapas || []; t.objetivos = t.objetivos || []; t.semanas = t.semanas || {};
+  if (!CAL.feb && CAL.febEstado !== "cargando") calCargarFeb().then(() => { if (seccion === "temporada") pintar(); });
+  const hoy = calISO(new Date()), S = tpSemanas(t), sAct = S.find(w => w.l <= hoy && w.d >= hoy), etAct = t.etapas.find(e => e.ini <= hoy && e.fin >= hoy);
+  const tot = (tpD(t.fin) - tpD(t.inicio)) || 1, pos = (s2) => Math.max(0, Math.min(100, 100 * (tpD(s2) - tpD(t.inicio)) / tot)), avance = Math.round(pos(hoy));
+  const ro = !puedeEscribir;
+  /* objetivos */
+  const todosObj = t.objetivos.concat(...t.etapas.map(e => [].concat(e.tec || [], e.tac || [], e.fis || [])));
+  const cnt = { ok: 0, medio: 0, pend: 0 }; todosObj.forEach(o => cnt[o.e || "pend"]++);
+  const obj = (o, ruta) => `<button class="tp-ob ${o.e || "pend"}" data-ob="${esc(ruta)}" ${ro ? "disabled" : ""} title="${TP_EST[o.e || "pend"][0]} · toca para cambiar"><i class="tp-d"></i>${esc(o.t)}</button>`;
+  /* línea de tiempo */
+  const meses = []; { const d = tpD(t.inicio); d.setDate(1); while (tpIso(d) <= t.fin) { if (tpIso(d) >= t.inicio || meses.length === 0) meses.push(tpIso(d)); d.setMonth(d.getMonth() + 1); } }
+  const parT = S.flatMap(w => w.par);
+  const linea = `<div class="tp-tl"><div class="tp-tl-m">${meses.map(m => `<span style="left:${pos(m < t.inicio ? t.inicio : m)}%">${["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][tpD(m).getMonth()]}</span>`).join("")}</div>
+    <div class="tp-tl-b">${t.etapas.map(e => `<div class="tp-tl-e" data-et="${esc(e.id)}" style="left:${pos(e.ini)}%;width:${Math.max(1.5, pos(tpMas(e.fin, 1)) - pos(e.ini))}%;background:${e.color};" title="${esc(e.nombre)} · ${tpCorta(e.ini)} – ${tpCorta(e.fin)}"><span>${esc(e.nombre)}</span></div>`).join("") || '<div class="tp-tl-v">Añade etapas para verlas aquí</div>'}</div>
+    <div class="tp-tl-p">${parT.map(x => { const r = x.feb ? calResultado(x.feb) : null; return `<i style="left:${pos(x.fecha)}%;background:${r ? (r.gano ? "#2b8a3e" : "#c92a2a") : "#1b2432"};" title="${esc(tpCorta(x.fecha) + " · " + x.titulo + (r ? " · " + r.txt : ""))}"></i>`; }).join("")}</div>
+    ${hoy >= t.inicio && hoy <= t.fin ? `<div class="tp-tl-h" style="left:${pos(hoy)}%"><span>HOY</span></div>` : ""}</div>`;
+  /* trabajo realizado (minutos por categoría en toda la temporada y en la etapa actual) */
+  const sumaCats = (ws) => { const o = {}; ws.forEach(w => Object.keys(w.cats).forEach(c => o[c] = (o[c] || 0) + w.cats[c])); return Object.entries(o).sort((a, b) => b[1] - a[1]); };
+  const barras = (arr) => { const mx = Math.max(1, ...arr.map(x => x[1])); return arr.length ? arr.map(([c, m]) => `<div class="tp-br"><span>${esc(c)}</span><div><i style="width:${Math.round(100 * m / mx)}%"></i></div><b>${m >= 60 ? Math.floor(m / 60) + "h " + (m % 60 ? (m % 60) + "′" : "") : m + "′"}</b></div>`).join("") : '<p class="peq">Aún no hay planes de entreno con fecha en esta temporada. Cuando pongas fecha a tus planes, aquí verás qué has trabajado más y qué menos.</p>'; };
+  const catsTemp = sumaCats(S.filter(w => w.l <= hoy)), catsEt = etAct ? sumaCats(S.filter(w => w.et === etAct && w.l <= hoy)) : [];
+  const nPlan = S.reduce((a, w) => a + w.planes.length, 0);
+  /* semanas */
+  const filtro = S.filter(w => (TP.ver !== "proximas" || w.d >= hoy) && (!TP.et || (w.et && w.et.id === TP.et)));
+  const filas = filtro.map(w => `<div class="tp-w ${w === sAct ? "act" : ""} ${w.d < hoy ? "pas" : ""}" data-w="${w.l}" style="--c:${w.et ? w.et.color : "#ced4da"}">
+      <div class="tp-w-n"><b>Sem ${w.n}</b><small>${tpCorta(w.l)} – ${tpCorta(w.d)}</small>${w.et ? `<span class="tp-w-e">${esc(w.et.nombre)}</span>` : ""}</div>
+      <div class="tp-w-f">${ro ? `<div>${esc(w.w.foco || "—")}</div>` : `<input class="tp-foco" data-w="${w.l}" value="${esc(w.w.foco || "")}" placeholder="Foco de la semana (ej. bloqueo directo + rebote)">`}${w.w.notas ? `<small>${esc(w.w.notas)}</small>` : ""}</div>
+      <div class="tp-w-p">${w.par.map(x => { const r = x.feb ? calResultado(x.feb) : null; return `<span class="tp-par ${r ? (r.gano ? "g" : "p") : ""}">${calIc(x)} ${esc(x.titulo)}${r ? " · " + esc(r.txt) : ""}</span>`; }).join("") || '<span class="peq">Sin partido</span>'}</div>
+      <div class="tp-w-e2">${w.planes.length ? w.planes.map(p => `<a href="#" data-plan="${esc(p.id)}">📋 ${esc(p.nombre || "Plan")}</a>`).join("") : `<span class="peq">${w.d < hoy ? "Sin planes" : ""}</span>`}${!ro ? `<a href="#" class="tp-np" data-np="${w.l}">＋ plan</a>` : ""}</div>
+      <div class="tp-w-m">${w.min ? `<b>${w.min}′</b>${Object.entries(w.cats).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([c]) => `<small>${esc(c)}</small>`).join("")}` : ""}</div></div>`).join("");
+  v.innerHTML = `<div class="tp">
+    <div class="tp-hero"><div><div class="tp-sup">${esc(t.equipo || "Mi equipo")} · ${tpCorta(t.inicio)} ${t.inicio.slice(0, 4)} – ${tpCorta(t.fin)} ${t.fin.slice(0, 4)}</div><h2>${esc(t.nombre)}</h2>
+      <div class="tp-now">${hoy < t.inicio ? "Empieza el " + tpCorta(t.inicio) : hoy > t.fin ? "Temporada terminada" : `<b>Semana ${sAct ? sAct.n : "–"} de ${S.length}</b>${etAct ? ` · <span style="color:${etAct.color}">●</span> ${esc(etAct.nombre)}` : ""}${sAct && sAct.w.foco ? ` · Foco: <b>${esc(sAct.w.foco)}</b>` : ""}`}</div>
+      <div class="tp-prog"><i style="width:${avance}%"></i></div></div>
+      <div class="tp-acc">${L.length > 1 ? `<select id="tpSel">${L.map(x => `<option value="${esc(x.id)}" ${x.id === t.id ? "selected" : ""}>${esc(x.nombre)}</option>`).join("")}</select>` : ""}${ro ? "" : '<button class="gris" id="tpEd">✏️ Editar</button><button class="gris" id="tpNu">＋ Nueva</button>'}<button class="naranja" id="tpPdf">🖨️ PDF</button></div></div>
+    <div class="tp-sec"><div class="tp-h"><h3>Línea de la temporada</h3><span class="peq">${parT.length} partidos · ${nPlan} entrenamientos planificados</span></div>${linea}</div>
+    <div class="tp-g2">
+      <div class="tp-sec"><div class="tp-h"><h3>🎯 Objetivos de la temporada</h3><span class="tp-cnt"><span class="ok"><i class="tp-d"></i>${cnt.ok}</span><span class="medio"><i class="tp-d"></i>${cnt.medio}</span><span class="pend"><i class="tp-d"></i>${cnt.pend}</span></span></div>
+        <div class="tp-obs">${t.objetivos.map((o, i) => obj(o, "g|" + i)).join("") || '<p class="peq">Sin objetivos generales.</p>'}</div>${ro ? "" : '<div class="tp-add"><input id="tpOn" placeholder="Añadir objetivo general…"><button class="gris" id="tpOa">Añadir</button></div>'}
+        <p class="peq" style="margin:8px 0 0;">Toca un objetivo para marcarlo: <span class="tp-ley pend"><i class="tp-d"></i> pendiente</span> → <span class="tp-ley medio"><i class="tp-d"></i> a medias</span> → <span class="tp-ley ok"><i class="tp-d"></i> conseguido</span>. Mantén pulsado (o clic derecho) para quitar uno.</p></div>
+      <div class="tp-sec"><div class="tp-h"><h3>📊 Qué hemos trabajado</h3><div class="tp-tabs"><button data-ct="t" class="${TP.ct !== "e" ? "on" : ""}">Temporada</button>${etAct ? `<button data-ct="e" class="${TP.ct === "e" ? "on" : ""}">${esc(etAct.nombre)}</button>` : ""}</div></div>
+        ${barras(TP.ct === "e" && etAct ? catsEt : catsTemp)}<p class="peq" style="margin:8px 0 0;">Minutos de entrenamiento por categoría de ejercicio (de tus planes con fecha).</p></div>
+    </div>
+    <div class="tp-sec"><div class="tp-h"><h3>🧩 Etapas</h3>${ro ? "" : '<button class="gris" id="tpEa">＋ Etapa</button>'}</div>
+      <div class="tp-ets">${t.etapas.map((e, k) => { const ws = S.filter(w => w.et === e), np = ws.reduce((a, w) => a + w.planes.length, 0), act = e === etAct, gr = (tit, arr, key) => (arr || []).length ? `<div class="tp-og"><small>${tit}</small>${arr.map((o, i) => obj(o, "e|" + k + "|" + key + "|" + i)).join("")}</div>` : "";
+        return `<div class="tp-et ${act ? "act" : ""}" style="--c:${e.color}"><div class="tp-et-h"><div><b>${esc(e.nombre)}</b><small>${tpCorta(e.ini)} – ${tpCorta(e.fin)} · ${ws.length} semanas · ${np} planes${act ? " · <b>AHORA</b>" : ""}</small></div>${ro ? "" : `<button class="gris" data-ee="${esc(e.id)}">✏️</button>`}</div>
+          ${gr("🏀 Técnico", e.tec, "tec")}${gr("🧠 Táctico", e.tac, "tac")}${gr("💪 Físico", e.fis, "fis")}${e.notas ? `<p class="peq" style="margin:6px 0 0;white-space:pre-wrap;">${esc(e.notas)}</p>` : ""}</div>`; }).join("") || '<p class="peq">Todavía no hay etapas. Crea la primera (por ejemplo «Pretemporada»).</p>'}</div></div>
+    <div class="tp-sec"><div class="tp-h"><h3>🗓️ Semana a semana</h3><div class="tp-tabs"><button data-tv="todas" class="${TP.ver !== "proximas" ? "on" : ""}">Todas</button><button data-tv="proximas" class="${TP.ver === "proximas" ? "on" : ""}">De hoy en adelante</button></div>
+      <select id="tpEf" style="width:auto;margin:0;"><option value="">Todas las etapas</option>${t.etapas.map(e => `<option value="${esc(e.id)}" ${TP.et === e.id ? "selected" : ""}>${esc(e.nombre)}</option>`).join("")}</select></div>
+      <div class="tp-ws"><div class="tp-w cab"><div>Semana</div><div>Foco</div><div>Partidos</div><div>Entrenamientos</div><div>Min.</div></div>${filas || '<p class="peq">No hay semanas con ese filtro.</p>'}</div></div>
+  </div>`;
+  /* eventos */
+  const guarda = async () => { if (!await tpGuardar(t)) return false; return true; };
+  if ($("tpSel")) $("tpSel").onchange = (e) => { TP.sel = e.target.value; TP.et = ""; pintar(); };
+  if ($("tpEd")) $("tpEd").onclick = () => tpForm(t, false);
+  if ($("tpNu")) $("tpNu").onclick = () => tpForm(null, true);
+  if ($("tpEa")) $("tpEa").onclick = () => tpFormEtapa(t, null);
+  $("tpPdf").onclick = () => tpPdf(t, S);
+  v.querySelectorAll("[data-ee]").forEach(b => b.onclick = () => tpFormEtapa(t, t.etapas.find(e => e.id === b.dataset.ee)));
+  v.querySelectorAll(".tp-tl-e").forEach(b => b.onclick = () => { TP.et = b.dataset.et; TP.ver = "todas"; pintar(); setTimeout(() => { const x = document.querySelector(".tp-ws"); if (x) x.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); });
+  v.querySelectorAll("[data-ob]").forEach(b => b.onclick = async () => {
+    const r = b.dataset.ob.split("|"); const o = r[0] === "g" ? t.objetivos[+r[1]] : (t.etapas[+r[1]] || {})[r[2]][+r[3]]; if (!o) return;
+    o.e = { pend: "medio", medio: "ok", ok: "pend" }[o.e || "pend"]; if (await guarda()) pintar();
+  });
+  if ($("tpOa")) { const add = async () => { const x = $("tpOn").value.trim(); if (!x) return; t.objetivos.push({ id: idNuevo("o"), t: x, e: "pend" }); if (await guarda()) pintar(); }; $("tpOa").onclick = add; $("tpOn").onkeydown = (e) => { if (e.key === "Enter") add(); }; }
+  v.querySelectorAll(".tp-obs .tp-ob").forEach(b => { let tm; b.addEventListener("touchstart", () => { tm = setTimeout(() => b.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })), 650); }, { passive: true }); ["touchend", "touchmove"].forEach(x => b.addEventListener(x, () => clearTimeout(tm), { passive: true })); });
+  v.querySelectorAll(".tp-obs .tp-ob").forEach(b => b.oncontextmenu = async (ev) => { if (ro) return; ev.preventDefault(); const i = +b.dataset.ob.split("|")[1]; if (await confirmar("¿Quitar el objetivo «" + t.objetivos[i].t + "»?")) { t.objetivos.splice(i, 1); if (await guarda()) pintar(); } });
+  v.querySelectorAll("[data-ct]").forEach(b => b.onclick = () => { TP.ct = b.dataset.ct; pintar(); });
+  v.querySelectorAll("[data-tv]").forEach(b => b.onclick = () => { TP.ver = b.dataset.tv; pintar(); });
+  $("tpEf").onchange = (e) => { TP.et = e.target.value; pintar(); };
+  v.querySelectorAll(".tp-foco").forEach(inp => { inp.onchange = async () => { const w = (t.semanas[inp.dataset.w] = t.semanas[inp.dataset.w] || {}); w.foco = inp.value.trim(); if (!w.foco && !w.notas) delete t.semanas[inp.dataset.w]; if (await guarda()) aviso("Foco guardado ✓"); }; inp.onkeydown = (e) => { if (e.key === "Enter") inp.blur(); }; });
+  v.querySelectorAll("[data-plan]").forEach(a => a.onclick = (e) => { e.preventDefault(); const p = D.planes.find(x => x.id === a.dataset.plan); if (p) abrirPlan(p); });
+  v.querySelectorAll("[data-np]").forEach(a => a.onclick = (e) => { e.preventDefault(); const l = a.dataset.np, w = t.semanas[l] || {}, hoyW = hoy >= l && hoy <= tpMas(l, 6) ? hoy : l;
+    abrirPlan({ id: idNuevo("p"), nombre: "Entrenamiento" + (w.foco ? " · " + w.foco : ""), carpeta: "", fecha: hoyW, data: { ejercicios: [], notas: w.foco ? "Foco de la semana: " + w.foco : "", equipo: t.equipo || "" } }); });
+  const ac = v.querySelector(".tp-w.act"), wsC = v.querySelector(".tp-ws"); if (ac && wsC) setTimeout(() => { wsC.scrollTop = Math.max(0, ac.offsetTop - wsC.offsetTop - 60); }, 60);   /* la semana actual arriba de la lista, sin mover la página */
+}
+async function tpPdf(t, S) {
+  const ob = (o) => `<li>${TP_EST[o.e || "pend"][1]} ${esc(o.t)}</li>`;
+  $("hojaImp").className = "pdf-eq";
+  $("hojaImp").innerHTML = `<div class="pdf-cab"><div><small>PLANIFICACIÓN DE TEMPORADA</small><h1>${esc(t.nombre)}</h1><div class="pdf-meta">${esc(t.equipo || "")}${t.equipo ? " · " : ""}${tpCorta(t.inicio)} ${t.inicio.slice(0, 4)} – ${tpCorta(t.fin)} ${t.fin.slice(0, 4)}</div></div></div>
+    <h3 style="margin:14px 0 6px;">Objetivos de la temporada</h3><ul class="tp-pl">${t.objetivos.map(ob).join("") || "<li>—</li>"}</ul>
+    <h3 style="margin:14px 0 6px;">Etapas</h3>${t.etapas.map(e => `<div class="tp-pe" style="border-left:5px solid ${e.color};"><b>${esc(e.nombre)}</b> <span style="color:#666;">${tpCorta(e.ini)} – ${tpCorta(e.fin)}</span>
+      <div class="tp-p3"><div><small>TÉCNICO</small><ul class="tp-pl">${(e.tec || []).map(ob).join("")}</ul></div><div><small>TÁCTICO</small><ul class="tp-pl">${(e.tac || []).map(ob).join("")}</ul></div><div><small>FÍSICO</small><ul class="tp-pl">${(e.fis || []).map(ob).join("")}</ul></div></div></div>`).join("")}
+    <h3 style="margin:14px 0 6px;">Semana a semana</h3><table class="tp-pt"><thead><tr><th>Sem.</th><th>Fechas</th><th>Etapa</th><th>Foco</th><th>Partidos</th><th>Planes</th></tr></thead><tbody>${S.map(w => `<tr><td>${w.n}</td><td>${tpCorta(w.l)}–${tpCorta(w.d)}</td><td><span style="color:${w.et ? w.et.color : "#999"}">●</span> ${esc(w.et ? w.et.nombre : "")}</td><td>${esc(w.w.foco || "")}</td><td>${w.par.map(x => esc(x.titulo)).join("<br>")}</td><td>${w.planes.length || ""}</td></tr>`).join("")}</tbody></table>
+    <p style="font-size:8pt;color:#888;margin-top:8px;">○ pendiente · ~ a medias · ✓ conseguido</p>`;
+  await esperaImgs($("hojaImp")); window.print();
+}
 /* ------------ pantalla de inicio ------------ */
 function pintarInicio(v) {
   if (CAL.ev === null) CAL.ev = calLeer();
