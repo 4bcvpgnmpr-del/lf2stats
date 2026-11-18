@@ -2388,7 +2388,7 @@ function imprimir() {
   $("hojaImp").innerHTML = `<h1>${esc(jugada.nombre || "Jugada")}</h1><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "fase" : "fases"}</div>
     ${jugada.notas ? `<div class="notas" style="margin:0 0 4mm;">${esc(jugada.notas)}</div>` : ""}
     ${(() => { sincOp(); const ops = jugada.opciones && jugada.opciones.length > 1 ? jugada.opciones : [{ nombre: "", pasos: jugada.pasos }];
-      return ops.map((o, k) => { const t = Object.assign({}, jugada, { pasos: o.pasos || [] }); return `${ops.length > 1 ? `<h2 style="margin:${k ? "6mm" : "0"} 0 2mm;font-size:14pt;border-bottom:2px solid #e8590c;padding-bottom:1mm;${k ? "break-before:auto;" : ""}">${esc(o.nombre || "Opción " + (k + 1))}</h2>` : ""}<div class="pasosImp">${t.pasos.map((p, i) => `<div class="pasoImp"><b>Fase ${i + 1}</b>${svgPaso(t, i, {})}${textoLista(p.texto)}</div>`).join("")}</div>`; }).join(""); })()}`;
+      return ops.map((o, k) => { const t = Object.assign({}, jugada, { pasos: o.pasos || [] }); return `<div style="${k ? "break-before:page;page-break-before:always;" : ""}">${ops.length > 1 ? `<h2 style="margin:0 0 2mm;font-size:14pt;border-bottom:2px solid #e8590c;padding-bottom:1mm;">${k ? esc(jugada.nombre || "Jugada") + " · " : ""}${esc(o.nombre || "Opción " + (k + 1))}</h2>` : ""}<div class="pasosImp">${t.pasos.map((p, i) => `<div class="pasoImp"><b>Fase ${i + 1}</b>${svgPaso(t, i, {})}${textoLista(p.texto)}</div>`).join("")}</div></div>`; }).join(""); })()}`;
   setTimeout(() => window.print(), 150);
 }
 function copiaSeguridad() {
