@@ -17526,9 +17526,12 @@ function precargarImagenes() {
     const urls = [], add = (u) => { u = String(u || "").trim(); if (/^https?:\/\//.test(u)) urls.push(u); };
     const fuente = (typeof datosLiga !== "undefined" && datosLiga && datosLiga.equipos) || (typeof equipos !== "undefined" && equipos);
     if (fuente && fuente.rows) fuente.rows.forEach(r => add(r["EscudoURL"] && r["EscudoURL"].display));
-    const mio = miEquipo ? normalizarEquipo(equipoOficial(miEquipo)) : "";
-    if (typeof jugadoras !== "undefined" && jugadoras && jugadoras.rows) jugadoras.rows.forEach(r => { if (!mio || normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === mio) add(r["FotoURL"] && r["FotoURL"].display); });
     Object.values(fotosPropias || {}).forEach(add);
+    /* fotos de toda la liga: primero las de tu equipo (por si se corta a medias), luego las de los rivales */
+    const mio = miEquipo ? normalizarEquipo(equipoOficial(miEquipo)) : "";
+    const filasJ = ((typeof datosLiga !== "undefined" && datosLiga && datosLiga.jugadoras) || (typeof jugadoras !== "undefined" && jugadoras) || { rows: [] }).rows || [];
+    const esMio = (r) => mio && normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === mio;
+    filasJ.filter(esMio).concat(filasJ.filter(r => !esMio(r))).forEach(r => add(r["FotoURL"] && r["FotoURL"].display));
     if (urls.length) navigator.serviceWorker.controller.postMessage({ guardarImagenes: urls });
   } catch (e) { /* nada */ }
 }
