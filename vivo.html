@@ -63,6 +63,15 @@
   .ed .ed-op{flex-direction:row;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;color:#fff;font-size:18px;}
   .ed-op input[type=radio]{width:22px;height:22px;flex:none;accent-color:#fff;margin:0;} .ed-op span{flex:none;} .ed-op input[type=text]{padding:8px 10px;font-size:15px;}
   @media (max-width:600px){ .ed-cab,.ed-ops{grid-template-columns:1fr;} }
+  .ed-med{display:flex;gap:8px;align-items:center;flex-wrap:wrap;} .ed-med .mini{padding:7px 12px;font-size:14px;font-weight:800;} .chip{background:#fff;color:#1a1030;font-weight:800;padding:6px 12px;border-radius:999px;font-size:14px;}
+  .capa{position:fixed;inset:0;background:#0009;z-index:80;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .capa-c{background:#fff;color:#222;border-radius:16px;padding:18px;width:min(520px,100%);max-height:88vh;display:flex;flex-direction:column;gap:6px;}
+  .capa-c input{font:inherit;font-size:16px;padding:10px 12px;border:2px solid #ddd;border-radius:10px;width:100%;}
+  .tabs{display:flex;gap:6px;margin-bottom:6px;} .tabs button{flex:1;padding:9px;border-radius:10px;background:#f1eff6;font-weight:800;} .tabs button.on{background:#1a1030;color:#fff;}
+  .cj-l{overflow:auto;max-height:55vh;display:flex;flex-direction:column;gap:6px;margin-top:6px;} .cj-l button{background:#f7f6fb;text-align:left;padding:11px 14px;border-radius:10px;font-weight:800;font-size:15px;color:#1a1030;display:flex;justify-content:space-between;gap:10px;align-items:center;} .cj-l button:hover{background:#ece8f6;} .cj-l small{color:#888;font-weight:600;font-size:12px;}
+  .media-g{flex:1;margin:4px 18px 12px;min-height:52vh;display:flex;border-radius:14px;overflow:hidden;background:#fff;}
+  .media-p{flex:1;align-self:stretch;min-height:30vh;max-width:62vw;display:flex;border-radius:14px;overflow:hidden;background:#fff;}
+  .media-g iframe,.media-g video,.media-p iframe,.media-p video{flex:1 1 auto;width:100%;height:auto;align-self:stretch;border:0;background:#000;} .media-g iframe[title],.media-p iframe[title]{background:#141a22;} .media-g,.media-p{background:#141a22;}
   #salir{position:fixed;left:12px;bottom:12px;z-index:50;background:#ffffff26;color:#fff;font-weight:800;font-size:14px;padding:8px 14px;border-radius:999px;backdrop-filter:blur(4px);} #salir:hover{background:#ffffff40;}
   @media print{ #salir{display:none;} }
 </style></head><body>
@@ -109,10 +118,10 @@ async function hostInicio() {
 
 /* ---------- crear / editar test (sin necesidad de Panel) ---------- */
 const ED = { id: null, titulo: "", seg: 20, preg: [] };
-const edVacia = () => ({ texto: "", opciones: ["", "", "", ""], correcta: 0 });
+const edVacia = () => ({ texto: "", opciones: ["", "", "", ""], correcta: 0, media: null });
 function edAbrir(t) {
   ED.id = t ? t.id : null; ED.titulo = t ? (t.titulo || "") : ""; ED.seg = t ? (t.segundos || 20) : 20;
-  ED.preg = t && (t.preguntas || []).length ? t.preguntas.map(p => { const o = (p.opciones || []).slice(0, 4); while (o.length < 4) o.push(""); return { texto: p.texto || "", opciones: o, correcta: p.correcta || 0 }; }) : [edVacia()];
+  ED.preg = t && (t.preguntas || []).length ? t.preguntas.map(p => { const o = (p.opciones || []).slice(0, 4); while (o.length < 4) o.push(""); return { texto: p.texto || "", opciones: o, correcta: p.correcta || 0, media: p.media || null }; }) : [edVacia()];
   edPintar();
   const bs = $("salir"); bs.hidden = false; bs.textContent = "✕ Volver"; bs.onclick = () => { if (confirm("¿Salir sin guardar?")) hostInicio(); };
 }
@@ -132,15 +141,62 @@ function edPintar() {
     <p class="peq" style="margin:0;">Escribe cada pregunta y marca el círculo de la respuesta correcta. Mínimo 2 opciones.</p>
     ${ED.preg.map((p, i) => `<div class="ed-p"><div class="ed-n"><b>Pregunta ${i + 1}</b>${ED.preg.length > 1 ? `<button class="mini" data-q="${i}" title="Quitar">🗑</button>` : ""}</div>
       <textarea class="ed-tx" rows="2" placeholder="¿Qué hace el base cuando…?">${esc(p.texto)}</textarea>
-      <div class="ed-ops">${p.opciones.map((o, k) => `<label class="ed-op c${k}"><input type="radio" name="c${i}" value="${k}" ${p.correcta === k ? "checked" : ""}><span>${FIG[k]}</span><input type="text" value="${esc(o)}" placeholder="Opción ${k + 1}${k > 1 ? " (opcional)" : ""}"></label>`).join("")}</div></div>`).join("")}
+      <div class="ed-ops">${p.opciones.map((o, k) => `<label class="ed-op c${k}"><input type="radio" name="c${i}" value="${k}" ${p.correcta === k ? "checked" : ""}><span>${FIG[k]}</span><input type="text" value="${esc(o)}" placeholder="Opción ${k + 1}${k > 1 ? " (opcional)" : ""}"></label>`).join("")}</div>
+      <div class="ed-med">${p.media ? `<span class="chip">${p.media.t === "video" ? "🎬 Vídeo" : (p.media.tabla === "ejercicios" ? "🎯 " : "🏀 ") + esc(p.media.nombre || "Jugada") + (p.media.hasta ? ` · se para en la fase ${p.media.hasta}` : "")}</span><button class="mini" data-mx="${i}">✕ Quitar</button>` : `<button class="mini" data-mj="${i}">🏀 Añadir jugada</button><button class="mini" data-mv="${i}">🎬 Añadir vídeo</button><span class="peq">Se verá en la pantalla grande antes de contestar</span>`}</div></div>`).join("")}
     <button class="btn claro" id="edMas">➕ Añadir pregunta</button>
     <p class="err" id="edErr"></p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding-bottom:60px;"><button class="btn" id="edCan">Cancelar</button><button class="btn nar" id="edOk">💾 Guardar</button></div></div>`;
   $("edMas").onclick = () => { edLeer(); ED.preg.push(edVacia()); edPintar(); const l = APP.querySelectorAll(".ed-tx"); l[l.length - 1].focus(); };
   APP.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { edLeer(); ED.preg.splice(+b.dataset.q, 1); edPintar(); });
+  APP.querySelectorAll("[data-mx]").forEach(b => b.onclick = () => { edLeer(); ED.preg[+b.dataset.mx].media = null; edPintar(); });
+  APP.querySelectorAll("[data-mj]").forEach(b => b.onclick = () => { edLeer(); edElegirJugada(+b.dataset.mj); });
+  APP.querySelectorAll("[data-mv]").forEach(b => b.onclick = () => { edLeer(); edElegirVideo(+b.dataset.mv); });
   $("edCan").onclick = () => hostInicio();
   $("edOk").onclick = edGuardar;
 }
+/* ventana flotante sencilla */
+function capa(html) { const d = document.createElement("div"); d.className = "capa"; d.innerHTML = `<div class="capa-c">${html}</div>`; document.body.appendChild(d); d.addEventListener("mousedown", (e) => { if (e.target === d) d.remove(); }); return d; }
+const diagDe = (x) => x && x.data && (x.data.pasos ? x.data : x.data.diagrama);
+const EDJ = {};
+async function edElegirJugada(i) {
+  const c = capa(`<h3 style="margin:0 0 8px;">Elige la jugada</h3><div class="tabs"><button data-tb="jugadas" class="on">🏀 Jugadas</button><button data-tb="ejercicios">🎯 Ejercicios</button></div>
+    <input id="cjQ" placeholder="Buscar por nombre…"><div id="cjL" class="cj-l"><p class="peq">Cargando…</p></div><div style="text-align:right;margin-top:8px;"><button class="btn" style="font-size:15px;padding:8px 16px;" id="cjX">Cancelar</button></div>`);
+  let tabla = "jugadas", carp = null;
+  c.querySelector("#cjX").onclick = () => c.remove();
+  const cargar = async () => {
+    if (!EDJ[tabla]) { const r = await sb.from(tabla).select("id,nombre,carpeta,data").order("nombre"); EDJ[tabla] = r.error ? [] : (r.data || []).filter(x => { const d = diagDe(x); return d && (d.pasos || []).length; }); }
+    pinta();
+  };
+  const fila = (x) => `<button data-id="${esc(x.id)}">${tabla === "jugadas" ? "🏀" : "🎯"} ${esc(x.nombre || "(sin nombre)")}<small>${(diagDe(x).pasos || []).length} fases</small></button>`;
+  const pinta = () => {
+    const L = EDJ[tabla] || [], q = c.querySelector("#cjQ").value.trim().toLowerCase(), box = c.querySelector("#cjL");
+    if (q) box.innerHTML = L.filter(x => (x.nombre || "").toLowerCase().includes(q)).map(fila).join("") || '<p class="peq">Nada con ese nombre.</p>';
+    else if (carp === null) {
+      const m = {}; L.forEach(x => { const k = x.carpeta || ""; m[k] = (m[k] || 0) + 1; });
+      box.innerHTML = Object.keys(m).sort((a, b) => a ? (b ? a.localeCompare(b) : -1) : 1).map(k => `<button data-cp="${esc(k)}">📁 ${esc(k || "Sin carpeta")}<small>${m[k]}</small></button>`).join("") || `<p class="peq">No tienes ${tabla} con dibujo todavía.</p>`;
+    } else box.innerHTML = `<button data-cp-atras style="background:#f3f0fa;">← Carpetas · <b>${esc(carp || "Sin carpeta")}</b></button>` + L.filter(x => (x.carpeta || "") === carp).map(fila).join("");
+    box.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { carp = b.dataset.cp; pinta(); });
+    const at = box.querySelector("[data-cp-atras]"); if (at) at.onclick = () => { carp = null; pinta(); };
+    box.querySelectorAll("[data-id]").forEach(b => b.onclick = () => fases(L.find(x => x.id === b.dataset.id)));
+  };
+  const fases = (x) => {
+    const n = (diagDe(x).pasos || []).length;
+    c.querySelector(".capa-c").innerHTML = `<h3 style="margin:0 0 4px;">${esc(x.nombre || "")}</h3><p class="peq" style="margin:0 0 10px;color:#666;">¿Hasta dónde la ven? Puedes pararla antes del momento clave y preguntar «¿qué pasa ahora?».</p>
+      <div class="cj-l"><button data-h="0">▶ Toda la jugada<small>${n} fases</small></button>${n > 1 ? Array.from({ length: n - 1 }, (_, k) => `<button data-h="${k + 1}">⏸ Parar en la fase ${k + 1}<small>no se ve lo que pasa después</small></button>`).join("") : ""}</div>`;
+    c.querySelectorAll("[data-h]").forEach(b => b.onclick = () => { ED.preg[i].media = { t: "jugada", tabla, id: x.id, nombre: x.nombre || "", hasta: +b.dataset.h }; c.remove(); edPintar(); });
+  };
+  c.querySelectorAll("[data-tb]").forEach(b => b.onclick = () => { tabla = b.dataset.tb; carp = null; c.querySelectorAll("[data-tb]").forEach(x => x.classList.toggle("on", x === b)); c.querySelector("#cjL").innerHTML = '<p class="peq">Cargando…</p>'; cargar(); });
+  c.querySelector("#cjQ").oninput = pinta;
+  cargar();
+}
+function edElegirVideo(i) {
+  const c = capa(`<h3 style="margin:0 0 6px;">Añadir vídeo</h3><p class="peq" style="margin:0 0 8px;color:#666;">Pega el enlace (YouTube, Vimeo o un vídeo subido a ScoutFlow).</p>
+    <input id="cvU" placeholder="https://…"><p class="err" id="cvE" style="color:#c0213a;"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn" id="cvX" style="font-size:15px;padding:8px 16px;">Cancelar</button><button class="btn nar" id="cvO" style="font-size:15px;padding:8px 16px;">Añadir</button></div>`);
+  c.querySelector("#cvX").onclick = () => c.remove(); c.querySelector("#cvU").focus();
+  c.querySelector("#cvO").onclick = () => { const u = c.querySelector("#cvU").value.trim(); if (!/^https?:\/\//i.test(u)) { c.querySelector("#cvE").textContent = "Pega un enlace que empiece por http."; return; } ED.preg[i].media = { t: "video", url: u }; c.remove(); edPintar(); };
+}
+
 async function edGuardar() {
   edLeer(); const err = $("edErr"); err.textContent = "";
   if (!ED.titulo.trim()) { err.textContent = "Ponle un título."; return; }
@@ -152,7 +208,7 @@ async function edGuardar() {
     if (!(p.opciones[p.correcta] || "").trim()) { err.textContent = `En la pregunta ${i + 1} la respuesta marcada como correcta está vacía.`; return; }
     const ops = []; let nc = 0; p.opciones.forEach((o, k) => { if (o.trim()) { if (k === p.correcta) nc = ops.length; ops.push(o.trim()); } });
     if (ops.length < 2) { err.textContent = `La pregunta ${i + 1} necesita al menos 2 opciones.`; return; }
-    preg.push({ texto: p.texto.trim(), opciones: ops, correcta: nc });
+    preg.push({ texto: p.texto.trim(), opciones: ops, correcta: nc, ...(p.media ? { media: p.media } : {}) });
   }
   if (!preg.length) { err.textContent = "Añade al menos una pregunta."; return; }
   const fila = { titulo: ED.titulo.trim(), segundos: ED.seg, preguntas: preg };
@@ -162,8 +218,9 @@ async function edGuardar() {
   hostInicio();
 }
 function hostPreparar(t) {
-  H.test = t; H.preg = (t.preguntas || []).filter(p => (p.texto || "").trim()).map(p => ({ texto: p.texto.trim(), opciones: (p.opciones || []).map(o => String(o || "").trim()).filter(Boolean), correcta: p.correcta || 0, seg: p.seg || t.segundos || 20 }));
+  H.test = t; H.preg = (t.preguntas || []).filter(p => (p.texto || "").trim()).map(p => ({ media: p.media || null, texto: p.texto.trim(), opciones: (p.opciones || []).map(o => String(o || "").trim()).filter(Boolean), correcta: p.correcta || 0, seg: p.seg || t.segundos || 20 }));
   H.preg.forEach(p => { if (p.correcta >= p.opciones.length) p.correcta = 0; });
+  hostMedia();
   H.cod = String(Math.floor(1000 + Math.random() * 9000));
   H.ch = canal(H.cod);
   H.ch.on("broadcast", { event: "j" }, ({ payload: m }) => hostMsg(m)).subscribe((st) => { if (st === "SUBSCRIBED") { hostEmitir(); hostLobby(); } });
@@ -206,16 +263,54 @@ function hostLobby() {
     <button class="btn nar" id="hEmp" ${L.length ? "" : "disabled"} style="font-size:24px;padding:16px 40px;">Empezar ▶</button></div>`;
   $("hEmp").onclick = () => hostPregunta(0);
 }
-function hostPregunta(i) {
+/* jugadas de las preguntas: se cargan al preparar la partida */
+async function hostMedia() {
+  for (const tabla of ["jugadas", "ejercicios"]) {
+    const qs = H.preg.filter(p => p.media && p.media.t === "jugada" && (p.media.tabla || "jugadas") === tabla); if (!qs.length) continue;
+    const r = await sb.from(tabla).select("id,nombre,data").in("id", [...new Set(qs.map(p => p.media.id))]); if (r.error) continue;
+    qs.forEach(p => { const x = (r.data || []).find(y => y.id === p.media.id), d = diagDe(x); if (!d) return;
+      let j = Object.assign({}, d, { nombre: x.nombre || "" }); if (p.media.hasta > 0) j = Object.assign({}, j, { pasos: (j.pasos || []).slice(0, p.media.hasta), opciones: null }); p.anim = j; });
+  }
+}
+function videoEmbed(u, auto) {
+  u = String(u || ""); let m = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/.exec(u);
+  if (m) return `<iframe src="https://www.youtube.com/embed/${m[1]}?rel=0${auto ? "&autoplay=1" : ""}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+  m = /vimeo\.com\/(?:video\/)?(\d+)/.exec(u);
+  if (m) return `<iframe src="https://player.vimeo.com/video/${m[1]}${auto ? "?autoplay=1" : ""}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  return `<video controls playsinline ${auto ? "autoplay" : ""} src="${esc(u)}"></video>`;
+}
+let MARCO = null;
+window.addEventListener("message", (ev) => { const d = ev.data || {}; if (!MARCO || ev.source !== MARCO.fr.contentWindow) return; if (d.visorListo) { try { MARCO.fr.contentWindow.postMessage({ jugada: MARCO.j, auto: true }, "*"); } catch (e) { /* nada */ } } });
+function mediaPoner(caja, p, auto) {
+  if (!caja || !p.media) return;
+  if (p.media.t === "video") { caja.innerHTML = videoEmbed(p.media.url, auto); return; }
+  if (!p.anim) { caja.innerHTML = `<p class="peq" style="margin:auto;">No se pudo cargar la jugada «${esc(p.media.nombre || "")}».</p>`; return; }
+  const fr = document.createElement("iframe"); fr.title = p.media.nombre || "Jugada"; fr.src = "pizarra.html?visor=1";
+  fr.onload = () => { try { const d = fr.contentDocument, st = d.createElement("style"); st.textContent = "#vsNotas,#vsTitulo,#vsVideos,.vmodo,#vsFs{display:none !important;} #visor.pc #vsPista{flex:1 1 0 !important;min-height:0 !important;position:relative;} #visor.pc #vsPista svg{position:absolute;inset:0;margin:auto;width:100% !important;height:100% !important;}"; d.head.appendChild(st); d.getElementById("visor").classList.add("pc"); } catch (e) { /* nada */ } };   /* la jugada en grande, sin título ni notas (no dar pistas) */
+  MARCO = { fr, j: p.anim }; caja.innerHTML = ""; caja.appendChild(fr);
+}
+function hostVer(i) {
+  H.i = i; H.fase = "ver"; H.resp = {}; clearInterval(H.timer); const p = H.preg[i];
+  hostEmitir();
+  APP.innerHTML = `<div class="barra-top"><span>${i + 1} / ${H.preg.length}</span><span class="esp"></span><span>Código ${H.cod}</span></div>
+    <div class="preg">${esc(p.texto)}</div>
+    <div class="media-g" id="hMed"></div>
+    <div style="text-align:center;padding:0 0 16px;"><button class="btn nar" id="hResp" style="font-size:22px;padding:14px 34px;">¡A responder! ▶</button></div>`;
+  mediaPoner($("hMed"), p, true);
+  $("hResp").onclick = () => hostPregunta(i, true);
+}
+function hostPregunta(i, visto) {
+  if (H.preg[i].media && !visto) return hostVer(i);
   H.i = i; H.fase = "pregunta"; H.resp = {}; const p = H.preg[i];
   H.ini = Date.now() + 1200; H.fin = H.ini + p.seg * 1000;
   hostEmitir();
   APP.innerHTML = `<div class="barra-top"><span>${i + 1} / ${H.preg.length}</span><span class="esp"></span><span>Código ${H.cod}</span></div>
     <div class="preg">${esc(p.texto)}</div>
-    <div class="medio"><div class="reloj" id="hR">${p.seg}</div><div></div><div class="resp-n"><span id="hN">0</span><small>respuestas</small></div></div>
+    <div class="medio"><div class="reloj" id="hR">${p.seg}</div>${p.media ? '<div class="media-p" id="hMed"></div>' : "<div></div>"}<div class="resp-n"><span id="hN">0</span><small>respuestas</small></div></div>
     <div class="ops">${p.opciones.map((o, k) => `<div class="op c${k}"><i>${FIG[k]}</i>${esc(o)}</div>`).join("")}</div>
     <div style="text-align:right;padding:0 18px 14px;"><button class="btn claro" id="hSalta" style="font-size:16px;padding:10px 18px;">Saltar ⏭</button></div>`;
   $("hSalta").onclick = hostCerrarPregunta;
+  if (p.media) mediaPoner($("hMed"), p, false);
   clearInterval(H.timer); H.timer = setInterval(() => { const s = Math.max(0, Math.ceil((H.fin - Date.now()) / 1000)); if ($("hR")) $("hR").textContent = s; if (Date.now() >= H.fin) hostCerrarPregunta(); }, 200);
 }
 function hostCerrarPregunta() {
@@ -285,6 +380,7 @@ function jugPintar() {
   const e = J.e; if (!e) return; const clave = e.fase + "|" + e.i;
   if (e.fase === "fin") { if (J.vis === "fin") return; J.vis = "fin"; clearInterval(J.hola); APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">El juego ha terminado</p><button class="btn nar" id="jOtra">Entrar en otro juego</button></div>`; $("jOtra").onclick = () => jugSalir(false); return; }
   if (e.fase === "lobby") { if (J.vis === clave) return; J.vis = clave; APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">¡Dentro, ${esc(J.nombre)}!</p><p class="peq" style="font-size:18px;">Mira la pantalla grande. Empieza enseguida…</p></div>`; return; }
+  if (e.fase === "ver") { if (J.vis === clave) return; J.vis = clave; APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">👀 Mira la pantalla</p><p class="peq" style="font-size:18px;">Fíjate bien: enseguida tendrás que responder.</p></div>`; return; }
   if (e.fase === "pregunta") {
     if (J.resp[e.i] !== undefined) { if (J.vis === clave + "r") return; J.vis = clave + "r"; APP.innerHTML = `<div class="centro"><p class="gran">Respuesta enviada</p><p class="peq" style="font-size:18px;">Espera a los demás… ⏳</p></div>`; return; }
     if (J.vis === clave) return; J.vis = clave; const ops = e.q.opciones;
