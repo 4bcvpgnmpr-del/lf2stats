@@ -85,11 +85,8 @@ async function hostInicio() {
   let T = [];
   const rv = await sb.from("tests_vivo").select("*").order("creado", { ascending: false });
   if (!rv.error) T = (rv.data || []).map(t => ({ ...t, propio: true }));
-  const rc = await sb.rpc("mi_club");                      /* solo tú y tus ayudantes veis también los del Panel */
-  if (!rc.error && rc.data === "") {
-    const rp = await sb.from("tests").select("*").order("creado", { ascending: false });
-    if (!rp.error) T = T.concat((rp.data || []).map(t => ({ ...t, panel: true })));
-  }
+  const rp = await sb.from("tests").select("*").order("creado", { ascending: false });   /* la base de datos solo deja ver los tests de cada entrenador */
+  if (!rp.error) T = T.concat((rp.data || []).map(t => ({ ...t, panel: true })));
   T = T.filter(t => (t.preguntas || []).some(p => (p.texto || "").trim()) || t.propio);
   H.lista = T;
   const id = P.get("test");

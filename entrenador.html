@@ -5037,8 +5037,8 @@ async function iniciar() {
       pie ? pie.parentNode.insertBefore(g, pie) : document.querySelector("aside").appendChild(g);
       $("btnLockStats").onclick = () => { const pr = (PERMS.precios || {}).premium; aviso(PERMS.lock === "liga" ? "Tu liga todavía no está automatizada: te avisaremos cuando esté lista." : "Las estadísticas están en el plan Premium" + (pr ? " (" + pr + ")" : "") + ". Pídelo al entrenador."); };
     }
-    { const bt = $("btnTestsPanel"); if (bt) bt.style.display = "none"; }   /* el test común va a la app de jugadoras: solo para el propietario
-    */ if (!PERMS.s.length) SIN_STATS = true;
+    { const bt = $("btnTestsPanel"); if (bt && PERMS.plan !== "premium") bt.style.display = "none"; }   /* el test común va a la app de jugadoras: tú y los clientes Premium (los que tienen jugadoras) */
+    if (!PERMS.s.length) SIN_STATS = true;
     if (!PERMS.s.length) { const st = document.createElement("style"); st.textContent = '.zona-menu a[data-z="estadisticas"]{display:none !important;}'; document.head.appendChild(st); }
     seccion = E.find(x => x !== "partido") || "jugadas";
   } else { try { localStorage.removeItem("sf_solo_partido"); } catch (e) { /* nada */ } }
