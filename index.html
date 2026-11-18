@@ -2380,6 +2380,10 @@ document.getElementById("sheetLink").innerHTML =
    LECTURA DEL GOOGLE SHEET (JSONP, sin CORS)
    ============================================================ */
 let gvizCounter = 0;
+/* copia sin conexión de las hojas: en IndexedDB (cabe mucho más que localStorage; las hojas grandes no cabían y el Modo TV se quedaba sin datos) */
+const sfIdb = (() => { let dbp = null; const db = () => dbp || (dbp = new Promise((ok, ko) => { try { const r = indexedDB.open("sf_hojas", 1); r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); } catch (e) { ko(e); } }));
+  return { get: async (k) => { try { const d = await db(); return await new Promise((ok) => { const q = d.transaction("h").objectStore("h").get(k); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch (e) { return null; } },
+           put: async (k, v) => { try { const d = await db(); d.transaction("h", "readwrite").objectStore("h").put(v, k); } catch (e) { /* nada */ } } }; })();
 async function fetchSheetTab(tabName, query, esperaMs) {
   return new Promise((resolve, reject) => {
     const cbName = `__gvizCb_${gvizCounter++}`;
@@ -2392,13 +2396,13 @@ async function fetchSheetTab(tabName, query, esperaMs) {
     const pestana = tabName + sufijoTemporada();
     const ckey = "sf_cache|" + SHEET_ID + "|" + pestana + "|" + (query || "");
     /* sin conexión (pabellón, wifi mala…): se usan los últimos datos que se descargaron */
-    const delCache = () => { try { const c = JSON.parse(localStorage.getItem(ckey) || "null"); if (c && c.json) { const r = parseGvizJson(c.json); r.deCache = c.t; return r; } } catch (e) { /* nada */ } return null; };
-    const fallar = (err) => { const c = delCache(); if (c) resolve(c); else reject(err); };
+    const delCache = async () => { try { let c = null; try { c = JSON.parse(localStorage.getItem(ckey) || "null"); } catch (e) { c = null; } if (!c || !c.json) c = await sfIdb.get(ckey); if (c && c.json) { const r = parseGvizJson(c.json); r.deCache = c.t; return r; } } catch (e) { /* nada */ } return null; };
+    const fallar = (err) => { delCache().then(c => { if (c) resolve(c); else reject(err); }); };
     window[cbName] = (json) => {
       cleanup();
       try {
         const r = parseGvizJson(json);
-        try { localStorage.setItem(ckey, JSON.stringify({ t: Date.now(), json })); } catch (e) { /* sin espacio: no pasa nada */ }
+        const cc = { t: Date.now(), json }; sfIdb.put(ckey, cc); try { const tx = JSON.stringify(cc); if (tx.length < 400000) localStorage.setItem(ckey, tx); else localStorage.removeItem(ckey); } catch (e) { /* sin espacio: queda en IndexedDB */ }
         resolve(r);
       } catch (e) { fallar(e); }
     };
@@ -17504,6 +17508,8 @@ const VERSION_APP = "2026-10-28n";
 })();
 
 /* ---- App instalable (PWA): guarda la app en el movil/tablet ---- */
+/* con internet, se descargan en segundo plano los datos del Modo TV, para que funcione luego sin conexión (pabellón, presentación…) */
+setTimeout(() => { try { if (navigator.onLine && miEquipo && typeof tvCargar === "function") tvCargar().catch(() => {}); } catch (e) { /* nada */ } }, 20000);
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("sw.js").catch(function () {});
