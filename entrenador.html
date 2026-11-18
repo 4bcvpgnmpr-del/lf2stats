@@ -226,6 +226,18 @@
   .ct-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;} .ct-box>b{font-size:14.5px;} .ct-box textarea{margin:0;min-height:110px;resize:vertical;} .ct-q{color:var(--soft);font-size:11.5px;} .ct-ro{white-space:normal;font-size:14px;line-height:1.45;}
   .ct-js{display:flex;flex-wrap:wrap;gap:6px;} .ct-j{display:inline-flex;align-items:center;gap:6px;background:var(--suave);border-radius:99px;padding:4px 6px 4px 11px;font-size:13px;font-weight:600;} .ct-j a{text-decoration:none;color:var(--soft);font-weight:800;padding:0 3px;}
   .cm-pl{margin:6px 0 4px;padding-left:20px;font-size:13px;} .cm-pl li.sec{list-style:none;margin-left:-20px;font-weight:800;color:var(--orange);font-size:12px;text-transform:uppercase;}
+  .ct-tabs{max-width:100%;overflow-x:auto;scrollbar-width:none;} .ct-tabs::-webkit-scrollbar{display:none;} .ct-tabs button{flex:none;}
+  .ct-can{display:flex;gap:6px;overflow-x:auto;margin:0 0 8px;scrollbar-width:none;} .ct-can button{flex:none;border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-weight:700;font-size:13px;color:var(--ink);display:inline-flex;align-items:center;gap:6px;} .ct-can button.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .ct-can i{font-style:normal;background:var(--orange);color:#fff;border-radius:99px;font-size:11px;padding:0 6px;min-width:18px;text-align:center;} .ct-can i:empty{display:none;} .ct-can i.at{background:#e8403a;}
+  .cm-fij{display:flex;gap:8px;align-items:flex-start;background:#fff8e1;border:1px solid #ffe08a;border-radius:10px;padding:7px 10px;margin:0 0 6px;font-size:13.5px;} .cm-fij div{flex:1;min-width:0;} .cm-fij b{display:block;font-size:11.5px;color:#8a6d00;} .cm-fij a{text-decoration:none;color:#8a6d00;font-weight:800;}
+  .cm-at{background:#ffe3d0;color:#c2410c;font-weight:700;border-radius:4px;padding:0 2px;} .cm.at{box-shadow:0 0 0 2px #e8403a;}
+  .ct-res{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 10px;} .ct-res b{font-size:16px;flex:1;} .ct-res .b{color:#2b8a3e;font-weight:700;} .ct-res .m{color:#c92a2a;font-weight:700;}
+  .ct-dia{margin:0 0 12px;} .ct-diah{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);margin:0 0 6px;}
+  .ct-nota{background:#fff;border:1px solid var(--line);border-left:4px solid #adb5bd;border-radius:12px;padding:9px 12px;margin:0 0 6px;cursor:pointer;} .ct-nota.bien{border-left-color:#2b8a3e;} .ct-nota.mal{border-left-color:#c92a2a;}
+  .ct-nh{display:flex;gap:8px;align-items:center;} .ct-nh b{font-size:14px;} .ct-nh small{margin-left:auto;color:var(--soft);font-size:12px;} .ct-nota p{margin:4px 0 0;font-size:14px;line-height:1.4;}
+  .ct-voto{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 10px;} .ct-voto.cer{opacity:.85;} .ct-vh{display:flex;gap:8px;align-items:center;margin:0 0 8px;} .ct-vh b{font-size:15.5px;flex:1;} .ct-cer{font-size:11px;font-weight:800;background:var(--suave);border-radius:99px;padding:2px 8px;color:var(--soft);}
+  .ct-op{position:relative;display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--suave);border:1.5px solid transparent;border-radius:10px;padding:9px 12px;margin:0 0 5px;overflow:hidden;font-weight:600;color:var(--ink);} .ct-op i{position:absolute;left:0;top:0;bottom:0;background:#ffe3d0;z-index:0;} .ct-op span,.ct-op b{position:relative;z-index:1;} .ct-op span{flex:1;} .ct-op.mia{border-color:var(--orange);} .ct-op.gana i{background:#d3f9d8;} .ct-op:disabled{cursor:default;opacity:1;}
+  .ct-vf{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px;} .ct-vf small{color:var(--soft);font-size:12px;} .ct-vf a{font-size:12.5px;font-weight:700;color:var(--soft);}
   .tp{max-width:1200px;display:flex;flex-direction:column;gap:16px;}
   .tp-vacio{text-align:center;padding:50px 20px;border:1.5px dashed var(--line);border-radius:18px;max-width:640px;margin:20px auto;} .tp-vacio b{display:block;font-size:20px;margin:8px 0;} .tp-vacio p{color:var(--soft);line-height:1.5;margin:0 0 16px;}
   .tp-hero{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;}
@@ -1064,6 +1076,16 @@ function pintar() {
 
 /* ------------ Equipo técnico: chat y jugadas compartidas ------------ */
 let CHAT = [], chatTimer = null, chatYo = "";
+/* canales del chat: el canal va dentro del mensaje (campo jugada) para no cambiar la tabla */
+const CANALES = [["general", "💬 General"], ["partidos", "🏆 Partidos"], ["jugadores", "👥 Jugadores/as"], ["entrenos", "🎯 Entrenos"]];
+let CANAL = "general"; try { CANAL = localStorage.getItem("sf_canal") || "general"; } catch (e) { /* nada */ }
+const canalDe = (m) => (m.jugada && m.jugada.canal) || "general";
+const itemDe = (m) => m.jugada && m.jugada.kind !== "txt" ? m.jugada : null;
+const chatVisto = (c) => { try { return Number(localStorage.getItem("sf_visto_" + c) || 0); } catch (e) { return 0; } };
+const chatMarcar = (c, id) => { try { localStorage.setItem("sf_visto_" + c, String(id || 0)); } catch (e) { /* nada */ } };
+const miNombre = () => (typeof equipoDe === "function" && (equipoDe() || {}).nombre) || chatYo.split("@")[0];
+const meMenciona = (t) => { const n = [chatYo.split("@")[0], miNombre()].filter(Boolean).map(x => x.toLowerCase().split(" ")[0]); return /@\w/.test(t || "") && n.some(x => x && String(t).toLowerCase().includes("@" + x)); };
+const conMenciones = (t) => esc(t).replace(/@([\wáéíóúñü.\-]+)/gi, '<span class="cm-at">@$1</span>').replace(/\n/g, "<br>");
 function chatFecha(t) { const d = new Date(t), h = d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }); return d.toDateString() === new Date().toDateString() ? h : d.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }) + " " + h; }
 async function chatCargar() {
   const { data, error } = await nube.from("equipo_chat").select("*").order("id", { ascending: false }).limit(200);
@@ -1073,19 +1095,23 @@ async function chatCargar() {
 function chatPintaMsgs() {
   const caja = document.getElementById("chatMsgs"); if (!caja) return;
   const abajo = caja.scrollHeight - caja.scrollTop - caja.clientHeight < 80;
-  caja.innerHTML = CHAT.length ? CHAT.map(m => {
-    const mio = (m.autor || "").toLowerCase() === chatYo, j = m.jugada;
-    return `<div class="cm ${mio ? "mio" : ""}"><div class="cm-n">${esc(m.nombre || m.autor)} · ${chatFecha(m.creado)}${mio || !SOY_AYU ? ` <a href="#" data-cdel="${m.id}" title="Borrar">🗑</a>` : ""}</div>
-      ${m.texto ? `<div class="cm-t">${esc(m.texto).replace(/\n/g, "<br>")}</div>` : ""}
+  const L = CHAT.filter(m => canalDe(m) === CANAL);
+  caja.innerHTML = L.length ? L.map(m => {
+    const mio = (m.autor || "").toLowerCase() === chatYo, j = itemDe(m);
+    return `<div class="cm ${mio ? "mio" : ""} ${!mio && meMenciona(m.texto) ? "at" : ""}"><div class="cm-n">${esc(m.nombre || m.autor)} · ${chatFecha(m.creado)}${m.texto && puedeEscribir ? ` <a href="#" data-cfij="${m.id}" title="Fijar arriba">📌</a>` : ""}${mio || !SOY_AYU ? ` <a href="#" data-cdel="${m.id}" title="Borrar">🗑</a>` : ""}</div>
+      ${m.texto ? `<div class="cm-t">${conMenciones(m.texto)}</div>` : ""}
       ${j ? (j.kind === "plan" ? `<div class="cm-j">📋 <b>${esc(j.nombre || "Plan")}</b>${j.fecha ? ` <small>${esc(tpCorta(j.fecha))}</small>` : ""}<ol class="cm-pl">${(j.ejs || []).map(e => e.sec ? `<li class="sec">${esc(e.t)}</li>` : `<li>${esc(e.t)}${e.min ? ` · ${e.min}′` : ""}</li>`).join("")}</ol>${mio ? "" : `<button class="naranja" data-ccop="${m.id}">Copiar a mis planes</button>`}</div>`
         : `<div class="cm-j">${j.kind === "ejercicio" ? "🎯" : "🏀"} <b>${esc(j.nombre || "Jugada")}</b>${j.kind === "ejercicio" && j.data && j.data.categoria ? ` <small>${esc(j.data.categoria)}</small>` : ""}<div><button class="gris" data-cver="${m.id}">▶ Ver</button> ${mio ? "" : `<button class="naranja" data-ccop="${m.id}">Copiar a mis ${j.kind === "ejercicio" ? "ejercicios" : "jugadas"}</button>`}</div></div>`) : ""}</div>`;
-  }).join("") : '<p class="vacio">Aún no hay mensajes. Escribe el primero o comparte una jugada.</p>';
+  }).join("") : '<p class="vacio">Aún no hay mensajes en este canal. Escribe el primero o comparte algo con 📎.</p>';
   if (abajo) caja.scrollTop = caja.scrollHeight;
+  const ult = L.length ? L[L.length - 1].id : 0; if (ult) chatMarcar(CANAL, ult);
+  document.querySelectorAll("[data-canal]").forEach(b => { const c = b.dataset.canal, n = CHAT.filter(m => canalDe(m) === c && m.id > chatVisto(c) && (m.autor || "").toLowerCase() !== chatYo).length, at = CHAT.some(m => canalDe(m) === c && m.id > chatVisto(c) && meMenciona(m.texto)); const sp = b.querySelector("i"); if (sp) { sp.textContent = n ? (at ? "@" : n) : ""; sp.className = at ? "at" : ""; } });
+  chatAvisosPinta();
 }
 async function chatEnviar(texto, jugada) {
   texto = (texto || "").trim(); if (!texto && !jugada) return;
   const nombre = (typeof equipoDe === "function" && (equipoDe() || {}).nombre) || chatYo.split("@")[0];
-  const { error } = await nube.from("equipo_chat").insert({ autor: chatYo, nombre: nombre, texto: texto, jugada: jugada || null });
+  const { error } = await nube.from("equipo_chat").insert({ autor: chatYo, nombre: nombre, texto: texto, jugada: jugada ? Object.assign({}, jugada, { canal: jugada.canal || CANAL }) : (CANAL === "general" ? null : { kind: "txt", canal: CANAL }) });
   if (error) { aviso(/does not exist|relation/.test(error.message) ? "Falta ejecutar equipo_chat.sql en Supabase" : "No se pudo enviar: " + error.message); return; }
   await chatCargar(); chatPintaMsgs();
   const c = document.getElementById("chatMsgs"); if (c) c.scrollTop = c.scrollHeight;
@@ -1115,7 +1141,7 @@ async function tbCargar() {
 async function tbGuardar(it) {
   it.actualizado = new Date().toISOString();
   const { error } = await nube.from("equipo_tablero").upsert({ id: it.id, tipo: it.tipo, data: it.data, actualizado: it.actualizado });
-  if (error) { aviso(/relation|does not exist|schema cache/i.test(error.message) ? "Falta ejecutar equipo_tecnico.sql en Supabase" : "No se pudo guardar: " + error.message); return false; }
+  if (error) { aviso(/relation|does not exist|schema cache/i.test(error.message) ? "Falta ejecutar equipo_tecnico.sql en Supabase" : /tipo_check|check constraint/i.test(error.message) ? "Falta ejecutar equipo_tecnico2.sql en Supabase" : "No se pudo guardar: " + error.message); return false; }
   const i = TB.items.findIndex(x => x.id === it.id); if (i < 0) TB.items.unshift(Object.assign({ autor: chatYo, creado: it.actualizado }, it)); return true;
 }
 const tbNombre = (email) => { const m = CHAT.find(c => (c.autor || "").toLowerCase() === String(email || "").toLowerCase()); return m ? (m.nombre || email.split("@")[0]) : String(email || "").split("@")[0]; };
@@ -1158,11 +1184,71 @@ function tbPintaPrevia(c, it) {
     $("pjOk").onclick = async () => { const ids = [...m.querySelectorAll("input:checked")].map(i => i.value); d.jugadas = ids.map(id => (d.jugadas || []).find(j => j.id === id) || (() => { const x = D.jugadas.find(y => y.id === id); return x ? { id, nombre: x.nombre, data: clonar(diagDe(x) || x.data || {}) } : null; })()).filter(Boolean); if (await tbGuardar(it)) { cerrarVentana(); tbPintaPrevia(c, it); } };
   };
 }
+
+/* ---- mensajes fijados (arriba del chat, por canal) ---- */
+async function chatFijados() {
+  const c = $("chatFij"); if (!c) return; if (TB.items === null) await tbCargar(); if (TB.err) { c.innerHTML = ""; return; }
+  const F = TB.items.filter(x => x.tipo === "fijado" && (x.data.canal || "general") === CANAL);
+  c.innerHTML = F.map(x => `<div class="cm-fij"><span>📌</span><div><b>${esc(x.data.de || "")}</b>${conMenciones(x.data.texto || "")}</div>${puedeEscribir ? `<a href="#" data-dfij="${esc(x.id)}" title="Quitar">✕</a>` : ""}</div>`).join("");
+  c.querySelectorAll("[data-dfij]").forEach(a => a.onclick = async (e) => { e.preventDefault(); const { error } = await nube.from("equipo_tablero").delete().eq("id", a.dataset.dfij); if (error) { aviso(error.message); return; } TB.items = TB.items.filter(x => x.id !== a.dataset.dfij); chatFijados(); });
+}
+/* ---- aviso en el menú: mensajes nuevos (y @menciones) aunque no estés en el chat ---- */
+function chatAvisosPinta() {
+  const b = $("chatN"); if (!b) return;
+  const nuevos = CHAT.filter(m => m.id > chatVisto(canalDe(m)) && (m.autor || "").toLowerCase() !== chatYo), at = nuevos.some(m => meMenciona(m.texto));
+  b.style.display = nuevos.length ? "" : "none"; b.textContent = at ? "@" : String(nuevos.length); b.style.background = at ? "#e8403a" : "";
+}
+async function chatAvisos() {
+  try { if (!nube || OFFLINE) return; if (!chatYo) chatYo = (MI_EMAIL || ((await nube.auth.getSession()).data.session || { user: {} }).user.email || "").toLowerCase(); if (!chatYo) return; if (seccion === "chat") return; if (!await chatCargar()) chatAvisosPinta(); } catch (e) { /* nada */ }
+}
+setTimeout(chatAvisos, 5000); setInterval(chatAvisos, 60000);
+/* ---- notas de entreno y de cada jugador/a ---- */
+const tbJugadores = () => { try { eqAsegurar(); } catch (e) { /* nada */ } const s2 = new Set(); ((typeof EQ !== "undefined" && EQ && EQ.equipos) || []).forEach(t => (t.plantilla || []).forEach(j => j.nombre && s2.add(j.nombre))); ((typeof EQ !== "undefined" && EQ && EQ.plantilla) || []).forEach(j => j.nombre && s2.add(j.nombre)); return [...s2].sort((a, b) => a.localeCompare(b, "es")); };
+function tbFormNota(it, sobre0) {
+  const nueva = !it; it = it || { id: "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), tipo: "nota", data: { fecha: calISO(new Date()), sobre: sobre0 || "", txt: "", tono: "" } };
+  const d = it.data, J = tbJugadores();
+  ventana(`<h3>${nueva ? "Nueva nota" : "Editar nota"}</h3>
+    <div class="dos"><div><label>Fecha</label><input id="nfF" type="date" value="${esc(d.fecha)}"></div><div><label>Sobre</label><select id="nfS"><option value="">🎯 El entreno en general</option>${J.map(n => `<option ${d.sobre === n ? "selected" : ""}>${esc(n)}</option>`).join("")}${d.sobre && !J.includes(d.sobre) ? `<option selected>${esc(d.sobre)}</option>` : ""}</select></div></div>
+    <label>Cómo fue</label><div class="ct-seg" id="nfT">${[["bien", "👍 Bien"], ["", "➖ Normal"], ["mal", "👎 A mejorar"]].map(([k, t]) => `<button type="button" data-tono="${k}" class="${d.tono === k ? "on" : ""}">${t}</button>`).join("")}</div>
+    <label>Nota</label><textarea id="nfN" rows="4" placeholder="Ej. Muy bien en defensa, le falta hablar más. / Falta intensidad en el rebote.">${esc(d.txt)}</textarea>
+    <div class="pie-m">${nueva ? "" : '<button class="gris" id="nfB" style="margin-right:auto;color:#c92a2a;">🗑 Borrar</button>'}<button class="gris" id="nfX">Cancelar</button><button class="naranja" id="nfG">Guardar</button></div>`);
+  let tono = d.tono || ""; document.querySelectorAll("[data-tono]").forEach(b => b.onclick = () => { tono = b.dataset.tono; document.querySelectorAll("[data-tono]").forEach(x => x.classList.toggle("on", x === b)); });
+  $("nfX").onclick = cerrarVentana;
+  if ($("nfB")) $("nfB").onclick = async () => { if (!await confirmar("¿Borrar la nota?")) return; const { error } = await nube.from("equipo_tablero").delete().eq("id", it.id); if (error) { aviso(error.message); return; } TB.items = TB.items.filter(x => x.id !== it.id); cerrarVentana(); pintar(); };
+  $("nfG").onclick = async () => { const t = $("nfN").value.trim(); if (!t) { aviso("Escribe la nota."); return; } Object.assign(d, { fecha: $("nfF").value, sobre: $("nfS").value, txt: t, tono }); if (await tbGuardar(it)) { cerrarVentana(); aviso("Nota guardada ✓"); pintar(); } };
+}
+function tbPintaNotas(c) {
+  const N = TB.items.filter(x => x.tipo === "nota"), ro = !puedeEscribir, J = [...new Set(N.map(x => x.data.sobre).filter(Boolean).concat(tbJugadores()))].sort((a, b) => a.localeCompare(b, "es"));
+  const L = N.filter(x => TB.nf === undefined || TB.nf === "*" ? true : (x.data.sobre || "") === TB.nf).sort((a, b) => String(b.data.fecha).localeCompare(String(a.data.fecha)) || String(b.creado).localeCompare(String(a.creado)));
+  const quien = TB.nf && TB.nf !== "*" ? TB.nf : "", resumen = quien ? (() => { const b = L.filter(x => x.data.tono === "bien").length, m = L.filter(x => x.data.tono === "mal").length; return `<div class="ct-res"><b>${esc(quien)}</b><span>${L.length} notas</span><span class="b">👍 ${b}</span><span class="m">👎 ${m}</span></div>`; })() : "";
+  const grupos = {}; L.forEach(x => (grupos[x.data.fecha] = grupos[x.data.fecha] || []).push(x));
+  c.innerHTML = `<div class="ct-bar"><select id="nfQ" style="width:auto;margin:0;"><option value="*">Todas las notas</option><option value="" ${TB.nf === "" ? "selected" : ""}>🎯 Solo entrenos</option>${J.map(n => `<option ${TB.nf === n ? "selected" : ""}>${esc(n)}</option>`).join("")}</select><span style="flex:1"></span>${ro ? "" : '<button class="naranja" id="nfNew">＋ Nota</button>'}</div>${resumen}
+    ${Object.keys(grupos).map(f => `<div class="ct-dia"><div class="ct-diah">${f ? tpCorta(f) + " " + f.slice(0, 4) : "Sin fecha"}</div>${grupos[f].map(x => { const d = x.data; return `<div class="ct-nota ${d.tono}" data-ne="${esc(x.id)}"><div class="ct-nh"><b>${d.sobre ? "👤 " + esc(d.sobre) : "🎯 Entreno"}</b><span>${d.tono === "bien" ? "👍" : d.tono === "mal" ? "👎" : ""}</span><small>${esc(tbNombre(x.autor))}</small></div><p>${esc(d.txt).replace(/\n/g, "<br>")}</p></div>`; }).join("")}</div>`).join("") || `<p class="vacio">${quien ? "Aún no hay notas de " + esc(quien) + "." : "Aún no hay notas. Después de cada entreno, apunta cómo fue y cómo estuvo cada jugador/a: así veréis su evolución con lo que piensa cada técnico."}</p>`}`;
+  $("nfQ").onchange = (e) => { TB.nf = e.target.value; tbPintaNotas(c); };
+  if ($("nfNew")) $("nfNew").onclick = () => tbFormNota(null, TB.nf && TB.nf !== "*" ? TB.nf : "");
+  c.querySelectorAll("[data-ne]").forEach(b => b.onclick = () => { const it = TB.items.find(x => x.id === b.dataset.ne); if (it && !ro && (it.autor === chatYo || !SOY_AYU)) tbFormNota(it); });
+}
+/* ---- votaciones: cada voto es su propia fila, para que no se pisen ---- */
+function tbPintaVotos(c) {
+  const V = TB.items.filter(x => x.tipo === "voto").sort((a, b) => String(b.creado).localeCompare(String(a.creado))), R = TB.items.filter(x => x.tipo === "votor"), ro = !puedeEscribir;
+  c.innerHTML = `<div class="ct-bar"><b>Decisiones del cuerpo técnico</b><span style="flex:1"></span>${ro ? "" : '<button class="naranja" id="vtN">＋ Votación</button>'}</div>
+    ${V.map(x => { const d = x.data, vs = R.filter(r => r.data.voto === x.id), mio = vs.find(r => r.autor === chatYo), tot = vs.length, mx = Math.max(0, ...d.opciones.map((o, i) => vs.filter(r => r.data.i === i).length));
+      return `<div class="ct-voto ${d.cerrada ? "cer" : ""}"><div class="ct-vh"><b>${esc(d.pregunta)}</b>${d.cerrada ? '<span class="ct-cer">Cerrada</span>' : ""}</div>
+        ${d.opciones.map((o, i) => { const n = vs.filter(r => r.data.i === i).length, pc = tot ? Math.round(100 * n / tot) : 0; return `<button class="ct-op ${mio && mio.data.i === i ? "mia" : ""} ${d.cerrada && n === mx && n ? "gana" : ""}" data-vv="${esc(x.id)}" data-vi="${i}" ${d.cerrada || ro ? "disabled" : ""}><i style="width:${pc}%"></i><span>${esc(o)}</span><b>${n}</b></button>`; }).join("")}
+        <div class="ct-vf"><small>${tot} ${tot === 1 ? "voto" : "votos"}${tot ? ": " + vs.map(r => esc(tbNombre(r.autor)) + " → " + esc(d.opciones[r.data.i] || "")).join(" · ") : ""} · de ${esc(tbNombre(x.autor))}</small>${x.autor === chatYo || !SOY_AYU ? `<span style="flex:1"></span><a href="#" data-vc="${esc(x.id)}">${d.cerrada ? "Reabrir" : "Cerrar votación"}</a><a href="#" data-vb="${esc(x.id)}">Borrar</a>` : ""}</div></div>`; }).join("") || '<p class="vacio">Sin votaciones. Úsalas para decidir juntos: quinteto inicial, jugada de último segundo, horario del entreno…</p>'}`;
+  if ($("vtN")) $("vtN").onclick = () => { ventana(`<h3>Nueva votación</h3><label>Pregunta</label><input id="vnP" placeholder="Ej. ¿Quinteto inicial contra Getafe?"><label>Opciones <small style="text-transform:none;letter-spacing:0;font-weight:500;">(una por línea)</small></label><textarea id="vnO" rows="4" placeholder="Quinteto A&#10;Quinteto B"></textarea><div class="pie-m"><button class="gris" id="vnX">Cancelar</button><button class="naranja" id="vnG">Crear</button></div>`);
+    $("vnX").onclick = cerrarVentana; $("vnG").onclick = async () => { const q = $("vnP").value.trim(), ops = $("vnO").value.split("\n").map(x => x.trim()).filter(Boolean).slice(0, 8); if (!q || ops.length < 2) { aviso("Pon la pregunta y al menos 2 opciones."); return; } const it = { id: "v" + Date.now().toString(36), tipo: "voto", data: { pregunta: q, opciones: ops, cerrada: false } }; if (await tbGuardar(it)) { cerrarVentana(); chatEnviar("🗳️ Nueva votación: " + q + " (en la pestaña Votaciones)"); tbPintaVotos(c); } }; };
+  c.querySelectorAll("[data-vv]").forEach(b => b.onclick = async () => { const id = b.dataset.vv + "_" + chatYo.replace(/[^a-z0-9]/g, "_"); let it = TB.items.find(x => x.id === id); it = it || { id, tipo: "votor", data: {} }; it.data = { voto: b.dataset.vv, i: +b.dataset.vi }; if (await tbGuardar(it)) { const k = TB.items.find(x => x.id === id); if (k) k.autor = k.autor || chatYo; tbPintaVotos(c); } });
+  c.querySelectorAll("[data-vc]").forEach(a => a.onclick = async (e) => { e.preventDefault(); const it = TB.items.find(x => x.id === a.dataset.vc); if (!it) return; it.data.cerrada = !it.data.cerrada; if (await tbGuardar(it)) tbPintaVotos(c); });
+  c.querySelectorAll("[data-vb]").forEach(a => a.onclick = async (e) => { e.preventDefault(); if (!await confirmar("¿Borrar la votación?")) return; const ids = [a.dataset.vb].concat(R.filter(r => r.data.voto === a.dataset.vb).map(r => r.id)); for (const id of ids) await nube.from("equipo_tablero").delete().eq("id", id); TB.items = TB.items.filter(x => !ids.includes(x.id)); tbPintaVotos(c); });
+}
 async function tbPinta(c) {
   if (TB.items === null) { c.innerHTML = '<p class="vacio">Cargando…</p>'; await tbCargar(); }
   if (TB.err === "falta") { c.innerHTML = '<div class="aviso-sql">Falta activar las tareas y la preparación de partidos: ejecuta <b>equipo_tecnico.sql</b> una vez en Supabase (SQL Editor).</div>'; return; }
   if (TB.err) { c.innerHTML = '<div class="aviso-sql">' + esc(TB.err) + "</div>"; return; }
   const hoy = calISO(new Date()), ro = !puedeEscribir;
+  if (TB.tab === "notas") return tbPintaNotas(c);
+  if (TB.tab === "votos") return tbPintaVotos(c);
   if (TB.tab === "tareas") {
     const T = TB.items.filter(x => x.tipo === "tarea"), mias = T.filter(x => !x.data.hecha && (x.data.resp === chatYo || !x.data.resp)).length;
     const L = T.filter(x => TB.filtro === "hechas" ? x.data.hecha : TB.filtro === "mias" ? !x.data.hecha && (x.data.resp === chatYo || !x.data.resp) : !x.data.hecha).sort((a, b) => (a.data.fecha || "9999").localeCompare(b.data.fecha || "9999"));
@@ -1190,18 +1276,20 @@ async function tbPinta(c) {
 }
 async function pintarChat(v) {
   chatYo = (MI_EMAIL || ((await nube.auth.getSession()).data.session || { user: {} }).user.email || "").toLowerCase();
-  v.innerHTML = `<div class="cab"><h2>Equipo técnico</h2></div><div class="ct-tabs">${[["chat", "💬 Chat"], ["tareas", "✅ Tareas"], ["previa", "📋 Próximo partido"]].map(([k, t]) => `<button data-ctab="${k}" class="${TB.tab === k ? "on" : ""}">${t}</button>`).join("")}</div>
+  v.innerHTML = `<div class="cab"><h2>Equipo técnico</h2></div><div class="ct-tabs">${[["chat", "💬 Chat"], ["tareas", "✅ Tareas"], ["previa", "📋 Próximo partido"], ["notas", "📝 Notas"], ["votos", "🗳️ Votaciones"]].map(([k, t]) => `<button data-ctab="${k}" class="${TB.tab === k ? "on" : ""}">${t}</button>`).join("")}</div>
     <div id="ctOtro" style="${TB.tab === "chat" ? "display:none" : ""}"></div>
-    <div id="chatBox" style="${TB.tab === "chat" ? "" : "display:none"}"><div id="chatMsgs"><p class="vacio">Cargando…</p></div>
-    <div id="chatIn"><textarea id="chTxt" rows="1" placeholder="Escribe un mensaje…"></textarea><button class="gris" id="chJ" title="Compartir jugada, ejercicio o plan">📎</button><button class="naranja" id="chEnv">Enviar</button></div></div>
+    <div id="chatBox" style="${TB.tab === "chat" ? "" : "display:none"}"><div class="ct-can">${CANALES.map(([k, t]) => `<button data-canal="${k}" class="${CANAL === k ? "on" : ""}">${t}<i></i></button>`).join("")}</div><div id="chatFij"></div><div id="chatMsgs"><p class="vacio">Cargando…</p></div>
+    <div id="chatIn"><textarea id="chTxt" rows="1" placeholder="Escribe un mensaje… (usa @nombre para avisar a alguien)"></textarea><button class="gris" id="chAt" title="Mencionar a alguien">@</button><button class="gris" id="chJ" title="Compartir jugada, ejercicio o plan">📎</button><button class="naranja" id="chEnv">Enviar</button></div></div>
     <style>#chatBox{display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:320px;max-width:720px}#chatMsgs{flex:1;overflow:auto;padding:8px;background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px}
     .cm{max-width:82%;margin:6px 0;padding:7px 10px;border-radius:12px;background:#eef1f5}.cm.mio{margin-left:auto;background:#ffe9d6}.cm-n{font-size:11.5px;color:#667}.cm-n a{text-decoration:none}.cm-t{font-size:14.5px;margin-top:2px;word-break:break-word}
     .cm-j{margin-top:6px;padding:8px;border-radius:10px;background:#fff;border:1px solid #ddd}.cm-j button{margin:6px 4px 0 0;padding:5px 10px}#chatIn{display:flex;gap:6px;margin-top:8px}#chatIn textarea{flex:1;resize:none;padding:9px;border-radius:10px;border:1px solid #ccc;font:inherit}</style>`;
+  v.querySelectorAll("[data-canal]").forEach(b => b.onclick = () => { CANAL = b.dataset.canal; try { localStorage.setItem("sf_canal", CANAL); } catch (e) { /* nada */ } v.querySelectorAll("[data-canal]").forEach(x => x.classList.toggle("on", x === b)); chatPintaMsgs(); chatFijados(); const c = $("chatMsgs"); if (c) c.scrollTop = c.scrollHeight; });
+  $("chAt").onclick = (e) => { const ps = tbPersonas().filter(([em]) => em !== chatYo); if (!ps.length) { aviso("Todavía no hay nadie más en el chat."); return; } abrirMenu(e, ps.map(([em, n]) => ["@" + n, () => { const t = $("chTxt"); t.value = (t.value ? t.value.replace(/\s*$/, " ") : "") + "@" + String(n).split(" ")[0] + " "; t.focus(); }])); };
   v.querySelectorAll("[data-ctab]").forEach(b => b.onclick = () => { TB.tab = b.dataset.ctab; TB.pv = null; if (TB.tab !== "chat") TB.items = null; pintar(); });
   const err = await chatCargar();
   if (TB.tab !== "chat") { tbPinta($("ctOtro")); }
   if (err) { $("chatMsgs").innerHTML = '<div class="aviso-sql">' + (/does not exist|relation/.test(err.message) ? "Falta ejecutar <b>equipo_chat.sql</b> en Supabase (SQL Editor)." : esc(err.message)) + "</div>"; return; }
-  chatPintaMsgs(); $("chatMsgs").scrollTop = $("chatMsgs").scrollHeight;
+  chatPintaMsgs(); $("chatMsgs").scrollTop = $("chatMsgs").scrollHeight; chatFijados();
   const env = () => { const t = $("chTxt"); const x = t.value; t.value = ""; chatEnviar(x); };
   $("chEnv").onclick = env; $("chJ").onclick = () => chatElegirJugada();
   $("chTxt").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); env(); } };
@@ -1209,6 +1297,7 @@ async function pintarChat(v) {
     const d = e.target.closest("[data-cdel]"), vv = e.target.closest("[data-cver]"), c = e.target.closest("[data-ccop]");
     if (d) { e.preventDefault(); if (!await confirmar("¿Borrar este mensaje?")) return; await nube.from("equipo_chat").delete().eq("id", d.dataset.cdel); await chatCargar(); chatPintaMsgs(); }
     if (vv) { const m = CHAT.find(z => String(z.id) === vv.dataset.cver); if (m && m.jugada) { const dd = m.jugada.kind === "ejercicio" ? (m.jugada.data || {}).diagrama : m.jugada.data; if (dd && (dd.pasos || []).length) verJugada({ nombre: m.jugada.nombre, data: dd }); else aviso("No tiene dibujo para ver."); } }
+    const fj = e.target.closest("[data-cfij]"); if (fj) { e.preventDefault(); const m = CHAT.find(z => String(z.id) === fj.dataset.cfij); if (m) { const it = { id: "f" + Date.now().toString(36), tipo: "fijado", data: { texto: m.texto, de: m.nombre || m.autor, canal: canalDe(m) } }; if (TB.items === null) await tbCargar(); if (await tbGuardar(it)) { aviso("Fijado arriba 📌"); chatFijados(); } } return; }
     if (c) { const m0 = CHAT.find(z => String(z.id) === c.dataset.ccop); if (m0 && m0.jugada && m0.jugada.kind === "ejercicio") { if (!puedeCrear("ejercicios")) return; const id = idNuevo("e"); if (await guardarFila("ejercicios", { id, nombre: m0.jugada.nombre || "Ejercicio", carpeta: "", data: clonar(m0.jugada.data || {}) })) { await cargarTodo(); aviso("Copiado a tus ejercicios ✓"); } return; }
       if (m0 && m0.jugada && m0.jugada.kind === "plan") { const j = m0.jugada, segs = []; for (const e2 of j.ejs || []) { if (e2.sec) { segs.push({ sec: true, titulo: e2.t }); continue; } let eid = null; if (e2.ej) { eid = idNuevo("e"); if (!await guardarFila("ejercicios", { id: eid, nombre: e2.ej.nombre || e2.t, carpeta: "Compartidos", data: clonar(e2.ej.data || {}) })) return; } segs.push(eid ? { id: eid, min: e2.min || 0 } : { titulo: e2.t, min: e2.min || 0 }); }
         const id = idNuevo("p"); if (await guardarFila("planes", { id, nombre: j.nombre || "Plan", carpeta: "", fecha: j.fecha || null, data: Object.assign(clonar(j.data || {}), { ejercicios: segs }) })) { await cargarTodo(); aviso("Plan copiado ✓ (sus ejercicios están en la carpeta «Compartidos»)"); } return; } }
