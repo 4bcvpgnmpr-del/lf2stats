@@ -51,8 +51,10 @@
   .tabla th,.tabla td{padding:8px 10px;border-bottom:1px solid #eee;text-align:left;} .tabla th{background:#f3f0fa;}
   .lista-t{display:flex;flex-direction:column;gap:8px;width:min(560px,100%);} .lista-t button{background:#fff;color:#1a1030;text-align:left;padding:14px 16px;border-radius:12px;font-weight:800;font-size:17px;} .lista-t small{display:block;color:#777;font-weight:600;font-size:13px;}
   @media (max-width:700px){ .ops{grid-template-columns:1fr;} .medio{padding:6px 14px;} }
+  #salir{position:fixed;left:12px;bottom:12px;z-index:50;background:#ffffff26;color:#fff;font-weight:800;font-size:14px;padding:8px 14px;border-radius:999px;backdrop-filter:blur(4px);} #salir:hover{background:#ffffff40;}
+  @media print{ #salir{display:none;} }
 </style></head><body>
-<div id="app" class="pant"></div>
+<div id="app" class="pant"></div><button id="salir" hidden>✕ Salir</button>
 <script>
 const CONFIG = { SUPABASE_URL: "https://tizmzblksovdqqnlxpli.supabase.co", SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
 const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON);
@@ -73,8 +75,9 @@ async function hostInicio() {
   const T = (data || []).filter(t => (t.preguntas || []).some(p => (p.texto || "").trim()));
   const id = P.get("test");
   if (id && T.some(t => t.id === id)) return hostPreparar(T.find(t => t.id === id));
-  APP.innerHTML = `<div class="centro">${LOGO}<h1 style="margin:0;">¿Qué test jugamos?</h1><div class="lista-t">${T.map(t => `<button data-t="${esc(t.id)}">${esc(t.titulo || "Test")}<small>${(t.preguntas || []).filter(p => (p.texto || "").trim()).length} preguntas</small></button>`).join("") || '<p class="peq">No tienes tests con preguntas. Créalos en el Panel › Tests.</p>'}</div></div>`;
+  APP.innerHTML = `<div class="centro">${LOGO}<h1 style="margin:0;">¿Qué test jugamos?</h1><p class="peq" style="margin:0;">Los tests se crean en el Panel › Tests. Abre esta pantalla en la tele o el proyector.</p><div class="lista-t">${T.map(t => `<button data-t="${esc(t.id)}">${esc(t.titulo || "Test")}<small>${(t.preguntas || []).filter(p => (p.texto || "").trim()).length} preguntas</small></button>`).join("") || '<p class="peq">No tienes tests con preguntas. Créalos en el Panel › Tests.</p>'}</div></div>`;
   APP.querySelectorAll("[data-t]").forEach(b => b.onclick = () => hostPreparar(T.find(t => t.id === b.dataset.t)));
+  const bs = $("salir"); bs.hidden = false; bs.textContent = "✕ Volver"; bs.onclick = () => { if (window.opener) window.close(); location.href = "entrenador.html"; };
 }
 function hostPreparar(t) {
   H.test = t; H.preg = (t.preguntas || []).filter(p => (p.texto || "").trim()).map(p => ({ texto: p.texto.trim(), opciones: (p.opciones || []).map(o => String(o || "").trim()).filter(Boolean), correcta: p.correcta || 0, seg: p.seg || t.segundos || 20 }));
@@ -82,8 +85,16 @@ function hostPreparar(t) {
   H.cod = String(Math.floor(1000 + Math.random() * 9000));
   H.ch = canal(H.cod);
   H.ch.on("broadcast", { event: "j" }, ({ payload: m }) => hostMsg(m)).subscribe((st) => { if (st === "SUBSCRIBED") { hostEmitir(); hostLobby(); } });
-  setInterval(hostEmitir, 2000);   /* se repite el estado para quien entra tarde o pierde un mensaje */
+  setInterval(() => { if (H.fase !== "fin") hostEmitir(); }, 2000);
+  const bs = $("salir"); bs.hidden = false; bs.textContent = "✕ Salir del juego"; bs.onclick = hostSalir;   /* se repite el estado para quien entra tarde o pierde un mensaje */
   hostLobby();
+}
+async function hostSalir() {
+  const enJuego = H.fase !== "lobby" && H.fase !== "podio" && H.fase !== "fin";
+  if (enJuego && !confirm("¿Terminar el juego? Los jugadores/as verán que ha terminado.")) return;
+  H.fase = "fin"; try { await H.ch.send({ type: "broadcast", event: "e", payload: { fase: "fin" } }); } catch (e) { /* nada */ }
+  clearInterval(H.timer); try { sb.removeChannel(H.ch); } catch (e) { /* nada */ }
+  if (window.opener) { window.close(); setTimeout(() => { location.href = "entrenador.html"; }, 300); } else location.href = "entrenador.html";
 }
 function hostMsg(m) {
   if (!m || !m.id) return;
@@ -175,8 +186,14 @@ function jugEntrar(err) {
   $("jE").onclick = () => { const c = $("jC").value.trim(), n = $("jN").value.trim(); if (!/^\d{4}$/.test(c)) return jugEntrar("El código tiene 4 números."); if (!n) return jugEntrar("Escribe tu nombre."); try { localStorage.setItem("sf_vivo_nom", n); } catch (e) { /* nada */ } J.nombre = n; J.cod = c; jugConectar(); };
   $("jN").onkeydown = (e) => { if (e.key === "Enter") $("jE").click(); };
 }
+function jugSalir(preguntar) {
+  if (preguntar && J.e && J.e.fase === "pregunta" && !confirm("¿Salir del juego?")) return;
+  clearInterval(J.hola); try { if (J.ch) sb.removeChannel(J.ch); } catch (e) { /* nada */ } J.ch = null; J.e = null; J.vis = ""; J.resp = {};
+  $("salir").hidden = true; jugEntrar();
+}
 function jugConectar() {
   APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">Conectando…</p></div>`;
+  const bs = $("salir"); bs.hidden = false; bs.textContent = "✕ Salir"; bs.onclick = () => jugSalir(true);
   J.ch = canal(J.cod); let llego = false;
   J.ch.on("broadcast", { event: "e" }, ({ payload }) => { llego = true; J.e = payload; jugPintar(); })
     .subscribe((st) => { if (st === "SUBSCRIBED") { const hola = () => J.ch.send({ type: "broadcast", event: "j", payload: { t: "hola", id: J.id, nombre: J.nombre } }); hola(); J.hola = setInterval(hola, 4000); } });
@@ -184,6 +201,7 @@ function jugConectar() {
 }
 function jugPintar() {
   const e = J.e; if (!e) return; const clave = e.fase + "|" + e.i;
+  if (e.fase === "fin") { if (J.vis === "fin") return; J.vis = "fin"; clearInterval(J.hola); APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">El juego ha terminado</p><button class="btn nar" id="jOtra">Entrar en otro juego</button></div>`; $("jOtra").onclick = () => jugSalir(false); return; }
   if (e.fase === "lobby") { if (J.vis === clave) return; J.vis = clave; APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">¡Dentro, ${esc(J.nombre)}!</p><p class="peq" style="font-size:18px;">Mira la pantalla grande. Empieza enseguida…</p></div>`; return; }
   if (e.fase === "pregunta") {
     if (J.resp[e.i] !== undefined) { if (J.vis === clave + "r") return; J.vis = clave + "r"; APP.innerHTML = `<div class="centro"><p class="gran">Respuesta enviada</p><p class="peq" style="font-size:18px;">Espera a los demás… ⏳</p></div>`; return; }
