@@ -1434,6 +1434,7 @@ async function cargarTestsPanel() {
         <span style="font-size:12px;font-weight:800;color:${t.abierto ? "var(--verde)" : "var(--ink-soft)"};">${t.abierto ? "ABIERTO" : "CERRADO"}</span></div>
       <div style="font-size:13px;color:var(--ink-soft);margin:4px 0 8px;">${bank} preguntas (${(t.preguntas || []).filter(p => p.fija).length} fijas · ${(t.preguntas || []).filter(p => p.grupo === "ext").length} ext. · ${(t.preguntas || []).filter(p => p.grupo === "int").length} int.) · ${t.n_preguntas} al azar a cada una · han respondido <b>${hechos} de ${dest.length}</b></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <a class="boton fina" href="vivo.html?host=1&test=${encodeURIComponent(t.id)}" target="_blank" rel="noopener" style="background:#864cbf;text-decoration:none;">🎮 Jugar en directo</a>
         <button class="boton fina" data-tr="${t.id}">Ver resultados</button>
         <button class="boton fina gris" data-te="${t.id}">Editar</button>
         <button class="boton fina gris" data-ta="${t.id}">${t.abierto ? "Cerrar" : "Abrir"}</button>

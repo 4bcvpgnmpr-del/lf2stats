@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>ScoutFlow · Test en directo</title>
+<link rel="icon" href="sf-192.png"><meta name="theme-color" content="#1a1030">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<style>
+  :root{--fondo:#1a1030;--fondo2:#2a1a4a;--txt:#fff;--suave:#c9bde6;--nar:#ff7a1a;
+        --c0:#e21b3c;--c1:#1368ce;--c2:#d89e00;--c3:#26890c;--c4:#864cbf;--c5:#0aa3a3;}
+  *{box-sizing:border-box;} html,body{margin:0;height:100%;}
+  body{font-family:"Montserrat",-apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 700px at 50% -10%,#3b2470,var(--fondo));color:var(--txt);overflow-x:hidden;}
+  button{font:inherit;cursor:pointer;border:0;}
+  .pant{min-height:100vh;display:flex;flex-direction:column;}
+  .centro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;text-align:center;gap:16px;}
+  .logo{font-weight:900;letter-spacing:.02em;font-size:20px;display:flex;align-items:center;gap:8px;justify-content:center;} .logo img{width:30px;height:30px;border-radius:7px;}
+  .caja{background:#fff;color:#222;border-radius:16px;padding:18px;width:min(380px,100%);display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 40px #0006;}
+  .caja input{font:inherit;font-size:22px;font-weight:800;text-align:center;padding:14px;border:2px solid #ddd;border-radius:10px;width:100%;}
+  .btn{background:#333;color:#fff;font-weight:900;font-size:20px;padding:14px 22px;border-radius:12px;box-shadow:0 4px 0 #0005;} .btn:active{transform:translateY(2px);box-shadow:0 2px 0 #0005;}
+  .btn.nar{background:var(--nar);} .btn.claro{background:#fff;color:#222;} .btn:disabled{opacity:.5;}
+  .peq{color:var(--suave);font-size:14px;} .err{color:#ffb3b3;font-weight:700;min-height:1.2em;}
+  .codigo{font-size:clamp(56px,11vw,140px);font-weight:900;letter-spacing:.12em;line-height:1;background:#fff;color:#1a1030;border-radius:18px;padding:10px 30px;}
+  .jugs{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:1100px;}
+  .jugs span{background:#ffffff1f;padding:8px 16px;border-radius:999px;font-weight:800;font-size:clamp(15px,1.6vw,22px);animation:entra .3s;}
+  @keyframes entra{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+  .barra-top{display:flex;align-items:center;gap:12px;padding:12px 18px;font-weight:800;} .barra-top .esp{flex:1;}
+  .preg{background:#fff;color:#111;font-size:clamp(22px,3.4vw,46px);font-weight:900;padding:18px 26px;border-radius:14px;margin:6px 18px;text-align:center;line-height:1.2;}
+  .medio{flex:1;display:flex;align-items:center;justify-content:space-between;padding:10px 30px;gap:20px;}
+  .reloj{width:clamp(80px,10vw,140px);height:clamp(80px,10vw,140px);border-radius:50%;background:var(--c4);display:flex;align-items:center;justify-content:center;font-size:clamp(34px,4.5vw,64px);font-weight:900;}
+  .resp-n{text-align:center;font-weight:900;font-size:clamp(28px,3.5vw,54px);} .resp-n small{display:block;font-size:16px;color:var(--suave);}
+  .ops{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 18px 18px;}
+  .op{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:12px;color:#fff;font-weight:900;font-size:clamp(18px,2.4vw,34px);text-align:left;min-height:clamp(70px,11vh,130px);box-shadow:inset 0 -6px 0 #0003;}
+  .op i{font-style:normal;font-size:1.3em;flex:none;width:1.2em;text-align:center;}
+  .op.mal{opacity:.3;} .op.bien{outline:6px solid #fff;}
+  .c0{background:var(--c0);} .c1{background:var(--c1);} .c2{background:var(--c2);} .c3{background:var(--c3);} .c4{background:var(--c4);} .c5{background:var(--c5);}
+  .graf{display:flex;align-items:flex-end;justify-content:center;gap:clamp(10px,2vw,30px);height:28vh;padding:0 20px;margin:10px 0 16px;}
+  .ops.res .op{min-height:clamp(54px,8vh,90px);font-size:clamp(16px,2vw,26px);}
+  .graf div{width:clamp(50px,9vw,130px);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;font-weight:900;font-size:clamp(18px,2.2vw,30px);}
+  .graf b{display:block;width:100%;border-radius:8px 8px 0 0;min-height:8px;}
+  .rank{width:min(760px,94vw);display:flex;flex-direction:column;gap:8px;}
+  .rank div{display:flex;align-items:center;gap:14px;background:#fff;color:#1a1030;border-radius:10px;padding:12px 18px;font-weight:900;font-size:clamp(18px,2.2vw,28px);}
+  .rank div span{flex:1;text-align:left;} .rank div small{color:#888;font-size:.7em;}
+  .podio{display:flex;align-items:flex-end;justify-content:center;gap:16px;margin-top:20px;}
+  .podio div{width:clamp(100px,16vw,220px);background:var(--nar);border-radius:12px 12px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:14px;font-weight:900;font-size:clamp(16px,2vw,26px);}
+  .podio div b{font-size:1.6em;} .podio .p1{height:44vh;background:#f5b000;} .podio .p2{height:32vh;background:#b9c3cf;color:#1a1030;} .podio .p3{height:24vh;background:#cd7f32;}
+  /* móvil del jugador */
+  .mops{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;}
+  .mops button{border-radius:14px;color:#fff;font-size:clamp(44px,14vw,90px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:inset 0 -8px 0 #0003;}
+  .mops button small{font-size:15px;font-weight:800;padding:0 8px;line-height:1.2;max-height:3.6em;overflow:hidden;}
+  .gran{font-size:clamp(30px,9vw,60px);font-weight:900;} .ok{background:#26890c !important;} .ko{background:#c0213a !important;}
+  .tabla{width:min(900px,96vw);border-collapse:collapse;background:#fff;color:#222;border-radius:12px;overflow:hidden;font-size:15px;}
+  .tabla th,.tabla td{padding:8px 10px;border-bottom:1px solid #eee;text-align:left;} .tabla th{background:#f3f0fa;}
+  .lista-t{display:flex;flex-direction:column;gap:8px;width:min(560px,100%);} .lista-t button{background:#fff;color:#1a1030;text-align:left;padding:14px 16px;border-radius:12px;font-weight:800;font-size:17px;} .lista-t small{display:block;color:#777;font-weight:600;font-size:13px;}
+  @media (max-width:700px){ .ops{grid-template-columns:1fr;} .medio{padding:6px 14px;} }
+</style></head><body>
+<div id="app" class="pant"></div>
+<script>
+const CONFIG = { SUPABASE_URL: "https://tizmzblksovdqqnlxpli.supabase.co", SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpem16Ymxrc292ZHFxbmx4cGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDQxMjMsImV4cCI6MjEwNjUyMDEyM30.eXScUQYTkSxtnNb4TO-FJUsdKpnkTk5z-1QLPjxHAGo" };
+const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON);
+const $ = (id) => document.getElementById(id), APP = $("app"), P = new URLSearchParams(location.search);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const FIG = ["▲", "◆", "●", "■", "★", "⬟"];
+const LOGO = '<div class="logo"><img src="sf-192.png" alt=""> ScoutFlow · Test en directo</div>';
+const canal = (cod) => sb.channel("vivo-" + cod, { config: { broadcast: { self: false, ack: false } } });
+
+/* ======================= PANTALLA GRANDE (entrenador) ======================= */
+const H = { test: null, preg: [], cod: "", ch: null, jug: {}, i: -1, fase: "lobby", fin: 0, ini: 0, resp: {}, timer: null, hist: [] };
+async function hostInicio() {
+  const { data: ses } = await sb.auth.getSession();
+  if (!ses || !ses.session) { APP.innerHTML = `<div class="centro">${LOGO}<p>Entra primero en ScoutFlow con tu cuenta de entrenador y vuelve a abrir esta página.</p><a class="btn nar" href="panel.html" style="text-decoration:none;">Ir al Panel</a></div>`; return; }
+  let q = sb.from("tests").select("*").order("creado", { ascending: false });
+  const { data, error } = await q;
+  if (error) { APP.innerHTML = `<div class="centro">${LOGO}<p class="err">${esc(error.message)}</p></div>`; return; }
+  const T = (data || []).filter(t => (t.preguntas || []).some(p => (p.texto || "").trim()));
+  const id = P.get("test");
+  if (id && T.some(t => t.id === id)) return hostPreparar(T.find(t => t.id === id));
+  APP.innerHTML = `<div class="centro">${LOGO}<h1 style="margin:0;">¿Qué test jugamos?</h1><div class="lista-t">${T.map(t => `<button data-t="${esc(t.id)}">${esc(t.titulo || "Test")}<small>${(t.preguntas || []).filter(p => (p.texto || "").trim()).length} preguntas</small></button>`).join("") || '<p class="peq">No tienes tests con preguntas. Créalos en el Panel › Tests.</p>'}</div></div>`;
+  APP.querySelectorAll("[data-t]").forEach(b => b.onclick = () => hostPreparar(T.find(t => t.id === b.dataset.t)));
+}
+function hostPreparar(t) {
+  H.test = t; H.preg = (t.preguntas || []).filter(p => (p.texto || "").trim()).map(p => ({ texto: p.texto.trim(), opciones: (p.opciones || []).map(o => String(o || "").trim()).filter(Boolean), correcta: p.correcta || 0, seg: p.seg || t.segundos || 20 }));
+  H.preg.forEach(p => { if (p.correcta >= p.opciones.length) p.correcta = 0; });
+  H.cod = String(Math.floor(1000 + Math.random() * 9000));
+  H.ch = canal(H.cod);
+  H.ch.on("broadcast", { event: "j" }, ({ payload: m }) => hostMsg(m)).subscribe((st) => { if (st === "SUBSCRIBED") { hostEmitir(); hostLobby(); } });
+  setInterval(hostEmitir, 2000);   /* se repite el estado para quien entra tarde o pierde un mensaje */
+  hostLobby();
+}
+function hostMsg(m) {
+  if (!m || !m.id) return;
+  if (m.t === "hola") { const n = String(m.nombre || "").trim().slice(0, 20) || "Jugador"; if (!H.jug[m.id]) H.jug[m.id] = { nombre: n, pts: 0, racha: 0, ok: 0 }; else H.jug[m.id].nombre = n; hostEmitir(); if (H.fase === "lobby") hostLobby(); return; }
+  if (m.t === "resp" && H.fase === "pregunta" && m.i === H.i && H.jug[m.id] && !(m.id in H.resp)) {
+    H.resp[m.id] = { k: m.k, ms: Date.now() - H.ini };
+    if (H.fase === "pregunta") { const n = $("hN"); if (n) n.textContent = Object.keys(H.resp).length; }
+    if (Object.keys(H.resp).length >= Object.keys(H.jug).length) hostCerrarPregunta();
+  }
+}
+function hostEstado() {
+  const base = { fase: H.fase, cod: H.cod, titulo: H.test.titulo, n: H.preg.length, i: H.i, nj: Object.keys(H.jug).length };
+  if (H.fase === "pregunta") { const p = H.preg[H.i]; base.q = { texto: p.texto, opciones: p.opciones, fin: H.fin - Date.now() }; }
+  if (H.fase === "resultado" || H.fase === "podio") { const r = hostRanking(); base.res = {}; r.forEach((x, pos) => { const u = H.ult[x.id] || {}; base.res[x.id] = { pts: x.pts, pos: pos + 1, ok: u.ok, gan: u.gan || 0, racha: x.racha }; }); base.correcta = H.preg[H.i] ? H.preg[H.i].correcta : null; }
+  return base;
+}
+function hostEmitir() { if (H.ch) H.ch.send({ type: "broadcast", event: "e", payload: hostEstado() }).catch(() => {}); }
+const hostRanking = () => Object.entries(H.jug).map(([id, j]) => Object.assign({ id }, j)).sort((a, b) => b.pts - a.pts);
+function hostLobby() {
+  if (H.fase !== "lobby") return;
+  const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "vivo.html";
+  const L = Object.values(H.jug);
+  APP.innerHTML = `<div class="barra-top">${LOGO}<span class="esp"></span><span>${esc(H.test.titulo || "")} · ${H.preg.length} preguntas</span></div>
+    <div class="centro"><div class="peq" style="font-size:clamp(16px,2vw,26px);color:#fff;">Entra en <b>${esc(url.replace(/^https?:\/\//, ""))}</b> y pon el código</div><div class="codigo">${H.cod}</div>
+    <div style="font-size:clamp(20px,2.4vw,32px);font-weight:900;">${L.length} ${L.length === 1 ? "jugador/a" : "jugadores/as"}</div>
+    <div class="jugs">${L.map(j => `<span>${esc(j.nombre)}</span>`).join("")}</div>
+    <button class="btn nar" id="hEmp" ${L.length ? "" : "disabled"} style="font-size:24px;padding:16px 40px;">Empezar ▶</button></div>`;
+  $("hEmp").onclick = () => hostPregunta(0);
+}
+function hostPregunta(i) {
+  H.i = i; H.fase = "pregunta"; H.resp = {}; const p = H.preg[i];
+  H.ini = Date.now() + 1200; H.fin = H.ini + p.seg * 1000;
+  hostEmitir();
+  APP.innerHTML = `<div class="barra-top"><span>${i + 1} / ${H.preg.length}</span><span class="esp"></span><span>Código ${H.cod}</span></div>
+    <div class="preg">${esc(p.texto)}</div>
+    <div class="medio"><div class="reloj" id="hR">${p.seg}</div><div></div><div class="resp-n"><span id="hN">0</span><small>respuestas</small></div></div>
+    <div class="ops">${p.opciones.map((o, k) => `<div class="op c${k}"><i>${FIG[k]}</i>${esc(o)}</div>`).join("")}</div>
+    <div style="text-align:right;padding:0 18px 14px;"><button class="btn claro" id="hSalta" style="font-size:16px;padding:10px 18px;">Saltar ⏭</button></div>`;
+  $("hSalta").onclick = hostCerrarPregunta;
+  clearInterval(H.timer); H.timer = setInterval(() => { const s = Math.max(0, Math.ceil((H.fin - Date.now()) / 1000)); if ($("hR")) $("hR").textContent = s; if (Date.now() >= H.fin) hostCerrarPregunta(); }, 200);
+}
+function hostCerrarPregunta() {
+  if (H.fase !== "pregunta") return; clearInterval(H.timer);
+  const p = H.preg[H.i], dur = p.seg * 1000; H.ult = {};
+  Object.entries(H.jug).forEach(([id, j]) => { const r = H.resp[id], ok = !!r && r.k === p.correcta;
+    let gan = 0; if (ok) { gan = Math.round(1000 * (1 - 0.5 * Math.min(1, Math.max(0, r.ms) / dur))); j.racha++; if (j.racha >= 2) gan += Math.min(500, 100 * (j.racha - 1)); j.ok++; } else j.racha = 0;
+    j.pts += gan; H.ult[id] = { ok, gan, k: r ? r.k : null }; });
+  H.hist[H.i] = { cuenta: p.opciones.map((o, k) => Object.values(H.resp).filter(r => r.k === k).length), resp: Object.fromEntries(Object.entries(H.resp).map(([id, r]) => [id, r.k])) };
+  H.fase = "resultado"; hostEmitir();
+  const c = H.hist[H.i].cuenta, mx = Math.max(1, ...c), ult = H.i === H.preg.length - 1;
+  APP.innerHTML = `<div class="barra-top"><span>${H.i + 1} / ${H.preg.length}</span><span class="esp"></span><span>Código ${H.cod}</span></div>
+    <div class="preg">${esc(p.texto)}</div>
+    <div class="graf">${p.opciones.map((o, k) => `<div><span>${k === p.correcta ? "✔ " : ""}${c[k]}</span><b class="c${k}" style="height:${Math.round(85 * c[k] / mx)}%;${k === p.correcta ? "" : "opacity:.45;"}"></b></div>`).join("")}</div>
+    <div class="ops res">${p.opciones.map((o, k) => `<div class="op c${k} ${k === p.correcta ? "bien" : "mal"}"><i>${k === p.correcta ? "✔" : FIG[k]}</i>${esc(o)}</div>`).join("")}</div>
+    <div style="text-align:center;padding:0 0 18px;"><button class="btn nar" id="hSig">${ult ? "🏆 Ver el podio" : "Clasificación ▶"}</button></div>`;
+  $("hSig").onclick = () => ult ? hostPodio() : hostClasif();
+}
+function hostClasif() {
+  const r = hostRanking().slice(0, 5);
+  APP.innerHTML = `<div class="centro"><h1 style="margin:0;font-size:clamp(28px,4vw,54px);">Clasificación</h1><div class="rank">${r.map((x, k) => `<div><b>${k + 1}</b><span>${esc(x.nombre)}${x.racha >= 2 ? ` <small>🔥 ${x.racha}</small>` : ""}</span>${x.pts}</div>`).join("")}</div>
+    <button class="btn nar" id="hSig">Siguiente pregunta ▶</button></div>`;
+  $("hSig").onclick = () => hostPregunta(H.i + 1);
+}
+function hostPodio() {
+  H.fase = "podio"; hostEmitir(); const r = hostRanking(), t = (k) => r[k] ? `<b>${k + 1}º</b>${esc(r[k].nombre)}<span>${r[k].pts}</span>` : "";
+  APP.innerHTML = `<div class="centro"><h1 style="margin:0;font-size:clamp(30px,5vw,64px);">🏆 Podio</h1><div class="podio"><div class="p2">${t(1)}</div><div class="p1">${t(0)}</div><div class="p3">${t(2)}</div></div>
+    <button class="btn claro" id="hInf">📊 Ver informe para el entrenador</button></div>`;
+  $("hInf").onclick = hostInforme;
+  try { localStorage.setItem("sf_vivo_ult", JSON.stringify({ fecha: new Date().toISOString(), test: H.test.titulo, preg: H.preg, hist: H.hist, jug: H.jug })); } catch (e) { /* nada */ }
+}
+function hostInforme() {
+  const r = hostRanking(), n = H.preg.length;
+  const pregs = H.preg.map((p, i) => { const h = H.hist[i] || { cuenta: [], resp: {} }, tot = Object.keys(h.resp).length, ok = Object.values(h.resp).filter(k => k === p.correcta).length; return { i, p, tot, ok, pc: tot ? Math.round(100 * ok / tot) : 0, fallan: Object.entries(h.resp).filter(([, k]) => k !== p.correcta).map(([id]) => (H.jug[id] || {}).nombre).filter(Boolean) }; }).sort((a, b) => a.pc - b.pc);
+  APP.innerHTML = `<div class="centro" style="justify-content:flex-start;">${LOGO}<h1 style="margin:6px 0;">Informe · ${esc(H.test.titulo || "")}</h1>
+    <h3 style="margin:10px 0 4px;">Preguntas que más se fallaron</h3>
+    <table class="tabla"><tr><th>Pregunta</th><th>Acierto</th><th>Quién falló</th></tr>${pregs.map(x => `<tr><td>${x.i + 1}. ${esc(x.p.texto)}<br><small style="color:#2b8a3e;">✔ ${esc(x.p.opciones[x.p.correcta] || "")}</small></td><td style="font-weight:900;color:${x.pc < 50 ? "#c0213a" : x.pc < 75 ? "#d89e00" : "#26890c"};">${x.pc}% <small style="color:#888;font-weight:600;">(${x.ok}/${x.tot})</small></td><td style="font-size:13px;">${esc(x.fallan.join(", ")) || "—"}</td></tr>`).join("")}</table>
+    <h3 style="margin:14px 0 4px;">Jugadores/as</h3>
+    <table class="tabla"><tr><th>#</th><th>Nombre</th><th>Aciertos</th><th>Puntos</th></tr>${r.map((x, k) => `<tr><td>${k + 1}</td><td><b>${esc(x.nombre)}</b></td><td>${x.ok}/${n}</td><td>${x.pts}</td></tr>`).join("")}</table>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;"><button class="btn claro" onclick="window.print()">🖨 Imprimir</button><button class="btn nar" onclick="location.href=location.pathname+'?host=1'">Jugar otro test</button></div></div>`;
+}
+
+/* ======================= MÓVIL (jugador/a) ======================= */
+const J = { id: "", nombre: "", cod: "", ch: null, e: null, resp: {}, vis: "" };
+try { J.id = localStorage.getItem("sf_vivo_id") || ""; } catch (e) { /* nada */ }
+if (!J.id) { J.id = Math.random().toString(36).slice(2, 10); try { localStorage.setItem("sf_vivo_id", J.id); } catch (e) { /* nada */ } }
+function jugEntrar(err) {
+  let nom = ""; try { nom = localStorage.getItem("sf_vivo_nom") || ""; } catch (e) { /* nada */ }
+  APP.innerHTML = `<div class="centro">${LOGO}<div class="caja"><input id="jC" inputmode="numeric" maxlength="4" placeholder="Código" value="${esc(P.get("c") || "")}"><input id="jN" maxlength="20" placeholder="Tu nombre" value="${esc(nom)}"><button class="btn" id="jE">Entrar</button></div><div class="err">${esc(err || "")}</div></div>`;
+  $("jE").onclick = () => { const c = $("jC").value.trim(), n = $("jN").value.trim(); if (!/^\d{4}$/.test(c)) return jugEntrar("El código tiene 4 números."); if (!n) return jugEntrar("Escribe tu nombre."); try { localStorage.setItem("sf_vivo_nom", n); } catch (e) { /* nada */ } J.nombre = n; J.cod = c; jugConectar(); };
+  $("jN").onkeydown = (e) => { if (e.key === "Enter") $("jE").click(); };
+}
+function jugConectar() {
+  APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">Conectando…</p></div>`;
+  J.ch = canal(J.cod); let llego = false;
+  J.ch.on("broadcast", { event: "e" }, ({ payload }) => { llego = true; J.e = payload; jugPintar(); })
+    .subscribe((st) => { if (st === "SUBSCRIBED") { const hola = () => J.ch.send({ type: "broadcast", event: "j", payload: { t: "hola", id: J.id, nombre: J.nombre } }); hola(); J.hola = setInterval(hola, 4000); } });
+  setTimeout(() => { if (!llego) { try { sb.removeChannel(J.ch); } catch (e) { /* nada */ } clearInterval(J.hola); jugEntrar("No encuentro ese código. Revisa que el test esté abierto en la pantalla."); } }, 7000);
+}
+function jugPintar() {
+  const e = J.e; if (!e) return; const clave = e.fase + "|" + e.i;
+  if (e.fase === "lobby") { if (J.vis === clave) return; J.vis = clave; APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">¡Dentro, ${esc(J.nombre)}!</p><p class="peq" style="font-size:18px;">Mira la pantalla grande. Empieza enseguida…</p></div>`; return; }
+  if (e.fase === "pregunta") {
+    if (J.resp[e.i] !== undefined) { if (J.vis === clave + "r") return; J.vis = clave + "r"; APP.innerHTML = `<div class="centro"><p class="gran">Respuesta enviada</p><p class="peq" style="font-size:18px;">Espera a los demás… ⏳</p></div>`; return; }
+    if (J.vis === clave) return; J.vis = clave; const ops = e.q.opciones;
+    APP.innerHTML = `<div class="barra-top"><span>${e.i + 1} / ${e.n}</span><span class="esp"></span><span>${esc(J.nombre)}</span></div><div class="mops" style="${ops.length > 4 ? "grid-template-columns:1fr 1fr;" : ""}">${ops.map((o, k) => `<button class="c${k}" data-k="${k}">${FIG[k]}<small>${esc(o)}</small></button>`).join("")}</div>`;
+    APP.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { if (J.resp[e.i] !== undefined) return; J.resp[e.i] = +b.dataset.k; J.ch.send({ type: "broadcast", event: "j", payload: { t: "resp", id: J.id, i: e.i, k: +b.dataset.k } }); if (navigator.vibrate) navigator.vibrate(30); jugPintar(); });
+    return;
+  }
+  if (e.fase === "resultado" || e.fase === "podio") {
+    const r = (e.res || {})[J.id]; if (J.vis === clave) return; J.vis = clave;
+    if (!r) { APP.innerHTML = `<div class="centro"><p class="gran">Mira la pantalla 👀</p></div>`; return; }
+    if (e.fase === "podio") { APP.innerHTML = `<div class="centro">${LOGO}<p class="gran">${r.pos <= 3 ? ["🥇", "🥈", "🥉"][r.pos - 1] : "🏁"} ${r.pos}º puesto</p><p style="font-size:26px;font-weight:900;">${r.pts} puntos</p><p class="peq" style="font-size:16px;">¡Gracias por jugar!</p></div>`; return; }
+    const bien = !!r.ok;
+    APP.innerHTML = `<div class="pant ${bien ? "ok" : "ko"}" style="min-height:100vh;"><div class="centro"><p class="gran">${bien ? "✔ ¡Correcto!" : J.resp[e.i] === undefined ? "⏰ Sin respuesta" : "✘ Incorrecto"}</p>${bien ? `<p style="font-size:26px;font-weight:900;">+${r.gan}${r.racha >= 2 ? " · 🔥 racha de " + r.racha : ""}</p>` : ""}<p style="font-size:20px;font-weight:800;">Vas ${r.pos}º · ${r.pts} puntos</p></div></div>`;
+  }
+}
+
+if (P.get("host")) hostInicio(); else jugEntrar();
+</script>
+</body></html>
