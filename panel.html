@@ -634,7 +634,7 @@ async function entrar(sesion) {
     if (prop && prop !== yo) {
       let cli = null, ligaId = "lf2";
       try {
-        const rr = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ligas_auto"]);
+        let rr = await sb.rpc("mis_permisos"); if (rr.error || !rr.data) rr = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ligas_auto"]);   /* solo mi línea */
         const ff = {}; (rr.data || []).forEach(x => { ff[x.clave] = x.valor; });
         const pp = JSON.parse(ff.permisos_ayudantes || "{}") || {};
         const q = pp[yo];

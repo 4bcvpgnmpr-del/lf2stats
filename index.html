@@ -10869,7 +10869,7 @@ const topeDe = (P) => !P ? 0 : Math.round((P.gb > 0 ? P.gb : ((PLANES_APP[P.plan
 async function leerPermisosAyudante(sb, email) {
   const yo = String(email || "").toLowerCase();
   try {
-    const { data } = await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido", "ligas_auto", "planes_precio"]);
+    let data = null; { const rp = await sb.rpc("mis_permisos"); if (!rp.error && rp.data) data = rp.data; else data = (await sb.from("ajustes").select("clave,valor").in("clave", ["permisos_ayudantes", "ayudantes_partido", "ligas_auto", "planes_precio"])).data; }   /* solo mi línea, no la lista de todos los clientes */
     const f = {}; (data || []).forEach(r => { f[r.clave] = r.valor; });
     const J = (t, d) => { try { return JSON.parse(t) || d; } catch (x) { return d; } };
     const q = J(f.permisos_ayudantes, {})[yo];
