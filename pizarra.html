@@ -529,7 +529,7 @@ html.oscuro img,html.oscuro video,html.oscuro canvas,html.oscuro iframe,html.osc
 (function(){var K="sf_tema",d=document.documentElement;function g(){try{return localStorage.getItem(K)}catch(e){return null}}
 function ap(o){d.classList.toggle("oscuro",o);var b=document.getElementById("sfTemaB");if(b){b.textContent=o?"☀️":"🌙";b.title=o?"Cambiar a modo claro":"Cambiar a modo oscuro"}}
 ap(g()==="oscuro");
-document.addEventListener("DOMContentLoaded",function(){if(window.parent!==window)return;var b=document.createElement("button");b.id="sfTemaB";b.className="sf-tema";b.type="button";b.setAttribute("aria-label","Modo claro / oscuro");
+document.addEventListener("DOMContentLoaded",function(){if(window.parent!==window||/[?&]partido=1/.test(location.search))return;var b=document.createElement("button");b.id="sfTemaB";b.className="sf-tema";b.type="button";b.setAttribute("aria-label","Modo claro / oscuro");
 b.onclick=function(){var o=!d.classList.contains("oscuro");try{localStorage.setItem(K,o?"oscuro":"claro")}catch(e){}ap(o)};document.body.appendChild(b);ap(d.classList.contains("oscuro"))});
 window.addEventListener("storage",function(e){if(e.key===K)ap(e.newValue==="oscuro")});})();
 </script>
@@ -3098,6 +3098,22 @@ function iniciarPartido() {
       #ptEst .sum h5{margin:0 0 6px;font-size:16px;display:flex;justify-content:space-between;} #ptEst .sum table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;background:#223040;border-radius:12px;overflow:hidden;} #ptEst .sum th{font-size:12px;opacity:.65;font-weight:700;padding:6px 4px;text-align:center;} #ptEst .sum td{padding:7px 4px;text-align:center;border-top:1px solid #2d3d4e;} #ptEst .sum th:first-child,#ptEst .sum td:first-child{text-align:left;padding-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;} #ptEst .sum td.p{font-weight:800;font-size:17px;} #ptEst .sum tr.t td{font-weight:800;background:#1b2836;} #ptEst .sum td.lo{color:#ff8787;} #ptEst .sum td.hi{color:#8ce99a;}
       #ptEst .es-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#223040;border-radius:12px;padding:6px 8px;margin-bottom:6px;} #ptEst .es-f .nm{width:130px;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       #ptEst .g{display:flex;gap:3px;align-items:center;background:#17202a;border-radius:10px;padding:3px;} #ptEst .g button{min-width:46px;padding:0 8px;font-size:15px;} #ptEst .g span{font-size:13px;min-width:46px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;} #ptEst .ok{background:#2b8a3e;} #ptEst .ko{background:#a61e1e;}
+      #ptEst .es{padding:12px;display:flex;flex-direction:column;gap:8px;} #ptEst .es>*{margin-bottom:0 !important;}
+      #ptEst .es-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;} #ptEst .es-tt{font-size:18px;margin-right:4px;} #ptEst .lbl{opacity:.6;font-size:13px;font-weight:700;}
+      #ptEst .seg{display:inline-flex;background:#0f161e;border-radius:12px;padding:3px;gap:2px;} #ptEst .seg button{background:transparent;min-height:38px;padding:0 13px;border-radius:9px;font-weight:700;color:#cfd8e3;} #ptEst .seg button.on{background:#e8590c;color:#fff;}
+      #ptEst .seg-sc{max-width:100%;overflow-x:auto;scrollbar-width:none;} #ptEst .seg-sc::-webkit-scrollbar{display:none;} #ptEst .seg-sc button{flex:none;}
+      #ptEst .es-x{width:42px;padding:0;font-size:18px;border-radius:50%;}
+      #ptEst .es-feb{display:inline-flex;gap:4px;} #ptEst .es-feb button{min-height:38px;padding:0 12px;}
+      #ptEst .es-msg{background:#223040;border-radius:10px;padding:6px 10px;font-size:12.5px;opacity:.9;}
+      #ptEst .es-res{display:flex;gap:6px 16px;flex-wrap:wrap;align-items:baseline;background:#223040;border-radius:12px;padding:9px 12px;font-size:14px;} #ptEst .es-res>span:first-child{font-weight:800;color:#ffa94d;} #ptEst .es-res b{font-size:19px;} #ptEst .es-res small{opacity:.6;}
+      #ptEst .es-f{display:grid;grid-template-columns:150px auto 1fr 1fr 1fr;gap:8px;align-items:center;background:#223040;border-radius:12px;padding:8px;}
+      #ptEst .es-f .nm{width:auto;font-size:15px;}
+      #ptEst .es-f .bt{display:flex;gap:6px;} #ptEst .es-f .bt button{min-width:78px;background:#2f4155;font-weight:800;} #ptEst .es-f i{font-style:normal;font-variant-numeric:tabular-nums;margin-left:4px;opacity:.9;}
+      #ptEst .es-f .tr{display:flex;align-items:center;gap:4px;background:#17202a;border-radius:10px;padding:3px 3px 3px 9px;} #ptEst .es-f .tr span{flex:1;font-size:13px;font-weight:800;white-space:nowrap;} #ptEst .es-f .tr span i{opacity:.75;font-weight:700;}
+      #ptEst .es-f .tr button{min-width:44px;font-size:17px;font-weight:900;padding:0;} #ptEst .es-f button.ok{background:#2b8a3e;} #ptEst .es-f button.ko{background:#b02a2a;}
+      #ptEst .es-pie{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #2c3947;padding-top:8px;} #ptEst .es-pie button{flex:1;min-width:120px;background:#2c3947;} #ptEst .es-pie button.rojo{background:#c92a2a;}
+      @media (max-width:820px){#ptEst .es-f{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;} #ptEst .es-f .bt button{min-width:0;} #ptEst .es-f .tr{flex-wrap:wrap;justify-content:center;padding:4px;} #ptEst .es-f .tr span{flex:1 1 100%;text-align:center;} #ptEst .es-f .tr button{flex:1;min-width:0;min-height:40px;} #ptEst .seg button{padding:0 10px;} #ptEst .es-f .nm{grid-column:1/-1;} #ptEst .es-f .bt{grid-column:1/-1;} #ptEst .es-f .bt button{flex:1;} #ptEst .es-f .tr{padding-left:7px;} #ptEst .es-f .tr button{min-width:38px;} #ptEst .es-feb{width:100%;} #ptEst .es-feb button{flex:1;}}
+      #ptEst .corr .es-f .tr button,#ptEst .corr .es-f .bt button{outline:2px solid #ff6b6b;}
       #ptEst .es-tot{background:#2c3947;} #ptEst .corr .g button::before{content:'−';font-weight:900;margin-right:2px;} #ptEst .corr .g button{outline:2px solid #ff6b6b;}`;
     document.head.appendChild(est);
     const EP = document.createElement("div"); EP.id = "ptEst"; $("partido").appendChild(EP);
@@ -3243,19 +3259,35 @@ function iniciarPartido() {
       const nomV = { q1: "1º C", q2: "2º C", q3: "3º C", q4: "4º C", q5: "Prórroga", h1: "1ª mitad", h2: "2ª mitad", tot: "Total" };
       const g = (k, f, lab, ok) => `<button class="${ok || ""}" data-k="${k}" data-f="${f}">${lab}</button>`;
       const verRes = ESV.res || !ESV.man;
-      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">${ESV.corr ? '<div style="background:#c92a2a;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700;">➖ Modo corrección: toca lo que quieras QUITAR (se resta del cuarto que estás viendo). Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}<div class="es-top"><button data-eq="0" class="${ESV.eq === 0 ? "on" : ""}">${esc(M.n[0])}</button><button data-eq="1" class="${ESV.eq === 1 ? "on" : ""}">${esc(M.n[1])}</button><span style="flex:1"></span><button id="esFeb" title="Trae rebotes, pérdidas y tiros de los dos equipos desde la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar solo cada 30 s">${FEB.auto ? "⏱ Auto" : "⏱"}</button>${["auto", "q1", "q2", "q3", "q4"].concat(Object.keys(M.es).some(k => (M.es[k] || {}).q5) || M.per === 5 ? ["q5"] : [], ["h1", "h2", "tot"]).map(x => `<button data-v="${x}" class="${ESV.v === x ? "on" : ""}">${x === "auto" ? "Ahora (" + nomV[mitad()] + ")" : nomV[x]}</button>`).join("")}<button id="esMan" class="${ESV.man ? "on" : ""}" title="Mostrar u ocultar los botones para anotar a mano (si usas la FEB, escóndelos)">✍️ Manual ${ESV.man ? "✓" : "✗"}</button><button id="esRes" class="${ESV.res ? "on" : ""}" title="Vista compacta para el descanso: los dos equipos, solo lectura">📋 Resumen</button><button id="esCo" class="${ESV.corr ? "on" : ""}" style="${ESV.corr ? "background:#c92a2a !important;" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadoras</button><button id="esUn">↶ Deshacer</button><button id="esX" style="background:#e8590c;">Cerrar</button></div>
-        ${FEB.msg ? `<div style="background:#223040;border-radius:10px;padding:6px 10px;margin-bottom:8px;font-size:13px;">${FEB.msg}</div>` : ""}<div class="es-top">Cuarto: ${[1,2,3,4,5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórroga" : n}</button>`).join("")}</div>
-        <div class="es-res"><span>${nomV[v]} · Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> (${pct(tcm, tca)})</span><span>2P <b>${tot.t2m}/${tot.t2a}</b></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Rebotes <b>${tot.reb}</b></span><span>Pérdidas <b>${tot.per}</b></span></div>
+      const anotar = !verRes;
+      const vistas = ["q1", "q2", "q3", "q4"].concat(Object.keys(M.es).some(k => (M.es[k] || {}).q5) || M.per === 5 ? ["q5"] : [], ["h1", "h2", "tot"]);
+      const vR = ESV.v === "auto" ? mitad() : ESV.v;
+      EP.innerHTML = `<div class="es${ESV.corr ? " corr" : ""}">
+        <div class="es-h"><b class="es-tt">Estadísticas</b>
+          <div class="seg">${[0, 1].map(i => `<button data-eq="${i}" class="${ESV.eq === i ? "on" : ""}">${esc(M.n[i])}</button>`).join("")}</div>
+          <span style="flex:1"></span><button id="esX" class="es-x" aria-label="Cerrar">✕</button></div>
+        <div class="es-h">
+          <div class="seg seg2"><button id="esAn" class="${anotar ? "on" : ""}">✍️ Anotar</button><button id="esRes" class="${!anotar ? "on" : ""}">📋 Resumen</button></div>
+          <span style="flex:1"></span>
+          <div class="es-feb"><button id="esFeb" title="Traer los datos de la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar sola cada 30 s">${FEB.auto ? "Auto ✓" : "Auto"}</button></div></div>
+        ${FEB.msg ? `<div class="es-msg">${FEB.msg}</div>` : ""}
+        ${anotar
+          ? `<div class="es-h"><span class="lbl">Cuarto</span><div class="seg">${[1, 2, 3, 4, 5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórr." : n + "º"}</button>`).join("")}</div></div>`
+          : `<div class="es-h"><div class="seg seg-sc">${vistas.map(x => `<button data-v="${x}" class="${vR === x ? "on" : ""}">${nomV[x]}</button>`).join("")}</div></div>`}
+        ${ESV.corr ? '<div class="es-msg" style="background:#c92a2a;font-weight:700;">➖ Corrigiendo: toca lo que quieras QUITAR del cuarto ' + M.per + 'º. Pulsa «Corrigiendo» para volver a sumar.</div>' : ""}
+        <div class="es-res"><span>${nomV[v]}</span><span>Puntos <b>${pts}</b></span><span>Tiros <b>${tcm}/${tca}</b> <small>${pct(tcm, tca)}</small></span><span>3P <b>${tot.t3m}/${tot.t3a}</b></span><span>TL <b>${tot.tlm}/${tot.tla}</b></span><span>Reb <b>${tot.reb}</b></span><span>Pérd <b>${tot.per}</b></span></div>
         ${verRes ? resumenHtml(v) : fl.length ? fl.map(f => { const o = suma(f.k, v), kk = esc(f.k); return `<div class="es-f"><div class="nm">${esc(f.t)}</div>
-          <div class="g">${g(kk, "reb", "REB")}<span>${o.reb}</span></div><div class="g">${g(kk, "per", "PER")}<span>${o.per}</span></div>
-          <div class="g">${g(kk, "t2m", "2✓", "ok")}${g(kk, "t2x", "2✗", "ko")}<span>2P ${o.t2m}/${o.t2a}</span></div>
-          <div class="g">${g(kk, "t3m", "3✓", "ok")}${g(kk, "t3x", "3✗", "ko")}<span>3P ${o.t3m}/${o.t3a}</span></div>
-          <div class="g">${g(kk, "tlm", "TL✓", "ok")}${g(kk, "tlx", "TL✗", "ko")}<span>TL ${o.tlm}/${o.tla}</span></div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadoras: elige «Mi equipo» en la app de estadísticas.</div>'}
-        ${ESV.eq === 1 && !verRes ? '<button id="esRvEd" style="margin-top:6px;">✏️ Editar jugadoras rival</button> <button id="esRvEq" style="margin-top:6px;background:#2b8a3e;">👥 Traer equipo rival</button> <button id="esRv" style="margin-top:6px;">＋ Añadir dorsal rival</button>' : ""}
-        <div style="opacity:.6;font-size:12px;margin-top:8px;">Se anota en el cuarto actual. Cambia el cuarto arriba o en el marcador. VAL = valoración.</div></div>`;
+          <div class="bt">${g(kk, "reb", `REB <i>${o.reb}</i>`, "n")}${g(kk, "per", `PÉRD <i>${o.per}</i>`, "n")}</div>
+          <div class="tr"><span>2P <i>${o.t2m}/${o.t2a}</i></span>${g(kk, "t2m", "✓", "ok")}${g(kk, "t2x", "✗", "ko")}</div>
+          <div class="tr"><span>3P <i>${o.t3m}/${o.t3a}</i></span>${g(kk, "t3m", "✓", "ok")}${g(kk, "t3x", "✗", "ko")}</div>
+          <div class="tr"><span>TL <i>${o.tlm}/${o.tla}</i></span>${g(kk, "tlm", "✓", "ok")}${g(kk, "tlx", "✗", "ko")}</div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadores/as todavía: pulsa 📡 FEB o «✏️ Jugadores/as».</div>'}
+        ${ESV.eq === 1 && anotar ? '<div class="es-h" style="margin-top:6px;"><button id="esRvEq" style="background:#2b8a3e;">👥 Traer equipo rival</button><button id="esRv">＋ Dorsal rival</button><button id="esRvEd">✏️ Editar rival</button></div>' : ""}
+        ${anotar ? `<div class="es-pie"><button id="esUn">↶ Deshacer</button><button id="esCo" class="${ESV.corr ? "rojo" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadores/as</button></div>` : ""}
+      </div>`;
+      if ($("esAn")) $("esAn").onclick = () => { ESV.res = false; ESV.corr = false; if (!ESV.man) { ESV.man = true; try { localStorage.setItem("scoutflow-partido-manual", "1"); } catch (e) { /* nada */ } } ESV.v = "auto"; pintarEs(); };
       if ($("esMan")) $("esMan").onclick = () => { ESV.man = !ESV.man; try { localStorage.setItem("scoutflow-partido-manual", ESV.man ? "1" : "0"); } catch (e) { /* nada */ } pintarEs(); };
       if ($("esRvEd")) $("esRvEd").onclick = () => editarRival();
-      if ($("esRes")) $("esRes").onclick = () => { ESV.res = !ESV.res; ESV.corr = false; pintarEs(); };
+      if ($("esRes")) $("esRes").onclick = () => { ESV.res = true; ESV.corr = false; pintarEs(); };
       EP.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => { ESV.eq = Number(b.dataset.eq); pintarEs(); });
       EP.querySelectorAll("[data-pp]").forEach(b => b.onclick = () => { M.per = Number(b.dataset.pp); M.f = [0, 0]; guardarM(); pintarM(); pintarEs(); });
       EP.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { ESV.v = b.dataset.v; pintarEs(); });
@@ -3273,11 +3305,11 @@ function iniciarPartido() {
         UND.push([k, h, f]); guardarM(); pintarEs();
         try { navigator.vibrate && navigator.vibrate(15); } catch (e) { /* nada */ }
       });
-      $("esCo").onclick = () => { ESV.corr = !ESV.corr; pintarEs(); };
+      if ($("esCo")) $("esCo").onclick = () => { ESV.corr = !ESV.corr; pintarEs(); };
       $("esFeb").onclick = () => febTraer(false);
       $("esFebA").onclick = () => { FEB.auto = !FEB.auto; clearInterval(FEB.t); if (FEB.auto) { febTraer(false); FEB.t = setInterval(() => { if (EP.classList.contains("ver")) febTraer(true); }, 30000); } pintarEs(); };
-      $("esUn").onclick = () => { const u = UND.pop(); if (!u) return; const o = (M.es[u[0]] || {})[u[1]]; if (!o) return; const f = u[2]; if (f === "reb" || f === "per") o[f] = Math.max(0, o[f] - 1); else { const tp = f.slice(0, -1); o[tp + "a"] = Math.max(0, o[tp + "a"] - 1); if (f.slice(-1) === "m") o[tp + "m"] = Math.max(0, o[tp + "m"] - 1); } guardarM(); pintarEs(); };
-      $("esEd").onclick = () => abrirEd();
+      if ($("esUn")) $("esUn").onclick = () => { const u = UND.pop(); if (!u) return; const o = (M.es[u[0]] || {})[u[1]]; if (!o) return; const f = u[2]; if (f === "reb" || f === "per") o[f] = Math.max(0, o[f] - 1); else { const tp = f.slice(0, -1); o[tp + "a"] = Math.max(0, o[tp + "a"] - 1); if (f.slice(-1) === "m") o[tp + "m"] = Math.max(0, o[tp + "m"] - 1); } guardarM(); pintarEs(); };
+      if ($("esEd")) $("esEd").onclick = () => abrirEd();
       $("esX").onclick = () => EP.classList.remove("ver");
       if ($("esRvEq")) $("esRvEq").onclick = () => traerRival();
       if ($("esRv")) $("esRv").onclick = () => { const n = (prompt("Dorsal de la rival:") || "").replace(/\D/g, ""); if (n && !M.rvn.includes(n)) { M.rvn.push(n); guardarM(); pintarEs(); } };
