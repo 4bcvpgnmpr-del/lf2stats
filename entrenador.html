@@ -1008,7 +1008,7 @@ async function guardarFila(tabla, fila) {
 async function borrarFila(tabla, id) { const { error } = await nube.from(tabla).delete().eq("id", id); if (error) { aviso("No se pudo borrar: " + error.message); return false; } return true; }
 
 /* ------------ navegacion ------------ */
-function ir(s, c) { if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; seleccion = new Set(); vistaDetalle = null; pintar(); }
+function ir(s, c) { if (!s) return; if (PERM_E && !PERM_E.has(s)) return; seccion = s; carpeta = c || ""; busqueda = ""; filtroTags = []; filtroTipo = ""; fx = {}; seleccion = new Set(); vistaDetalle = null; pintar(); }
 /* historial: «atrás» vuelve a la sección o ficha anterior dentro de Entrenador (antes saltaba a Estadísticas) */
 let HIST_BASE = false, HIST_SIN = false;
 const histClave = () => seccion + "|" + (vistaDetalle ? (vistaDetalle.tipo || "") + ":" + (vistaDetalle.id || "") : "") + "|" + (carpeta || "");
@@ -1051,7 +1051,7 @@ window.addEventListener("popstate", async (ev) => {
 function pintar() {
   histSync();
   if (PERM_E && !PERM_E.has(seccion)) seccion = [...PERM_E].find(x => x !== "partido") || "jugadas";
-  document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", b.dataset.s === seccion));
+  document.querySelectorAll("aside .grupo button").forEach(b => b.classList.toggle("on", !!b.dataset.s && b.dataset.s === seccion));
   const m = $("main"); m.scrollTop = 0;
   const aviso0 = OFFLINE ? '<div class="aviso-sql" style="background:#fff4d6;border-color:#f0c24b;color:#7a5a00;">📴 Sin conexión: ves lo último que se guardó en este aparato. Para editar, vuelve a tener internet.</div>' : faltaSql ? `<div class="aviso-sql">⚠️ Falta preparar la base de datos: ejecuta <b>${/jugadas/.test(faltaSql) && !/playbooks|ejercicios|planes|archivos|carpetas/.test(faltaSql) ? "jugadas.sql" : "entrenador.sql"}</b> en Supabase › SQL Editor. <span class="peq">(${esc(faltaSql)})</span></div>` : "";
   m.innerHTML = aviso0 + '<div id="vista"></div>';
@@ -5009,7 +5009,7 @@ async function iniciar() {
   try { if (localStorage.getItem("ent_col") === "1") $("app").classList.add("col"); } catch (e) { /* nada */ }
   $("btnCol").addEventListener("click", () => { const c = $("app").classList.toggle("col"); $("btnCol").textContent = c ? "»" : "«"; try { localStorage.setItem("ent_col", c ? "1" : "0"); } catch (e) { /* nada */ } });
   $("cajon").addEventListener("mousedown", (e) => { if (e.target === $("cajon")) $("cajon").classList.remove("ver"); });
-  document.querySelectorAll("aside .grupo button").forEach(b => b.addEventListener("click", () => { if (b.dataset.s === "partido") { abrirPartido(); if (esMovil()) document.body.classList.remove("menu-ab"); } else ir(b.dataset.s); }));
+  document.querySelectorAll("aside .grupo button[data-s]").forEach(b => b.addEventListener("click", () => { if (b.dataset.s === "partido") { abrirPartido(); if (esMovil()) document.body.classList.remove("menu-ab"); } else ir(b.dataset.s); }));
   const hayCopia = !!(await kv.get(snapK()));
   if (!nube) { if (flagSoloPartido()) { soloPartido(""); return; } if (hayCopia) { window.addEventListener("online", () => location.reload()); OFFLINE = true; D.jugadas = []; await cargarOffline(); return; } pantalla("No se pudo cargar la conexión con la nube. Revisa tu internet."); return; }
   let data = null; try { data = (await nube.auth.getSession()).data; } catch (e) { /* sin red */ }
