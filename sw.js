@@ -4,7 +4,9 @@
    - Con internet: se pide la versión nueva (máx. 4 s) y se guarda; sin internet o si tarda, se usa lo guardado.
    - Los datos en vivo (Supabase, FEB, Google Sheets, vídeos) nunca se guardan aquí: la app ya guarda su propia copia. */
 
-const CACHE = "scoutflow-2026-11-18a";
+const CACHE = "scoutflow-2026-11-18b";
+const IMG = "scoutflow-img";   /* fotos y escudos: se guardan aparte y no se borran al actualizar */
+const IMG_MAX = 1500;
 
 const BASICOS = [
   "./",
@@ -56,7 +58,7 @@ self.addEventListener("install", (evento) => {
 self.addEventListener("activate", (evento) => {
   evento.waitUntil(
     caches.keys()
-      .then((claves) => Promise.all(claves.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((claves) => Promise.all(claves.filter((k) => k !== CACHE && k !== IMG).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -77,9 +79,35 @@ async function paginaGuardada(url) {
          (nombre.includes("entrenador") ? null : await caches.match("./index.html")) || (await caches.match("./entrenador.html"));
 }
 
+/* ---- fotos y escudos ---- */
+const esImagen = (p) => p.destination === "image" || /\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(p.url);
+async function recortarImg() { try { const c = await caches.open(IMG), k = await c.keys(); for (let i = 0; i < k.length - IMG_MAX; i++) await c.delete(k[i]); } catch (e) { /* nada */ } }
+async function bajarImg(url) {
+  // primero con CORS (ocupa poco); si el servidor no lo permite, copia "opaca" (se ve igual en la app)
+  let r = null; try { r = await fetch(url, { mode: "cors", credentials: "omit" }); if (!r.ok) r = null; } catch (e) { r = null; }
+  if (!r) { try { r = await fetch(url, { mode: "no-cors", credentials: "omit" }); } catch (e) { r = null; } }
+  if (r && (r.ok || r.type === "opaque")) { const c = await caches.open(IMG); await c.put(url, r.clone()); }
+  return r;
+}
+async function servirImg(peticion) {
+  const c = await caches.open(IMG), g = await c.match(peticion.url);
+  if (g) { if (navigator.onLine) bajarImg(peticion.url).catch(() => {}); return g; }   // al instante y se actualiza por detrás
+  try { const r = await fetch(peticion); if (r && (r.ok || r.type === "opaque")) { c.put(peticion.url, r.clone()).catch(() => {}); recortarImg(); } return r; }
+  catch (e) { return new Response("", { status: 504 }); }
+}
+/* la app manda la lista de fotos y escudos que quiere tener guardados para usar sin conexión */
+self.addEventListener("message", (ev) => {
+  const l = ev.data && ev.data.guardarImagenes; if (!Array.isArray(l)) return;
+  ev.waitUntil((async () => { const c = await caches.open(IMG); let n = 0;
+    for (const u of [...new Set(l)].slice(0, IMG_MAX)) { if (!/^https?:/.test(u)) continue; if (await c.match(u)) continue; await bajarImg(u).catch(() => {}); n++; }
+    await recortarImg(); if (ev.source) ev.source.postMessage({ imagenesGuardadas: n });
+  })());
+});
+
 self.addEventListener("fetch", (evento) => {
   const peticion = evento.request, url = peticion.url;
   if (peticion.method !== "GET" || !url.startsWith("http")) return;
+  if (esImagen(peticion) && !url.includes("workers.dev") && !peticion.headers.get("range")) { evento.respondWith(servirImg(peticion)); return; }
   if (noGuardar(url)) return;                       // va directo a la red
   if (peticion.headers.get("range")) return;        // trozos de vídeo: directo
 

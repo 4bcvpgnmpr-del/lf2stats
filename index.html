@@ -17519,6 +17519,20 @@ const VERSION_APP = "2026-10-28n";
 /* ---- App instalable (PWA): guarda la app en el movil/tablet ---- */
 /* con internet, se descargan en segundo plano los datos del Modo TV, para que funcione luego sin conexión (pabellón, presentación…) */
 setTimeout(() => { try { if (navigator.onLine && miEquipo && typeof tvCargar === "function") tvCargar().catch(() => {}); } catch (e) { /* nada */ } }, 20000);
+/* fotos y escudos para usar sin conexión: los escudos de toda la liga, las fotos de tu equipo y las que has puesto tú */
+function precargarImagenes() {
+  try {
+    if (!navigator.onLine || !navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+    const urls = [], add = (u) => { u = String(u || "").trim(); if (/^https?:\/\//.test(u)) urls.push(u); };
+    const fuente = (typeof datosLiga !== "undefined" && datosLiga && datosLiga.equipos) || (typeof equipos !== "undefined" && equipos);
+    if (fuente && fuente.rows) fuente.rows.forEach(r => add(r["EscudoURL"] && r["EscudoURL"].display));
+    const mio = miEquipo ? normalizarEquipo(equipoOficial(miEquipo)) : "";
+    if (typeof jugadoras !== "undefined" && jugadoras && jugadoras.rows) jugadoras.rows.forEach(r => { if (!mio || normalizarEquipo(equipoOficial(cellText(r, "Equipo"))) === mio) add(r["FotoURL"] && r["FotoURL"].display); });
+    Object.values(fotosPropias || {}).forEach(add);
+    if (urls.length) navigator.serviceWorker.controller.postMessage({ guardarImagenes: urls });
+  } catch (e) { /* nada */ }
+}
+setTimeout(precargarImagenes, 30000);
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("sw.js").catch(function () {});
