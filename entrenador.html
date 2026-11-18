@@ -1610,11 +1610,52 @@ function svgAPng(svg, ancho) {
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t);
   });
 }
+/* ---- playbook en vídeo: graba cada jugada animada y las da para descargar o enviar (WhatsApp, correo…) ---- */
+const PBV = {};   /* vídeos ya grabados en esta sesión, por clave de playbook */
+function pbVideosTab(B, tipo, x) {
+  const { d } = datosCompartir(tipo, x), clave = tipo + "|" + (x.id || x.ruta), V = (PBV[clave] = PBV[clave] || { lista: null, hechos: {}, grabando: false });
+  if (!V.lista) { V.lista = []; (d.capitulos || []).forEach(c => (c.items || []).forEach(it => { if (it.diagrama && (it.diagrama.pasos || []).length > 1) V.lista.push({ k: V.lista.length, cap: c.titulo || "", nombre: it.nombre || "Jugada", diag: it.diagrama }); })); }
+  const L = V.lista, nomA = (v) => (String(v.k + 1).padStart(2, "0") + " " + v.nombre).replace(/[^\wáéíóúñÁÉÍÓÚÑ\- ]+/g, "").trim().replace(/ +/g, "_");
+  const pinta = () => {
+    if (!B.isConnected) return;
+    const hechos = L.filter(v => V.hechos[v.k] && V.hechos[v.k].blob).length;
+    B.innerHTML = !L.length ? '<p class="peq">Este playbook no tiene jugadas con movimiento (hace falta más de una fase).</p>' : `<p class="peq" style="margin:0 0 8px;">Se graba un vídeo de cada jugada en movimiento. Luego puedes descargarlos todos juntos o enviarlos desde el móvil por WhatsApp. No cierres esta ventana mientras graba (cada vídeo dura lo que su animación).</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px;">${hechos < L.length ? `<button class="naranja" id="pvG" ${V.grabando ? "disabled" : ""}>${V.grabando ? "Grabando… " + hechos + "/" + L.length : hechos ? "▶ Seguir grabando (" + hechos + "/" + L.length + ")" : "🎬 Grabar las " + L.length + " jugadas"}</button>` : ""}${hechos ? `<button class="gris" id="pvZ">⬇ Descargar ${hechos === L.length ? "todos" : hechos} (.zip)</button>` : ""}${hechos && navigator.canShare ? '<button class="gris" id="pvS">📤 Enviar…</button>' : ""}</div>
+      <div class="cmp-bar" style="${V.grabando ? "" : "display:none"}"><i style="width:${Math.round(100 * hechos / Math.max(1, L.length))}%;animation:none;"></i></div>
+      <div style="max-height:40vh;overflow:auto;">${L.map(v => { const h = V.hechos[v.k]; return `<div style="display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:14px;"><span style="flex:1;min-width:0;">${h && h.blob ? "✅" : h && h.error ? "⚠️" : V.grabando && V.act === v.k ? "⏺" : "○"} <b>${esc(v.nombre)}</b>${v.cap ? ` <span class="peq">· ${esc(v.cap)}</span>` : ""}${h && h.error ? ` <span class="peq" style="color:#c92a2a;">${esc(h.error)}</span>` : ""}</span>${h && h.blob ? `<button class="gris" data-pvd="${v.k}" style="padding:5px 10px;">⬇</button>` : ""}</div>`; }).join("")}</div>`;
+    if ($("pvG")) $("pvG").onclick = grabar;
+    if ($("pvZ")) $("pvZ").onclick = zip;
+    if ($("pvS")) $("pvS").onclick = enviar;
+    B.querySelectorAll("[data-pvd]").forEach(b => b.onclick = () => { const v = L[+b.dataset.pvd], h = V.hechos[v.k]; bajarBlob(h.blob, nomA(v) + "." + h.ext); });
+  };
+  const grabar = async () => {
+    if (V.grabando) return; V.grabando = true; pinta();
+    for (const v of L) { if (V.hechos[v.k] && V.hechos[v.k].blob) continue; V.act = v.k; pinta();
+      const r = await new Promise(ok => pedirVideo({ id: "pbv" + v.k + "_" + Date.now(), nombre: v.nombre, data: v.diag }, ok));
+      V.hechos[v.k] = r && r.blob ? { blob: r.blob, ext: r.ext || "webm" } : { error: (r && r.error) || "no se pudo grabar" }; pinta(); }
+    V.grabando = false; V.act = null; pinta(); aviso("🎬 Vídeos listos");
+  };
+  const archivos = () => L.filter(v => V.hechos[v.k] && V.hechos[v.k].blob).map(v => new File([V.hechos[v.k].blob], nomA(v) + "." + V.hechos[v.k].ext, { type: V.hechos[v.k].blob.type || "video/mp4" }));
+  const zip = async () => {
+    try {
+      if (!window.JSZip) await new Promise((ok, ko) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"; sc.onload = ok; sc.onerror = ko; document.head.appendChild(sc); });
+      const z = new JSZip(); archivos().forEach(f => z.file(f.name, f)); aviso("Preparando el .zip…");
+      bajarBlob(await z.generateAsync({ type: "blob" }), (x.nombre || "playbook").replace(/[^\w\-]+/g, "_") + "_videos.zip");
+    } catch (e) { aviso("No se pudo crear el .zip: descarga los vídeos uno a uno con ⬇."); }
+  };
+  const enviar = async () => {
+    const fs = archivos();
+    try { if (navigator.canShare && navigator.canShare({ files: fs })) await navigator.share({ files: fs, title: x.nombre || "Playbook", text: (x.nombre || "Playbook") + " · jugadas en vídeo (ScoutFlow)" }); else aviso("Este aparato no permite enviar vídeos directamente: descárgalos y envíalos."); }
+    catch (e) { if (e && e.name !== "AbortError") aviso("No se pudieron enviar: " + (e.message || e)); }
+  };
+  pinta();
+}
 function bajarBlob(blob, nombre) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
 async function compartirEnlace(tipo, x) {
   const dib = (tipo === "jugadas" || tipo === "ejercicios") && diagDe(x) && diagDe(x).pasos && diagDe(x).pasos.length;
   let url = "", svgs = null, vid = null, vidPidiendo = false, vidError = "";
-  const m = ventana(`<div class="cmp"><div class="cmp-t"><button data-t="e" class="on">Enlace</button>${dib ? '<button data-t="v">Vídeo</button><button data-t="i">Imagen</button>' : ""}<button data-t="m">Insertar</button><span class="esp"></span><button id="cmpX" aria-label="Cerrar">✕</button></div><div id="cmpB"><p class="peq">Creando el enlace…</p></div></div>`, false);
+  const esPb = tipo === "playbooks" || tipo === "carpeta";
+  const m = ventana(`<div class="cmp"><div class="cmp-t"><button data-t="e" class="on">Enlace</button>${dib ? '<button data-t="v">Vídeo</button><button data-t="i">Imagen</button>' : ""}${esPb ? '<button data-t="pv">🎬 Vídeos</button>' : ""}<button data-t="m">Insertar</button><span class="esp"></span><button id="cmpX" aria-label="Cerrar">✕</button></div><div id="cmpB"><p class="peq">Creando el enlace…</p></div></div>`, false);
   $("cmpX").onclick = cerrarVentana;
   const pintarTab = (t) => {
     m.querySelectorAll(".cmp-t [data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === t));
@@ -1629,6 +1670,8 @@ async function compartirEnlace(tipo, x) {
       if (vid) { B.innerHTML = `<p class="peq">Vídeo listo (${esc(vid.ext.toUpperCase())}).</p><button class="naranja" id="cmpV">⬇ Descargar vídeo</button>`; $("cmpV").onclick = () => bajarBlob(vid.blob, (x.nombre || "jugada").replace(/[^\w\-]+/g, "_") + "." + vid.ext); return; }
       B.innerHTML = '<p class="peq">Grabando la jugada animada… dura lo mismo que la animación. No cierres esta ventana.</p><div class="cmp-bar"><i></i></div>';
       if (!vidPidiendo) { vidPidiendo = true; pedirVideo(x, (r) => { vidPidiendo = false; if (r && r.blob) { vid = r; } else { vid = null; vidError = (r && r.error) || "No se pudo grabar el vídeo"; } if ($("cmpB") && m.querySelector('.cmp-t [data-t="v"].on')) { if (vid) pintarTab("v"); else $("cmpB").innerHTML = '<p class="peq">' + esc(vidError) + "</p>"; } }); }
+    } else if (t === "pv") {
+      pbVideosTab(B, tipo, x);
     } else if (t === "m") {
       const cod = `<iframe src="${url}" width="720" height="640" style="border:0;" allowfullscreen></iframe>`;
       B.innerHTML = `<p class="peq">Pega este código en tu web o blog:</p><textarea readonly id="cmpE" rows="3">${esc(cod)}</textarea><button class="gris" id="cmpEC">Copiar código</button>`;
