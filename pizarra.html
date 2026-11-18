@@ -2073,7 +2073,7 @@ async function subirVideoPc(f) {
 }
 function pintarSalida() {
   volcarCampos();
-  $("salida").innerHTML = `<h2 class="t">${esc(jugada.nombre || "Jugada sin nombre")}</h2><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "fase" : "fases"}</div>
+  $("salida").innerHTML = `<h2 class="t">${esc(jugada.nombre || "Jugada sin nombre")}</h2><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "fase" : "fases"}${jugada.opciones && jugada.opciones.length > 1 ? " · " + jugada.opciones.length + " opciones" : ""}</div>
     ${jugada.notas ? `<p style="white-space:pre-wrap;font-size:14px;margin:0 0 6px;">${esc(jugada.notas)}</p>` : ""}
     <div class="rejilla-salida">${jugada.pasos.map((p, i) => `<div class="f"><b>Fase ${i + 1}</b><div class="mini">${svgPaso(jugada, i, {})}</div>${textoLista(p.texto)}</div>`).join("")}</div>
     ${videosHtml(jugada)}`;
@@ -2387,7 +2387,8 @@ function imprimir() {
   volcarCampos();
   $("hojaImp").innerHTML = `<h1>${esc(jugada.nombre || "Jugada")}</h1><div class="meta">${esc(jugada.tipo)} · ${jugada.pasos.length} ${jugada.pasos.length === 1 ? "fase" : "fases"}</div>
     ${jugada.notas ? `<div class="notas" style="margin:0 0 4mm;">${esc(jugada.notas)}</div>` : ""}
-    <div class="pasosImp">${jugada.pasos.map((p, i) => `<div class="pasoImp"><b>Fase ${i + 1}</b>${svgPaso(jugada, i, {})}${textoLista(p.texto)}</div>`).join("")}</div>`;
+    ${(() => { sincOp(); const ops = jugada.opciones && jugada.opciones.length > 1 ? jugada.opciones : [{ nombre: "", pasos: jugada.pasos }];
+      return ops.map((o, k) => { const t = Object.assign({}, jugada, { pasos: o.pasos || [] }); return `${ops.length > 1 ? `<h2 style="margin:${k ? "6mm" : "0"} 0 2mm;font-size:14pt;border-bottom:2px solid #e8590c;padding-bottom:1mm;${k ? "break-before:auto;" : ""}">${esc(o.nombre || "Opción " + (k + 1))}</h2>` : ""}<div class="pasosImp">${t.pasos.map((p, i) => `<div class="pasoImp"><b>Fase ${i + 1}</b>${svgPaso(t, i, {})}${textoLista(p.texto)}</div>`).join("")}</div>`; }).join(""); })()}`;
   setTimeout(() => window.print(), 150);
 }
 function copiaSeguridad() {
@@ -3574,8 +3575,13 @@ if (PARTIDO) { iniciarPartido(); } else if (VISOR) {
   window.addEventListener("message", (ev) => {
     if (ev.data && ev.data.video && ev.data.video.jugada) { grabarVideo(ev.data.video); return; }
     if (ev.data && ev.data.fases && ev.data.fases.jugada) {
-      const out = []; try { const j = normalizar(JSON.parse(JSON.stringify(ev.data.fases.jugada))); j.pasos.forEach((q, i) => out.push(svgPaso(j, i, {}))); } catch (e) { /* nada */ }
-      try { parent.postMessage({ fasesListas: { id: ev.data.fases.id, svgs: out } }, "*"); } catch (e) { /* nada */ }
+      /* primero las fases de la opción que se ve; detrás, las de las demás opciones (ops dice dónde empieza cada una) */
+      const out = [], ops = []; try { const j = normalizar(JSON.parse(JSON.stringify(ev.data.fases.jugada))); const act = j.opAct || 0;
+        j.pasos.forEach((q, i) => out.push(svgPaso(j, i, {})));
+        if (j.opciones && j.opciones.length > 1) { ops.push({ nombre: j.opciones[act].nombre || "Opción " + (act + 1), ini: 0, n: j.pasos.length, k: act });
+          j.opciones.forEach((o, k) => { if (k === act || !(o.pasos || []).length) return; const t = Object.assign({}, j, { pasos: o.pasos }); ops.push({ nombre: o.nombre || "Opción " + (k + 1), ini: out.length, n: o.pasos.length, k }); o.pasos.forEach((q, i) => out.push(svgPaso(t, i, {}))); }); }
+      } catch (e) { /* nada */ }
+      try { parent.postMessage({ fasesListas: { id: ev.data.fases.id, svgs: out, ops } }, "*"); } catch (e) { /* nada */ }
       return;
     }
     if (!ev.data || !Array.isArray(ev.data.miniaturas)) return;
