@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ScoutFlow sin conexión</title>
+<style>
+  body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:#111820;color:#eef2f6;display:flex;justify-content:center;padding:24px 16px;}
+  .c{max-width:560px;width:100%;} h1{font-size:24px;margin:0 0 6px;} p{color:#a9b6c4;line-height:1.5;margin:0 0 16px;}
+  ul{list-style:none;padding:0;margin:0 0 18px;} li{display:flex;gap:10px;align-items:flex-start;background:#1c2733;border-radius:12px;padding:11px 13px;margin:0 0 8px;font-size:15px;}
+  li b{display:block;} li small{color:#a9b6c4;} .i{font-size:18px;width:24px;flex:none;text-align:center;}
+  button{background:#e8590c;color:#fff;border:0;border-radius:12px;padding:13px 18px;font-size:16px;font-weight:800;width:100%;cursor:pointer;}
+  .ok{color:#8ce99a;} .ko{color:#ffa8a8;} .res{margin-top:16px;padding:14px;border-radius:12px;background:#1c2733;font-weight:700;}
+  a{color:#ffa94d;}
+</style></head><body><div class="c">
+<h1>📴 Preparar ScoutFlow para usar sin conexión</h1>
+<p>Abre esta página <b>con internet</b> en el aparato que vas a usar (ordenador, tablet o móvil) y pulsa el botón. Cuando todo salga en verde, ya puedes abrir la app sin conexión.</p>
+<button id="b">Preparar ahora</button>
+<ul id="l" style="margin-top:16px;"></ul>
+<div class="res" id="r" style="display:none;"></div>
+</div>
+<script>
+const PAG = ["./", "./index.html", "./entrenador.html", "./pizarra.html", "./jugadoras.html", "./panel.html", "./neutro.js"];
+const L = document.getElementById("l"), R = document.getElementById("r");
+const fila = (ok, t, d) => { const li = document.createElement("li"); li.innerHTML = `<span class="i">${ok === null ? "⏳" : ok ? "✅" : "❌"}</span><div><b>${t}</b><small>${d || ""}</small></div>`; L.appendChild(li); return li; };
+async function preparar() {
+  L.innerHTML = ""; R.style.display = "none"; let todo = true;
+  if (!("serviceWorker" in navigator) || !window.caches) { fila(false, "Este navegador no permite usar la app sin conexión", "Usa Chrome, Edge o Safari actualizados."); return; }
+  if (!navigator.onLine) fila(false, "Ahora mismo no tienes internet", "Conéctate y vuelve a pulsar el botón.");
+  let reg = null;
+  try { reg = await navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }); await reg.update().catch(() => {}); await navigator.serviceWorker.ready; fila(true, "Modo sin conexión instalado", "El «trabajador» de la app está activo."); }
+  catch (e) { todo = false; fila(false, "No se pudo instalar el modo sin conexión", String(e && e.message || e)); }
+  const ks = await caches.keys(); const nombre = ks.filter(k => k.startsWith("scoutflow")).sort().pop();
+  if (!nombre) { todo = false; fila(false, "No hay nada guardado todavía", "Recarga esta página y pulsa otra vez."); }
+  else {
+    const c = await caches.open(nombre); let bien = 0;
+    for (const u of PAG) { try { const r = await fetch(u, { cache: "reload" }); if (r.ok) { await c.put(u, r.clone()); bien++; } } catch (e) { /* nada */ } }
+    for (const u of ["https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js", "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"]) { try { if (!(await c.match(u))) { const r = await fetch(u, { mode: "no-cors" }); await c.put(u, r); } } catch (e) { /* nada */ } }
+    const n = (await c.keys()).length;
+    const okP = bien === PAG.length; if (!okP) todo = false;
+    fila(okP, `Pantallas de la app guardadas: ${bien} de ${PAG.length}`, `Versión ${nombre.replace("scoutflow-", "")} · ${n} archivos en total`);
+  }
+  let hojas = 0; try { hojas = await new Promise(ok => { const q = indexedDB.open("sf_hojas"); q.onsuccess = () => { try { const t = q.result.transaction("h").objectStore("h").count(); t.onsuccess = () => ok(t.result); t.onerror = () => ok(0); } catch (e) { ok(0); } }; q.onerror = () => ok(0); }); } catch (e) { hojas = 0; }
+  fila(hojas > 0, hojas > 0 ? `Datos de Stats guardados (${hojas} hojas)` : "Datos de Stats: todavía no", hojas > 0 ? "El Modo TV podrá usarlos sin conexión." : 'Abre <a href="./">Stats</a> con internet, espera 1 minuto y vuelve aquí.');
+  if (!hojas) todo = false;
+  R.style.display = ""; R.className = "res " + (todo ? "ok" : "ko");
+  R.innerHTML = todo ? "✅ Listo. Ya puedes usar ScoutFlow sin conexión en este aparato. Pruébalo en modo avión." : "⚠️ Falta algo (en rojo). Sigue lo que dice y vuelve a pulsar «Preparar ahora». Si sigue fallando, haz una captura de esta pantalla.";
+}
+document.getElementById("b").onclick = preparar;
+</script></body></html>
