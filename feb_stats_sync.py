@@ -1180,16 +1180,28 @@ _COLUMNAS_EQUIPO = ("Equipo", "Local", "Equipo Local", "EquipoLocal", "Equipo_Lo
 
 
 def _con_columna_grupo(df: pd.DataFrame) -> pd.DataFrame:
-    if df is None or df.empty or "Grupo" in df.columns:
-        return df
-    if len(set(GRUPO_DE_EQUIPO.values())) < 2:
+    if df is None or df.empty or len(set(GRUPO_DE_EQUIPO.values())) < 2:
         return df
     col = next((c for c in _COLUMNAS_EQUIPO if c in df.columns), None)
     if not col:
         return df
+    calc = [GRUPO_DE_EQUIPO.get(normalizar_equipo(str(v)), "") for v in df[col]]
     df = df.copy()
-    df["Grupo"] = [GRUPO_DE_EQUIPO.get(normalizar_equipo(str(v)), "") for v in df[col]]
+    if "Grupo" in df.columns:
+        # pestañas que ya traen grupo (o filas nuevas añadidas a una pestaña vieja): se rellenan los huecos
+        actual = df["Grupo"].fillna("").astype(str)
+        df["Grupo"] = [a if a.strip() and a.strip().lower() != "nan" else c for a, c in zip(actual, calc)]
+    else:
+        df["Grupo"] = calc
     return df
+
+
+def falta_columna_grupo(df: pd.DataFrame) -> bool:
+    """True si a esta pestaña habría que ponerle la columna Grupo y aún no la tiene
+    (así se reescribe una vez aunque no haya partidos nuevos)."""
+    return (df is not None and not df.empty and "Grupo" not in df.columns
+            and len(set(GRUPO_DE_EQUIPO.values())) >= 2
+            and any(c in df.columns for c in _COLUMNAS_EQUIPO))
 
 
 def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, has_photos: bool = False):
@@ -3271,7 +3283,7 @@ def main():
         partidos_df, n_nuevos = fetch_estadisticas_partidos(sh, resultados_df)
         partidos_df, raros = aplicar_canonicos(partidos_df, canonicos)
         nombres_raros |= raros
-        if n_nuevos:
+        if n_nuevos or falta_columna_grupo(partidos_df):
             write_dataframe(sh, TAB_PARTIDOS, partidos_df)
         n_part = partidos_df["PartidoID"].nunique() if not partidos_df.empty else 0
         resumen.append(f"{TAB_PARTIDOS}: {n_part} partidos ({n_nuevos} nuevos)")
@@ -3312,7 +3324,7 @@ def main():
         detalle_q, _ = aplicar_canonicos(detalle_q, canonicos)
         resumen_q, raros = aplicar_canonicos(resumen_q, canonicos)
         nombres_raros |= raros
-        if nuevos_q:
+        if nuevos_q or falta_columna_grupo(detalle_q):
             write_dataframe(sh, TAB_QUINTETOS_PARTIDO, detalle_q)
         if not resumen_q.empty:
             write_dataframe(sh, TAB_QUINTETOS, resumen_q)
