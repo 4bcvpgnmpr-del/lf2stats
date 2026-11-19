@@ -3480,7 +3480,7 @@ function libroHtml(r, imp) {
     <div class="lb-cab"><div class="lb-eq"><small>LOCAL</small><b>${esc(nom[0])}</b></div><div class="lb-sc"><span>${r.p[0]}</span><i>–</i><span>${r.p[1]}</span></div><div class="lb-eq d"><small>RIVAL</small><b>${esc(nom[1])}</b></div></div>
     <div class="lb-sub"><span class="lb-res" style="background:${res[1]}">${res[0]}${r.p[0] !== r.p[1] ? " por " + Math.abs(r.p[0] - r.p[1]) : ""}</span><span>${fechaTxt(r.fecha)}</span></div>
     ${destH}${comp}${par}${tj}${rivT}${jg}
-    ${conQ.length > 1 || mitOk ? `<details class="lb-det" ${imp ? "open" : ""}><summary>Detalle por ${conQ.length > 1 ? "cuartos" : "mitades"}</summary>${det}</details>` : `<p class="peq" style="margin:12px 0 0;">Este partido se trajo de la FEB ya terminado: la FEB solo da el total, por eso no hay detalle por cuartos. Para tenerlo, deja el modo partido abierto con ⏱ Auto durante el partido.</p>`}</div>`;
+    ${conQ.length > 1 || mitOk ? `<details class="lb-det" ${imp ? "open" : ""}><summary>Detalle por ${conQ.length > 1 ? "cuartos" : "mitades"}</summary>${det}</details>` : `<p class="peq" style="margin:12px 0 0;">Este partido se trajo de los datos oficiales ya terminado: así solo llega el total, por eso no hay detalle por cuartos. Para tenerlo, deja el modo partido abierto con ⏱ Auto durante el partido.</p>`}</div>`;
 }
 function pintarLibro(v) {
   const L = librosPartido();
@@ -4255,7 +4255,7 @@ function centroVideo() {
     const ops = [["＋ Nueva lista…", async () => { const n = prompt("Nombre de la lista", ""); if (!n || !n.trim()) return; const ahora = new Date().toISOString(); listas.push({ id: "l" + Date.now().toString(36), titulo: n.trim(), creador: "Entrenador", creada: ahora, actualizada: ahora, fav: false, items: ids }); if (await guardarListas(listas)) { sel.clear(); pintaListas(); pintaTabla(); aviso("Lista creada ✓"); } }]]
       .concat(listas.map(l => ["Añadir a «" + l.titulo + "»", async () => { l.items = [...l.items, ...ids.filter(i => !l.items.includes(i))]; l.actualizada = new Date().toISOString(); if (await guardarListas(listas)) { sel.clear(); pintaListas(); pintaTabla(); aviso("Añadidos ✓"); } }]));
     ops.push(["📅 Asignar a un partido…", async () => {
-      if (!OPP) OPP = await partidosOpciones(); if (!OPP.length) { aviso("No hay partidos en la hoja de la FEB"); return; }
+      if (!OPP) OPP = await partidosOpciones(); if (!OPP.length) { aviso("No hay partidos en la hoja de la liga"); return; }
       const eqs = [...new Set(ids.map(i => (todos.find(t => t.id === i).m.equipo || "").trim()).filter(Boolean))], eqU = eqs.length === 1 ? eqs[0] : "";
       const d = document.createElement("div"); d.className = "cvPop"; d.style.cssText = "left:50%;top:30%;transform:translateX(-50%);padding:14px;min-width:min(420px,92vw)"; d.innerHTML = `<b style="display:block;margin-bottom:8px">Partido de ${ids.length} clip(s)</b><label style="font-size:12px;color:#8b95a3">Equipo del vídeo (el rival)</label><select id="cvPE" style="width:100%;padding:8px;margin:2px 0 8px;background:#0f151c;color:#e6ebf1;border:1px solid #2c3744;border-radius:6px"><option value="">Todos los equipos</option>${equiposOPP(OPP).map(t => `<option ${eqU && calMismo(t, eqU) ? "selected" : ""}>${esc(t)}</option>`).join("")}</select><select id="cvPS" style="width:100%;padding:8px;background:#0f151c;color:#e6ebf1;border:1px solid #2c3744;border-radius:6px"><option value="">— Quitar partido —</option>${opcionesPartido(OPP, eqU)}</select><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button id="cvPN">Cancelar</button><button id="cvPG" style="background:#e0602a;color:#fff">Asignar</button></div>`;
       document.body.appendChild(d); document.getElementById("cvPN").onclick = () => d.remove();
@@ -4419,7 +4419,7 @@ function formEquipo() {
 }
 /* ------------ calendario: partidos de la FEB + entrenos y partidos de otras categorías ------------ */
 const CAL = { ev: null, mes: null, vista: null, feb: null, febEstado: "", filtro: { feb: true, entreno: true, partido: true, otro: true, plan: true }, cat: "" };
-const CAL_TIPOS = { feb: { n: "Mi equipo (FEB)", c: "#1b2432", i: "🏀" }, entreno: { n: "Entrenamiento", c: "#2f9e83", i: "🎯" }, partido: { n: "Partido", c: "#e0602a", i: "🏆" }, otro: { n: "Otro", c: "#7b61ff", i: "📌" }, plan: { n: "Plan de entreno", c: "#2f80ed", i: "📋" } };
+const CAL_TIPOS = { feb: { n: "Mi equipo (liga)", c: "#1b2432", i: "🏀" }, entreno: { n: "Entrenamiento", c: "#2f9e83", i: "🎯" }, partido: { n: "Partido", c: "#e0602a", i: "🏆" }, otro: { n: "Otro", c: "#7b61ff", i: "📌" }, plan: { n: "Plan de entreno", c: "#2f80ed", i: "📋" } };
 const CAL_MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const CAL_DIAS = ["L", "M", "X", "J", "V", "S", "D"], CAL_DIAS_L = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const calISO = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -4678,7 +4678,7 @@ function pintarInicio(v) {
   const IH = (d) => '<svg class="ico" viewBox="0 0 24 24">' + d + "</svg>";
   let tarjP;
   if (part) { const p = part.feb, casa = part.casa; tarjP = `<div class="ini-next"><small>PRÓXIMO PARTIDO · ${esc(corto(part.fecha)).toUpperCase()}${part.hora ? " · " + esc(part.hora) : ""}</small><div class="vs">${esc(p.local)} <span>vs</span> ${esc(p.visitante)}</div><p>${casa ? "🏠 En casa" : "🚌 Fuera de casa"}${p.jornada ? " · Jornada " + esc(p.jornada) : ""}</p><div class="bt"><button id="iniPart" class="blanco">Modo partido</button><button id="iniCal" class="cristal">Ver calendario</button></div></div>`; }
-  else tarjP = `<div class="ini-next"><small>PRÓXIMO PARTIDO</small><div class="vs">${eq ? "Sin partidos próximos" : "Elige tu equipo"}</div><p>${eq ? "Cuando haya partidos en la hoja de la FEB aparecerán aquí." : "Elígelo en el calendario para ver aquí tus partidos."}</p><div class="bt"><button id="iniCal" class="blanco">Abrir calendario</button></div></div>`;
+  else tarjP = `<div class="ini-next"><small>PRÓXIMO PARTIDO</small><div class="vs">${eq ? "Sin partidos próximos" : "Elige tu equipo"}</div><p>${eq ? "Cuando haya partidos de tu liga aparecerán aquí." : "Elígelo en el calendario para ver aquí tus partidos."}</p><div class="bt"><button id="iniCal" class="blanco">Abrir calendario</button></div></div>`;
   const tarjE = ent ? `<div class="ini-kpi"><span>Próximo entreno</span><b>${esc(ent.hora || "—")}</b><span>${esc(corto(ent.fecha))}${ent.cat ? " · " + esc(ent.cat) : ""}</span><div class="ch"><span class="chip">${esc(ent.titulo)}</span></div></div>`
     : `<div class="ini-kpi"><span>Próximo entreno</span><b>—</b><span>Nada programado</span><div class="ch"><button class="gris" id="iniCal2">Programar</button></div></div>`;
   const tarjB = `<div class="ini-kpi"><span>Tu biblioteca</span><div class="nums"><div><b>${D.jugadas.length}</b><span>jugadas</span></div><div><b>${D.ejercicios.length}</b><span>ejercicios</span></div><div><b>${D.planes.length}</b><span>planes</span></div></div></div>`;
@@ -4702,7 +4702,7 @@ function pintarCalendario(v) {
   if (!CAL.vista) CAL.vista = esMovil() ? "agenda" : "mes";
   if (!CAL.feb && CAL.febEstado !== "cargando") calCargarFeb().then(() => { if (seccion === "calendario" && $("calCuerpo")) calPintar(); });
   v.innerHTML = `<div class="cab"><h2>Calendario</h2><span class="esp"></span>
-      <button class="gris" id="calEq" title="Equipo de la FEB que se sincroniza">⭐ <span id="calEqT"></span></button>
+      <button class="gris" id="calEq" title="Equipo de tu liga que se sincroniza">⭐ <span id="calEqT"></span></button>
       <button class="gris" id="calIcs" title="Descargar para Apple Calendar, Google Calendar…">⬇ .ics</button>
       ${puedeEscribir ? '<button class="naranja" id="calNuevo">＋ Nuevo evento</button>' : ""}</div>
     <div class="cal-bar"><div class="cal-nav"><button class="gris" id="calPrev" aria-label="Mes anterior">‹</button><b id="calTit"></b><button class="gris" id="calNext" aria-label="Mes siguiente">›</button><button class="gris" id="calHoy">Hoy</button></div>
@@ -4750,8 +4750,8 @@ function calPintar() {
   $("calCuerpo").innerHTML = h;
   $("calCuerpo").querySelectorAll("[data-d]").forEach(c => c.onclick = (ev) => { if (ev.target.closest("[data-e]")) return; calDia(c.dataset.d); });
   document.querySelectorAll("#vista [data-e]").forEach(c => c.onclick = (ev) => { ev.stopPropagation(); const e = evs.find(x => x.id === c.dataset.e); if (e) calAbrir(e); });
-  const msg = { cargando: "Cargando partidos de la FEB…", cache: "📴 Partidos de la FEB de la última vez (sin conexión).", error: "No se pudieron leer los partidos de la FEB. Revisa tu conexión.", ok: "" }[CAL.febEstado] || "";
-  $("calPie").textContent = !eq ? "Elige tu equipo con ⭐ para que sus partidos de la FEB aparezcan solos." : msg;
+  const msg = { cargando: "Cargando partidos de tu liga…", cache: "📴 Partidos de tu liga de la última vez (sin conexión).", error: "No se pudieron leer los partidos de tu liga. Revisa tu conexión.", ok: "" }[CAL.febEstado] || "";
+  $("calPie").textContent = !eq ? "Elige tu equipo con ⭐ para que sus partidos de la liga aparezcan solos." : msg;
 }
 function calAbrir(e) {
   if (e.plan) { abrirPlan(e.plan); return; }
@@ -4759,7 +4759,7 @@ function calAbrir(e) {
     const p = e.feb, r = calResultado(p);
     ventana(`<h3>${CAL_TIPOS.feb.i} ${esc(p.local)} — ${esc(p.visitante)}</h3><p class="peq" style="margin:0 0 10px;">${esc(calFecha(p.fecha).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}${p.hora ? " · " + esc(p.hora) : ""}</p>
       ${r ? `<div class="cal-res ${r.gano ? "g" : "p"}">${r.gano ? "Victoria" : "Derrota"} ${p.pl}–${p.pv}</div>` : '<p class="peq">Aún sin jugar.</p>'}
-      <p class="peq">${[p.fase, p.jornada].filter(Boolean).map(esc).join(" · ")}</p><p class="peq">Este partido viene de la FEB y se actualiza solo.</p>
+      <p class="peq">${[p.fase, p.jornada].filter(Boolean).map(esc).join(" · ")}</p><p class="peq">Este partido viene de tu liga y se actualiza solo.</p>
       <div class="pie-m"><button class="gris" id="cfX">Cerrar</button>${puedeEscribir ? '<button class="naranja" id="cfN">＋ Anotar en mi calendario</button>' : ""}</div>`);
     $("cfX").onclick = cerrarVentana; if ($("cfN")) $("cfN").onclick = () => calForm(null, p.fecha, { tipo: "otro", titulo: "Preparar: " + e.titulo, hora: "", cat: e.cat });
     return;
@@ -4815,7 +4815,7 @@ function calElegirEquipo() {
   if (SIN_STATS) return;
   const lista = []; (CAL.feb || []).flatMap(p => [p.local, p.visitante]).map(t => String(t || "").replace(/\s+/g, " ").trim()).filter(Boolean).forEach(t => { const i = lista.findIndex(u => calMismo(u, t)); if (i < 0) lista.push(t); else if (t.length < lista[i].length) lista[i] = t; });
   lista.sort((a, b) => a.localeCompare(b, "es")); const eq = calMiEq();
-  ventana(`<h3>Mi equipo en la FEB</h3><p class="peq" style="margin:0 0 6px;">Sus partidos (fecha, hora y resultado) aparecen solos en el calendario.</p>
+  ventana(`<h3>Mi equipo en la liga</h3><p class="peq" style="margin:0 0 6px;">Sus partidos (fecha, hora y resultado) aparecen solos en el calendario.</p>
     <label>Equipo</label><select id="ceqS"><option value="">— Ninguno —</option>${lista.map(t => `<option${calMismo(t, eq) && calNorm(t) === calNorm(eq) ? " selected" : ""}>${esc(t)}</option>`).join("")}</select>
     ${lista.length ? "" : '<p class="peq">No se pudo leer la lista de equipos todavía. Cierra y vuelve a probar en unos segundos.</p>'}
     <div class="pie-m"><button class="gris" id="ceqX">Cancelar</button><button class="naranja" id="ceqG">Guardar</button></div>`);

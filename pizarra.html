@@ -3141,7 +3141,7 @@ function iniciarPartido() {
     const FEB = { auto: false, t: null, msg: "" };
     const nzero = () => ({ reb: 0, ro: 0, per: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, as: 0, rob: 0, tap: 0, fr: 0 });
     const febAplicar = (d) => {
-      const eqs = d.equipos || []; if (eqs.length < 2) throw new Error("La FEB aún no da datos de jugadoras");
+      const eqs = d.equipos || []; if (eqs.length < 2) throw new Error("La liga aún no da datos de jugadores/as");
       let mi = -1; try { const g = localStorage.getItem("scoutflow-feb-mi-" + d.id); mi = g === "0" ? 0 : g === "1" ? 1 : -1; } catch (e) { mi = -1; }
       if (mi < 0) {
         const pega = (a, b) => a && b && (a === b || a.includes(b) || b.includes(a));
@@ -3180,7 +3180,7 @@ function iniciarPartido() {
       guardarM(); pintarPl(); pintarM();
       const q = d.cuartos && d.cuartos.length ? " · cuarto " + d.cuartos[d.cuartos.length - 1].n : "";
       const avisoQ = M.febBase > 1 ? " · ⚠️ lo jugado hasta el " + (M.febBase === 5 ? "final" : M.febBase + "º cuarto") + " llegó junto: solo cuenta en el Total (para separar por cuartos, deja el modo partido abierto con ⏱ Auto durante el partido)" : "";
-      FEB.msg = "📡 FEB actualizada " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "") + avisoQ;
+      FEB.msg = "📡 Datos oficiales actualizados " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + q + " · " + n + " jugadoras" + (sin ? " · " + sin + " tuyas sin emparejar (revisa dorsal/nombre en ✏️ Jugadoras)" : "") + avisoQ;
     };
     const febTraer = async (callado) => {
       let id = ""; try { id = localStorage.getItem("scoutflow-feb-partido") || ""; } catch (e) { /* nada */ }
@@ -3190,8 +3190,8 @@ function iniciarPartido() {
         try { localStorage.setItem("scoutflow-feb-partido", id); } catch (e) { /* nada */ }
       }
       if (!id) return;
-      if (!nube) { aviso("Hace falta conexión con la nube para traer datos de la FEB"); return; }
-      FEB.msg = "📡 Pidiendo datos a la FEB…"; if (EP.classList.contains("ver")) pintarEs();
+      if (!nube) { aviso("Hace falta conexión con la nube para traer los datos oficiales"); return; }
+      FEB.msg = "📡 Pidiendo los datos oficiales…"; if (EP.classList.contains("ver")) pintarEs();
       try {
         let r = null, ult = "";
         for (const fn of ["feb-directo", "super-action", "clever-endpoint"]) {
@@ -3205,7 +3205,7 @@ function iniciarPartido() {
         }
         if (r && r.error) throw new Error(ult);
         febAplicar(r.data);
-      } catch (e) { FEB.msg = "⚠️ No se pudo traer de la FEB (" + (e.message || e) + "). Sigue con el panel manual."; if (!callado) aviso("FEB no disponible: usa el panel manual"); }
+      } catch (e) { FEB.msg = "⚠️ No se pudieron traer los datos oficiales (" + (e.message || e) + "). Sigue con el panel manual."; if (!callado) aviso("Datos oficiales no disponibles: usa el panel manual"); }
       if (EP.classList.contains("ver")) pintarEs();
     };
     /* ---- traer el equipo rival (plantilla de la hoja de la FEB): salen dorsal y nombre ---- */
@@ -3378,7 +3378,7 @@ function iniciarPartido() {
         <div class="kp"><div><b>${pts}</b><small>PUNTOS</small></div><div><b>${o.reb}</b><small>REBOTES</small></div><div class="${val < 0 ? "neg" : "val"}"><b>${val}</b><small>VALORACIÓN</small></div><div><b>${o.per}</b><small>PÉRDIDAS</small></div><div><b>${v === "tot" ? fT : o.as}</b><small>${v === "tot" ? "FALTAS" : "ASIST."}</small></div></div>
         <h4>Tiro · ${esc(nomP[v])}</h4><div class="tir">${tiro("2P", o.t2m, o.t2a, "#4dabf7")}${tiro("3P", o.t3m, o.t3a, "#ffa94d")}${tiro("TL", o.tlm, o.tla, "#8ce99a")}</div>
         <div class="pt">Tiros de campo ${o.t2m + o.t3m}/${ta}${ta ? " · eFG " + efg + "%" : ""}${o.ro ? " · " + o.ro + " reb. ofensivos" : ""}${o.rob ? " · " + o.rob + " robos" : ""}</div>
-        <h4>Puntos por cuarto</h4>${hayQ ? `<div class="evo">${evo.map(e => `<div class="${e.q === v ? "on" : ""}"><b>${e.pts}</b><i style="height:${Math.round(78 * e.pts / mx)}%"></i><span>${e.q === "q5" ? "Pr." : e.q.slice(1) + "º"}</span></div>`).join("")}</div>` : `<div class="pt">${soloTot ? "El partido se trajo de la FEB ya avanzado: solo hay total, no reparto por cuartos." : "Sin datos por cuartos todavía."}</div>`}
+        <h4>Puntos por cuarto</h4>${hayQ ? `<div class="evo">${evo.map(e => `<div class="${e.q === v ? "on" : ""}"><b>${e.pts}</b><i style="height:${Math.round(78 * e.pts / mx)}%"></i><span>${e.q === "q5" ? "Pr." : e.q.slice(1) + "º"}</span></div>`).join("")}</div>` : `<div class="pt">${soloTot ? "Los datos oficiales llegaron con el partido ya avanzado: solo hay total, no reparto por cuartos." : "Sin datos por cuartos todavía."}</div>`}
         <h4>Qué mejorar y qué hace bien</h4><div class="ins">${bloques}</div></div>`;
       $("fjC").onclick = () => FJD.classList.remove("ver");
       FJD.querySelectorAll("[data-fv]").forEach(b => b.onclick = () => { FJ.v = b.dataset.fv; pintarFJ(); });
@@ -3401,7 +3401,7 @@ function iniciarPartido() {
         <div class="es-h">
           <div class="seg seg2"><button id="esAn" class="${anotar ? "on" : ""}">✍️ Anotar</button><button id="esRes" class="${!anotar ? "on" : ""}">📋 Resumen</button></div>
           <span style="flex:1"></span>
-          <div class="es-feb"><button id="esFeb" title="Traer los datos de la FEB">📡 FEB</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar sola cada 30 s">${FEB.auto ? "Auto ✓" : "Auto"}</button></div></div>
+          <div class="es-feb"><button id="esFeb" title="Traer los datos oficiales del partido (acta en directo)">📡 Datos oficiales</button><button id="esFebA" class="${FEB.auto ? "on" : ""}" title="Actualizar sola cada 30 s">${FEB.auto ? "Auto ✓" : "Auto"}</button></div></div>
         ${FEB.msg ? `<div class="es-msg">${FEB.msg}</div>` : ""}
         ${anotar
           ? `<div class="es-h"><span class="lbl">Cuarto</span><div class="seg">${[1, 2, 3, 4, 5].map(n => `<button data-pp="${n}" class="${M.per === n ? "on" : ""}">${n === 5 ? "Prórr." : n + "º"}</button>`).join("")}</div></div>`
@@ -3412,7 +3412,7 @@ function iniciarPartido() {
           <div class="bt">${g(kk, "reb", `REB <i>${o.reb}</i>`, "n")}${g(kk, "per", `PÉRD <i>${o.per}</i>`, "n")}</div>
           <div class="tr"><span>2P <i>${o.t2m}/${o.t2a}</i></span>${g(kk, "t2m", "✓", "ok")}${g(kk, "t2x", "✗", "ko")}</div>
           <div class="tr"><span>3P <i>${o.t3m}/${o.t3a}</i></span>${g(kk, "t3m", "✓", "ok")}${g(kk, "t3x", "✗", "ko")}</div>
-          <div class="tr"><span>TL <i>${o.tlm}/${o.tla}</i></span>${g(kk, "tlm", "✓", "ok")}${g(kk, "tlx", "✗", "ko")}</div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadores/as todavía: pulsa 📡 FEB o «✏️ Jugadores/as».</div>'}
+          <div class="tr"><span>TL <i>${o.tlm}/${o.tla}</i></span>${g(kk, "tlm", "✓", "ok")}${g(kk, "tlx", "✗", "ko")}</div></div>`; }).join("") : '<div style="opacity:.65;padding:8px;">Sin jugadores/as todavía: pulsa 📡 Datos oficiales o «✏️ Jugadores/as».</div>'}
         ${ESV.eq === 1 && anotar ? '<div class="es-h" style="margin-top:6px;"><button id="esRvEq" style="background:#2b8a3e;">👥 Traer equipo rival</button><button id="esRv">＋ Dorsal rival</button><button id="esRvEd">✏️ Editar rival</button></div>' : ""}
         ${anotar ? `<div class="es-pie"><button id="esUn">↶ Deshacer</button><button id="esCo" class="${ESV.corr ? "rojo" : ""}">${ESV.corr ? "➖ Corrigiendo" : "➖ Corregir"}</button><button id="esEd">✏️ Jugadores/as</button></div>` : ""}
       </div>`;
@@ -3462,7 +3462,7 @@ function iniciarPartido() {
       const ed = leerEd(), base = RAW.filter(j => !(ed.ov[j.id] && ed.ov[j.id].del));
       const fila = (id, num, nom, extra) => `<div class="er" data-id="${esc(id)}" data-x="${extra ? 1 : 0}"><input class="en" inputmode="numeric" placeholder="Nº" value="${esc(String(num == null ? "" : num))}"><input class="eo" placeholder="Nombre" value="${esc(nom)}"><button class="eq" title="Quitar">✕</button></div>`;
       ED.innerHTML = `<div class="ed"><h4>Jugadoras (nombre y dorsal)</h4><div id="edL">${base.map(j => { const o = ed.ov[j.id] || {}; return fila(j.id, o.num != null ? o.num : j.num, o.nombre != null ? o.nombre : j.nombre, false); }).join("")}${ed.extra.map(j => fila(j.id, j.num, j.nombre, true)).join("")}</div>
-        <div class="pie"><button id="edAdd">＋ Añadir jugadora</button><button id="edRes" title="Vuelve a los datos de la FEB">Restaurar</button><button id="edOk" style="background:#e8590c;">Guardar</button></div></div>`;
+        <div class="pie"><button id="edAdd">＋ Añadir jugadora</button><button id="edRes" title="Vuelve a los datos oficiales">Restaurar</button><button id="edOk" style="background:#e8590c;">Guardar</button></div></div>`;
       ED.classList.add("ver");
       const nueva = () => { const l = $("edL"); l.insertAdjacentHTML("beforeend", fila("x" + Date.now().toString(36) + Math.floor(Math.random() * 99), "", "", true)); l.lastElementChild.querySelector(".eo").focus(); wire(); };
       const wire = () => ED.querySelectorAll(".eq").forEach(b => b.onclick = () => { const r = b.closest(".er"); r.dataset.del = "1"; r.style.display = "none"; });
