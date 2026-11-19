@@ -2313,8 +2313,8 @@ const LIGAS = [
   { id: "challenge", n: "LF Challenge", sheet: SHEET_ID_CHALLENGE },
   { id: "lfendesa", n: "Liga Femenina Endesa", sheet: "1wCPiSaFF-OPE3rRuSBVlryk1WNFr7ImBUyw1satVqtM" },
   { id: "primerafeb", n: "Primera FEB", sheet: "16_Zw83dtWVwPB0tyTEWgM74yqXdELh6AHuthFa35Emw" },
-  { id: "segundafeb", n: "Segunda FEB", sheet: "1Q12aUaret19Y6pd-LpMpdg0nrb55Gf2B8lYAi_xICaw" },
-  { id: "tercerafeb", n: "Tercera FEB", sheet: "1xmmIVHdraS_H1jZtmgmrGfV4njrFzbkSpf8qgWQ9X8Y" },
+  { id: "segundafeb", n: "Segunda FEB", sheet: "1Q12aUaret19Y6pd-LpMpdg0nrb55Gf2B8lYAi_xICaw", porGrupo: true },
+  { id: "tercerafeb", n: "Tercera FEB", sheet: "1xmmIVHdraS_H1jZtmgmrGfV4njrFzbkSpf8qgWQ9X8Y", porGrupo: true },
 ];
 let ligaActiva = "lf2";
 try {
@@ -2325,6 +2325,12 @@ try {
 { const q = new URLSearchParams(location.search).get("liga"); if (q && LIGAS.some(x => x.id === q && x.sheet)) ligaActiva = q; }
 const LIGA_ACTUAL = LIGAS.find(x => x.id === ligaActiva) || LIGAS[0];
 const LIGA_NOMBRE = LIGA_ACTUAL.n;
+/* Ligas enormes (Segunda y Tercera FEB): cada entrenador elige su grupo y solo se
+   descarga lo de ese grupo. Así el móvil no se atasca con cientos de equipos. */
+const GRUPO_KEY = "sf_grupo|" + LIGA_ACTUAL.id;
+let GRUPO_FIJO = "";
+if (LIGA_ACTUAL.porGrupo) { try { GRUPO_FIJO = localStorage.getItem(LSK(GRUPO_KEY)) || ""; } catch (e) { /* nada */ } }
+const grupoFiltrar = () => GRUPO_FIJO && GRUPO_FIJO !== "*";
 const SHEET_ID = LIGA_ACTUAL.sheet;
 
 /* ============================================================
@@ -2388,7 +2394,26 @@ let gvizCounter = 0;
 const sfIdb = (() => { let dbp = null; const db = () => dbp || (dbp = new Promise((ok, ko) => { try { const r = indexedDB.open("sf_hojas", 1); r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); } catch (e) { ko(e); } }));
   return { get: async (k) => { try { const d = await db(); return await new Promise((ok) => { const q = d.transaction("h").objectStore("h").get(k); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch (e) { return null; } },
            put: async (k, v) => { try { const d = await db(); d.transaction("h", "readwrite").objectStore("h").put(v, k); } catch (e) { /* nada */ } } }; })();
-async function fetchSheetTab(tabName, query, esperaMs) {
+/* letra de la columna "Grupo" de cada pestaña (null si no tiene) */
+const GRUPO_COL = {};
+async function columnaGrupo(tabName) {
+  if (tabName in GRUPO_COL) return GRUPO_COL[tabName];
+  const k = "sf_gcol|" + SHEET_ID + "|" + tabName + sufijoTemporada();
+  try { const g = localStorage.getItem(k); if (g) return (GRUPO_COL[tabName] = g); } catch (e) { /* nada */ }
+  let letra = null;
+  try { const d = await fetchSheetTab(tabName, "select * limit 1", 15000, true); const c = d.cols.find(x => x.label === "Grupo"); letra = c ? c.id : null; } catch (e) { return null; }
+  GRUPO_COL[tabName] = letra; if (letra) { try { localStorage.setItem(k, letra); } catch (e) { /* nada */ } }   /* si aún no tiene columna, se vuelve a mirar otro día */
+  return letra;
+}
+async function fetchSheetTab(tabName, query, esperaMs, sinGrupo) {
+  if (grupoFiltrar() && !sinGrupo) {
+    const col = await columnaGrupo(tabName);
+    if (col) {
+      const cond = `${col} = '${GRUPO_FIJO.replace(/'/g, "")}'`;
+      const q = query ? (/\bwhere\b/i.test(query) ? query + " and " + cond : query + " where " + cond) : "select * where " + cond;
+      return fetchSheetTab(tabName, q, esperaMs, true);
+    }
+  }
   return new Promise((resolve, reject) => {
     const cbName = `__gvizCb_${gvizCounter++}`;
     const timeout = setTimeout(() => { cleanup(); fallar(new Error("TIMEOUT")); }, esperaMs || 15000);
@@ -17440,6 +17465,13 @@ function setGrupo(g) {
 }
 
 function prepararBarraGrupos() {
+  if (LIGA_ACTUAL.porGrupo) {   /* liga enorme: se muestra el grupo elegido y se puede cambiar */
+    const bar = document.getElementById("grupoBar"), box = document.getElementById("grupoButtons");
+    if (!bar || !box) return;
+    box.innerHTML = `<b style="align-self:center;">${grupoFiltrar() ? "Grupo " + escapeHtml(GRUPO_FIJO) : "Toda la liga"}</b><button id="gfCambiar">Cambiar grupo</button>`;
+    document.getElementById("gfCambiar").onclick = () => { try { localStorage.removeItem(LSK(GRUPO_KEY)); } catch (e) { /* nada */ } location.reload(); };
+    bar.style.display = "flex"; return;
+  }
   let grupos = datosLiga && datosLiga.equipos
     ? [...new Set(datosLiga.equipos.rows.map(r => r["Grupo"] ? r["Grupo"].display : "").filter(Boolean))].sort()
     : [];
@@ -17625,12 +17657,46 @@ function prepararSelectorTemporada() {
   });
 }
 
+/* Segunda/Tercera FEB: la primera vez se pregunta el grupo (se recuerda en este dispositivo) */
+async function prepararGrupoFijo() {
+  if (!LIGA_ACTUAL.porGrupo || GRUPO_FIJO) return;
+  let filas = [];
+  try { const d = await fetchSheetTab("Plantillas", "select A, B, count(C) group by A, B", 30000, true); filas = d.rows.map(r => [cellText(r, "Grupo"), cellText(r, "Equipo")]).filter(x => x[0]); } catch (e) { /* nada */ }
+  if (!filas.length) return;   /* sin plantillas todavía: se carga la liga entera */
+  const grupos = {}; filas.forEach(([g, e]) => { (grupos[g] = grupos[g] || []).push(e); });
+  const claves = Object.keys(grupos).sort();
+  if (claves.length < 2) return;
+  await new Promise((ok) => {
+    const d = document.createElement("div");
+    d.style.cssText = "position:fixed;inset:0;background:rgba(10,14,22,.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px;";
+    d.innerHTML = `<div style="background:#fff;color:#1d2433;border-radius:16px;max-width:560px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);">
+      <div style="padding:18px 18px 8px;"><div style="font-size:20px;font-weight:800;">¿En qué grupo juegas?</div>
+      <div style="font-size:14px;color:#5b6475;margin-top:4px;">${escapeHtml(LIGA_NOMBRE)} tiene ${claves.length} grupos. Elige el tuyo y la app irá mucho más rápida. Puedes cambiarlo cuando quieras.</div>
+      <input id="gfBus" placeholder="Busca tu equipo…" style="margin-top:10px;width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d5dae3;border-radius:10px;font-size:15px;"></div>
+      <div id="gfLista" style="overflow:auto;padding:4px 18px 10px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="padding:10px 18px 16px;border-top:1px solid #eef0f4;text-align:center;"><button id="gfTodos" style="background:none;border:0;color:#5b6475;text-decoration:underline;font-size:13px;cursor:pointer;">Ver toda la liga (más lento)</button></div></div>`;
+    document.body.appendChild(d);
+    const elegir = (g) => { GRUPO_FIJO = g; try { localStorage.setItem(LSK(GRUPO_KEY), g); } catch (e) { /* nada */ } d.remove(); ok(); };
+    const pintar = () => {
+      const q = (d.querySelector("#gfBus").value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const nz = (t) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      d.querySelector("#gfLista").innerHTML = claves.filter(g => !q || grupos[g].some(e => nz(e).includes(q))).map(g =>
+        `<button data-g="${escapeAttr(g)}" style="text-align:left;background:#f6f7fa;border:1px solid #e3e6ec;border-radius:12px;padding:10px 12px;cursor:pointer;">
+          <div style="font-weight:800;font-size:16px;color:#b4470f;">Grupo ${escapeHtml(g)}</div>
+          <div style="font-size:12.5px;color:#5b6475;margin-top:3px;line-height:1.35;">${grupos[g].map(e => q && nz(e).includes(q) ? "<b style='color:#1d2433'>" + escapeHtml(e) + "</b>" : escapeHtml(e)).join(" · ")}</div></button>`).join("") || '<div style="color:#5b6475;padding:10px 0;">No encuentro ese equipo.</div>';
+      d.querySelectorAll("[data-g]").forEach(b => b.onclick = () => elegir(b.getAttribute("data-g")));
+    };
+    d.querySelector("#gfBus").oninput = pintar; d.querySelector("#gfTodos").onclick = () => elegir("*");
+    pintar();
+  });
+}
+
 console.log("ScoutFlow - version", VERSION_APP, "· temporada", temporadaActiva);
 prepararSelectorLiga();
 prepararSelectorTemporada();
 document.getElementById("lastUpdated").textContent = "Cargando... (v" + VERSION_APP + ")";
-Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
-             loadRankingExtras(), loadClasificacion()]).then(() => {
+prepararGrupoFijo().then(() => Promise.all([loadEquipos(), loadJugadoras(), loadPlantillas(), loadResultados(),
+             loadRankingExtras(), loadClasificacion()])).then(() => {
   const completas = buildJugadorasCompletas();
   if (completas.rows.length) jugadoras = completas;
 
