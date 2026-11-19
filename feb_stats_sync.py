@@ -1172,11 +1172,32 @@ def _protege_minutos(celda):
     return "'" + celda if isinstance(celda, str) and RE_TIEMPO.match(celda.strip()) else celda
 
 
+# Equipo (normalizado) -> grupo. Se rellena en main() con Equipos y Plantillas.
+# Sirve para poner una columna "Grupo" al final de cada pestaña: asi la app puede
+# pedir a Google solo las filas del grupo del entrenador (Segunda y Tercera FEB).
+GRUPO_DE_EQUIPO: dict = {}
+_COLUMNAS_EQUIPO = ("Equipo", "Local", "Equipo Local", "EquipoLocal", "Equipo_Local")
+
+
+def _con_columna_grupo(df: pd.DataFrame) -> pd.DataFrame:
+    if df is None or df.empty or "Grupo" in df.columns:
+        return df
+    if len(set(GRUPO_DE_EQUIPO.values())) < 2:
+        return df
+    col = next((c for c in _COLUMNAS_EQUIPO if c in df.columns), None)
+    if not col:
+        return df
+    df = df.copy()
+    df["Grupo"] = [GRUPO_DE_EQUIPO.get(normalizar_equipo(str(v)), "") for v in df[col]]
+    return df
+
+
 def write_dataframe(sh: gspread.Spreadsheet, tab_name: str, df: pd.DataFrame, has_photos: bool = False):
     """Escribe (sobrescribiendo) un DataFrame en una pestaña y le da formato.
     RAW salvo en pestañas con formulas =IMAGE(...).
     El nombre lleva el sufijo de la temporada que se este procesando."""
     tab_name = tab(tab_name)
+    df = _con_columna_grupo(df)
 
     # Red de seguridad: si la FEB cambia algo y la descarga sale vacia o se
     # queda a menos de la mitad de lo que ya habia, no se pisa lo bueno.
@@ -3180,6 +3201,12 @@ def main():
             n = normalizar_equipo(nombre)
             if n:
                 canonicos.setdefault(n, nombre.strip())
+    for _df in (equipos_df, plantillas_df):
+        if _df is not None and not _df.empty and {"Equipo", "Grupo"} <= set(_df.columns):
+            for _eq, _gr in zip(_df["Equipo"].astype(str), _df["Grupo"].astype(str)):
+                if _gr.strip():
+                    GRUPO_DE_EQUIPO.setdefault(normalizar_equipo(_eq), _gr.strip())
+    print(f"  [grupos] {len(GRUPO_DE_EQUIPO)} equipos con grupo", file=sys.stderr)
     nombres_raros = set()
     print(f"  [nombres] {len(canonicos)} equipos de referencia", file=sys.stderr)
 
