@@ -520,8 +520,9 @@ def _es_liga_regular(texto: str) -> bool:
 
 
 def _nombre_grupo(texto: str) -> str:
-    """'Liga Regular "A"' -> 'A'. Si no es un grupo de liga regular -> ''."""
-    m = re.search(r"liga\s+regular\W*([^\W_]+)", texto, re.I)
+    """'Liga Regular "A"' -> 'A'; 'Liga Regular "A-B"' -> 'A-B' (Tercera FEB).
+    Si no es un grupo de liga regular -> ''."""
+    m = re.search(r"liga\s+regular\W*([^\W_]+(?:-[^\W_]+)?)", texto, re.I)
     return m.group(1).upper() if m else ""
 
 
@@ -1481,11 +1482,26 @@ def fetch_plantillas() -> pd.DataFrame:
     """Plantilla oficial de todos los equipos, grupo a grupo."""
     session = requests.Session()
     porequipo = []
-    for grupo, competicion in _competiciones_envivo().items():
-        equipos = _equipos_de_grupo_envivo(session, competicion)
-        print(f"  [plantillas] grupo {grupo}: {len(equipos)} equipos", file=sys.stderr)
-        for id_equipo, nombre in equipos.items():
-            porequipo.append((grupo, id_equipo, nombre))
+    if os.environ.get("FEB_COMPETICIONES", "").strip().lower() == "auto":
+        # Ligas con muchos grupos (Segunda y Tercera FEB): los equipos de cada grupo
+        # se sacan de su pagina de resultados, sin tener que saber el numero de cada grupo.
+        vistos = set()
+        for _fase, grupo, _s, html, _u in _paginas_por_fase(RESULTADOS_URL):
+            g = "U" if grupo in ("", "UNICO", "ÚNICO") else grupo
+            soup = BeautifulSoup(html, "html.parser")
+            n = 0
+            for a in soup.find_all("a", href=True):
+                m = re.search(r"[?&]i=(\d+)", a["href"]) or re.search(r"/equipo/(\d+)", a["href"])
+                nombre = a.get_text(" ", strip=True)
+                if m and nombre and len(nombre) > 2 and m.group(1) not in vistos:
+                    vistos.add(m.group(1)); porequipo.append((g, m.group(1), nombre)); n += 1
+            print(f"  [plantillas] grupo {g}: {n} equipos", file=sys.stderr)
+    else:
+        for grupo, competicion in _competiciones_envivo().items():
+            equipos = _equipos_de_grupo_envivo(session, competicion)
+            print(f"  [plantillas] grupo {grupo}: {len(equipos)} equipos", file=sys.stderr)
+            for id_equipo, nombre in equipos.items():
+                porequipo.append((grupo, id_equipo, nombre))
 
     if not porequipo:
         return pd.DataFrame()
